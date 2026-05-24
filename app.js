@@ -114,7 +114,7 @@ function si2(s){return{ok:'✅',anomalia:'⚠️',scaduto:'❌',fuori_servizio:'
 function bs(s){const m={da_pianificare:'<span class="bx bgray">Da pianificare</span>',pianificato:'<span class="bx bblue">Pianificato</span>',completato:'<span class="bx bok">Completato</span>',bozza:'<span class="bx bgray">Bozza</span>',firmata:'<span class="bx berr">Da approvare</span>',approvata:'<span class="bx bwarn">Approvata</span>',inviata_cliente:'<span class="bx bok">Inviata cliente</span>',da_fatturare:'<span class="bx bpur">Da fatturare</span>',fatturata:'<span class="bx bok">Fatturata</span>'};return m[s]||`<span class="bx bgray">${s||'—'}</span>`;}
 function be(e){const m={conforme:'<span class="bx bok">Conforme</span>',conforme_osservazioni:'<span class="bx bwarn">Con osservazioni</span>',non_conforme:'<span class="bx berr">Non conforme</span>',non_conforme_urgente:'<span class="bx berr">URGENTE</span>'};return m[e]||`<span class="bx bgray">${e||'—'}</span>`;}
 function bc(s){return{attivo:'<span class="bx bok">Attivo</span>',prospect:'<span class="bx bblue">Prospect</span>',sospeso:'<span class="bx bwarn">Sospeso</span>',perso:'<span class="bx bgray">Perso</span>'}[s]||`<span class="bx bgray">${s||'—'}</span>`;}
-function ir(l,v2){return `<div style="padding:8px;background:var(--bg);border-radius:var(--rs)"><div style="font-size:11px;color:var(--m);margin-bottom:2px">${l}</div><div style="font-size:13px;font-weight:500">${v2||'—'}</div></div>`;}
+function ir(l,v2){return `<div style="padding:8px;background:var(--bg);border-radius:var(--rs)"><div style="font-size:11px;color:var(--m);margin-bottom:2px">${l}</div><div style="font-size:13px;font-weight:500">${esc(v2||'—')}</div></div>`;}
 
 // ── AUTH ──────────────────────────────────────────────────────
 async function doLogin(){
@@ -625,7 +625,7 @@ async function loadDash(){
   const {data:scl}=await db.from('impianti').select('tipo,matricola,ubicazione,data_prossimo_controllo,clienti(ragione_sociale)').lte('data_prossimo_controllo',in30).order('data_prossimo_controllo').limit(10);
   const ds=ge('dscad');
   if(!scl?.length){ds.innerHTML='<div class="empty">✅ Nessun presidio in scadenza nei prossimi 30 giorni</div>';}
-  else{ds.innerHTML=scl.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--bo);font-size:13px"><div><div style="font-weight:500">${esc(p.clienti?.ragione_sociale||'—')}</div><div style="color:var(--m);font-size:12px">${tpl(p.tipo)} ${esc(p.matricola?'#'+esc(p.matricola):'')} — ${esc(p.ubicazione||'')}</div></div><div style="text-align:right"><div class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)}</div><div style="font-size:11px;color:var(--m)">${dd2(p.data_prossimo_controllo)}</div></div></div>`).join('');}
+  else{ds.innerHTML=scl.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--bo);font-size:13px"><div><div style="font-weight:500">${esc(p.clienti?.ragione_sociale||'—')}</div><div style="color:var(--m);font-size:12px">${tpl(p.tipo)} ${p.matricola?'#'+esc(p.matricola):''} — ${esc(p.ubicazione||'')}</div></div><div style="text-align:right"><div class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)}</div><div style="font-size:11px;color:var(--m)">${dd2(p.data_prossimo_controllo)}</div></div></div>`).join('');}
 
   // Sezioni specifiche per ruolo
   ge('dash-segreteria') && (ge('dash-segreteria').style.display = ROLE==='segreteria'?'block':'none');
@@ -2096,7 +2096,7 @@ function renderPS(data){
   const in30=new Date(Date.now()+30*86400000),in90=new Date(Date.now()+90*86400000);
   const u=data.filter(p=>p.data_prossimo_controllo&&new Date(p.data_prossimo_controllo+'T00:00:00')<=in30);
   const pr=data.filter(p=>p.data_prossimo_controllo&&new Date(p.data_prossimo_controllo+'T00:00:00')>in30&&new Date(p.data_prossimo_controllo+'T00:00:00')<=in90);
-  const rl=(items,el)=>{if(!items.length){ge(el).innerHTML='<div class="empty" style="padding:20px">Nessuno ✅</div>';return;}ge(el).innerHTML=items.map(p=>`<div style="padding:10px;background:var(--bg);border-radius:var(--rs);margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-weight:500;font-size:13px">${esc(p.clienti?.ragione_sociale||'—')}</div><div style="font-size:12px;color:var(--m)">${tpl(p.tipo)} ${esc(p.matricola?'— #'+esc(p.matricola):'')}</div><div style="font-size:12px;color:var(--m)">${esc(p.ubicazione||'')}</div></div><div style="text-align:right"><div class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)}</div><div style="font-size:11px;color:var(--m)">${dd2(p.data_prossimo_controllo)}</div>${p.periodicita_mesi?`<div style="font-size:10px;color:var(--m)">ogni ${p.periodicita_mesi} mesi</div>`:''}</div></div></div>`).join('');};
+  const rl=(items,el)=>{if(!items.length){ge(el).innerHTML='<div class="empty" style="padding:20px">Nessuno ✅</div>';return;}ge(el).innerHTML=items.map(p=>`<div style="padding:10px;background:var(--bg);border-radius:var(--rs);margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-weight:500;font-size:13px">${esc(p.clienti?.ragione_sociale||'—')}</div><div style="font-size:12px;color:var(--m)">${tpl(p.tipo)} ${p.matricola?'— #'+esc(p.matricola):''}</div><div style="font-size:12px;color:var(--m)">${esc(p.ubicazione||'')}</div></div><div style="text-align:right"><div class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)}</div><div style="font-size:11px;color:var(--m)">${dd2(p.data_prossimo_controllo)}</div>${p.periodicita_mesi?`<div style="font-size:10px;color:var(--m)">ogni ${p.periodicita_mesi} mesi</div>`:''}</div></div></div>`).join('');};
   rl(u,'su');rl(pr,'sp2');
 }
 
@@ -2496,12 +2496,12 @@ async function openClienteDetail(id){
   // Carica tab anagrafica
   const sediHtml=await loadSediDetail(id);
   ge('cd-info-content').innerHTML=`
-    <div class="g2" style="margin-bottom:16px">${esc(ir('Ragione sociale',cli?.ragione_sociale)+ir('P.IVA',cli?.piva)+ir('Cod. fiscale',cli?.codice_fiscale)+ir('Referente',cli?.referente_nome)+ir('Telefono',cli?.referente_telefono)+ir('Email',cli?.referente_email)+ir('Città',cli?.citta)+ir('Tipo attività',cli?.tipo_attivita)+ir('Stato',cli?.stato))}</div>
+    <div class="g2" style="margin-bottom:16px">${ir('Ragione sociale',cli?.ragione_sociale)+ir('P.IVA',cli?.piva)+ir('Cod. fiscale',cli?.codice_fiscale)+ir('Referente',cli?.referente_nome)+ir('Telefono',cli?.referente_telefono)+ir('Email',cli?.referente_email)+ir('Città',cli?.citta)+ir('Tipo attività',cli?.tipo_attivita)+ir('Stato',cli?.stato)}</div>
     ${cli?.note_commerciali?`<div style="padding:12px;background:var(--bg);border-radius:var(--rs);font-size:13px;margin-bottom:16px">${esc(cli.note_commerciali)}</div>`:''}
     <div style="font-size:13px;font-weight:600;margin-bottom:10px">Sedi</div>
     ${sediHtml}
     <div style="font-size:13px;font-weight:600;margin:16px 0 10px">Dati fatturazione</div>
-    <div class="g2">${esc(ir('Rag. soc. fattura',cli?.ragione_sociale_fattura||cli?.ragione_sociale)+ir('Indirizzo fattura',cli?.indirizzo_fattura)+ir('CAP / Città',cli?.cap_fattura?cli.cap_fattura+' '+esc(cli.citta_fattura):cli?.citta_fattura)+ir('Codice SDI',cli?.codice_sdi)+ir('PEC',cli?.pec)+ir('Modalità pagamento',cli?.modalita_pagamento)+ir('Giorni pagamento',(cli?.giorni_pagamento||30)+'gg')+ir('IBAN',cli?.iban))}</div>
+    <div class="g2">${ir('Rag. soc. fattura',cli?.ragione_sociale_fattura||cli?.ragione_sociale)+ir('Indirizzo fattura',cli?.indirizzo_fattura)+ir('CAP / Città',cli?.cap_fattura?cli.cap_fattura+' '+cli.citta_fattura:cli?.citta_fattura)+ir('Codice SDI',cli?.codice_sdi)+ir('PEC',cli?.pec)+ir('Modalità pagamento',cli?.modalita_pagamento)+ir('Giorni pagamento',(cli?.giorni_pagamento||30)+'gg')+ir('IBAN',cli?.iban)}</div>
     ${cli?.note_fatturazione?`<div style="padding:12px;background:var(--bg);border-radius:var(--rs);font-size:13px;margin-top:10px">${esc(cli.note_fatturazione)}</div>`:''}
     <div style="margin-top:14px;display:flex;gap:8px"><button class="btn p sm" onclick="editCliById('${id}')">Modifica cliente</button></div>`;
   // Carica presidi
@@ -2624,8 +2624,8 @@ function renderSediList(){
   if(!pendingSedi.length){if(el)el.innerHTML='<div style="font-size:13px;color:var(--m);padding:8px">Nessuna sede aggiunta</div>';return;}
   if(el)el.innerHTML=pendingSedi.map((s,i)=>`<div class="sede-card">
     <div style="flex:1">
-      <div class="sede-tipo ${s.tipo}">${s.tipo.toUpperCase()}${esc(s.nome?' — '+esc(s.nome):'')}</div>
-      <div style="font-size:13px;font-weight:500">${esc([esc(s.via),esc(s.civico)].filter(Boolean).join(' '))}${esc(s.via||esc(s.civico)?' — ':'')}${esc(s.citta||'')}${esc(s.cap?' '+s.cap:'')}</div>
+      <div class="sede-tipo ${s.tipo}">${s.tipo.toUpperCase()}${s.nome?' — '+esc(s.nome):''}</div>
+      <div style="font-size:13px;font-weight:500">${[esc(s.via),esc(s.civico)].filter(Boolean).join(' ')}${s.via||s.civico?' — ':''}${esc(s.citta||'')}${s.cap?' '+esc(s.cap):''}</div>
       ${s.zona?`<div style="font-size:12px;color:var(--m)">${s.zona}</div>`:''}
     </div>
     <button class="btn sm" onclick="removeSede(${i})" style="color:var(--r);flex-shrink:0">✕</button>
@@ -2645,14 +2645,14 @@ async function loadSediForOdl(){
   const cid=v('mo1');const sel=ge('mo-sede');
   if(!cid){sel.innerHTML='<option value="">Sede principale / da definire</option>';return;}
   const {data}=await db.from('sedi_cliente').select('id,tipo,nome,via,civico,citta').eq('cliente_id',cid).order('tipo');
-  sel.innerHTML='<option value="">Sede principale (indirizzo cliente)</option>'+(data||[]).map(s=>`<option value="${s.id}">${(s.tipo||'sede').toUpperCase()}${esc(s.nome?' — '+esc(s.nome):'')}: ${esc(s.via||'')} ${esc(s.civico||'')} ${esc(s.citta?'('+esc(s.citta)+')':'')}</option>`).join('');
+  sel.innerHTML='<option value="">Sede principale (indirizzo cliente)</option>'+(data||[]).map(s=>`<option value="${s.id}">${(s.tipo||'sede').toUpperCase()}${s.nome?' — '+esc(s.nome):''}: ${esc(s.via||'')} ${esc(s.civico||'')} ${s.citta?'('+esc(s.citta)+')':''}</option>`).join('');
 }
 
 async function loadSediTec(){
   const cid=v('tc1');const sel=ge('tc1-sede');
   if(!cid){sel.innerHTML='<option value="">Sede principale / da definire</option>';return;}
   const {data}=await db.from('sedi_cliente').select('id,tipo,nome,via,civico,citta').eq('cliente_id',cid).order('tipo');
-  sel.innerHTML='<option value="">Sede principale (indirizzo cliente)</option>'+(data||[]).map(s=>`<option value="${s.id}">${(s.tipo||'sede').toUpperCase()}${esc(s.nome?' — '+esc(s.nome):'')}: ${esc(s.via||'')} ${esc(s.civico||'')} ${esc(s.citta?'('+esc(s.citta)+')':'')}</option>`).join('');
+  sel.innerHTML='<option value="">Sede principale (indirizzo cliente)</option>'+(data||[]).map(s=>`<option value="${s.id}">${(s.tipo||'sede').toUpperCase()}${s.nome?' — '+esc(s.nome):''}: ${esc(s.via||'')} ${esc(s.civico||'')} ${s.citta?'('+esc(s.citta)+')':''}</option>`).join('');
 }
 
 async function loadSediForCliente(cliId){
@@ -2678,8 +2678,8 @@ async function loadSediDetail(cliId){
   if(!data?.length)return'<div class="empty">Nessuna sede. Modifica il cliente per aggiungerne.</div>';
   return data.map(s=>`<div class="sede-card" style="margin-bottom:8px">
     <div style="flex:1">
-      <div class="sede-tipo ${s.tipo}">${s.tipo.toUpperCase()}${esc(s.nome?' — '+esc(s.nome):'')}</div>
-      <div style="font-size:13px;font-weight:500">${esc([esc(s.via),esc(s.civico)].filter(Boolean).join(' '))}${(esc(s.via)||esc(s.civico))?` — ${esc(s.citta||'')}`:esc(s.citta)||''}</div>
+      <div class="sede-tipo ${s.tipo}">${s.tipo.toUpperCase()}${s.nome?' — '+esc(s.nome):''}</div>
+      <div style="font-size:13px;font-weight:500">${[esc(s.via),esc(s.civico)].filter(Boolean).join(' ')}${(s.via||s.civico)?` — ${esc(s.citta||'')}`:esc(s.citta||'')}</div>
       ${s.cap||s.provincia?`<div style="font-size:12px;color:var(--m)">${esc(s.cap||'')} ${s.provincia||''}</div>`:''}
       ${s.zona?`<div style="font-size:12px;color:var(--m)">${s.zona}</div>`:''}
     </div>
@@ -2771,7 +2771,7 @@ async function loadDocs(){
       <button class="btn sm" onclick="stampaRelazionePorteREI('${s.id}')" title="Solo se ci sono porte REI">🚪 Porte</button>
       ${ROLE==='titolare'?`<button class="btn sm" style="color:var(--r)" onclick="eliminaScheda('${s.id}')">🗑️</button>`:''}</td></tr>`).join('');
   const dt=dr.data||[];ge('dtbody').innerHTML=!dt.length?'<tr><td colspan="5"><div class="empty">Nessun DDT</div></td></tr>':dt.map(d=>`<tr><td>#${d.numero||'—'}</td><td>${esc(d.clienti?.ragione_sociale||'—')}</td><td>${fd(d.data_emissione)}</td><td>${esc(d.causale||'—')}</td><td style="display:flex;gap:6px"><button class="btn sm" onclick="stampaDDT('${d.id}')">🖨️ PDF</button>${ROLE==='titolare'?`<button class="btn sm" style="color:var(--r)" onclick="eliminaDDT('${d.id}')">🗑️</button>`:''}</td></tr>`).join('');
-  const rt=rr.data||[];ge('rttbody').innerHTML=!rt.length?'<tr><td colspan="7"><div class="empty">Nessuna relazione</div></td></tr>':rt.map(r=>`<tr><td>#${r.numero||'—'}</td><td>${esc(r.clienti?.ragione_sociale||'—')}</td><td>${esc((esc(r.tipo_impianto)||'').replace(/_/g,' '))}</td><td>${fd(r.data_sopralluogo)}</td><td>${be(r.esito)}</td><td>${r.intervento_straordinario?'<span class="bx berr">Sì</span>':'<span class="bx bok">No</span>'}</td><td><button class="btn sm">Vedi</button></td></tr>`).join('');
+  const rt=rr.data||[];ge('rttbody').innerHTML=!rt.length?'<tr><td colspan="7"><div class="empty">Nessuna relazione</div></td></tr>':rt.map(r=>`<tr><td>#${r.numero||'—'}</td><td>${esc(r.clienti?.ragione_sociale||'—')}</td><td>${esc((r.tipo_impianto||'').replace(/_/g,' '))}</td><td>${fd(r.data_sopralluogo)}</td><td>${be(r.esito)}</td><td>${r.intervento_straordinario?'<span class="bx berr">Sì</span>':'<span class="bx bok">No</span>'}</td><td><button class="btn sm">Vedi</button></td></tr>`).join('');
 }
 
 // ── SELECTS ───────────────────────────────────────────────────
