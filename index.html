@@ -167,6 +167,32 @@
 </div>
 
 <div class="page on" id="pg-dashboard">
+  <!-- DASHBOARD TECNICO (visibile solo per ruolo=tecnico, sostituisce i blocchi sotto) -->
+  <div id="dash-tecnico" style="display:none">
+    <div class="tec-wrap">
+      <div class="tec-greet">
+        <h1 id="tec-greet-nome">Ciao</h1>
+        <p id="tec-greet-data"></p>
+      </div>
+      <div class="tec-sec-title">
+        <h2>📋 Oggi</h2>
+        <span class="tec-badge" id="tec-oggi-badge">0</span>
+      </div>
+      <div id="tec-oggi-lista"><div class="tec-empty"><div class="ico">⏳</div>Caricamento...</div></div>
+      <div class="tec-sec-title">
+        <h2>📅 Questa settimana</h2>
+        <span class="tec-badge" id="tec-week-badge">0</span>
+      </div>
+      <div id="tec-week-lista"><div class="tec-empty"><div class="ico">⏳</div>Caricamento...</div></div>
+      <div class="tec-quick">
+        <button class="tec-quick-btn" onclick="gotoPage('calendario-tec')"><span class="ico">📅</span><span class="lbl">Calendario completo</span></button>
+        <button class="tec-quick-btn" onclick="gotoPage('tecnico')"><span class="ico">📝</span><span class="lbl">Nuovo intervento</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD STANDARD (altri ruoli) -->
+  <div id="dash-standard">
   <div class="sh">
     <div><div class="st">Dashboard</div><div style="font-size:13px;color:var(--m);margin-top:2px" id="ddate"></div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap" id="dash-actions">
@@ -258,6 +284,7 @@
       <div id="dash-ct-lista"><div class="load">Caricamento...</div></div>
     </div>
   </div>
+  </div><!-- /#dash-standard -->
 </div>
 
 

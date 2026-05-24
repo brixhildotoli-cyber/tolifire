@@ -589,6 +589,17 @@ function gotoPage(id){
 
 // ── DASHBOARD ─────────────────────────────────────────────────
 async function loadDash(){
+  // Tecnico: dashboard dedicata stile iOS, sostituisce completamente la standard
+  var dtSec = ge('dash-tecnico'), dsSec = ge('dash-standard');
+  if(ROLE==='tecnico'){
+    if(dtSec) dtSec.style.display='block';
+    if(dsSec) dsSec.style.display='none';
+    await loadDashTecnico();
+    return;
+  } else {
+    if(dtSec) dtSec.style.display='none';
+    if(dsSec) dsSec.style.display='block';
+  }
   const today=new Date().toISOString().split('T')[0];const in30=new Date(Date.now()+30*86400000).toISOString().split('T')[0];
   // Query KPI filtrate per ruolo
   var qOdl = db.from('ordini_lavoro').select('id',{count:'exact'}).eq('data_pianificata',today);
@@ -647,7 +658,155 @@ async function loadDash(){
   }
 }
 
+// ── DASHBOARD TECNICO (iOS-like) ─────────────────────────────
+async function loadDashTecnico(){
+  var today = new Date(); today.setHours(0,0,0,0);
+  var weekEnd = new Date(today); weekEnd.setDate(weekEnd.getDate()+6);
+  var todayStr = today.toISOString().split('T')[0];
+  var weekEndStr = weekEnd.toISOString().split('T')[0];
 
+  // Saluto + data
+  var greet = ge('tec-greet-nome');
+  if(greet){
+    var h = new Date().getHours();
+    var prefix = h<12?'Buongiorno':(h<18?'Buon pomeriggio':'Buonasera');
+    greet.textContent = prefix + ', ' + (ME?.nome||'');
+  }
+  var gd = ge('tec-greet-data');
+  if(gd) gd.textContent = new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+
+  // Carica tutti gli OdL del tecnico da oggi a +6 giorni
+  var r = await db.from('ordini_lavoro')
+    .select('id,numero,tipo,stato,data_pianificata,fascia_oraria,note_per_tecnico,sede_id,clienti(ragione_sociale,referente_telefono)')
+    .eq('tecnico_id', ME.id)
+    .gte('data_pianificata', todayStr)
+    .lte('data_pianificata', weekEndStr)
+    .neq('stato','annullato')
+    .order('data_pianificata').order('fascia_oraria');
+  var odls = r.data || [];
+
+  // Carica sedi referenziate
+  var sedeIds = odls.map(function(o){return o.sede_id;}).filter(Boolean);
+  var sediMap = {};
+  if(sedeIds.length){
+    var rs = await db.from('sedi_cliente').select('id,tipo,nome,via,civico,citta,cap').in('id', sedeIds);
+    (rs.data||[]).forEach(function(s){ sediMap[s.id]=s; });
+  }
+
+  // Split: oggi vs resto settimana
+  var oggi = odls.filter(function(o){return o.data_pianificata === todayStr;});
+  var dopo = odls.filter(function(o){return o.data_pianificata !== todayStr;});
+
+  ge('tec-oggi-badge').textContent = oggi.length;
+  ge('tec-week-badge').textContent = dopo.length;
+
+  // RENDER OGGI — card grandi, una per intervento
+  var oggiEl = ge('tec-oggi-lista');
+  if(!oggi.length){
+    oggiEl.innerHTML = '<div class="tec-empty"><div class="ico">🎉</div>Nessun intervento per oggi. Goditi la giornata.</div>';
+  } else {
+    oggiEl.innerHTML = oggi.map(function(o){ return tecCardOggi(o, sediMap); }).join('');
+  }
+
+  // RENDER SETTIMANA — raggruppato per giorno, righe compatte
+  var weekEl = ge('tec-week-lista');
+  if(!dopo.length){
+    weekEl.innerHTML = '<div class="tec-empty"><div class="ico">📭</div>Nessun altro intervento nei prossimi giorni.</div>';
+  } else {
+    // Raggruppa per data
+    var perGiorno = {};
+    dopo.forEach(function(o){
+      var k = o.data_pianificata;
+      if(!perGiorno[k]) perGiorno[k] = [];
+      perGiorno[k].push(o);
+    });
+    var giorni = Object.keys(perGiorno).sort();
+    var html = '<div class="tec-week">';
+    giorni.forEach(function(k){
+      var d = new Date(k+'T00:00:00');
+      var label = d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+      html += '<div class="tec-week-day">' + esc(label) + '</div>';
+      perGiorno[k].forEach(function(o){
+        html += tecRigaSettimana(o);
+      });
+    });
+    html += '</div>';
+    weekEl.innerHTML = html;
+  }
+}
+
+function tecTipoCls(tipo){
+  return {ordinario_programmato:'tipo-ord', ordinario_chiamata:'tipo-chi', straordinario:'tipo-str', corso:'tipo-cor'}[tipo] || 'tipo-ord';
+}
+function tecTipoLabel(tipo){
+  return {ordinario_programmato:'🔧 Manutenzione', ordinario_chiamata:'📞 Su chiamata', straordinario:'⚡ Straordinario', corso:'📚 Corso'}[tipo] || tipo || '—';
+}
+function tecOrario(o){
+  if(o.fascia_oraria) return o.fascia_oraria;
+  return '—';
+}
+function tecSedeFmt(o, sediMap){
+  var s = o.sede_id ? sediMap[o.sede_id] : null;
+  if(!s) return 'Sede principale del cliente';
+  var parts = [];
+  var head = (s.tipo||'').toUpperCase();
+  if(s.nome) head += ' — ' + s.nome;
+  if(head) parts.push(head);
+  var addr = [s.via, s.civico].filter(Boolean).join(' ');
+  if(s.cap) addr = (addr?addr+', ':'') + s.cap;
+  if(s.citta) addr = (addr?addr+' ':'') + s.citta;
+  if(addr) parts.push(addr);
+  return parts.join(' · ');
+}
+
+function tecCardOggi(o, sediMap){
+  var cls = tecTipoCls(o.tipo);
+  var cli = o.clienti?.ragione_sociale || '—';
+  var sede = tecSedeFmt(o, sediMap);
+  var tel = o.clienti?.referente_telefono;
+  var note = o.note_per_tecnico;
+  var done = o.stato === 'completato';
+  return '<div class="tec-card ' + (done?'done':'') + '" onclick="apriInterventoDiretto(\'' + o.id + '\')">' +
+    '<div class="tec-card-bar ' + cls + '"></div>' +
+    '<div class="tec-card-top">' +
+      '<div class="tec-time"><span class="ico">🕐</span>' + esc(tecOrario(o)) + '</div>' +
+      '<span class="tec-tag ' + cls + '">' + tecTipoLabel(o.tipo) + '</span>' +
+    '</div>' +
+    '<div class="tec-card-client">' + esc(cli) + '</div>' +
+    '<div class="tec-card-row"><span class="ico">📍</span><span>' + esc(sede) + '</span></div>' +
+    (tel ? '<div class="tec-card-row"><span class="ico">📞</span><span>' + esc(tel) + '</span></div>' : '') +
+    (note ? '<div class="tec-card-row notes"><span class="ico">📝</span><span>' + esc(note) + '</span></div>' : '') +
+    '<div class="tec-card-cta">' + (done?'✅ Completato — apri scheda':'Tocca per iniziare →') + '</div>' +
+  '</div>';
+}
+
+function tecRigaSettimana(o){
+  var cls = tecTipoCls(o.tipo);
+  var cli = o.clienti?.ragione_sociale || '—';
+  var fascia = o.fascia_oraria || '';
+  var tipoL = tecTipoLabel(o.tipo);
+  return '<div class="tec-week-item" onclick="apriInterventoDiretto(\'' + o.id + '\')">' +
+    '<div class="tec-week-dot ' + cls + '"></div>' +
+    '<div class="tec-week-time' + (fascia?'':' no-time') + '">' + esc(fascia||'—') + '</div>' +
+    '<div class="tec-week-body">' +
+      '<div class="tec-week-client">' + esc(cli) + '</div>' +
+      '<div class="tec-week-meta">' + tipoL + '</div>' +
+    '</div>' +
+    '<div class="tec-week-chev">›</div>' +
+  '</div>';
+}
+
+// Apre direttamente la pagina "Esegui intervento" pre-caricando l'OdL selezionato
+async function apriInterventoDiretto(odlId){
+  gotoPage('tecnico');
+  // Aspetta che loadOdlTecnico abbia popolato la select, poi seleziona e precarica
+  await loadOdlTecnico();
+  var sel = ge('tc-odl');
+  if(sel){
+    sel.value = odlId;
+    await preloadFromOdl();
+  }
+}
 
 // ── FOTO TECNICO ─────────────────────────────────────────────
 var _fotoTecnico = []; // {file, url, didascalia}

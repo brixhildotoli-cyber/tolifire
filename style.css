@@ -94,3 +94,70 @@ textarea{resize:vertical;min-height:80px}
 .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .cal-nav-btn{background:none;border:0.5px solid var(--bo);border-radius:var(--rs);padding:6px 12px;cursor:pointer;font-size:13px}
 .cal-nav-btn:hover{background:var(--bg)}
+
+/* ── Dashboard tecnico (iOS-like) ─────────────────────────── */
+.tec-wrap{max-width:760px;margin:0 auto;padding:8px 4px 40px}
+.tec-greet{padding:14px 4px 10px}
+.tec-greet h1{font-size:26px;font-weight:700;letter-spacing:-0.02em;margin-bottom:2px;color:var(--t)}
+.tec-greet p{font-size:14px;color:var(--m);text-transform:capitalize}
+.tec-sec-title{display:flex;align-items:baseline;justify-content:space-between;padding:18px 6px 10px}
+.tec-sec-title h2{font-size:18px;font-weight:700;color:var(--t);letter-spacing:-0.01em}
+.tec-sec-title .tec-badge{font-size:12px;font-weight:600;color:var(--m);background:var(--gyl);padding:3px 10px;border-radius:20px}
+.tec-empty{background:var(--w);border-radius:16px;padding:32px 20px;text-align:center;color:var(--m);font-size:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.tec-empty .ico{font-size:36px;margin-bottom:8px;opacity:.4}
+
+/* Card grande intervento di OGGI */
+.tec-card{background:var(--w);border-radius:16px;padding:16px 16px 14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.04);cursor:pointer;transition:transform .12s ease,box-shadow .12s ease;border:0.5px solid rgba(0,0,0,.04);position:relative;overflow:hidden}
+.tec-card:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(0,0,0,.06),0 8px 20px rgba(0,0,0,.06)}
+.tec-card:active{transform:scale(.99)}
+.tec-card.done{opacity:.62}
+.tec-card-bar{position:absolute;left:0;top:0;bottom:0;width:4px}
+.tec-card-bar.tipo-ord{background:var(--gm)}
+.tec-card-bar.tipo-chi{background:var(--b)}
+.tec-card-bar.tipo-str{background:var(--r)}
+.tec-card-bar.tipo-cor{background:var(--p)}
+.tec-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding-left:8px}
+.tec-time{display:inline-flex;align-items:center;gap:6px;font-size:17px;font-weight:700;color:var(--t);letter-spacing:-0.01em}
+.tec-time .ico{font-size:14px}
+.tec-tag{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;padding:4px 10px;border-radius:20px}
+.tec-tag.tipo-ord{background:var(--gl);color:var(--g)}
+.tec-tag.tipo-chi{background:var(--bl);color:var(--b)}
+.tec-tag.tipo-str{background:var(--rl);color:var(--r)}
+.tec-tag.tipo-cor{background:var(--pl);color:var(--p)}
+.tec-card-client{font-size:17px;font-weight:600;color:var(--t);margin:2px 0 4px;padding-left:8px;letter-spacing:-0.01em}
+.tec-card-row{display:flex;align-items:flex-start;gap:8px;padding:3px 0 3px 8px;font-size:13px;color:var(--m);line-height:1.4}
+.tec-card-row .ico{font-size:14px;flex-shrink:0;margin-top:1px;opacity:.8}
+.tec-card-row.notes{color:var(--a);background:var(--al);border-radius:10px;padding:8px 10px;margin:8px 0 0 8px;font-size:12px}
+.tec-card-cta{font-size:12px;font-weight:600;color:var(--gm);margin-top:10px;padding-left:8px;display:flex;align-items:center;gap:4px}
+
+/* Card compatta settimana */
+.tec-week{background:var(--w);border-radius:14px;padding:6px 0;box-shadow:0 1px 3px rgba(0,0,0,.04);overflow:hidden}
+.tec-week-day{padding:10px 16px 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--m)}
+.tec-week-item{display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;border-bottom:0.5px solid rgba(0,0,0,.04);transition:background .12s}
+.tec-week-item:hover{background:var(--bg)}
+.tec-week-item:last-child{border-bottom:none}
+.tec-week-time{font-size:14px;font-weight:600;color:var(--t);min-width:48px;letter-spacing:-0.01em}
+.tec-week-time.no-time{color:var(--m);font-weight:500}
+.tec-week-body{flex:1;min-width:0}
+.tec-week-client{font-size:14px;font-weight:600;color:var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.01em}
+.tec-week-meta{font-size:12px;color:var(--m);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.tec-week-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.tec-week-dot.tipo-ord{background:var(--gm)}
+.tec-week-dot.tipo-chi{background:var(--b)}
+.tec-week-dot.tipo-str{background:var(--r)}
+.tec-week-dot.tipo-cor{background:var(--p)}
+.tec-week-chev{color:var(--m);font-size:18px;opacity:.4;flex-shrink:0}
+
+/* Azioni rapide tecnico */
+.tec-quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:18px}
+.tec-quick-btn{background:var(--w);border-radius:14px;padding:16px 12px;text-align:center;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:all .15s;border:none;color:var(--t)}
+.tec-quick-btn:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);transform:translateY(-1px)}
+.tec-quick-btn .ico{font-size:24px;display:block;margin-bottom:6px}
+.tec-quick-btn .lbl{font-size:13px;font-weight:600}
+
+@media(max-width:520px){
+  .tec-wrap{padding:4px 0 30px}
+  .tec-greet{padding:12px 16px 10px}
+  .tec-sec-title{padding:18px 16px 10px}
+  .tec-card,.tec-week,.tec-empty{margin-left:8px;margin-right:8px}
+}
