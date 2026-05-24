@@ -399,6 +399,7 @@
           <button class="btn p" style="width:100%;justify-content:flex-start;padding:12px 14px" onclick="gotoPage('sopralluogo')">📋 Nuova scheda sopralluogo</button>
           <button class="btn" style="width:100%;justify-content:flex-start;padding:12px 14px" onclick="openNewCli()">👤 Aggiungi prospect</button>
           <button class="btn" style="width:100%;justify-content:flex-start;padding:12px 14px" onclick="gotoPage('trattative')">💼 Trattative in corso</button>
+          <button class="btn" style="width:100%;justify-content:flex-start;padding:12px 14px" onclick="openNuovoOdlVuoto()">📋 + Pianifica intervento (da pianificare)</button>
         </div>
       </div>
       <div class="card"><div style="font-size:14px;font-weight:600;margin-bottom:14px">Prospect da convertire</div><div id="rapp-prospect"><div class="load">Caricamento...</div></div></div>
@@ -921,12 +922,19 @@
 
 <div class="mbg" id="m-odl"><div class="modal">
   <div class="mh" id="modal-odl-title">Nuovo ordine di lavoro <button class="mx" onclick="closeM('m-odl')">✕</button></div>
-  <div class="f"><label>Cliente *</label><select id="mo1" onchange="loadSediForOdl()"><option value="">Seleziona...</option></select></div>
-  <div class="f"><label>Sede / Indirizzo intervento</label><select id="mo-sede"><option value="">Sede principale / da definire</option></select></div>
+  <input type="hidden" id="mo-sopr-id">
+  <div class="f"><label>Cliente *</label><select id="mo1" onchange="loadSediForOdl();calcolaPresidiSede(v('mo1'),v('mo-sede'),'mo-presidi-preview')"><option value="">Seleziona...</option></select></div>
+  <div class="f"><label>Sede / Indirizzo intervento</label><select id="mo-sede" onchange="calcolaPresidiSede(v('mo1'),v('mo-sede'),'mo-presidi-preview')"><option value="">Sede principale / da definire</option></select></div>
   <div class="f"><label>Tipo *</label><select id="mo2"><option value="ordinario_programmato">Manutenzione ordinaria</option><option value="ordinario_chiamata">Su chiamata</option><option value="straordinario">Straordinario</option><option value="corso">Corso</option></select></div>
   <div class="fr"><div class="f"><label>Data *</label><input type="date" id="mo3"></div><div class="f"><label>Fascia</label><select id="mo4"><option value="mattina">Mattina</option><option value="pomeriggio">Pomeriggio</option><option value="giornata">Giornata</option></select></div></div>
   <div class="f"><label>Tecnico</label><select id="mo5"><option value="">Seleziona...</option></select></div>
-  <div class="f"><label>Note</label><textarea id="mo6" style="min-height:60px"></textarea></div>
+  <div class="f"><label>Note generali</label><textarea id="mo6" style="min-height:50px" placeholder="Es. periodicità mensile, intervento da richiesta cliente..."></textarea></div>
+
+  <div style="margin:18px 0 8px;font-size:11px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.05em">📦 Cosa preparare per il tecnico</div>
+  <div class="f"><label>Materiali da portare <span style="font-weight:400;color:var(--m);font-size:11px">(di solito compilato da chi accetta il lavoro)</span></label><textarea id="mo-materiali" style="min-height:60px" placeholder="Es. 2 estintori CO2 5kg, 1 manichetta UNI 45, ricariche..."></textarea></div>
+  <div class="f"><label>Presidi della sede <span style="font-weight:400;color:var(--m);font-size:11px">(auto-calcolato da database, sola lettura)</span></label><div id="mo-presidi-preview" style="font-size:13px;color:var(--m);padding:8px;background:var(--bg);border-radius:6px">Seleziona prima un cliente.</div></div>
+  <div class="f"><label>Note operative al tecnico <span style="font-weight:400;color:var(--m);font-size:11px">(per il capo cantiere)</span></label><textarea id="mo-note-cap" style="min-height:70px" placeholder="Es. citofono Rossi, parcheggio interno, contattare il referente prima di arrivare..."></textarea></div>
+
   <div style="display:flex;gap:8px;margin-top:16px"><button class="btn" onclick="closeM('m-odl')">Annulla</button><button class="btn p" onclick="saveOdl()">Crea OdL</button></div>
 </div></div>
 

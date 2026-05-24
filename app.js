@@ -3239,24 +3239,76 @@ async function saveOdl(){
   if(!cid||!tipo||!data){toast('Compila cliente, tipo e data','err');return;}
   const sede=v('mo-sede');
   const editId = ge('mcli-odl-id') ? ge('mcli-odl-id').value : '';
-  const payload={cliente_id:cid,tipo,data_pianificata:data,fascia_oraria:v('mo4')||null,tecnico_id:v('mo5')||null,note_per_tecnico:v('mo6')||null,sede_id:sede||null};
-  let error;
+  const soprId = ge('mo-sopr-id') ? ge('mo-sopr-id').value : '';
+  const payload={cliente_id:cid,tipo,data_pianificata:data,fascia_oraria:v('mo4')||null,tecnico_id:v('mo5')||null,note_per_tecnico:v('mo6')||null,sede_id:sede||null,materiali_da_portare:v('mo-materiali')||null,note_capo_tecnico:v('mo-note-cap')||null};
+  let error, newOdlId = null;
   if(editId) {
     const r = await db.from('ordini_lavoro').update(payload).eq('id',editId);
     error = r.error;
   } else {
     payload.stato = (ROLE === 'capo_tecnico') ? 'pianificato' : 'da_pianificare';
-    const r = await db.from('ordini_lavoro').insert(payload);
+    const r = await db.from('ordini_lavoro').insert(payload).select().single();
     error = r.error;
+    if(!error && r.data) newOdlId = r.data.id;
   }
   if(error){toast('Errore: '+error.message,'err');return;}
+  // Se l'OdL nasce da un sopralluogo accettato, aggiorna sopralluoghi.odl_creato_id
+  if(newOdlId && soprId){
+    await db.from('sopralluoghi').update({odl_creato_id:newOdlId}).eq('id', soprId);
+  }
   if(ge('mcli-odl-id')) ge('mcli-odl-id').value='';
+  if(ge('mo-sopr-id')) ge('mo-sopr-id').value='';
   if(ge('modal-odl-title')) ge('modal-odl-title').textContent='Nuovo ordine di lavoro';
   closeM('m-odl');
   toast(editId?'OdL aggiornato ✓':'OdL creato ✓','ok');
   await loadCS();loadDash();
   if(ge('pg-interventi')&&ge('pg-interventi').classList.contains('on'))loadOdl();
   if(ge('pg-calendario')&&ge('pg-calendario').classList.contains('on'))loadCalendario();
+  if(ge('pg-trattative')&&ge('pg-trattative').classList.contains('on'))loadSopralluoghiList();
+}
+
+// Apre m-odl vuoto (usato dal bottone rappresentante "+ Pianifica intervento")
+async function openNuovoOdlVuoto(){
+  await loadCS(); await loadUS();
+  // Reset
+  ['mo1','mo-sede','mo2','mo3','mo4','mo5','mo6','mo-materiali','mo-note-cap'].forEach(function(id){
+    var el = ge(id); if(el) el.value = id==='mo2'?'ordinario_chiamata':(id==='mo4'?'mattina':'');
+  });
+  if(ge('mcli-odl-id')) ge('mcli-odl-id').value='';
+  if(ge('mo-sopr-id')) ge('mo-sopr-id').value='';
+  var pp = ge('mo-presidi-preview'); if(pp) pp.innerHTML='<div style="color:var(--m);font-size:12px;padding:4px">Seleziona prima un cliente.</div>';
+  if(ge('modal-odl-title')) ge('modal-odl-title').textContent='Nuovo ordine di lavoro (da pianificare)';
+  openM('m-odl');
+}
+
+// Apre m-odl pre-compilato da un sopralluogo accettato
+async function accettaSopralluogo(soprId){
+  var r = await db.from('sopralluoghi').select('*').eq('id', soprId).single();
+  if(r.error){ toast('Errore caricamento sopralluogo: '+r.error.message,'err'); return; }
+  var s = r.data;
+  if(!s.cliente_id){ toast('Sopralluogo senza cliente associato: crea prima il cliente.','err'); return; }
+  await loadCS(); await loadUS();
+  // Reset poi precompila
+  ['mo3','mo4','mo5','mo6','mo-note-cap'].forEach(function(id){ var el=ge(id); if(el) el.value=''; });
+  ge('mo1').value = s.cliente_id;
+  await loadSediForOdl();
+  ge('mo2').value = (s.urgenza==='urgente'||s.urgenza==='entro_30gg') ? 'ordinario_chiamata' : 'straordinario';
+  // Componi una bozza materiali dal contenuto del sopralluogo
+  var materiali = [];
+  if(s.estintori_n) materiali.push(s.estintori_n+' estintori — '+(s.estintori_tipo||'tipo da definire'));
+  if(s.idranti_n) materiali.push(s.idranti_n+' idranti');
+  if(s.porte_rei_n) materiali.push(s.porte_rei_n+' porte REI');
+  if(s.luci_emergenza_n) materiali.push(s.luci_emergenza_n+' luci emergenza');
+  if(s.richiesta_cliente) materiali.push('— RICHIESTA CLIENTE —\n'+s.richiesta_cliente);
+  if(s.anomalie_rilevate) materiali.push('— ANOMALIE RILEVATE —\n'+s.anomalie_rilevate);
+  ge('mo-materiali').value = materiali.join('\n');
+  ge('mo-note-cap').value = s.note_commerciali || '';
+  ge('mo6').value = 'Da sopralluogo del ' + (s.creato_il ? new Date(s.creato_il).toLocaleDateString('it-IT') : '—');
+  ge('mo-sopr-id').value = soprId;
+  if(ge('mcli-odl-id')) ge('mcli-odl-id').value='';
+  await calcolaPresidiSede(s.cliente_id, null, 'mo-presidi-preview');
+  if(ge('modal-odl-title')) ge('modal-odl-title').textContent='Accettazione sopralluogo → nuovo OdL';
+  openM('m-odl');
 }
 async function saveImp(){const {error}=await db.from('impostazioni').update({ragione_sociale:v('si1')||null,indirizzo:v('si2')||null,cap:v('si3')||null,citta:v('si4')||null,piva:v('si5')||null,telefono:v('si6')||null,email:v('si7')||null}).eq('id',1);if(error){toast('Errore: '+error.message,'err');return;}toast('Dati aziendali salvati ✓','ok');loadImp();}
 
@@ -3552,7 +3604,7 @@ async function preloadFromOdl() {
   var odlId = v('tc-odl');
   if(!odlId) return;
   var res = await db.from('ordini_lavoro')
-    .select('cliente_id,tipo,data_pianificata,tecnico_id,note_per_tecnico,sede_id,clienti(ragione_sociale)')
+    .select('cliente_id,tipo,data_pianificata,tecnico_id,note_per_tecnico,sede_id,materiali_da_portare,note_capo_tecnico,clienti(ragione_sociale,referente_telefono)')
     .eq('id', odlId).single();
   var o = res.data;
   if(!o) return;
@@ -3563,18 +3615,124 @@ async function preloadFromOdl() {
   var noteSel = ge('tc6'); if(noteSel && o.note_per_tecnico) noteSel.value = o.note_per_tecnico;
   await loadSediTec();
   if(o.sede_id) { var sedeSel = ge('tc1-sede'); if(sedeSel) sedeSel.value = o.sede_id; }
-  // Mostra info cliente
+  // Mostra le card briefing (materiali / presidi auto / note operative / cliente)
   var infoDiv = ge('tec-odl-info');
   if(infoDiv && o.clienti) {
-    var tel = o.clienti.referente_telefono ? '<a href="tel:'+o.clienti.referente_telefono+'" style="color:var(--g)">📞 '+o.clienti.referente_telefono+'</a>' : '';
-    infoDiv.innerHTML = '<div style="background:var(--bl);border-radius:var(--rs);padding:12px;font-size:13px;margin-bottom:12px">' +
-      '<div style="font-weight:600;margin-bottom:4px">'+o.clienti.ragione_sociale+'</div>' +
-      (tel ? '<div>'+tel+'</div>' : '') +
-      (esc(o.note_per_tecnico) ? '<div style="margin-top:8px;padding:8px;background:white;border-radius:6px;color:var(--a)">📝 Note: '+esc(o.note_per_tecnico)+'</div>' : '') +
-      '</div>';
+    infoDiv.innerHTML = renderInfoIntervento(o);
     infoDiv.style.display = 'block';
+    await calcolaPresidiSede(o.cliente_id, o.sede_id, 'tec-presidi-box');
   }
   toast('✅ Dati caricati. Procedi con la compilazione.', 'ok');
+}
+
+// Render delle card briefing al tecnico quando apre un intervento dalla dashboard
+function renderInfoIntervento(o){
+  var c = o.clienti || {};
+  var tel = c.referente_telefono ? '<a href="tel:'+esc(c.referente_telefono)+'" style="color:var(--g);text-decoration:none">📞 '+esc(c.referente_telefono)+'</a>' : '';
+  var html = '';
+  // Card cliente
+  html += '<div style="background:var(--bl);border-radius:10px;padding:12px;font-size:13px;margin-bottom:10px">';
+  html += '<div style="font-weight:600;font-size:14px;margin-bottom:4px">'+esc(c.ragione_sociale||'—')+'</div>';
+  if(tel) html += '<div>'+tel+'</div>';
+  html += '</div>';
+  // Card materiali da portare
+  if(o.materiali_da_portare){
+    html += '<div style="background:var(--gl);border-left:3px solid var(--gm);border-radius:10px;padding:12px;font-size:13px;margin-bottom:10px">';
+    html += '<div style="font-size:11px;font-weight:700;color:var(--g);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">📦 Materiali da portare</div>';
+    html += '<div style="white-space:pre-wrap">'+esc(o.materiali_da_portare)+'</div>';
+    html += '</div>';
+  }
+  // Card presidi della sede (placeholder, riempita da calcolaPresidiSede)
+  html += '<div style="background:var(--w);border:0.5px solid var(--bo);border-radius:10px;padding:12px;margin-bottom:10px">';
+  html += '<div style="font-size:11px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">🧯 Presidi della sede</div>';
+  html += '<div id="tec-presidi-box"><div style="color:var(--m);font-size:12px">⏳ Calcolo...</div></div>';
+  html += '</div>';
+  // Card note operative
+  if(o.note_capo_tecnico){
+    html += '<div style="background:var(--al);border-left:3px solid var(--a);border-radius:10px;padding:12px;font-size:13px;margin-bottom:10px">';
+    html += '<div style="font-size:11px;font-weight:700;color:var(--a);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">📝 Note operative</div>';
+    html += '<div style="white-space:pre-wrap">'+esc(o.note_capo_tecnico)+'</div>';
+    html += '</div>';
+  }
+  // Note generiche legacy (mostrate solo se valorizzate)
+  if(o.note_per_tecnico){
+    html += '<div style="background:var(--bg);border-radius:10px;padding:10px;font-size:12px;color:var(--m);margin-bottom:10px">';
+    html += '<strong>Note:</strong> '+esc(o.note_per_tecnico);
+    html += '</div>';
+  }
+  return html;
+}
+
+// Calcola e mostra l'elenco presidi della sede (caso A: cliente ricorrente).
+// Se non ci sono presidi, suggerisce di scrivere a mano i materiali (caso B).
+async function calcolaPresidiSede(cliId, sedeId, containerId){
+  var el = ge(containerId);
+  if(!el) return;
+  if(!cliId){ el.innerHTML = '<div style="color:var(--m);font-size:12px;padding:4px">Seleziona prima un cliente.</div>'; return; }
+  el.innerHTML = '<div style="color:var(--m);font-size:12px;padding:4px">⏳ Calcolo presidi...</div>';
+
+  var q = db.from('impianti').select('id,tipo,modello,marca,matricola,ubicazione,data_prossimo_controllo,data_scadenza_collaudo,stato').eq('cliente_id', cliId);
+  if(sedeId) q = q.eq('sede_id', sedeId);
+  var r = await q;
+  if(r.error){ el.innerHTML = '<div style="color:var(--r);font-size:12px">Errore: '+esc(r.error.message)+'</div>'; return; }
+  var presidi = r.data || [];
+
+  if(!presidi.length){
+    el.innerHTML = '<div style="color:var(--m);font-size:13px;padding:8px;line-height:1.4">📭 Nessun presidio censito per questa sede.<br><span style="font-size:12px">Cliente nuovo o lavoro extra: usa il campo <strong>"Materiali da portare"</strong> sopra per scrivere cosa serve.</span></div>';
+    return;
+  }
+
+  var oggi = new Date().toISOString().split('T')[0];
+  var in30 = new Date(Date.now()+30*86400000).toISOString().split('T')[0];
+
+  var scaduti = presidi.filter(function(p){ return p.data_prossimo_controllo && p.data_prossimo_controllo < oggi; });
+  var inScadenza = presidi.filter(function(p){ return p.data_prossimo_controllo && p.data_prossimo_controllo >= oggi && p.data_prossimo_controllo <= in30; });
+  var collaudoScaduto = presidi.filter(function(p){ return p.data_scadenza_collaudo && p.data_scadenza_collaudo < oggi; });
+  var anomalie = presidi.filter(function(p){ return p.stato === 'anomalia'; });
+
+  // Conteggio per tipo
+  var perTipo = {};
+  presidi.forEach(function(p){ perTipo[p.tipo] = (perTipo[p.tipo]||0) + 1; });
+  var conteggi = Object.keys(perTipo).sort().map(function(t){
+    return '<span style="background:var(--w);padding:3px 10px;border-radius:20px;font-size:12px;margin-right:6px;margin-bottom:4px;display:inline-block;border:0.5px solid var(--bo)">'+tpl(t)+' × '+perTipo[t]+'</span>';
+  }).join('');
+
+  function lista(arr, max){
+    var n = max || 4;
+    return arr.slice(0,n).map(function(p){
+      var ext = p.matricola ? ' #'+esc(p.matricola) : '';
+      var loc = p.ubicazione ? ' — '+esc(p.ubicazione) : '';
+      return tpl(p.tipo)+ext+loc;
+    }).join('<br>') + (arr.length>n ? '<br>... e altri '+(arr.length-n) : '');
+  }
+
+  var html = '';
+  html += '<div style="margin-bottom:10px"><strong style="font-size:13px">📊 '+presidi.length+' presidi censiti</strong></div>';
+  html += '<div style="margin-bottom:12px">'+conteggi+'</div>';
+  if(scaduti.length){
+    html += '<div style="background:var(--rl);color:var(--r);padding:8px 10px;border-radius:6px;margin-bottom:6px;font-size:12px">';
+    html += '<strong>❌ Scaduti: '+scaduti.length+'</strong>';
+    html += '<div style="margin-top:4px;line-height:1.5">'+lista(scaduti)+'</div></div>';
+  }
+  if(inScadenza.length){
+    html += '<div style="background:var(--al);color:var(--a);padding:8px 10px;border-radius:6px;margin-bottom:6px;font-size:12px">';
+    html += '<strong>⚠️ In scadenza nei 30gg: '+inScadenza.length+'</strong>';
+    html += '<div style="margin-top:4px;line-height:1.5">'+lista(inScadenza)+'</div></div>';
+  }
+  if(collaudoScaduto.length){
+    html += '<div style="background:var(--rl);color:var(--r);padding:8px 10px;border-radius:6px;margin-bottom:6px;font-size:12px">';
+    html += '<strong>🔧 Collaudo scaduto (da sostituire): '+collaudoScaduto.length+'</strong>';
+    html += '<div style="margin-top:4px;line-height:1.5">'+lista(collaudoScaduto)+'</div></div>';
+  }
+  if(anomalie.length){
+    html += '<div style="background:var(--al);color:var(--a);padding:8px 10px;border-radius:6px;margin-bottom:6px;font-size:12px">';
+    html += '<strong>🔧 Con anomalie segnalate: '+anomalie.length+'</strong>';
+    html += '<div style="margin-top:4px;line-height:1.5">'+lista(anomalie)+'</div></div>';
+  }
+  if(!scaduti.length && !inScadenza.length && !collaudoScaduto.length && !anomalie.length){
+    html += '<div style="background:var(--gl);color:var(--g);padding:8px 10px;border-radius:6px;font-size:12px;font-weight:500">✅ Tutti i presidi in regola, nessuna anomalia.</div>';
+  }
+  el.innerHTML = html;
 }
 
 // Nasconde campo tecnico per il ruolo tecnico (esegue lui stesso)
@@ -3904,16 +4062,27 @@ function filterTrattative() {
 
 async function loadSopralluoghiList() {
   var el = ge('tr-sop-list'); if(!el) return;
-  var res = await db.from('sopralluoghi').select('*').eq('rappresentante_id',ME.id).order('creato_il',{ascending:false}).limit(30);
+  // Rappresentante vede solo i suoi; altri ruoli vedono tutti
+  var q = db.from('sopralluoghi').select('*').order('creato_il',{ascending:false}).limit(30);
+  if(ROLE === 'rappresentante') q = q.eq('rappresentante_id', ME.id);
+  var res = await q;
   var data = res.data || [];
   if(!data.length) { el.innerHTML = '<div class="empty">Nessun sopralluogo.<br><button class="btn p sm" style="margin-top:10px" onclick="gotoPage(\'sopralluogo\')">Nuova scheda</button></div>'; return; }
   el.innerHTML = data.map(function(s) {
     var cls = s.urgenza === 'urgente' ? 'berr' : s.urgenza === 'entro_30gg' ? 'bwarn' : 'bgray';
+    var azione;
+    if(s.odl_creato_id){
+      azione = '<span style="font-size:12px;color:var(--g);font-weight:600">✅ OdL creato</span>';
+    } else {
+      azione = '<button class="btn sm p" data-sid="'+s.id+'" onclick="accettaSopralluogo(this.dataset.sid)">✅ Accetta → crea OdL</button>';
+    }
     return '<div class="card" style="margin-bottom:10px">' +
-      '<div style="display:flex;justify-content:space-between">' +
-      '<div><div style="font-size:14px;font-weight:600">' + (esc(s.ragione_sociale)||'—') + '</div>' +
+      '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">' +
+      '<div style="flex:1"><div style="font-size:14px;font-weight:600">' + (esc(s.ragione_sociale)||'—') + '</div>' +
       '<div style="font-size:12px;color:var(--m)">' + fd(s.creato_il) + ' · ' + (esc(s.indirizzo)||'') + '</div></div>' +
-      '<span class="bx ' + cls + '">' + (s.urgenza||'normale') + '</span></div></div>';
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">' +
+      '<span class="bx ' + cls + '">' + (s.urgenza||'normale') + '</span>' + azione +
+      '</div></div></div>';
   }).join('');
 }
 
@@ -4674,6 +4843,12 @@ async function openEditOdl(id) {
   var f = ge('mo4'); if(f) f.value = o.fascia_oraria||'';
   var tec = ge('mo5'); if(tec) tec.value = o.tecnico_id||'';
   var n = ge('mo6'); if(n) n.value = o.note_per_tecnico||'';
+  var nm = ge('mo-materiali'); if(nm) nm.value = o.materiali_da_portare||'';
+  var nc = ge('mo-note-cap'); if(nc) nc.value = o.note_capo_tecnico||'';
+  if(ge('mo-sopr-id')) ge('mo-sopr-id').value='';
+  await loadSediForOdl();
+  if(o.sede_id){ var se = ge('mo-sede'); if(se) se.value = o.sede_id; }
+  await calcolaPresidiSede(o.cliente_id, o.sede_id, 'mo-presidi-preview');
   ge('modal-odl-title') && (ge('modal-odl-title').textContent = 'Modifica OdL #' + (o.numero||''));
   openM('m-odl');
 }
