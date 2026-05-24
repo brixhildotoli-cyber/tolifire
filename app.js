@@ -59,6 +59,8 @@ function ge(id){return document.getElementById(id);}
 function v(id){const el=ge(id);return el?el.value:'';}
 function toast(msg,type='ok'){const t=ge('toast');t.textContent=msg;t.className='toast on '+type;setTimeout(()=>t.classList.remove('on'),4000);}
 function fd(d){if(!d)return'—';try{return new Date(d+'T00:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});}catch(e){return d;}}
+// Escape HTML per dati provenienti dal DB o dall'utente prima dell'interpolazione in innerHTML.
+function esc(s){return String(s??'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function openM(id){
   if(id==='m-odl') {
     var editId = ge('mcli-odl-id');
@@ -143,7 +145,7 @@ async function doLogout(){await db.auth.signOut();location.reload();}
 async function boot(ud){
   ME=ud;ROLE=ud.ruolo;
   ge('lp').style.display='none';ge('nav').classList.add('on');ge('app').style.display='block';
-  ge('nusr').textContent=ud.nome+' — Esci';ge('nrole').textContent=ud.ruolo;
+  ge('nusr').textContent=esc(ud.nome)+' — Esci';ge('nrole').textContent=ud.ruolo;
   ge('ddate').textContent=new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   buildNav();buildSB();
   const today=new Date().toISOString().split('T')[0];const now=new Date();
@@ -243,9 +245,9 @@ async function portaleCaricaDocs() {
       var icona = {'Contratto':'📄','DDT':'📦','Offerta':'💼','Certificato':'🏅','Relazione tecnica':'🔧','Fattura':'💶','Verbale':'📋','Altro':'📎'}[d.tipo_documento]||'📎';
       var data = d.caricato_il ? new Date(d.caricato_il).toLocaleDateString('it-IT') : '—';
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg);border-radius:var(--rs);margin-bottom:8px;gap:10px">' +
-        '<div><div style="font-size:13px;font-weight:600">'+icona+' '+d.nome_file+'</div>' +
-        '<div style="font-size:11px;color:var(--m)">'+d.tipo_documento+(d.note?' · '+d.note:'')+' · '+data+'</div></div>' +
-        '<button class="btn sm p" data-path="'+d.storage_path+'" data-nome="'+d.nome_file+'" onclick="scaricaPortale(this.dataset.path,this.dataset.nome)">⬇️ Scarica</button>' +
+        '<div><div style="font-size:13px;font-weight:600">'+icona+' '+esc(d.nome_file)+'</div>' +
+        '<div style="font-size:11px;color:var(--m)">'+d.tipo_documento+(esc(d.note)?' · '+esc(d.note):'')+' · '+data+'</div></div>' +
+        '<button class="btn sm p" data-path="'+esc(d.storage_path)+'" data-nome="'+esc(d.nome_file)+'" onclick="scaricaPortale(this.dataset.path,this.dataset.nome)">⬇️ Scarica</button>' +
       '</div>';
     }).join('');
   }
@@ -258,7 +260,7 @@ async function portaleCaricaDocs() {
       var dt = d.data_emissione ? new Date(d.data_emissione+'T00:00:00').toLocaleDateString('it-IT') : '—';
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--bg);border-radius:var(--rs);margin-bottom:8px;gap:10px">' +
         '<div><div style="font-size:13px;font-weight:600">📦 DDT #'+(d.numero||'—')+'</div>' +
-        '<div style="font-size:11px;color:var(--m)">'+dt+(d.causale?' · '+d.causale:'')+'</div></div>' +
+        '<div style="font-size:11px;color:var(--m)">'+dt+(esc(d.causale)?' · '+esc(d.causale):'')+'</div></div>' +
         '<button class="btn sm" data-id="'+d.id+'" onclick="scaricaDDTPortale(this.dataset.id)">🖨️ PDF</button>' +
       '</div>';
     }).join('');
@@ -379,9 +381,9 @@ async function portaleCaricaMieiFile() {
     var icona = {Video:'🎥', Foto:'🖼️', PDF:'📄', Documento:'📎'}[d.tipo_documento] || '📎';
     return '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg);border-radius:var(--rs);margin-bottom:6px">' +
       '<div style="font-size:20px">'+icona+'</div>' +
-      '<div style="flex:1"><div style="font-size:13px;font-weight:600">'+d.nome_file+'</div>' +
+      '<div style="flex:1"><div style="font-size:13px;font-weight:600">'+esc(d.nome_file)+'</div>' +
         '<div style="font-size:11px;color:var(--m)">'+size+(size?' · ':'')+data+'</div></div>' +
-      '<button class="btn sm p" data-path="'+d.storage_path+'" data-nome="'+d.nome_file+'" onclick="scaricaPortale(this.dataset.path,this.dataset.nome)">⬇️</button>' +
+      '<button class="btn sm p" data-path="'+esc(d.storage_path)+'" data-nome="'+esc(d.nome_file)+'" onclick="scaricaPortale(this.dataset.path,this.dataset.nome)">⬇️</button>' +
     '</div>';
   }).join('');
 }
@@ -427,11 +429,11 @@ async function portaleCaricaTicket() {
     return '<div style="border:0.5px solid var(--bo);border-radius:var(--rs);padding:14px;margin-bottom:12px">' +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">' +
         '<div style="flex:1">' +
-          '<div style="font-size:14px;font-weight:600">'+t.titolo+'</div>' +
+          '<div style="font-size:14px;font-weight:600">'+esc(t.titolo)+'</div>' +
           '<div style="font-size:12px;color:var(--m);margin-top:3px">'+(tipi[t.tipo]||t.tipo)+' · '+dt+'</div>' +
-          (t.descrizione ? '<div style="font-size:13px;color:var(--t);margin-top:6px">'+t.descrizione+'</div>' : '') +
+          (esc(t.descrizione) ? '<div style="font-size:13px;color:var(--t);margin-top:6px">'+esc(t.descrizione)+'</div>' : '') +
           schedInfo +
-          (t.note_interne ? '<div style="font-size:12px;color:var(--m);margin-top:8px;padding:8px;background:var(--bg);border-radius:6px">💬 <em>'+t.note_interne+'</em></div>' : '') +
+          (esc(t.note_interne) ? '<div style="font-size:12px;color:var(--m);margin-top:8px;padding:8px;background:var(--bg);border-radius:6px">💬 <em>'+esc(t.note_interne)+'</em></div>' : '') +
         '</div>' +
         '<span style="white-space:nowrap;font-size:12px;font-weight:600;color:'+(statiCol[t.stato]||'var(--m)')+'">'+( stati[t.stato]||t.stato)+'</span>' +
       '</div></div>';
@@ -619,11 +621,11 @@ async function loadDash(){
                    'Nessun intervento. <button class="btn p sm" onclick="openM(\'m-odl\')">+ Pianifica il primo</button>';
     de.innerHTML='<div class="empty">'+emptyMsg+'</div>';
   }
-  else{de.innerHTML=`<table><thead><tr><th>Cliente</th><th>Tecnico</th><th>Data</th><th>Stato</th></tr></thead><tbody>${odl.map(o=>`<tr><td>${o.clienti?.ragione_sociale||'—'}</td><td>${o.utenti?o.utenti.nome+' '+o.utenti.cognome:'—'}</td><td>${fd(o.data_pianificata)}</td><td>${bs(o.stato)}</td></tr>`).join('')}</tbody></table>`;}
+  else{de.innerHTML=`<table><thead><tr><th>Cliente</th><th>Tecnico</th><th>Data</th><th>Stato</th></tr></thead><tbody>${odl.map(o=>`<tr><td>${esc(o.clienti?.ragione_sociale||'—')}</td><td>${esc(o.utenti?o.utenti.nome+' '+o.utenti.cognome:'—')}</td><td>${fd(o.data_pianificata)}</td><td>${bs(o.stato)}</td></tr>`).join('')}</tbody></table>`;}
   const {data:scl}=await db.from('impianti').select('tipo,matricola,ubicazione,data_prossimo_controllo,clienti(ragione_sociale)').lte('data_prossimo_controllo',in30).order('data_prossimo_controllo').limit(10);
   const ds=ge('dscad');
   if(!scl?.length){ds.innerHTML='<div class="empty">✅ Nessun presidio in scadenza nei prossimi 30 giorni</div>';}
-  else{ds.innerHTML=scl.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--bo);font-size:13px"><div><div style="font-weight:500">${p.clienti?.ragione_sociale||'—'}</div><div style="color:var(--m);font-size:12px">${tpl(p.tipo)} ${p.matricola?'#'+p.matricola:''} — ${p.ubicazione||''}</div></div><div style="text-align:right"><div class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)}</div><div style="font-size:11px;color:var(--m)">${dd2(p.data_prossimo_controllo)}</div></div></div>`).join('');}
+  else{ds.innerHTML=scl.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--bo);font-size:13px"><div><div style="font-weight:500">${esc(p.clienti?.ragione_sociale||'—')}</div><div style="color:var(--m);font-size:12px">${tpl(p.tipo)} ${esc(p.matricola?'#'+esc(p.matricola):'')} — ${esc(p.ubicazione||'')}</div></div><div style="text-align:right"><div class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)}</div><div style="font-size:11px;color:var(--m)">${dd2(p.data_prossimo_controllo)}</div></div></div>`).join('');}
 
   // Sezioni specifiche per ruolo
   ge('dash-segreteria') && (ge('dash-segreteria').style.display = ROLE==='segreteria'?'block':'none');
@@ -809,7 +811,7 @@ async function stampaRapportoIntervento(schedaId) {
   doc.setTextColor(30,30,30);
 
   // ── LAVORI ESEGUITI ───────────────────────
-  if(s.lavori_eseguiti) {
+  if(esc(s.lavori_eseguiti)) {
     doc.setFontSize(9);
     doc.setFont('helvetica','bold');
     doc.setTextColor(80,80,80);
@@ -823,7 +825,7 @@ async function stampaRapportoIntervento(schedaId) {
   }
 
   // ── ANOMALIE ──────────────────────────────
-  if(s.anomalie_rilevate) {
+  if(esc(s.anomalie_rilevate)) {
     doc.setFontSize(9);
     doc.setFont('helvetica','bold');
     doc.setTextColor(80,80,80);
@@ -1171,7 +1173,7 @@ async function loadCalendarioTeam() {
   if(bDiv) {
     bDiv.innerHTML = _calTeamTecnici.map(function(t) {
       return '<button class="btn cteam-btn-tec'+(t.id===_calTeamFiltro?' on':'')+'" data-id="'+t.id+'" onclick="filtraCalTeam(this.dataset.id)" style="border-left:3px solid '+t._color+'">' +
-        t.nome+' '+t.cognome+'</button>';
+        esc(t.nome)+' '+esc(t.cognome)+'</button>';
     }).join('');
   }
 
@@ -1292,7 +1294,7 @@ async function loadCalendarioTecnico() {
             '<div style="font-size:12px;color:var(--m)">' + (tipi[o.tipo]||o.tipo) + fasciaStr + '</div>' +
             '<div style="font-size:13px;font-weight:500;color:var(--b);margin-top:4px">📅 ' + data + '</div>' +
             (sede ? '<div style="font-size:12px;color:var(--m);margin-top:3px">📍 ' + sede + '</div>' : '<div style="font-size:12px;color:var(--m);margin-top:3px">📍 Sede principale</div>') +
-            (o.note_per_tecnico ? '<div style="font-size:12px;color:var(--a);margin-top:4px;padding:6px 8px;background:var(--al);border-radius:6px">📝 ' + o.note_per_tecnico + '</div>' : '') +
+            (esc(o.note_per_tecnico) ? '<div style="font-size:12px;color:var(--a);margin-top:4px;padding:6px 8px;background:var(--al);border-radius:6px">📝 ' + esc(o.note_per_tecnico) + '</div>' : '') +
           '</div>' +
           '<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">' +
             (canRichiedi ? '<button class="btn sm" data-id="'+o.id+'" data-data="'+o.data_pianificata+'" data-cli="'+cli+'" onclick="apriRichiestaModifica(this.dataset.id,this.dataset.data,this.dataset.cli)">✏️ Richiedi modifica</button>' : '') +
@@ -1312,7 +1314,7 @@ async function apriSchedulazionePersonale() {
   var today = new Date().toISOString().split('T')[0];
 
   var opzioniClienti = '<option value="">Seleziona cliente...</option>' +
-    cliSel.map(function(c){ return '<option value="'+c.id+'">'+c.ragione_sociale+'</option>'; }).join('');
+    cliSel.map(function(c){ return '<option value="'+c.id+'">'+esc(c.ragione_sociale)+'</option>'; }).join('');
 
   // Crea o aggiorna modal — ricostruisce sempre il contenuto
   var m = ge('m-schedula-tec');
@@ -1440,7 +1442,7 @@ async function loadRichiesteInAttesaTecnico() {
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--bo);font-size:13px">' +
       '<div><span style="font-weight:600">' + cli + '</span> · ' + (tipi[r.tipo_modifica]||r.tipo_modifica) +
         (r.data_richiesta ? ' → ' + new Date(r.data_richiesta+'T00:00:00').toLocaleDateString('it-IT') : '') +
-        (r.note_risposta ? '<div style="font-size:11px;color:var(--m)">Risposta: ' + r.note_risposta + '</div>' : '') +
+        (esc(r.note_risposta) ? '<div style="font-size:11px;color:var(--m)">Risposta: ' + esc(r.note_risposta) + '</div>' : '') +
       '</div>' +
       '<span style="color:'+statiCol[r.stato]+';font-weight:600;white-space:nowrap">' + (stati[r.stato]||r.stato) + '</span>' +
     '</div>';
@@ -1648,11 +1650,11 @@ async function loadDashTicket() {
       '<div style="flex:1">' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">' +
           '<span style="font-size:16px">'+(tipiIcon[t.tipo]||'📋')+'</span>' +
-          '<span style="font-size:13px;font-weight:600">'+t.titolo+'</span>' +
+          '<span style="font-size:13px;font-weight:600">'+esc(t.titolo)+'</span>' +
           '<span style="width:8px;height:8px;border-radius:50%;background:'+(prioritaCol[t.priorita]||'var(--m)')+'"></span>' +
         '</div>' +
         '<div style="font-size:12px;color:var(--m)">'+cli+' · '+dt+'</div>' +
-        (t.descrizione ? '<div style="font-size:12px;color:var(--t);margin-top:4px;opacity:.8">'+t.descrizione.substring(0,80)+(t.descrizione.length>80?'...':'')+'</div>' : '') +
+        (esc(t.descrizione) ? '<div style="font-size:12px;color:var(--t);margin-top:4px;opacity:.8">'+esc(t.descrizione).substring(0,80)+(esc(t.descrizione).length>80?'...':'')+'</div>' : '') +
       '</div>' +
       '<div style="display:flex;gap:6px;flex-shrink:0">' +
         '<button class="btn sm p" data-id="'+t.id+'" onclick="apriTicket(this.dataset.id)">Gestisci</button>' +
@@ -1677,13 +1679,13 @@ async function apriTicket(id) {
   var tipiLabel = {segnalazione:'Segnalazione',intervento:'Richiesta intervento',preventivo:'Richiesta preventivo'};
 
   var allegatHtml = allegati.length ? allegati.map(function(a){
-    return '<button class="btn sm" data-path="'+a.storage_path+'" data-nome="'+a.nome_file+'" onclick="scaricaAllegato(this.dataset.path,this.dataset.nome)">📎 '+a.nome_file+'</button>';
+    return '<button class="btn sm" data-path="'+esc(a.storage_path)+'" data-nome="'+esc(a.nome_file)+'" onclick="scaricaAllegato(this.dataset.path,this.dataset.nome)">📎 '+esc(a.nome_file)+'</button>';
   }).join('') : '<span style="font-size:12px;color:var(--m)">Nessun allegato</span>';
 
   var html = '<div style="padding:16px">' +
     '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">' +
       '<span style="font-size:24px">'+(tipiIcon[t.tipo]||'📋')+'</span>' +
-      '<div><div style="font-size:16px;font-weight:700">'+t.titolo+'</div>' +
+      '<div><div style="font-size:16px;font-weight:700">'+esc(t.titolo)+'</div>' +
       '<div style="font-size:12px;color:var(--m)">'+(tipiLabel[t.tipo]||t.tipo)+' · '+new Date(t.creato_il).toLocaleDateString('it-IT')+'</div></div>' +
     '</div>' +
     '<div class="g2" style="margin-bottom:14px">' +
@@ -1696,9 +1698,9 @@ async function apriTicket(id) {
         '<div>'+(t.sede_id ? 'Sede specifica' : 'Sede principale')+'</div>' +
       '</div>' +
     '</div>' +
-    (t.descrizione ? '<div style="background:var(--bg);border-radius:var(--rs);padding:12px;margin-bottom:14px"><div style="font-size:11px;color:var(--m);margin-bottom:6px">DESCRIZIONE</div><div style="font-size:13px">'+t.descrizione+'</div></div>' : '') +
+    (esc(t.descrizione) ? '<div style="background:var(--bg);border-radius:var(--rs);padding:12px;margin-bottom:14px"><div style="font-size:11px;color:var(--m);margin-bottom:6px">DESCRIZIONE</div><div style="font-size:13px">'+esc(t.descrizione)+'</div></div>' : '') +
     '<div style="margin-bottom:14px"><div style="font-size:11px;color:var(--m);margin-bottom:6px">ALLEGATI</div><div style="display:flex;flex-wrap:wrap;gap:6px">'+allegatHtml+'</div></div>' +
-    '<div class="f"><label>Note interne</label><textarea id="ticket-note-int" style="min-height:60px" placeholder="Aggiungi note per il team...">'+(t.note_interne||'')+'</textarea></div>' +
+    '<div class="f"><label>Note interne</label><textarea id="ticket-note-int" style="min-height:60px" placeholder="Aggiungi note per il team...">'+(esc(t.note_interne)||'')+'</textarea></div>' +
     '<div class="fr" style="margin-top:12px">' +
       '<div class="f"><label>Stato</label><select id="ticket-stato"><option value="aperto"'+(t.stato==='aperto'?' selected':'')+'>🟡 Aperto</option><option value="in_lavorazione"'+(t.stato==='in_lavorazione'?' selected':'')+'>🔵 In lavorazione</option><option value="chiuso"'+(t.stato==='chiuso'?' selected':'')+'>✅ Chiuso</option></select></div>' +
       '<div class="f"><label>Priorità</label><select id="ticket-priorita"><option value="bassa"'+(t.priorita==='bassa'?' selected':'')+'>⬇️ Bassa</option><option value="normale"'+(t.priorita==='normale'?' selected':'')+'>➡️ Normale</option><option value="alta"'+(t.priorita==='alta'?' selected':'')+'>⬆️ Alta</option><option value="urgente"'+(t.priorita==='urgente'?' selected':'')+'>🔴 Urgente</option></select></div>' +
@@ -1710,7 +1712,7 @@ async function apriTicket(id) {
         '<div class="fr">' +
           '<div class="f" style="margin:0"><label style="font-size:11px">Data intervento</label><input type="date" id="ticket-piano-data"></div>' +
           '<div class="f" style="margin:0"><label style="font-size:11px">Tecnico</label><select id="ticket-piano-tec" style="width:100%"><option value="">— Seleziona —</option>'+
-            UTENTI.filter(function(u){return ['tecnico','capo_tecnico'].includes(u.ruolo);}).map(function(u){return '<option value="'+u.id+'">'+u.nome+' '+u.cognome+'</option>';}).join('')+
+            UTENTI.filter(function(u){return ['tecnico','capo_tecnico'].includes(u.ruolo);}).map(function(u){return '<option value="'+u.id+'">'+esc(u.nome)+' '+esc(u.cognome)+'</option>';}).join('')+
           '</select></div>' +
         '</div>' +
         '<button class="btn p" style="margin-top:8px;width:100%" data-tid="'+t.id+'" data-cid="'+t.cliente_id+'" data-sid="'+(t.sede_id||'')+'" onclick="pianificaDaTicket(this.dataset.tid,this.dataset.cid,this.dataset.sid)">✅ Crea ordine di lavoro e pianifica</button>' +
@@ -1870,7 +1872,7 @@ async function apriClienteSegreteria(id) {
   var cli = r.data;
 
   // Precompila il modal con tutti i dati (anagrafica + fatturazione)
-  ge('mcli-title').textContent = 'Completa dati — ' + cli.ragione_sociale;
+  ge('mcli-title').textContent = 'Completa dati — ' + esc(cli.ragione_sociale);
   ge('mc-edit-id').value = id;
 
   // Anagrafica
@@ -1882,7 +1884,7 @@ async function apriClienteSegreteria(id) {
   Object.keys(map).forEach(function(elId) {
     var el = ge(elId); if(el) el.value = cli[map[elId]] || '';
   });
-  if(ge('mc7')) ge('mc7').value = cli.tipo_attivita || 'ufficio';
+  if(ge('mc7')) ge('mc7').value = esc(cli.tipo_attivita) || 'ufficio';
   if(ge('mc8')) ge('mc8').value = cli.stato || 'attivo';
 
   // Fatturazione
@@ -1953,7 +1955,7 @@ async function loadDashCapoTecnico() {
     var g = byCliente[cliId];
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--bo);gap:10px;flex-wrap:wrap">' +
       '<div>' +
-        '<div style="font-size:13px;font-weight:600">' + g.nome + '</div>' +
+        '<div style="font-size:13px;font-weight:600">' + esc(g.nome) + '</div>' +
         '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px">' +
           g.tipi.map(function(t){return '<span style="background:var(--bl);color:var(--b);padding:2px 8px;border-radius:10px;font-size:11px">'+tpl(t)+'</span>';}).join('') +
         '</div>' +
@@ -1986,8 +1988,8 @@ async function loadWorkflow(){
     if(!data?.length){el.innerHTML='<div class="empty">Nessuna scheda in questo stato</div>';continue;}
     el.innerHTML=data.map(s=>`<div class="card" style="margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
-        <div><div style="font-size:14px;font-weight:600">${s.clienti?.ragione_sociale||'—'}</div>
-        <div style="font-size:12px;color:var(--m);margin-top:2px">${s.utenti?s.utenti.nome+' '+s.utenti.cognome:'—'} · ${fd(s.data_intervento)} · ${tl(s.ordini_lavoro?.tipo||'')}</div></div>
+        <div><div style="font-size:14px;font-weight:600">${esc(s.clienti?.ragione_sociale||'—')}</div>
+        <div style="font-size:12px;color:var(--m);margin-top:2px">${esc(s.utenti?s.utenti.nome+' '+s.utenti.cognome:'—')} · ${fd(s.data_intervento)} · ${tl(s.ordini_lavoro?.tipo||'')}</div></div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">${bs(s.stato)} ${s.esito?be(s.esito):''} ${s.intervento_straordinario_richiesto?'<span class="bx berr">⚠ Straord.</span>':''}</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
@@ -2030,7 +2032,7 @@ async function openScheda(id){
   if(!s)return;
   ge('ms-title').textContent='Scheda — '+s.clienti?.ragione_sociale;
   ge('ms-info').innerHTML=ir('Cliente',s.clienti?.ragione_sociale)+ir('Tecnico',s.utenti?s.utenti.nome+' '+s.utenti.cognome:null)+ir('Data',fd(s.data_intervento))+ir('Tipo',tl(s.ordini_lavoro?.tipo||''))+ir('Esito',s.esito?.replace(/_/g,' '))+ir('Firmatario',s.nome_firmatario);
-  ge('ms-lavori').textContent=s.lavori_eseguiti||'—';
+  ge('ms-lavori').textContent=esc(s.lavori_eseguiti)||'—';
   // Mostra impossibilitato se presente
   var impDiv = ge('ms-impossibilitato');
   if(impDiv) {
@@ -2041,11 +2043,11 @@ async function openScheda(id){
   }
   // Note interne (relazione tecnica) - visibili a capo_tecnico e titolare
   var noteIntDiv = ge('ms-note-interne');
-  if(noteIntDiv && s.note_interne && (ROLE==='capo_tecnico'||ROLE==='titolare'||ROLE==='segreteria')) {
+  if(noteIntDiv && esc(s.note_interne) && (ROLE==='capo_tecnico'||ROLE==='titolare'||ROLE==='segreteria')) {
     noteIntDiv.style.display='block';
-    noteIntDiv.innerHTML='<div style="font-size:12px;font-weight:600;color:var(--m);text-transform:uppercase;margin-bottom:6px">📋 Relazione tecnica</div><div style="background:var(--bg);padding:12px;border-radius:var(--rs);font-size:13px;white-space:pre-wrap">'+s.note_interne+'</div>';
+    noteIntDiv.innerHTML='<div style="font-size:12px;font-weight:600;color:var(--m);text-transform:uppercase;margin-bottom:6px">📋 Relazione tecnica</div><div style="background:var(--bg);padding:12px;border-radius:var(--rs);font-size:13px;white-space:pre-wrap">'+esc(s.note_interne)+'</div>';
   } else if(noteIntDiv) { noteIntDiv.style.display='none'; }
-  ge('ms-anomalie').textContent=s.anomalie_rilevate||'Nessuna anomalia';
+  ge('ms-anomalie').textContent=esc(s.anomalie_rilevate)||'Nessuna anomalia';
   ge('ms-wf').innerHTML=WFS.map(st=>`<div class="wf-step ${s.stato===st?'active':WFS.indexOf(s.stato)>WFS.indexOf(st)?'done':'pending'}"><div class="wf-dot ${s.stato===st?'active':WFS.indexOf(s.stato)>WFS.indexOf(st)?'done':'pending'}"></div><span>${WFL[st]}</span></div>`).join('');
   ge('ms-actions').innerHTML=wfBtns(s);
   openM('m-scheda');
@@ -2071,10 +2073,10 @@ function renderPC(data){
   w.innerHTML=data.map(p=>`<div class="pc">
     <div style="position:absolute;top:12px;right:12px">${si2(p.stato)}</div>
     <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--m);margin-bottom:4px">${tpl(p.tipo)}</div>
-    <div style="font-size:14px;font-weight:600;margin-bottom:2px">${p.matricola||'—'}</div>
-    <div style="font-size:12px;color:var(--m);margin-bottom:10px">${p.clienti?.ragione_sociale||'—'}</div>
+    <div style="font-size:14px;font-weight:600;margin-bottom:2px">${esc(p.matricola||'—')}</div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:10px">${esc(p.clienti?.ragione_sociale||'—')}</div>
     <div style="font-size:12px;display:flex;flex-direction:column;gap:4px">
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ubicazione</span><span>${p.ubicazione||'—'}${p.piano?' ('+p.piano+')':''}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ubicazione</span><span>${esc(p.ubicazione||'—')}${esc(p.piano?' ('+p.piano+')':'')}</span></div>
       ${p.tipo==='estintore'?`<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Agente</span><span>${al2(p.modello)||'—'} ${p.marca||''}</span></div>`:''}
       ${p.tipo==='porta_rei'?`<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Classe</span><span>${p.modello||'—'}</span></div>`:''}
       <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ultima verifica</span><span>${fd(p.data_ultimo_controllo)}</span></div>
@@ -2087,14 +2089,14 @@ function renderPC(data){
 
 function renderPT(data){
   const tb=ge('ptbody');if(!data.length){tb.innerHTML='<tr><td colspan="9"><div class="empty">Nessun presidio</div></td></tr>';return;}
-  tb.innerHTML=data.map(p=>`<tr><td>${tpl(p.tipo)}</td><td>${p.clienti?.ragione_sociale||'—'}</td><td style="font-family:monospace;font-size:12px">${p.matricola||'—'}</td><td>${p.ubicazione||'—'}${p.piano?' ('+p.piano+')':''}</td><td>${fd(p.data_ultimo_controllo)}</td><td class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)} (${dd2(p.data_prossimo_controllo)})</td><td>${p.periodicita_mesi?p.periodicita_mesi+' mesi':'—'}</td><td>${si2(p.stato)} ${p.stato}</td><td>${(ROLE==='titolare'||ROLE==='capo_tecnico'||ROLE==='segreteria')?`<button class="btn sm" onclick="editP('${p.id}')">✏️</button>`:''}${(ROLE==='titolare'||ROLE==='capo_tecnico')?`<button class="btn sm" style="color:var(--r)" onclick="eliminaPresidio('${p.id}')">🗑️</button>`:''}</td></tr>`).join('');
+  tb.innerHTML=data.map(p=>`<tr><td>${tpl(p.tipo)}</td><td>${esc(p.clienti?.ragione_sociale||'—')}</td><td style="font-family:monospace;font-size:12px">${esc(p.matricola||'—')}</td><td>${esc(p.ubicazione||'—')}${esc(p.piano?' ('+p.piano+')':'')}</td><td>${fd(p.data_ultimo_controllo)}</td><td class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)} (${dd2(p.data_prossimo_controllo)})</td><td>${p.periodicita_mesi?p.periodicita_mesi+' mesi':'—'}</td><td>${si2(p.stato)} ${p.stato}</td><td>${(ROLE==='titolare'||ROLE==='capo_tecnico'||ROLE==='segreteria')?`<button class="btn sm" onclick="editP('${p.id}')">✏️</button>`:''}${(ROLE==='titolare'||ROLE==='capo_tecnico')?`<button class="btn sm" style="color:var(--r)" onclick="eliminaPresidio('${p.id}')">🗑️</button>`:''}</td></tr>`).join('');
 }
 
 function renderPS(data){
   const in30=new Date(Date.now()+30*86400000),in90=new Date(Date.now()+90*86400000);
   const u=data.filter(p=>p.data_prossimo_controllo&&new Date(p.data_prossimo_controllo+'T00:00:00')<=in30);
   const pr=data.filter(p=>p.data_prossimo_controllo&&new Date(p.data_prossimo_controllo+'T00:00:00')>in30&&new Date(p.data_prossimo_controllo+'T00:00:00')<=in90);
-  const rl=(items,el)=>{if(!items.length){ge(el).innerHTML='<div class="empty" style="padding:20px">Nessuno ✅</div>';return;}ge(el).innerHTML=items.map(p=>`<div style="padding:10px;background:var(--bg);border-radius:var(--rs);margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-weight:500;font-size:13px">${p.clienti?.ragione_sociale||'—'}</div><div style="font-size:12px;color:var(--m)">${tpl(p.tipo)} ${p.matricola?'— #'+p.matricola:''}</div><div style="font-size:12px;color:var(--m)">${p.ubicazione||''}</div></div><div style="text-align:right"><div class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)}</div><div style="font-size:11px;color:var(--m)">${dd2(p.data_prossimo_controllo)}</div>${p.periodicita_mesi?`<div style="font-size:10px;color:var(--m)">ogni ${p.periodicita_mesi} mesi</div>`:''}</div></div></div>`).join('');};
+  const rl=(items,el)=>{if(!items.length){ge(el).innerHTML='<div class="empty" style="padding:20px">Nessuno ✅</div>';return;}ge(el).innerHTML=items.map(p=>`<div style="padding:10px;background:var(--bg);border-radius:var(--rs);margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-weight:500;font-size:13px">${esc(p.clienti?.ragione_sociale||'—')}</div><div style="font-size:12px;color:var(--m)">${tpl(p.tipo)} ${esc(p.matricola?'— #'+esc(p.matricola):'')}</div><div style="font-size:12px;color:var(--m)">${esc(p.ubicazione||'')}</div></div><div style="text-align:right"><div class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)}</div><div style="font-size:11px;color:var(--m)">${dd2(p.data_prossimo_controllo)}</div>${p.periodicita_mesi?`<div style="font-size:10px;color:var(--m)">ogni ${p.periodicita_mesi} mesi</div>`:''}</div></div></div>`).join('');};
   rl(u,'su');rl(pr,'sp2');
 }
 
@@ -2104,10 +2106,10 @@ function resetPF(){ge('mpt').textContent='Nuovo presidio';ge('mpeid').value='';g
 function editP(id){
   const p=PA.find(x=>x.id===id);if(!p)return;
   resetPF();ge('mpt').textContent='Modifica presidio';ge('mpeid').value=id;ge('mptp').value=p.tipo;ge('mpcl').value=p.cliente_id||'';switchPF();
-  if(p.tipo==='porta_rei'){ge('mp1').value=p.matricola||'';ge('mp2').value=p.modello||'REI 60';
-  if(p.cliente_id) loadSediPresidio(p.cliente_id, p.sede_id);ge('mp3').value=p.ubicazione||'';ge('mp4').value=p.piano||'';ge('mp6').value=p.marca||'';ge('mp7').value=p.data_installazione||'';ge('mp8').value=p.data_ultimo_controllo||'';ge('mp9').value=p.data_prossimo_controllo||'';ge('mp14').value=p.stato||'ok';ge('mp15').value=p.note||'';}
-  else{ge('me1').value=p.matricola||'';ge('me2').value=p.marca||'';
-  if(p.cliente_id) loadSediPresidio(p.cliente_id, p.sede_id);ge('me3').value=p.modello||'polvere_abc';ge('me4').value=p.marca||'6kg';ge('me5').value=p.ubicazione||'';ge('me6').value=p.piano||'';ge('me7').value=p.locale||'';ge('me8').value=p.data_installazione||'';ge('me9').value=p.data_ultimo_controllo||'';ge('me10').value=p.data_prossimo_controllo||'';ge('me11').value=p.data_scadenza_collaudo||'';ge('me13').value=p.stato||'ok';ge('me14').value=p.note||'';}
+  if(p.tipo==='porta_rei'){ge('mp1').value=esc(p.matricola)||'';ge('mp2').value=p.modello||'REI 60';
+  if(p.cliente_id) loadSediPresidio(p.cliente_id, p.sede_id);ge('mp3').value=esc(p.ubicazione)||'';ge('mp4').value=p.piano||'';ge('mp6').value=p.marca||'';ge('mp7').value=p.data_installazione||'';ge('mp8').value=p.data_ultimo_controllo||'';ge('mp9').value=p.data_prossimo_controllo||'';ge('mp14').value=p.stato||'ok';ge('mp15').value=esc(p.note)||'';}
+  else{ge('me1').value=esc(p.matricola)||'';ge('me2').value=p.marca||'';
+  if(p.cliente_id) loadSediPresidio(p.cliente_id, p.sede_id);ge('me3').value=p.modello||'polvere_abc';ge('me4').value=p.marca||'6kg';ge('me5').value=esc(p.ubicazione)||'';ge('me6').value=p.piano||'';ge('me7').value=p.locale||'';ge('me8').value=p.data_installazione||'';ge('me9').value=p.data_ultimo_controllo||'';ge('me10').value=p.data_prossimo_controllo||'';ge('me11').value=p.data_scadenza_collaudo||'';ge('me13').value=p.stato||'ok';ge('me14').value=esc(p.note)||'';}
   openM('m-presidio');
 }
 
@@ -2382,7 +2384,7 @@ async function loadPianificazioneMensile(anno, mese) {
   var cicli = rCicli.data || [];
 
   var tecOpt = '<option value="">— Nessun tecnico —</option>' +
-    _pianoTecnici.map(function(t){return '<option value="'+t.id+'">'+t.nome+' '+t.cognome+'</option>';}).join('');
+    _pianoTecnici.map(function(t){return '<option value="'+t.id+'">'+esc(t.nome)+' '+esc(t.cognome)+'</option>';}).join('');
 
   // Cicli senza OdL raggruppati per cliente
   var byCliente = {};
@@ -2399,10 +2401,10 @@ async function loadPianificazioneMensile(anno, mese) {
     html += cliKeys.map(function(cliId){
       var g = byCliente[cliId];
       var cli = g.cli||{};
-      var tel = cli.referente_telefono ? '<a href="tel:'+cli.referente_telefono+'" style="color:var(--g)">📞 '+cli.referente_telefono+'</a>' : '';
+      var tel = esc(cli.referente_telefono) ? '<a href="tel:'+esc(cli.referente_telefono)+'" style="color:var(--g)">📞 '+esc(cli.referente_telefono)+'</a>' : '';
       var tipi = g.items.map(function(c){return '<span style="background:var(--bl);color:var(--b);padding:3px 9px;border-radius:20px;font-size:11px">'+tpl(c.tipo_presidio)+'</span>';}).join(' ');
       return '<div class="card" style="margin-bottom:10px;border-left:3px solid var(--r)">' +
-        '<div style="font-size:14px;font-weight:600;margin-bottom:2px">'+(cli.ragione_sociale||'—')+'</div>' +
+        '<div style="font-size:14px;font-weight:600;margin-bottom:2px">'+(esc(cli.ragione_sociale)||'—')+'</div>' +
         '<div style="font-size:12px;color:var(--m);margin-bottom:8px">'+tel+'</div>' +
         '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">'+tipi+'</div>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end">' +
@@ -2420,7 +2422,7 @@ async function loadPianificazioneMensile(anno, mese) {
     html += _pianoOdls.map(function(o){
       var cli = o.clienti?.ragione_sociale||'—';
       var tecOpts = '<option value="">— Nessuno —</option>' +
-        _pianoTecnici.map(function(t){return '<option value="'+t.id+'"'+(o.tecnico_id===t.id?' selected':'')+'>'+t.nome+' '+t.cognome+'</option>';}).join('');
+        _pianoTecnici.map(function(t){return '<option value="'+t.id+'"'+(o.tecnico_id===t.id?' selected':'')+'>'+esc(t.nome)+' '+esc(t.cognome)+'</option>';}).join('');
       return '<div class="card" style="margin-bottom:8px;border-left:3px solid var(--g)">' +
         '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;align-items:center">' +
           '<div><div style="font-size:13px;font-weight:600">'+cli+'</div>' +
@@ -2494,23 +2496,23 @@ async function openClienteDetail(id){
   // Carica tab anagrafica
   const sediHtml=await loadSediDetail(id);
   ge('cd-info-content').innerHTML=`
-    <div class="g2" style="margin-bottom:16px">${ir('Ragione sociale',cli?.ragione_sociale)+ir('P.IVA',cli?.piva)+ir('Cod. fiscale',cli?.codice_fiscale)+ir('Referente',cli?.referente_nome)+ir('Telefono',cli?.referente_telefono)+ir('Email',cli?.referente_email)+ir('Città',cli?.citta)+ir('Tipo attività',cli?.tipo_attivita)+ir('Stato',cli?.stato)}</div>
-    ${cli?.note_commerciali?`<div style="padding:12px;background:var(--bg);border-radius:var(--rs);font-size:13px;margin-bottom:16px">${cli.note_commerciali}</div>`:''}
+    <div class="g2" style="margin-bottom:16px">${esc(ir('Ragione sociale',cli?.ragione_sociale)+ir('P.IVA',cli?.piva)+ir('Cod. fiscale',cli?.codice_fiscale)+ir('Referente',cli?.referente_nome)+ir('Telefono',cli?.referente_telefono)+ir('Email',cli?.referente_email)+ir('Città',cli?.citta)+ir('Tipo attività',cli?.tipo_attivita)+ir('Stato',cli?.stato))}</div>
+    ${cli?.note_commerciali?`<div style="padding:12px;background:var(--bg);border-radius:var(--rs);font-size:13px;margin-bottom:16px">${esc(cli.note_commerciali)}</div>`:''}
     <div style="font-size:13px;font-weight:600;margin-bottom:10px">Sedi</div>
     ${sediHtml}
     <div style="font-size:13px;font-weight:600;margin:16px 0 10px">Dati fatturazione</div>
-    <div class="g2">${ir('Rag. soc. fattura',cli?.ragione_sociale_fattura||cli?.ragione_sociale)+ir('Indirizzo fattura',cli?.indirizzo_fattura)+ir('CAP / Città',cli?.cap_fattura?cli.cap_fattura+' '+cli.citta_fattura:cli?.citta_fattura)+ir('Codice SDI',cli?.codice_sdi)+ir('PEC',cli?.pec)+ir('Modalità pagamento',cli?.modalita_pagamento)+ir('Giorni pagamento',(cli?.giorni_pagamento||30)+'gg')+ir('IBAN',cli?.iban)}</div>
-    ${cli?.note_fatturazione?`<div style="padding:12px;background:var(--bg);border-radius:var(--rs);font-size:13px;margin-top:10px">${cli.note_fatturazione}</div>`:''}
+    <div class="g2">${esc(ir('Rag. soc. fattura',cli?.ragione_sociale_fattura||cli?.ragione_sociale)+ir('Indirizzo fattura',cli?.indirizzo_fattura)+ir('CAP / Città',cli?.cap_fattura?cli.cap_fattura+' '+esc(cli.citta_fattura):cli?.citta_fattura)+ir('Codice SDI',cli?.codice_sdi)+ir('PEC',cli?.pec)+ir('Modalità pagamento',cli?.modalita_pagamento)+ir('Giorni pagamento',(cli?.giorni_pagamento||30)+'gg')+ir('IBAN',cli?.iban))}</div>
+    ${cli?.note_fatturazione?`<div style="padding:12px;background:var(--bg);border-radius:var(--rs);font-size:13px;margin-top:10px">${esc(cli.note_fatturazione)}</div>`:''}
     <div style="margin-top:14px;display:flex;gap:8px"><button class="btn p sm" onclick="editCliById('${id}')">Modifica cliente</button></div>`;
   // Carica presidi
   const {data:pp}=await db.from('impianti').select('*,sedi_cliente(id,tipo,indirizzo,citta)').eq('cliente_id',id).order('tipo').order('matricola');
   ge('cd-presidi-content').innerHTML=!pp?.length?'<div class="empty">Nessun presidio censito.<br><button class="btn p sm" style="margin-top:10px" onclick="openM(\'m-presidio\')">+ Aggiungi presidio</button></div>':
     `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">${pp.map(p=>`<div class="pc"><div style="position:absolute;top:12px;right:12px">${si2(p.stato)}</div>
     <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--m);margin-bottom:4px">${tpl(p.tipo)}</div>
-    <div style="font-size:14px;font-weight:600;margin-bottom:2px">${p.matricola||'—'}</div>
-    ${p.sedi_cliente?`<div style="font-size:11px;color:var(--b);margin-bottom:4px">📍 ${p.sedi_cliente.tipo||''} ${p.sedi_cliente.indirizzo||''}</div>`:''}
+    <div style="font-size:14px;font-weight:600;margin-bottom:2px">${esc(p.matricola||'—')}</div>
+    ${p.sedi_cliente?`<div style="font-size:11px;color:var(--b);margin-bottom:4px">📍 ${p.sedi_cliente.tipo||''} ${esc(p.sedi_cliente.indirizzo||'')}</div>`:''}
     <div style="font-size:12px;display:flex;flex-direction:column;gap:4px">
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ubicazione</span><span>${p.ubicazione||'—'}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ubicazione</span><span>${esc(p.ubicazione||'—')}</span></div>
       <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ultima verifica</span><span>${fd(p.data_ultimo_controllo)}</span></div>
       <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Prossima</span><span class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)}</span></div>
     </div>
@@ -2522,11 +2524,11 @@ async function openClienteDetail(id){
   // Carica interventi
   const {data:ii}=await db.from('ordini_lavoro').select('*,utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)').eq('cliente_id',id).order('data_pianificata',{ascending:false}).limit(20);
   ge('cd-interventi-content').innerHTML=!ii?.length?'<div class="empty">Nessun intervento</div>':
-    `<div class="tw"><table><thead><tr><th>N°</th><th>Tipo</th><th>Tecnico</th><th>Data</th><th>Stato</th></tr></thead><tbody>${ii.map(o=>`<tr><td>#${o.numero||'—'}</td><td>${tl(o.tipo)}</td><td>${o.utenti?o.utenti.nome+' '+o.utenti.cognome:'—'}</td><td>${fd(o.data_pianificata)}</td><td>${bs(o.stato)}</td></tr>`).join('')}</tbody></table></div>`;
+    `<div class="tw"><table><thead><tr><th>N°</th><th>Tipo</th><th>Tecnico</th><th>Data</th><th>Stato</th></tr></thead><tbody>${ii.map(o=>`<tr><td>#${o.numero||'—'}</td><td>${tl(o.tipo)}</td><td>${esc(o.utenti?o.utenti.nome+' '+o.utenti.cognome:'—')}</td><td>${fd(o.data_pianificata)}</td><td>${bs(o.stato)}</td></tr>`).join('')}</tbody></table></div>`;
   // Carica documenti
   const {data:ss}=await db.from('schede_lavoro').select('*,utenti!schede_lavoro_tecnico_id_fkey(nome,cognome)').eq('cliente_id',id).order('creato_il',{ascending:false}).limit(20);
   ge('cd-documenti-content').innerHTML=!ss?.length?'<div class="empty">Nessun documento</div>':
-    `<div class="tw"><table><thead><tr><th>N°</th><th>Tecnico</th><th>Data</th><th>Esito</th><th>Stato</th><th></th></tr></thead><tbody>${ss.map(s=>`<tr><td>#${s.numero||'—'}</td><td>${s.utenti?s.utenti.nome+' '+s.utenti.cognome:'—'}</td><td>${fd(s.data_intervento)}</td><td>${s.esito?be(s.esito):'—'}</td><td>${bs(s.stato)}</td><td><button class="btn sm" onclick="openScheda('${s.id}')">Vedi</button></td></tr>`).join('')}</tbody></table></div>`;
+    `<div class="tw"><table><thead><tr><th>N°</th><th>Tecnico</th><th>Data</th><th>Esito</th><th>Stato</th><th></th></tr></thead><tbody>${ss.map(s=>`<tr><td>#${s.numero||'—'}</td><td>${esc(s.utenti?s.utenti.nome+' '+s.utenti.cognome:'—')}</td><td>${fd(s.data_intervento)}</td><td>${s.esito?be(s.esito):'—'}</td><td>${bs(s.stato)}</td><td><button class="btn sm" onclick="openScheda('${s.id}')">Vedi</button></td></tr>`).join('')}</tbody></table></div>`;
   // Carica periodicità
   loadPeriodicitaCliente(id);
 }
@@ -2554,9 +2556,9 @@ function renderC(data){
   // Salva mappa clienti per accesso rapido
   window._cliMap = Object.fromEntries(data.map(c=>[c.id,c]));
   tb.innerHTML=data.map(c=>`<tr>
-    <td><strong>${c.ragione_sociale}</strong>${c.piva?'<br><span style="font-size:11px;color:var(--m)">P.IVA: '+c.piva+'</span>':''}</td>
-    <td>${c.referente_email||c.referente_telefono?`<span style="font-size:12px">${c.referente_email||''}<br>${c.referente_telefono||''}</span>`:'—'}</td>
-    <td>${c.citta||'—'}</td>
+    <td><strong>${esc(c.ragione_sociale)}</strong>${esc(c.piva)?'<br><span style="font-size:11px;color:var(--m)">P.IVA: '+esc(c.piva)+'</span>':''}</td>
+    <td>${esc(c.referente_email)||esc(c.referente_telefono)?`<span style="font-size:12px">${esc(c.referente_email||'')}<br>${esc(c.referente_telefono||'')}</span>`:'—'}</td>
+    <td>${esc(c.citta||'—')}</td>
     <td>${bc(c.stato)}</td>
     <td>
       <button class="btn sm p" onclick="openClienteDetail('${c.id}')">📋 Scheda</button>
@@ -2579,7 +2581,7 @@ function openEditCli(id) {
   Object.keys(fields).forEach(function(elId) {
     var el = ge(elId); if(el) el.value = cli[fields[elId]]||'';
   });
-  if(ge('mc7')) ge('mc7').value = cli.tipo_attivita||'ufficio';
+  if(ge('mc7')) ge('mc7').value = esc(cli.tipo_attivita)||'ufficio';
   if(ge('mc8')) ge('mc8').value = cli.stato||'attivo';
   openM('m-cli');
 }
@@ -2591,21 +2593,21 @@ async function editCli(c){
   }
   if(!c||typeof c!=='object'){toast('Errore caricamento cliente','err');return;}
   ge('mcli-title').textContent='Modifica cliente';ge('mc-edit-id').value=c.id;
-  ge('mc1').value=c.ragione_sociale||'';ge('mc2').value=c.piva||'';ge('mc2b').value=c.codice_fiscale||'';
-  ge('mc3').value=c.citta||'';ge('mc4').value=c.referente_nome||'';ge('mc5').value=c.referente_telefono||'';
-  ge('mc6').value=c.referente_email||'';ge('mc7').value=c.tipo_attivita||'ufficio';ge('mc8').value=c.stato||'attivo';ge('mc9').value=c.note_commerciali||'';
+  ge('mc1').value=esc(c.ragione_sociale)||'';ge('mc2').value=esc(c.piva)||'';ge('mc2b').value=esc(c.codice_fiscale)||'';
+  ge('mc3').value=esc(c.citta)||'';ge('mc4').value=esc(c.referente_nome)||'';ge('mc5').value=esc(c.referente_telefono)||'';
+  ge('mc6').value=esc(c.referente_email)||'';ge('mc7').value=esc(c.tipo_attivita)||'ufficio';ge('mc8').value=c.stato||'attivo';ge('mc9').value=esc(c.note_commerciali)||'';
   // Fatturazione
-  if(ge('mf1'))ge('mf1').value=c.ragione_sociale_fattura||'';
-  if(ge('mf2'))ge('mf2').value=c.indirizzo_fattura||'';
+  if(ge('mf1'))ge('mf1').value=esc(c.ragione_sociale_fattura)||'';
+  if(ge('mf2'))ge('mf2').value=esc(c.indirizzo_fattura)||'';
   if(ge('mf3'))ge('mf3').value=c.cap_fattura||'';
-  if(ge('mf4'))ge('mf4').value=c.citta_fattura||'';
+  if(ge('mf4'))ge('mf4').value=esc(c.citta_fattura)||'';
   if(ge('mf5'))ge('mf5').value=c.provincia_fattura||'';
-  if(ge('mf6'))ge('mf6').value=c.codice_sdi||'';
-  if(ge('mf7'))ge('mf7').value=c.pec||'';
+  if(ge('mf6'))ge('mf6').value=esc(c.codice_sdi)||'';
+  if(ge('mf7'))ge('mf7').value=esc(c.pec)||'';
   if(ge('mf8'))ge('mf8').value=c.modalita_pagamento||'';
   if(ge('mf9'))ge('mf9').value=c.giorni_pagamento||30;
-  if(ge('mf10'))ge('mf10').value=c.iban||'';
-  if(ge('mf11'))ge('mf11').value=c.note_fatturazione||'';
+  if(ge('mf10'))ge('mf10').value=esc(c.iban)||'';
+  if(ge('mf11'))ge('mf11').value=esc(c.note_fatturazione)||'';
   // Carica sedi
   await loadSediForCliente(c.id);
   openM('m-cli');
@@ -2622,8 +2624,8 @@ function renderSediList(){
   if(!pendingSedi.length){if(el)el.innerHTML='<div style="font-size:13px;color:var(--m);padding:8px">Nessuna sede aggiunta</div>';return;}
   if(el)el.innerHTML=pendingSedi.map((s,i)=>`<div class="sede-card">
     <div style="flex:1">
-      <div class="sede-tipo ${s.tipo}">${s.tipo.toUpperCase()}${s.nome?' — '+s.nome:''}</div>
-      <div style="font-size:13px;font-weight:500">${[s.via,s.civico].filter(Boolean).join(' ')}${s.via||s.civico?' — ':''}${s.citta||''}${s.cap?' '+s.cap:''}</div>
+      <div class="sede-tipo ${s.tipo}">${s.tipo.toUpperCase()}${esc(s.nome?' — '+esc(s.nome):'')}</div>
+      <div style="font-size:13px;font-weight:500">${esc([esc(s.via),esc(s.civico)].filter(Boolean).join(' '))}${esc(s.via||esc(s.civico)?' — ':'')}${esc(s.citta||'')}${esc(s.cap?' '+s.cap:'')}</div>
       ${s.zona?`<div style="font-size:12px;color:var(--m)">${s.zona}</div>`:''}
     </div>
     <button class="btn sm" onclick="removeSede(${i})" style="color:var(--r);flex-shrink:0">✕</button>
@@ -2643,14 +2645,14 @@ async function loadSediForOdl(){
   const cid=v('mo1');const sel=ge('mo-sede');
   if(!cid){sel.innerHTML='<option value="">Sede principale / da definire</option>';return;}
   const {data}=await db.from('sedi_cliente').select('id,tipo,nome,via,civico,citta').eq('cliente_id',cid).order('tipo');
-  sel.innerHTML='<option value="">Sede principale (indirizzo cliente)</option>'+(data||[]).map(s=>`<option value="${s.id}">${(s.tipo||'sede').toUpperCase()}${s.nome?' — '+s.nome:''}: ${s.via||''} ${s.civico||''} ${s.citta?'('+s.citta+')':''}</option>`).join('');
+  sel.innerHTML='<option value="">Sede principale (indirizzo cliente)</option>'+(data||[]).map(s=>`<option value="${s.id}">${(s.tipo||'sede').toUpperCase()}${esc(s.nome?' — '+esc(s.nome):'')}: ${esc(s.via||'')} ${esc(s.civico||'')} ${esc(s.citta?'('+esc(s.citta)+')':'')}</option>`).join('');
 }
 
 async function loadSediTec(){
   const cid=v('tc1');const sel=ge('tc1-sede');
   if(!cid){sel.innerHTML='<option value="">Sede principale / da definire</option>';return;}
   const {data}=await db.from('sedi_cliente').select('id,tipo,nome,via,civico,citta').eq('cliente_id',cid).order('tipo');
-  sel.innerHTML='<option value="">Sede principale (indirizzo cliente)</option>'+(data||[]).map(s=>`<option value="${s.id}">${(s.tipo||'sede').toUpperCase()}${s.nome?' — '+s.nome:''}: ${s.via||''} ${s.civico||''} ${s.citta?'('+s.citta+')':''}</option>`).join('');
+  sel.innerHTML='<option value="">Sede principale (indirizzo cliente)</option>'+(data||[]).map(s=>`<option value="${s.id}">${(s.tipo||'sede').toUpperCase()}${esc(s.nome?' — '+esc(s.nome):'')}: ${esc(s.via||'')} ${esc(s.civico||'')} ${esc(s.citta?'('+esc(s.citta)+')':'')}</option>`).join('');
 }
 
 async function loadSediForCliente(cliId){
@@ -2676,9 +2678,9 @@ async function loadSediDetail(cliId){
   if(!data?.length)return'<div class="empty">Nessuna sede. Modifica il cliente per aggiungerne.</div>';
   return data.map(s=>`<div class="sede-card" style="margin-bottom:8px">
     <div style="flex:1">
-      <div class="sede-tipo ${s.tipo}">${s.tipo.toUpperCase()}${s.nome?' — '+s.nome:''}</div>
-      <div style="font-size:13px;font-weight:500">${[s.via,s.civico].filter(Boolean).join(' ')}${(s.via||s.civico)?` — ${s.citta||''}`:s.citta||''}</div>
-      ${s.cap||s.provincia?`<div style="font-size:12px;color:var(--m)">${s.cap||''} ${s.provincia||''}</div>`:''}
+      <div class="sede-tipo ${s.tipo}">${s.tipo.toUpperCase()}${esc(s.nome?' — '+esc(s.nome):'')}</div>
+      <div style="font-size:13px;font-weight:500">${esc([esc(s.via),esc(s.civico)].filter(Boolean).join(' '))}${(esc(s.via)||esc(s.civico))?` — ${esc(s.citta||'')}`:esc(s.citta)||''}</div>
+      ${s.cap||s.provincia?`<div style="font-size:12px;color:var(--m)">${esc(s.cap||'')} ${s.provincia||''}</div>`:''}
       ${s.zona?`<div style="font-size:12px;color:var(--m)">${s.zona}</div>`:''}
     </div>
   </div>`).join('');
@@ -2745,9 +2747,9 @@ async function saveCli(){
 async function loadOdl(){const {data}=await db.from('ordini_lavoro').select('*,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)').order('data_pianificata',{ascending:false});ODLS=data||[];renderO(ODLS);}
 function renderO(data){const tb=ge('otbody');if(!data.length){tb.innerHTML='<tr><td colspan="7"><div class="empty">Nessun ordine di lavoro</div></td></tr>';return;}tb.innerHTML=data.map(o=>`<tr>
     <td style="color:var(--m)">#${o.numero||'—'}</td>
-    <td><strong>${o.clienti?.ragione_sociale||'—'}</strong></td>
+    <td><strong>${esc(o.clienti?.ragione_sociale||'—')}</strong></td>
     <td>${tl(o.tipo)}</td>
-    <td>${o.utenti?o.utenti.nome+' '+o.utenti.cognome:'<span style="color:var(--r)">Non assegnato</span>'}</td>
+    <td>${o.utenti?esc(o.utenti.nome+' '+o.utenti.cognome):'<span style="color:var(--r)">Non assegnato</span>'}</td>
     <td>${fd(o.data_pianificata)||'<span style="color:var(--a)">Da pianificare</span>'}</td>
     <td>${bs(o.stato)}</td>
     <td style="display:flex;gap:6px">
@@ -2764,12 +2766,12 @@ async function loadDocs(){
     db.from('ddt').select('*,clienti(ragione_sociale)').order('creato_il',{ascending:false}),
     db.from('relazioni_tecniche').select('*,clienti(ragione_sociale),utenti!relazioni_tecniche_tecnico_id_fkey(nome,cognome)').order('creato_il',{ascending:false}),
   ]);
-  const st=sr.data||[];ge('stbody').innerHTML=!st.length?'<tr><td colspan="7"><div class="empty">Nessuna scheda</div></td></tr>':st.map(s=>`<tr><td>#${s.numero||'—'}</td><td>${s.clienti?.ragione_sociale||'—'}</td><td>${s.utenti?s.utenti.nome+' '+s.utenti.cognome:'—'}</td><td>${fd(s.data_intervento)}</td><td>${s.esito?be(s.esito):'—'}</td><td>${bs(s.stato)}</td><td><button class="btn sm" onclick="openScheda('${s.id}')">📄 Gestisci</button>
+  const st=sr.data||[];ge('stbody').innerHTML=!st.length?'<tr><td colspan="7"><div class="empty">Nessuna scheda</div></td></tr>':st.map(s=>`<tr><td>#${s.numero||'—'}</td><td>${esc(s.clienti?.ragione_sociale||'—')}</td><td>${esc(s.utenti?s.utenti.nome+' '+s.utenti.cognome:'—')}</td><td>${fd(s.data_intervento)}</td><td>${s.esito?be(s.esito):'—'}</td><td>${bs(s.stato)}</td><td><button class="btn sm" onclick="openScheda('${s.id}')">📄 Gestisci</button>
       <button class="btn sm" onclick="stampaRapportoIntervento('${s.id}')">📋 Rapporto</button>
       <button class="btn sm" onclick="stampaRelazionePorteREI('${s.id}')" title="Solo se ci sono porte REI">🚪 Porte</button>
       ${ROLE==='titolare'?`<button class="btn sm" style="color:var(--r)" onclick="eliminaScheda('${s.id}')">🗑️</button>`:''}</td></tr>`).join('');
-  const dt=dr.data||[];ge('dtbody').innerHTML=!dt.length?'<tr><td colspan="5"><div class="empty">Nessun DDT</div></td></tr>':dt.map(d=>`<tr><td>#${d.numero||'—'}</td><td>${d.clienti?.ragione_sociale||'—'}</td><td>${fd(d.data_emissione)}</td><td>${d.causale||'—'}</td><td style="display:flex;gap:6px"><button class="btn sm" onclick="stampaDDT('${d.id}')">🖨️ PDF</button>${ROLE==='titolare'?`<button class="btn sm" style="color:var(--r)" onclick="eliminaDDT('${d.id}')">🗑️</button>`:''}</td></tr>`).join('');
-  const rt=rr.data||[];ge('rttbody').innerHTML=!rt.length?'<tr><td colspan="7"><div class="empty">Nessuna relazione</div></td></tr>':rt.map(r=>`<tr><td>#${r.numero||'—'}</td><td>${r.clienti?.ragione_sociale||'—'}</td><td>${(r.tipo_impianto||'').replace(/_/g,' ')}</td><td>${fd(r.data_sopralluogo)}</td><td>${be(r.esito)}</td><td>${r.intervento_straordinario?'<span class="bx berr">Sì</span>':'<span class="bx bok">No</span>'}</td><td><button class="btn sm">Vedi</button></td></tr>`).join('');
+  const dt=dr.data||[];ge('dtbody').innerHTML=!dt.length?'<tr><td colspan="5"><div class="empty">Nessun DDT</div></td></tr>':dt.map(d=>`<tr><td>#${d.numero||'—'}</td><td>${esc(d.clienti?.ragione_sociale||'—')}</td><td>${fd(d.data_emissione)}</td><td>${esc(d.causale||'—')}</td><td style="display:flex;gap:6px"><button class="btn sm" onclick="stampaDDT('${d.id}')">🖨️ PDF</button>${ROLE==='titolare'?`<button class="btn sm" style="color:var(--r)" onclick="eliminaDDT('${d.id}')">🗑️</button>`:''}</td></tr>`).join('');
+  const rt=rr.data||[];ge('rttbody').innerHTML=!rt.length?'<tr><td colspan="7"><div class="empty">Nessuna relazione</div></td></tr>':rt.map(r=>`<tr><td>#${r.numero||'—'}</td><td>${esc(r.clienti?.ragione_sociale||'—')}</td><td>${esc((esc(r.tipo_impianto)||'').replace(/_/g,' '))}</td><td>${fd(r.data_sopralluogo)}</td><td>${be(r.esito)}</td><td>${r.intervento_straordinario?'<span class="bx berr">Sì</span>':'<span class="bx bok">No</span>'}</td><td><button class="btn sm">Vedi</button></td></tr>`).join('');
 }
 
 // ── SELECTS ───────────────────────────────────────────────────
@@ -2777,13 +2779,13 @@ async function loadCS(){
   const {data,error}=await db.from('clienti').select('id,ragione_sociale').order('ragione_sociale');
   if(error){console.warn('loadCS:',error.message);return;}
   CLIS=data||[];
-  ['tc1','mo1','mpcl'].forEach(id=>{const el=ge(id);if(!el)return;const cur=el.value;el.innerHTML='<option value="">Seleziona cliente...</option>'+(data||[]).map(c=>`<option value="${c.id}">${c.ragione_sociale}</option>`).join('');if(cur)el.value=cur;});
+  ['tc1','mo1','mpcl'].forEach(id=>{const el=ge(id);if(!el)return;const cur=el.value;el.innerHTML='<option value="">Seleziona cliente...</option>'+(data||[]).map(c=>`<option value="${c.id}">${esc(c.ragione_sociale)}</option>`).join('');if(cur)el.value=cur;});
 }
 async function loadUS(){
   const {data,error}=await db.from('utenti').select('id,nome,cognome,ruolo').eq('attivo',true).order('nome');
   if(error){console.warn('loadUS:',error.message);return;}
   UTENTI=data||[];const tec=(data||[]).filter(u=>['tecnico','capo_tecnico'].includes(u.ruolo));
-  ['tc5','mo5'].forEach(id=>{const el=ge(id);if(!el)return;el.innerHTML='<option value="">Seleziona tecnico...</option>'+tec.map(u=>`<option value="${u.id}">${u.nome} ${u.cognome} (${u.ruolo})</option>`).join('');});
+  ['tc5','mo5'].forEach(id=>{const el=ge(id);if(!el)return;el.innerHTML='<option value="">Seleziona tecnico...</option>'+tec.map(u=>`<option value="${u.id}">${esc(u.nome)} ${esc(u.cognome)} (${u.ruolo})</option>`).join('');});
 }
 
 async function toggleAttivoUtente(id, attivoAttuale) {
@@ -2810,18 +2812,18 @@ async function loadTeam(){
   if(error){el.innerHTML=`<div class="al2 e">Errore: ${error.message}</div>`;return;}
   if(!data?.length){el.innerHTML='<div class="empty">Nessun utente</div>';return;}
   el.innerHTML=`<table><thead><tr><th>Nome</th><th>Ruolo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${data.map(u=>`<tr>
-    <td><strong>${u.nome} ${u.cognome}</strong><br><span style="font-size:11px;color:var(--m)">${u.email}</span></td>
+    <td><strong>${esc(u.nome)} ${esc(u.cognome)}</strong><br><span style="font-size:11px;color:var(--m)">${esc(u.email)}</span></td>
     <td><span class="bx bblue">${u.ruolo}</span></td>
     <td>${u.attivo?'<span class="bx bok">Attivo</span>':'<span class="bx bgray">Inattivo</span>'}</td>
     <td style="display:flex;gap:6px">
       <button class="btn sm" onclick="toggleAttivoUtente('${u.id}',${u.attivo})">${u.attivo?'⏸️ Disattiva':'▶️ Riattiva'}</button>
-      ${u.id!==ME?.id?`<button class="btn sm" style="color:var(--r)" onclick="eliminaUtente('${u.id}','${u.nome} ${u.cognome}')">🗑️</button>`:''}
+      ${u.id!==ME?.id?`<button class="btn sm" style="color:var(--r)" onclick="eliminaUtente('${u.id}','${esc(u.nome)} ${esc(u.cognome)}')">🗑️</button>`:''}
     </td>
   </tr>`).join('')}</tbody></table>`;
 }
 async function loadImp(){
   const {data}=await db.from('impostazioni').select('*').eq('id',1).maybeSingle();if(!data)return;
-  if(data.ragione_sociale){ge('nc').textContent=data.ragione_sociale.split(' ')[0];document.title=data.ragione_sociale+' — Gestionale';}
+  if(esc(data.ragione_sociale)){ge('nc').textContent=esc(data.ragione_sociale).split(' ')[0];document.title=esc(data.ragione_sociale)+' — Gestionale';}
   const fs=['ragione_sociale','indirizzo','cap','citta','piva','telefono','email'];const is=['si1','si2','si3','si4','si5','si6','si7'];
   fs.forEach((f,i)=>{const el=ge(is[i]);if(el&&data[f])el.value=data[f];});
 }
@@ -2894,7 +2896,7 @@ function renderPresidiPerSede(pp) {
     if(!bySede[key]) {
       var s = p.sedi_cliente;
       bySede[key] = {
-        label: s ? (s.tipo||'') + ' — ' + (s.indirizzo||'') + (s.citta?', '+s.citta:'') : 'Sede',
+        label: s ? (s.tipo||'') + ' — ' + (esc(s.indirizzo)||'') + (esc(s.citta)?', '+esc(s.citta):'') : 'Sede',
         items: []
       };
     }
@@ -2915,9 +2917,9 @@ function renderPresidiPerSede(pp) {
         return '<div class="pc">' +
           '<div style="position:absolute;top:12px;right:12px">'+si2(p.stato)+'</div>' +
           '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--m);margin-bottom:4px">'+tpl(p.tipo)+'</div>' +
-          '<div style="font-size:14px;font-weight:600;margin-bottom:2px">'+(p.matricola||'—')+'</div>' +
+          '<div style="font-size:14px;font-weight:600;margin-bottom:2px">'+(esc(p.matricola)||'—')+'</div>' +
           '<div style="font-size:12px;display:flex;flex-direction:column;gap:4px">' +
-            '<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ubicazione</span><span>'+(p.ubicazione||'—')+'</span></div>' +
+            '<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ubicazione</span><span>'+(esc(p.ubicazione)||'—')+'</span></div>' +
             '<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ult. verifica</span><span>'+fd(p.data_ultimo_controllo)+'</span></div>' +
             '<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Prossima</span><span class="'+sc(p.data_prossimo_controllo)+'">'+fd(p.data_prossimo_controllo)+'</span></div>' +
           '</div>' +
@@ -2966,7 +2968,7 @@ async function loadPC(){
 
   // Raggruppa per sede poi per tipo
   var bySede2 = {'': {label:'Sede principale', items:[]}};
-  sediList.forEach(function(s){ bySede2[s.id]={label:(s.tipo||'')+ ' — '+(s.indirizzo||'')+(s.citta?', '+s.citta:''), items:[]}; });
+  sediList.forEach(function(s){ bySede2[s.id]={label:(s.tipo||'')+ ' — '+(esc(s.indirizzo)||'')+(esc(s.citta)?', '+esc(s.citta):''), items:[]}; });
   pp.forEach(function(p){ var k=p.sede_id||''; if(!bySede2[k]) bySede2[k]={label:'Sede N/D',items:[]}; bySede2[k].items.push(p); });
 
   var hasMultiSede = sediList.length > 0;
@@ -2991,8 +2993,8 @@ async function loadPC(){
           '<div style="display:flex;align-items:flex-start;gap:10px">' +
             '<input type="checkbox" id="upd-'+p.id+'" data-mesi="'+mesi+'" style="width:18px;height:18px;accent-color:var(--g);margin-top:3px" onchange="togglePresidioDetail(this.dataset.pid)" data-pid="'+p.id+'">' +
             '<div style="flex:1">' +
-              '<div style="font-size:13px;font-weight:600">'+statoIcon+' '+tpl(p.tipo)+' — '+( p.matricola||'N/A')+'</div>' +
-              '<div style="font-size:12px;color:var(--m)">'+( p.ubicazione||'—')+(p.piano?' · Piano '+p.piano:'')+' · '+periLabel+'</div>' +
+              '<div style="font-size:13px;font-weight:600">'+statoIcon+' '+tpl(p.tipo)+' — '+( esc(p.matricola)||'N/A')+'</div>' +
+              '<div style="font-size:12px;color:var(--m)">'+( esc(p.ubicazione)||'—')+(p.piano?' · Piano '+p.piano:'')+' · '+periLabel+'</div>' +
               '<div style="font-size:11px;color:var(--m)">Ult. verifica: '+(fd(p.data_ultimo_controllo)||'Mai')+' · Pross.: '+fd(p.data_prossimo_controllo)+'</div>' +
             '</div>' +
             '<button class="btn sm" data-pid="'+p.id+'" onclick="editPresidioTec(this.dataset.pid)" style="font-size:11px">✏️</button>' +
@@ -3007,7 +3009,7 @@ async function loadPC(){
                   '<option value="fuori_servizio"'+(p.stato==='fuori_servizio'?' selected':'')+'>🔴 Fuori servizio</option>' +
                 '</select></div>' +
               '<div class="f" style="margin:0"><label style="font-size:11px">Note intervento</label>' +
-                '<input type="text" id="note-'+p.id+'" value="'+(p.note||'')+'" placeholder="Anomalie, ricambi..." style="font-size:13px"></div>' +
+                '<input type="text" id="note-'+p.id+'" value="'+(esc(p.note)||'')+'" placeholder="Anomalie, ricambi..." style="font-size:13px"></div>' +
             '</div>' +
           '</div>' +
         '</div>';
@@ -3237,11 +3239,11 @@ function renderCalList() {
   var canEdit = ROLE === 'capo_tecnico' || ROLE === 'titolare';
   var canDel = ROLE === 'titolare';
   el.innerHTML = calOdls.map(function(o) {
-    var cli = o.clienti && o.clienti.ragione_sociale ? o.clienti.ragione_sociale : '—';
-    var tec = o.utenti ? o.utenti.nome + ' ' + o.utenti.cognome : '<span style="color:var(--r)">Non assegnato</span>';
+    var cli = o.clienti && o.clienti.ragione_sociale ? esc(o.clienti.ragione_sociale) : '—';
+    var tec = o.utenti ? esc(o.utenti.nome + ' ' + o.utenti.cognome) : '<span style="color:var(--r)">Non assegnato</span>';
     var statoLabel = o.stato === 'da_pianificare' ? '<span class="bx bblue">Pianificato</span>' : bs(o.stato);
     var sedeObj = o.sede_id && window._calSediMap ? window._calSediMap[o.sede_id] : null;
-    var sedeStr = sedeObj ? '📍 ' + (sedeObj.tipo||'').toUpperCase() + (sedeObj.nome?' — '+sedeObj.nome:'') + ': ' + (sedeObj.via||'') + ' ' + (sedeObj.civico||'') + (sedeObj.citta?' ('+sedeObj.citta+')':'') : '📍 Sede principale';
+    var sedeStr = sedeObj ? '📍 ' + esc((sedeObj.tipo||'').toUpperCase()) + (sedeObj.nome?' — '+esc(sedeObj.nome):'') + ': ' + esc(sedeObj.via||'') + ' ' + esc(sedeObj.civico||'') + (sedeObj.citta?' ('+esc(sedeObj.citta)+')':'') : '📍 Sede principale';
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:0.5px solid var(--bo);gap:10px">' +
       '<div style="flex:1">' +
         '<div style="font-size:13px;font-weight:600">' + cli + '</div>' +
@@ -3284,7 +3286,7 @@ async function apriEditOdlCal(id) {
   var canEdit = ROLE === 'capo_tecnico' || ROLE === 'titolare';
   var tecOpts = '<option value="">— Nessuno —</option>' +
     UTENTI.filter(function(u){return ['tecnico','capo_tecnico'].includes(u.ruolo);})
-    .map(function(u){return '<option value="'+u.id+'"'+(odl.tecnico_id===u.id?' selected':'')+'>'+u.nome+' '+u.cognome+'</option>';}).join('');
+    .map(function(u){return '<option value="'+u.id+'"'+(odl.tecnico_id===u.id?' selected':'')+'>'+esc(u.nome)+' '+esc(u.cognome)+'</option>';}).join('');
 
   // Carica sedi del cliente per il select
   var sediOpts = '<option value="">Sede principale</option>';
@@ -3314,7 +3316,7 @@ async function apriEditOdlCal(id) {
       '</div>' +
       '<div class="f"><label>📍 Sede intervento</label><select id="ce-sede" '+(canEdit?'':'disabled')+'>'+sediOpts+'</select></div>' +
       '<div class="f"><label>Tecnico assegnato</label><select id="ce-tec" '+(canEdit?'':'disabled')+'>'+tecOpts+'</select></div>' +
-      '<div class="f"><label>Note</label><textarea id="ce-note" style="min-height:60px" '+(canEdit?'':'readonly')+'>'+(odl.note_per_tecnico||'')+'</textarea></div>' +
+      '<div class="f"><label>Note</label><textarea id="ce-note" style="min-height:60px" '+(canEdit?'':'readonly')+'>'+(esc(odl.note_per_tecnico)||'')+'</textarea></div>' +
       (canEdit ?
         '<div style="display:flex;gap:8px;margin-top:14px">' +
           '<button class="btn" onclick="chiudiModal(\"m-cal-edit\")">Annulla</button>' +
@@ -3409,7 +3411,7 @@ async function preloadFromOdl() {
     infoDiv.innerHTML = '<div style="background:var(--bl);border-radius:var(--rs);padding:12px;font-size:13px;margin-bottom:12px">' +
       '<div style="font-weight:600;margin-bottom:4px">'+o.clienti.ragione_sociale+'</div>' +
       (tel ? '<div>'+tel+'</div>' : '') +
-      (o.note_per_tecnico ? '<div style="margin-top:8px;padding:8px;background:white;border-radius:6px;color:var(--a)">📝 Note: '+o.note_per_tecnico+'</div>' : '') +
+      (esc(o.note_per_tecnico) ? '<div style="margin-top:8px;padding:8px;background:white;border-radius:6px;color:var(--a)">📝 Note: '+esc(o.note_per_tecnico)+'</div>' : '') +
       '</div>';
     infoDiv.style.display = 'block';
   }
@@ -3493,8 +3495,8 @@ async function stampaDDT(ddtId) {
     // Dati cliente - box destinatario
     var cli = ddt.clienti || {};
     var sede = [
-      cli.indirizzo_fattura,
-      (cli.cap_fattura ? cli.cap_fattura + ' ' : '') + (cli.citta_fattura || cli.citta || '')
+      esc(cli.indirizzo_fattura),
+      (cli.cap_fattura ? cli.cap_fattura + ' ' : '') + (esc(cli.citta_fattura) || esc(cli.citta) || '')
     ].filter(Boolean);
 
     var boxH = 10 + (sede.length * 5) + (cli.piva ? 5 : 0) + (cli.codice_fiscale ? 5 : 0) + 4;
@@ -3533,7 +3535,7 @@ async function stampaDDT(ddtId) {
     var startY = Math.max(38 + boxH + 4, 72);
 
     // Causale
-    if(ddt.causale) {
+    if(esc(ddt.causale)) {
       doc.setFontSize(9);
       doc.setTextColor(80, 80, 80);
       doc.text('Causale: ' + ddt.causale, 15, startY);
@@ -3586,7 +3588,7 @@ async function stampaDDT(ddtId) {
     }
 
     // Note
-    if(ddt.note) {
+    if(esc(ddt.note)) {
       var noteY = doc.lastAutoTable.finalY + (mostraPrezzi ? 12 : 8);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
@@ -3635,7 +3637,7 @@ openM = function(id) {
     var sel = ge('ddt-cli');
     if(sel) {
       sel.innerHTML = '<option value="">Seleziona...</option>' +
-        CLIS.map(function(c) { return '<option value="' + c.id + '">' + c.ragione_sociale + '</option>'; }).join('');
+        CLIS.map(function(c) { return '<option value="' + c.id + '">' + esc(c.ragione_sociale) + '</option>'; }).join('');
     }
     var odlSel = ge('ddt-odl');
     if(odlSel) {
@@ -3656,7 +3658,7 @@ async function loadDashRappresentante() {
   var ora = new Date().getHours();
   var saluto = ora < 12 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
   var el;
-  el = ge('rapp-welcome'); if(el) el.textContent = saluto + (ME && ME.nome ? ', ' + ME.nome : '');
+  el = ge('rapp-welcome'); if(el) el.textContent = saluto + (ME && esc(ME.nome) ? ', ' + esc(ME.nome) : '');
   el = ge('ddate-r'); if(el) el.textContent = new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   var in30 = new Date(Date.now()+30*86400000).toISOString().split('T')[0];
   var res = await Promise.all([
@@ -3679,10 +3681,10 @@ function renderProspectWidget() {
   var elP = ge('rapp-prospect'); if(!elP) return;
   if(!_allProspect.length) { elP.innerHTML = '<div class="empty">Nessun prospect.<br><button class="btn p sm" style="margin-top:10px" onclick="openNewCli()">+ Aggiungi</button></div>'; return; }
   elP.innerHTML = _allProspect.slice(0,6).map(function(c) {
-    var tel = c.referente_telefono ? '<a href="tel:' + c.referente_telefono + '" class="btn sm">Chiama</a>' : '';
+    var tel = esc(c.referente_telefono) ? '<a href="tel:' + esc(c.referente_telefono) + '" class="btn sm">Chiama</a>' : '';
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--bo)">' +
-      '<div><div style="font-size:13px;font-weight:600">' + c.ragione_sociale + '</div>' +
-      '<div style="font-size:12px;color:var(--m)">' + (c.citta||'') + (c.referente_nome?' · '+c.referente_nome:'') + '</div></div>' +
+      '<div><div style="font-size:13px;font-weight:600">' + esc(c.ragione_sociale) + '</div>' +
+      '<div style="font-size:12px;color:var(--m)">' + (esc(c.citta)||'') + (esc(c.referente_nome)?' · '+esc(c.referente_nome):'') + '</div></div>' +
       '<div style="display:flex;gap:4px">' + tel + '</div></div>';
   }).join('');
   if(_allProspect.length > 6) elP.innerHTML += '<div style="text-align:center;padding:10px"><button class="btn sm" onclick="gotoPage(\'trattative\')">Vedi tutti (' + _allProspect.length + ')</button></div>';
@@ -3694,7 +3696,7 @@ function renderScadenzeWidget(scList) {
   elS.innerHTML = scList.map(function(p) {
     var cli = p.clienti && p.clienti.ragione_sociale ? p.clienti.ragione_sociale : '—';
     return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--bo);font-size:13px">' +
-      '<div><div style="font-weight:500">' + cli + '</div><div style="color:var(--m);font-size:12px">' + tpl(p.tipo) + (p.matricola?' #'+p.matricola:'') + '</div></div>' +
+      '<div><div style="font-weight:500">' + cli + '</div><div style="color:var(--m);font-size:12px">' + tpl(p.tipo) + (esc(p.matricola)?' #'+esc(p.matricola):'') + '</div></div>' +
       '<div style="text-align:right"><div class="' + sc(p.data_prossimo_controllo) + '">' + fd(p.data_prossimo_controllo) + '</div><div style="font-size:11px;color:var(--m)">' + dd2(p.data_prossimo_controllo) + '</div></div></div>';
   }).join('');
 }
@@ -3707,7 +3709,7 @@ async function renderSopralluoghiWidget() {
   elSop.innerHTML = sops.map(function(s) {
     var cls = s.urgenza === 'urgente' ? 'berr' : s.urgenza === 'entro_30gg' ? 'bwarn' : 'bgray';
     return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--bo)">' +
-      '<div style="font-size:13px;font-weight:500">' + (s.ragione_sociale||'—') + '</div>' +
+      '<div style="font-size:13px;font-weight:500">' + (esc(s.ragione_sociale)||'—') + '</div>' +
       '<div style="display:flex;gap:6px;align-items:center"><span style="font-size:12px;color:var(--m)">' + fd(s.creato_il) + '</span>' +
       '<span class="bx ' + cls + '">' + (s.urgenza||'normale') + '</span></div></div>';
   }).join('');
@@ -3723,11 +3725,11 @@ function renderProspectListT(data) {
   var el = ge('tr-prospect-list'); if(!el) return;
   if(!data.length) { el.innerHTML = '<div class="empty">Nessun prospect.</div>'; return; }
   el.innerHTML = data.map(function(c) {
-    var tel = c.referente_telefono ? '<a href="tel:' + c.referente_telefono + '" class="btn sm">Chiama</a>' : '';
+    var tel = esc(c.referente_telefono) ? '<a href="tel:' + esc(c.referente_telefono) + '" class="btn sm">Chiama</a>' : '';
     return '<div class="card" style="margin-bottom:10px">' +
       '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">' +
-      '<div><div style="font-size:14px;font-weight:600">' + c.ragione_sociale + '</div>' +
-      '<div style="font-size:12px;color:var(--m)">' + (c.citta||'') + (c.referente_nome?' · '+c.referente_nome:'') + (c.referente_telefono?' · '+c.referente_telefono:'') + '</div></div>' +
+      '<div><div style="font-size:14px;font-weight:600">' + esc(c.ragione_sociale) + '</div>' +
+      '<div style="font-size:12px;color:var(--m)">' + (esc(c.citta)||'') + (esc(c.referente_nome)?' · '+esc(c.referente_nome):'') + (esc(c.referente_telefono)?' · '+esc(c.referente_telefono):'') + '</div></div>' +
       '<span class="bx bblue">Prospect</span></div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' +
       '<button class="btn sm" onclick="openClienteDetail(\'' + c.id + '\')">Scheda</button> ' + tel + '</div></div>';
@@ -3737,7 +3739,7 @@ function renderProspectListT(data) {
 function filterTrattative() {
   var q = v('tr-search').toLowerCase();
   renderProspectListT(_allProspect.filter(function(c) {
-    return c.ragione_sociale.toLowerCase().includes(q) || (c.referente_nome||'').toLowerCase().includes(q) || (c.citta||'').toLowerCase().includes(q);
+    return esc(c.ragione_sociale).toLowerCase().includes(q) || (esc(c.referente_nome)||'').toLowerCase().includes(q) || (esc(c.citta)||'').toLowerCase().includes(q);
   }));
 }
 
@@ -3750,8 +3752,8 @@ async function loadSopralluoghiList() {
     var cls = s.urgenza === 'urgente' ? 'berr' : s.urgenza === 'entro_30gg' ? 'bwarn' : 'bgray';
     return '<div class="card" style="margin-bottom:10px">' +
       '<div style="display:flex;justify-content:space-between">' +
-      '<div><div style="font-size:14px;font-weight:600">' + (s.ragione_sociale||'—') + '</div>' +
-      '<div style="font-size:12px;color:var(--m)">' + fd(s.creato_il) + ' · ' + (s.indirizzo||'') + '</div></div>' +
+      '<div><div style="font-size:14px;font-weight:600">' + (esc(s.ragione_sociale)||'—') + '</div>' +
+      '<div style="font-size:12px;color:var(--m)">' + fd(s.creato_il) + ' · ' + (esc(s.indirizzo)||'') + '</div></div>' +
       '<span class="bx ' + cls + '">' + (s.urgenza||'normale') + '</span></div></div>';
   }).join('');
 }
@@ -3834,7 +3836,7 @@ async function initDDTModal() {
   var sel = ge('ddt-cli');
   if(sel) {
     sel.innerHTML = '<option value="">Seleziona...</option>' +
-      CLIS.map(function(c) { return '<option value="' + c.id + '">' + c.ragione_sociale + '</option>'; }).join('');
+      CLIS.map(function(c) { return '<option value="' + c.id + '">' + esc(c.ragione_sociale) + '</option>'; }).join('');
     sel.onchange = function() { caricaSediDDT(this.value); };
   }
   // Popola OdL
@@ -4002,7 +4004,7 @@ function renderRigheDDT() {
     _ddtRighe.map(function(r, i) {
       return '<tr style="border-bottom:0.5px solid var(--bo)">' +
         '<td style="padding:4px 8px"><input type="text" value="' + (r.codice||'') + '" placeholder="Codice" style="width:80px;padding:4px 6px;border:0.5px solid var(--bo);border-radius:4px;font-size:12px" onchange="aggiornaRiga(' + i + ',\'codice\',this.value)"></td>' +
-        '<td style="padding:4px 8px"><input type="text" value="' + (r.descrizione||'').replace(/"/g,'&quot;') + '" placeholder="Descrizione" style="width:100%;padding:4px 6px;border:0.5px solid var(--bo);border-radius:4px;font-size:12px" onchange="aggiornaRiga(' + i + ',\'descrizione\',this.value)"></td>' +
+        '<td style="padding:4px 8px"><input type="text" value="' + (esc(r.descrizione)||'').replace(/"/g,'&quot;') + '" placeholder="Descrizione" style="width:100%;padding:4px 6px;border:0.5px solid var(--bo);border-radius:4px;font-size:12px" onchange="aggiornaRiga(' + i + ',\'descrizione\',this.value)"></td>' +
         '<td style="padding:4px 8px"><input type="text" value="' + (r.um||'') + '" placeholder="UM" style="width:50px;padding:4px 6px;border:0.5px solid var(--bo);border-radius:4px;font-size:12px" onchange="aggiornaRiga(' + i + ',\'um\',this.value)"></td>' +
         '<td style="padding:4px 8px;text-align:center"><input type="number" value="' + (r.quantita||1) + '" min="0" style="width:60px;padding:4px 6px;border:0.5px solid var(--bo);border-radius:4px;font-size:12px;text-align:center" oninput="aggiornaRiga(' + i + ',\'quantita\',this.value)"></td>' +
         (mostraPrezzi ? '<td style="padding:4px 8px;text-align:right"><input type="number" value="' + (r.prezzo_unitario||0).toFixed(2) + '" min="0" step="0.01" style="width:70px;padding:4px 6px;border:0.5px solid var(--bo);border-radius:4px;font-size:12px;text-align:right" oninput="aggiornaRiga(' + i + ',\'prezzo_unitario\',this.value)"></td>' : '') +
@@ -4040,7 +4042,7 @@ async function saveDdt() {
       ddt_id: ddtId,
       prodotto_id: r.prodotto_id || null,
       codice: r.codice || null,
-      descrizione: r.descrizione || '—',
+      descrizione: esc(r.descrizione) || '—',
       um: r.um || null,
       quantita: r.quantita || 1,
       prezzo_unitario: canSeePrezzi() ? (r.prezzo_unitario || 0) : 0
@@ -4100,8 +4102,8 @@ async function stampaDDT(ddtId) {
     // Dati cliente - box destinatario
     var cli = ddt.clienti || {};
     var sede = [
-      cli.indirizzo_fattura,
-      (cli.cap_fattura ? cli.cap_fattura + ' ' : '') + (cli.citta_fattura || cli.citta || '')
+      esc(cli.indirizzo_fattura),
+      (cli.cap_fattura ? cli.cap_fattura + ' ' : '') + (esc(cli.citta_fattura) || esc(cli.citta) || '')
     ].filter(Boolean);
 
     var boxH = 10 + (sede.length * 5) + (cli.piva ? 5 : 0) + (cli.codice_fiscale ? 5 : 0) + 4;
@@ -4140,7 +4142,7 @@ async function stampaDDT(ddtId) {
     var startY = Math.max(38 + boxH + 4, 72);
 
     // Causale
-    if(ddt.causale) {
+    if(esc(ddt.causale)) {
       doc.setFontSize(9);
       doc.setTextColor(80, 80, 80);
       doc.text('Causale: ' + ddt.causale, 15, startY);
@@ -4193,7 +4195,7 @@ async function stampaDDT(ddtId) {
     }
 
     // Note
-    if(ddt.note) {
+    if(esc(ddt.note)) {
       var noteY = doc.lastAutoTable.finalY + (mostraPrezzi ? 12 : 8);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
@@ -4592,12 +4594,12 @@ async function loadDocumentiCliente(cliId) {
     var canDel = ROLE === 'titolare' || ROLE === 'segreteria';
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:0.5px solid var(--bo);gap:10px">' +
       '<div style="flex:1">' +
-        '<div style="font-size:13px;font-weight:600">' + icona + ' ' + d.nome_file + '</div>' +
-        '<div style="font-size:11px;color:var(--m);margin-top:2px">' + d.tipo_documento + (d.note ? ' · ' + d.note : '') + ' · ' + chi + ' · ' + data + '</div>' +
+        '<div style="font-size:13px;font-weight:600">' + icona + ' ' + esc(d.nome_file) + '</div>' +
+        '<div style="font-size:11px;color:var(--m);margin-top:2px">' + d.tipo_documento + (esc(d.note) ? ' · ' + esc(d.note) : '') + ' · ' + chi + ' · ' + data + '</div>' +
       '</div>' +
       '<div style="display:flex;gap:6px">' +
-        '<button class="btn sm p" data-id="'+d.id+'" data-path="'+d.storage_path+'" data-nome="'+d.nome_file+'" onclick="scaricaDocumento(this.dataset.id,this.dataset.path,this.dataset.nome)">⬇️ Scarica</button>' +
-        (canDel ? '<button class="btn sm" style="color:var(--r)" data-id="'+d.id+'" data-path="'+d.storage_path+'" onclick="eliminaDocumentoCliente(this.dataset.id,this.dataset.path)">🗑️</button>' : '') +
+        '<button class="btn sm p" data-id="'+d.id+'" data-path="'+esc(d.storage_path)+'" data-nome="'+esc(d.nome_file)+'" onclick="scaricaDocumento(this.dataset.id,this.dataset.path,this.dataset.nome)">⬇️ Scarica</button>' +
+        (canDel ? '<button class="btn sm" style="color:var(--r)" data-id="'+d.id+'" data-path="'+esc(d.storage_path)+'" onclick="eliminaDocumentoCliente(this.dataset.id,this.dataset.path)">🗑️</button>' : '') +
       '</div>' +
     '</div>';
   }).join('');
