@@ -589,17 +589,25 @@ function gotoPage(id){
 
 // ── DASHBOARD ─────────────────────────────────────────────────
 async function loadDash(){
-  // Tecnico: dashboard dedicata stile iOS, sostituisce completamente la standard
-  var dtSec = ge('dash-tecnico'), dsSec = ge('dash-standard');
+  // Smistamento per ruolo: tecnico e titolare hanno dashboard dedicate.
+  var dtSec = ge('dash-tecnico'), ttSec = ge('dash-titolare'), dsSec = ge('dash-standard');
   if(ROLE==='tecnico'){
     if(dtSec) dtSec.style.display='block';
+    if(ttSec) ttSec.style.display='none';
     if(dsSec) dsSec.style.display='none';
     await loadDashTecnico();
     return;
-  } else {
-    if(dtSec) dtSec.style.display='none';
-    if(dsSec) dsSec.style.display='block';
   }
+  if(ROLE==='titolare'){
+    if(dtSec) dtSec.style.display='none';
+    if(ttSec) ttSec.style.display='block';
+    if(dsSec) dsSec.style.display='none';
+    await loadDashTitolare();
+    return;
+  }
+  if(dtSec) dtSec.style.display='none';
+  if(ttSec) ttSec.style.display='none';
+  if(dsSec) dsSec.style.display='block';
   const today=new Date().toISOString().split('T')[0];const in30=new Date(Date.now()+30*86400000).toISOString().split('T')[0];
   // Query KPI filtrate per ruolo
   var qOdl = db.from('ordini_lavoro').select('id',{count:'exact'}).eq('data_pianificata',today);
@@ -805,6 +813,186 @@ async function apriInterventoDiretto(odlId){
   if(sel){
     sel.value = odlId;
     await preloadFromOdl();
+  }
+}
+
+// ── DASHBOARD TITOLARE (iOS-like, KPI + chart, periodo selezionabile) ─
+function getPeriodoRange(periodo){
+  // Ritorna {start, end} come stringhe YYYY-MM-DD (end ESCLUSIVO).
+  var d = new Date(); d.setHours(0,0,0,0);
+  var start, end;
+  if(periodo === 'oggi'){
+    start = new Date(d);
+    end = new Date(d); end.setDate(end.getDate()+1);
+  } else if(periodo === 'mese'){
+    start = new Date(d.getFullYear(), d.getMonth(), 1);
+    end   = new Date(d.getFullYear(), d.getMonth()+1, 1);
+  } else { // 'settimana' (default): lunedì–domenica
+    var dow = d.getDay(); // 0=dom, 1=lun, ...
+    var offsetToMon = (dow === 0) ? -6 : 1 - dow;
+    start = new Date(d); start.setDate(start.getDate()+offsetToMon);
+    end = new Date(start); end.setDate(end.getDate()+7);
+  }
+  return {
+    start: start.toISOString().split('T')[0],
+    end: end.toISOString().split('T')[0],
+    startTs: start.toISOString(),
+    endTs: end.toISOString()
+  };
+}
+
+function setTitolarePeriodo(p){
+  window._dashTitPeriodo = p;
+  ['oggi','settimana','mese'].forEach(function(x){
+    var el = ge('tit-period-'+x); if(el) el.classList.toggle('on', x === p);
+  });
+  loadDashTitolare();
+}
+
+async function loadDashTitolare(){
+  var periodo = window._dashTitPeriodo || 'settimana';
+  var range = getPeriodoRange(periodo);
+  var oggi = new Date(); oggi.setHours(0,0,0,0);
+  var oggiStr = oggi.toISOString().split('T')[0];
+  var in30Str = new Date(Date.now()+30*86400000).toISOString().split('T')[0];
+
+  // Saluto
+  var h = new Date().getHours();
+  var pref = h<12?'Buongiorno':(h<18?'Buon pomeriggio':'Buonasera');
+  var gn = ge('tit-greet-nome'); if(gn) gn.textContent = pref + ', ' + (ME?.nome || '');
+  var gd = ge('tit-greet-data'); if(gd) gd.textContent = new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+
+  // KPI in parallelo (solo head:true count quando possibile)
+  var Q = function(tbl){ return db.from(tbl).select('*',{count:'exact',head:true}); };
+  var [
+    rCompletati, rPianificati, rRitardo, rDaPianif,
+    rPresidiScad, rPresidi30, rCliAtt, rCliNuovi,
+    rTecAtt, rDaApprov, rDaFatt
+  ] = await Promise.all([
+    Q('ordini_lavoro').eq('stato','completato').gte('data_pianificata',range.start).lt('data_pianificata',range.end),
+    Q('ordini_lavoro').eq('stato','pianificato').gte('data_pianificata',range.start).lt('data_pianificata',range.end),
+    Q('ordini_lavoro').lt('data_pianificata',oggiStr).not('stato','in','(completato,annullato)'),
+    Q('ordini_lavoro').eq('stato','da_pianificare'),
+    Q('impianti').lt('data_prossimo_controllo',oggiStr),
+    Q('impianti').gte('data_prossimo_controllo',oggiStr).lte('data_prossimo_controllo',in30Str),
+    Q('clienti').eq('stato','attivo'),
+    Q('clienti').gte('creato_il',range.startTs).lt('creato_il',range.endTs),
+    Q('utenti').eq('ruolo','tecnico').eq('attivo',true),
+    Q('schede_lavoro').eq('stato','firmata'),
+    Q('schede_lavoro').eq('stato','da_fatturare')
+  ]);
+
+  function num(r){ return r.error ? '—' : (r.count || 0); }
+  ge('tit-k-completati').textContent = num(rCompletati);
+  ge('tit-k-pianificati').textContent = num(rPianificati);
+  ge('tit-k-ritardo').textContent = num(rRitardo);
+  ge('tit-k-dapianif').textContent = num(rDaPianif);
+  ge('tit-k-presidi-scad').textContent = num(rPresidiScad);
+  ge('tit-k-presidi-30').textContent = num(rPresidi30);
+  ge('tit-k-cli-attivi').textContent = num(rCliAtt);
+  ge('tit-k-cli-nuovi').textContent = num(rCliNuovi);
+  ge('tit-k-tec-attivi').textContent = num(rTecAtt);
+  ge('tit-k-da-approvare').textContent = num(rDaApprov);
+  ge('tit-k-da-fatturare').textContent = num(rDaFatt);
+
+  // Top tecnico nel periodo
+  var rTopRaw = await db.from('ordini_lavoro')
+    .select('tecnico_id,utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)')
+    .eq('stato','completato')
+    .gte('data_pianificata', range.start)
+    .lt('data_pianificata', range.end)
+    .not('tecnico_id','is',null);
+  var topEl = ge('tit-k-top-tec');
+  var topLbl = ge('tit-k-top-tec-label');
+  if(rTopRaw.error || !rTopRaw.data || !rTopRaw.data.length){
+    if(topEl) topEl.textContent = '—';
+    if(topLbl) topLbl.textContent = 'Top tecnico del periodo';
+  } else {
+    var cnt = {};
+    rTopRaw.data.forEach(function(o){
+      var k = o.tecnico_id;
+      if(!cnt[k]) cnt[k] = { n:0, nome: o.utenti ? (o.utenti.nome + ' ' + o.utenti.cognome) : 'Tecnico' };
+      cnt[k].n++;
+    });
+    var best = Object.values(cnt).sort(function(a,b){ return b.n - a.n; })[0];
+    if(topEl) topEl.textContent = esc(best.nome.split(' ')[0]);
+    if(topLbl) topLbl.textContent = best.n + ' interventi nel periodo';
+  }
+
+  // Valore materiali DDT nel periodo
+  var rDdt = await db.from('ddt').select('id').gte('data_emissione', range.start).lt('data_emissione', range.end);
+  var ddtEl = ge('tit-k-ddt-eur');
+  if(rDdt.error || !rDdt.data || !rDdt.data.length){
+    if(ddtEl) ddtEl.textContent = '€ 0,00';
+  } else {
+    var ids = rDdt.data.map(function(d){ return d.id; });
+    var rR = await db.from('ddt_righe').select('quantita,prezzo_unitario').in('ddt_id', ids);
+    var tot = 0;
+    (rR.data||[]).forEach(function(r){ tot += (r.quantita||0) * (r.prezzo_unitario||0); });
+    if(ddtEl) ddtEl.textContent = '€ ' + tot.toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+
+  // Chart 8 settimane (indipendente dal periodo selezionato)
+  var weeksAgo8 = new Date(); weeksAgo8.setHours(0,0,0,0);
+  weeksAgo8.setDate(weeksAgo8.getDate() - 7*8);
+  // Allineo a lunedì
+  var dow8 = weeksAgo8.getDay();
+  weeksAgo8.setDate(weeksAgo8.getDate() + ((dow8 === 0) ? -6 : 1 - dow8));
+  var weeksAgoStr = weeksAgo8.toISOString().split('T')[0];
+  var rChart = await db.from('ordini_lavoro').select('data_pianificata').eq('stato','completato').gte('data_pianificata', weeksAgoStr);
+  var weeks = [];
+  for(var i=0; i<8; i++){
+    var ws = new Date(weeksAgo8); ws.setDate(ws.getDate() + 7*i);
+    var we = new Date(ws); we.setDate(we.getDate() + 7);
+    weeks.push({ start: ws, end: we, count: 0, label: ws.getDate() + '/' + (ws.getMonth()+1) });
+  }
+  (rChart.data||[]).forEach(function(o){
+    if(!o.data_pianificata) return;
+    var d = new Date(o.data_pianificata + 'T00:00:00');
+    weeks.forEach(function(w){ if(d >= w.start && d < w.end) w.count++; });
+  });
+  var maxC = Math.max(1, weeks.reduce(function(m,w){ return Math.max(m, w.count); }, 0));
+  var barsEl = ge('tit-chart-bars');
+  var lblEl = ge('tit-chart-labels');
+  if(barsEl){
+    barsEl.innerHTML = weeks.map(function(w){
+      var pct = Math.max(4, (w.count / maxC) * 100);
+      return '<div class="tit-chart-bar" style="height:'+pct+'%" title="Settimana del '+w.label+': '+w.count+' interventi"><div class="tit-chart-bar-val">'+w.count+'</div></div>';
+    }).join('');
+  }
+  if(lblEl){
+    lblEl.innerHTML = weeks.map(function(w){ return '<span>'+w.label+'</span>'; }).join('');
+  }
+
+  // Lista interventi in ritardo (top 5)
+  var rRit = await db.from('ordini_lavoro')
+    .select('id,numero,data_pianificata,stato,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)')
+    .lt('data_pianificata', oggiStr)
+    .not('stato','in','(completato,annullato)')
+    .order('data_pianificata')
+    .limit(5);
+  var ritEl = ge('tit-ritardo-lista');
+  if(ritEl){
+    var rows = (rRit.data||[]);
+    if(!rows.length){
+      ritEl.innerHTML = '<div class="tit-empty">✅ Nessun intervento in ritardo</div>';
+    } else {
+      ritEl.innerHTML = rows.map(function(o){
+        var dt = o.data_pianificata ? new Date(o.data_pianificata + 'T00:00:00') : null;
+        var diff = dt ? Math.floor((oggi - dt) / 86400000) : 0;
+        var when = dt ? (diff + ' gg fa') : '—';
+        var cli = o.clienti?.ragione_sociale || '—';
+        var tec = o.utenti ? (o.utenti.nome + ' ' + o.utenti.cognome) : 'Non assegnato';
+        return '<div class="tit-list-item" onclick="openEditOdl(\'' + o.id + '\')" style="cursor:pointer">' +
+          '<div class="dot"></div>' +
+          '<div class="body">' +
+            '<div class="cli">' + esc(cli) + '</div>' +
+            '<div class="meta">#' + esc(o.numero || '—') + ' · ' + esc(tec) + ' · ' + fd(o.data_pianificata) + '</div>' +
+          '</div>' +
+          '<div class="when">' + when + '</div>' +
+        '</div>';
+      }).join('');
+    }
   }
 }
 

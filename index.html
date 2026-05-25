@@ -191,6 +191,79 @@
     </div>
   </div>
 
+  <!-- DASHBOARD TITOLARE (visibile solo per ruolo=titolare) -->
+  <div id="dash-titolare" style="display:none">
+    <div class="tit-wrap">
+      <div class="tit-greet">
+        <h1 id="tit-greet-nome">Buongiorno</h1>
+        <p id="tit-greet-data"></p>
+      </div>
+      <div class="tit-period-bar">
+        <button class="tit-period-btn" id="tit-period-oggi" onclick="setTitolarePeriodo('oggi')">Oggi</button>
+        <button class="tit-period-btn on" id="tit-period-settimana" onclick="setTitolarePeriodo('settimana')">Settimana</button>
+        <button class="tit-period-btn" id="tit-period-mese" onclick="setTitolarePeriodo('mese')">Mese</button>
+      </div>
+
+      <div class="tit-section">💼 Lavoro</div>
+      <div class="kpi-grid">
+        <div class="kpi-card clickable success" onclick="gotoPage('interventi')"><div class="kpi-icon">✅</div><div class="kpi-num" id="tit-k-completati">—</div><div class="kpi-label">Completati nel periodo</div></div>
+        <div class="kpi-card clickable" onclick="gotoPage('calendario')"><div class="kpi-icon">📅</div><div class="kpi-num" id="tit-k-pianificati">—</div><div class="kpi-label">Pianificati nel periodo</div></div>
+        <div class="kpi-card clickable attention" onclick="gotoPage('interventi')"><div class="kpi-icon">⏰</div><div class="kpi-num" id="tit-k-ritardo">—</div><div class="kpi-label">In ritardo (totale)</div></div>
+        <div class="kpi-card clickable warn" onclick="gotoPage('interventi')"><div class="kpi-icon">❓</div><div class="kpi-num" id="tit-k-dapianif">—</div><div class="kpi-label">Da pianificare (totale)</div></div>
+      </div>
+
+      <div class="tit-section">🧯 Compliance presidi</div>
+      <div class="kpi-grid">
+        <div class="kpi-card clickable attention" onclick="gotoPage('presidi')"><div class="kpi-icon">🚨</div><div class="kpi-num" id="tit-k-presidi-scad">—</div><div class="kpi-label">Presidi scaduti</div></div>
+        <div class="kpi-card clickable warn" onclick="gotoPage('presidi')"><div class="kpi-icon">⏳</div><div class="kpi-num" id="tit-k-presidi-30">—</div><div class="kpi-label">In scadenza nei 30gg</div></div>
+        <div class="kpi-card clickable" onclick="gotoPage('clienti')"><div class="kpi-icon">👥</div><div class="kpi-num" id="tit-k-cli-attivi">—</div><div class="kpi-label">Clienti attivi</div></div>
+        <div class="kpi-card success"><div class="kpi-icon">✨</div><div class="kpi-num" id="tit-k-cli-nuovi">—</div><div class="kpi-label">Nuovi clienti nel periodo</div></div>
+      </div>
+
+      <div class="tit-section">👥 Persone &amp; schede</div>
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-icon">👨‍🔧</div><div class="kpi-num" id="tit-k-tec-attivi">—</div><div class="kpi-label">Tecnici attivi</div></div>
+        <div class="kpi-card"><div class="kpi-icon">🏆</div><div class="kpi-num muted" id="tit-k-top-tec">—</div><div class="kpi-label" id="tit-k-top-tec-label">Top tecnico del periodo</div></div>
+        <div class="kpi-card clickable warn" onclick="gotoPage('workflow')"><div class="kpi-icon">✍️</div><div class="kpi-num" id="tit-k-da-approvare">—</div><div class="kpi-label">Schede da approvare</div></div>
+        <div class="kpi-card clickable" onclick="gotoPage('workflow')"><div class="kpi-icon">💜</div><div class="kpi-num" id="tit-k-da-fatturare">—</div><div class="kpi-label">Schede da fatturare</div></div>
+      </div>
+
+      <div class="tit-money-card">
+        <div class="left">
+          <div class="ico">📦</div>
+          <div>
+            <div class="label">Materiali consegnati nel periodo (DDT)</div>
+            <div class="sub">Somma riga DDT: quantità × prezzo unitario. Non equivale al fatturato.</div>
+          </div>
+        </div>
+        <div class="val" id="tit-k-ddt-eur">€ —</div>
+      </div>
+
+      <div class="tit-chart-card">
+        <div class="tit-chart-title"><span>📈 Interventi completati per settimana</span><span class="sub">ultime 8 settimane</span></div>
+        <div class="tit-chart-bars" id="tit-chart-bars"></div>
+        <div class="tit-chart-labels" id="tit-chart-labels"></div>
+      </div>
+
+      <div class="tit-list-card">
+        <h3>⏰ Interventi in ritardo (prossimi 5)</h3>
+        <div id="tit-ritardo-lista"><div class="tit-empty">⏳ Caricamento...</div></div>
+      </div>
+
+      <div class="tit-section">Azioni rapide</div>
+      <div class="tit-quick">
+        <button class="tit-quick-btn" onclick="openNewCli()"><span class="ico">👤</span><span class="lbl">Nuovo cliente</span></button>
+        <button class="tit-quick-btn" onclick="openM('m-odl')"><span class="ico">📋</span><span class="lbl">Pianifica intervento</span></button>
+        <button class="tit-quick-btn" onclick="resetPF();openM('m-presidio')"><span class="ico">🧯</span><span class="lbl">Nuovo presidio</span></button>
+        <button class="tit-quick-btn" onclick="openM('m-ddt')"><span class="ico">📦</span><span class="lbl">Nuovo DDT</span></button>
+        <button class="tit-quick-btn" onclick="openM('m-user')"><span class="ico">👤</span><span class="lbl">Nuovo utente</span></button>
+        <button class="tit-quick-btn" onclick="gotoPage('catalogo')"><span class="ico">📦</span><span class="lbl">Catalogo</span></button>
+        <button class="tit-quick-btn" onclick="gotoPage('impostazioni')"><span class="ico">⚙️</span><span class="lbl">Impostazioni</span></button>
+        <button class="tit-quick-btn" onclick="gotoPage('workflow')"><span class="ico">📋</span><span class="lbl">Workflow</span></button>
+      </div>
+    </div>
+  </div>
+
   <!-- DASHBOARD STANDARD (altri ruoli) -->
   <div id="dash-standard">
   <div class="sh">
