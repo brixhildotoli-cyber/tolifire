@@ -24,7 +24,7 @@ const NAV={
   contabile:[{id:'dashboard',l:'Dashboard'},{id:'workflow',l:'💜 Da fatturare'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
   tecnico:[{id:'dashboard',l:'Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
   commerciale:[{id:'dashboard',l:'Dashboard'},{id:'clienti',l:'Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
-  rappresentante:[{id:'dashboard',l:'Dashboard'},{id:'clienti',l:'Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'trattative',l:'💼 Trattative'}],
+  rappresentante:[{id:'dashboard-rapp',l:'Dashboard'},{id:'clienti',l:'Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'trattative',l:'💼 Trattative'}],
 };
 
 // Checklist operative per tipo intervento
@@ -4163,61 +4163,126 @@ async function loadDashRappresentante() {
   var ora = new Date().getHours();
   var saluto = ora < 12 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
   var el;
-  el = ge('rapp-welcome'); if(el) el.textContent = saluto + (ME && esc(ME.nome) ? ', ' + esc(ME.nome) : '');
-  el = ge('ddate-r'); if(el) el.textContent = new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  var in30 = new Date(Date.now()+30*86400000).toISOString().split('T')[0];
-  var res = await Promise.all([
-    db.from('clienti').select('*',{count:'exact'}).eq('stato','prospect').order('creato_il',{ascending:false}),
-    db.from('clienti').select('id',{count:'exact'}).eq('stato','attivo'),
-    db.from('schede_lavoro').select('id',{count:'exact'}).eq('intervento_straordinario_richiesto',true).in('stato',['firmata','approvata']),
-    db.from('impianti').select('tipo,matricola,ubicazione,data_prossimo_controllo,clienti(ragione_sociale)').lte('data_prossimo_controllo',in30).order('data_prossimo_controllo').limit(8),
-  ]);
-  el = ge('rk1'); if(el) el.textContent = res[0].count || 0;
-  el = ge('rk2'); if(el) el.textContent = res[3].data ? res[3].data.length : 0;
-  el = ge('rk3'); if(el) el.textContent = res[1].count || 0;
-  el = ge('rk4'); if(el) el.textContent = res[2].count || 0;
-  _allProspect = res[0].data || [];
-  renderProspectWidget();
-  renderScadenzeWidget(res[3].data || []);
-  renderSopralluoghiWidget();
-}
+  el = ge('rapp-welcome'); if(el) el.textContent = saluto + (ME?.nome ? ', ' + esc(ME.nome) : '');
+  el = ge('ddate-r'); if(el) el.textContent = new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
 
-function renderProspectWidget() {
-  var elP = ge('rapp-prospect'); if(!elP) return;
-  if(!_allProspect.length) { elP.innerHTML = '<div class="empty">Nessun prospect.<br><button class="btn p sm" style="margin-top:10px" onclick="openNewCli()">+ Aggiungi</button></div>'; return; }
-  elP.innerHTML = _allProspect.slice(0,6).map(function(c) {
-    var tel = esc(c.referente_telefono) ? '<a href="tel:' + esc(c.referente_telefono) + '" class="btn sm">Chiama</a>' : '';
-    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--bo)">' +
-      '<div><div style="font-size:13px;font-weight:600">' + esc(c.ragione_sociale) + '</div>' +
-      '<div style="font-size:12px;color:var(--m)">' + (esc(c.citta)||'') + (esc(c.referente_nome)?' · '+esc(c.referente_nome):'') + '</div></div>' +
-      '<div style="display:flex;gap:4px">' + tel + '</div></div>';
-  }).join('');
-  if(_allProspect.length > 6) elP.innerHTML += '<div style="text-align:center;padding:10px"><button class="btn sm" onclick="gotoPage(\'trattative\')">Vedi tutti (' + _allProspect.length + ')</button></div>';
-}
+  var oggi = new Date(); oggi.setHours(0,0,0,0);
+  var oggiStr = oggi.toISOString().split('T')[0];
+  var primoDelMese = new Date(oggi.getFullYear(), oggi.getMonth(), 1).toISOString();
+  var in30Str = new Date(Date.now()+30*86400000).toISOString().split('T')[0];
 
-function renderScadenzeWidget(scList) {
-  var elS = ge('rapp-scadenze'); if(!elS) return;
-  if(!scList.length) { elS.innerHTML = '<div class="empty" style="padding:16px">Nessuna scadenza nei prossimi 30gg</div>'; return; }
-  elS.innerHTML = scList.map(function(p) {
-    var cli = p.clienti && p.clienti.ragione_sociale ? p.clienti.ragione_sociale : '—';
-    return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--bo);font-size:13px">' +
-      '<div><div style="font-weight:500">' + cli + '</div><div style="color:var(--m);font-size:12px">' + tpl(p.tipo) + (esc(p.matricola)?' #'+esc(p.matricola):'') + '</div></div>' +
-      '<div style="text-align:right"><div class="' + sc(p.data_prossimo_controllo) + '">' + fd(p.data_prossimo_controllo) + '</div><div style="font-size:11px;color:var(--m)">' + dd2(p.data_prossimo_controllo) + '</div></div></div>';
-  }).join('');
-}
+  // Step 1: tutti i sopralluoghi del rappresentante (servono per KPI, lista, distinct clienti)
+  var rSopr = await db.from('sopralluoghi')
+    .select('id,cliente_id,ragione_sociale,urgenza,creato_il,odl_creato_id,indirizzo')
+    .eq('rappresentante_id', ME.id)
+    .order('creato_il',{ascending:false});
+  var sopralluoghi = rSopr.data || [];
 
-async function renderSopralluoghiWidget() {
-  var elSop = ge('rapp-sopralluoghi'); if(!elSop) return;
-  var res = await db.from('sopralluoghi').select('ragione_sociale,urgenza,creato_il').eq('rappresentante_id',ME.id).order('creato_il',{ascending:false}).limit(5);
-  var sops = res.data || [];
-  if(!sops.length) { elSop.innerHTML = '<div class="empty">Nessun sopralluogo. <button class="btn p sm" onclick="gotoPage(\'sopralluogo\')">Inizia ora</button></div>'; return; }
-  elSop.innerHTML = sops.map(function(s) {
-    var cls = s.urgenza === 'urgente' ? 'berr' : s.urgenza === 'entro_30gg' ? 'bwarn' : 'bgray';
-    return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--bo)">' +
-      '<div style="font-size:13px;font-weight:500">' + (esc(s.ragione_sociale)||'—') + '</div>' +
-      '<div style="display:flex;gap:6px;align-items:center"><span style="font-size:12px;color:var(--m)">' + fd(s.creato_il) + '</span>' +
-      '<span class="bx ' + cls + '">' + (s.urgenza||'normale') + '</span></div></div>';
-  }).join('');
+  var aperti = sopralluoghi.filter(function(s){ return !s.odl_creato_id; });
+  var convertitiMese = sopralluoghi.filter(function(s){
+    return s.odl_creato_id && s.creato_il && s.creato_il >= primoDelMese;
+  });
+  // Clienti distinti del rappresentante
+  var cliIds = {};
+  sopralluoghi.forEach(function(s){ if(s.cliente_id) cliIds[s.cliente_id] = true; });
+  var cliIdsArr = Object.keys(cliIds);
+
+  // KPI 4: presidi scaduti dei tuoi clienti
+  var presidiScaduti = 0;
+  if(cliIdsArr.length){
+    var rPS = await db.from('impianti')
+      .select('id',{count:'exact',head:true})
+      .in('cliente_id', cliIdsArr)
+      .lt('data_prossimo_controllo', oggiStr);
+    presidiScaduti = rPS.error ? '—' : (rPS.count || 0);
+  }
+
+  // Render KPI
+  el = ge('rap-k-sopr-aperti'); if(el) el.textContent = aperti.length;
+  el = ge('rap-k-sopr-conv'); if(el) el.textContent = convertitiMese.length;
+  el = ge('rap-k-tuoi-cli'); if(el) el.textContent = cliIdsArr.length;
+  el = ge('rap-k-presidi-scad'); if(el) el.textContent = presidiScaduti;
+
+  // Lista sopralluoghi da seguire (aperti, top 5)
+  var elL = ge('rap-sopr-lista');
+  if(elL){
+    if(!aperti.length){
+      elL.innerHTML = '<div class="rap-list-card"><div class="tit-empty">🎉 Nessun sopralluogo aperto. <button class="btn p sm" style="margin-left:8px" onclick="gotoPage(\'sopralluogo\')">+ Nuovo</button></div></div>';
+    } else {
+      elL.innerHTML = aperti.slice(0,5).map(function(s){
+        var urg = s.urgenza || 'normale';
+        return '<div class="rap-sopr-card">' +
+          '<div class="body">' +
+            '<div class="cli">' + esc(s.ragione_sociale || '—') + '</div>' +
+            '<div class="meta">' + fd(s.creato_il) + (esc(s.indirizzo) ? ' · ' + esc(s.indirizzo) : '') + '</div>' +
+          '</div>' +
+          '<span class="urg ' + urg + '">' + urg.replace('_',' ') + '</span>' +
+          '<button class="btn sm p" data-sid="'+s.id+'" onclick="accettaSopralluogo(this.dataset.sid)">✅ Accetta</button>' +
+        '</div>';
+      }).join('') + (aperti.length > 5 ? '<div style="text-align:center;padding:8px"><button class="btn sm" onclick="gotoPage(\'trattative\')">Vedi tutti ('+aperti.length+')</button></div>' : '');
+    }
+  }
+
+  // Heatmap calendario: prossime 5 settimane (35 giorni) dal lunedì corrente
+  var startMon = new Date(oggi);
+  var dow = startMon.getDay();
+  startMon.setDate(startMon.getDate() + ((dow === 0) ? -6 : 1 - dow));
+  var endHM = new Date(startMon); endHM.setDate(endHM.getDate() + 35);
+  var rOdl = await db.from('ordini_lavoro')
+    .select('data_pianificata,stato')
+    .gte('data_pianificata', startMon.toISOString().split('T')[0])
+    .lt('data_pianificata', endHM.toISOString().split('T')[0])
+    .neq('stato','annullato');
+  var perDay = {};
+  (rOdl.data || []).forEach(function(o){
+    if(!o.data_pianificata) return;
+    perDay[o.data_pianificata] = (perDay[o.data_pianificata] || 0) + 1;
+  });
+  var elH = ge('rap-heatmap-grid');
+  if(elH){
+    var cells = [];
+    for(var i=0; i<35; i++){
+      var d = new Date(startMon); d.setDate(d.getDate()+i);
+      var ds = d.toISOString().split('T')[0];
+      var n = perDay[ds] || 0;
+      var lvl = n === 0 ? 0 : n <= 2 ? 1 : n <= 5 ? 2 : 3;
+      var past = d < oggi ? ' past' : '';
+      var today = (d.getTime() === oggi.getTime()) ? ' today' : '';
+      var tip = d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'}) + ': ' + n + ' interventi';
+      cells.push('<div class="rap-heatmap-day l'+lvl+past+today+'" title="'+esc(tip)+'"><span class="n">'+d.getDate()+'</span></div>');
+    }
+    elH.innerHTML = cells.join('');
+  }
+
+  // Presidi in scadenza dei tuoi clienti (lista, 30gg)
+  var elS = ge('rap-scadenze-lista');
+  if(elS){
+    if(!cliIdsArr.length){
+      elS.innerHTML = '<div class="rap-list-card"><div class="tit-empty">Nessun cliente associato ai tuoi sopralluoghi.</div></div>';
+    } else {
+      var rSc = await db.from('impianti')
+        .select('tipo,matricola,ubicazione,data_prossimo_controllo,clienti(ragione_sociale)')
+        .in('cliente_id', cliIdsArr)
+        .lte('data_prossimo_controllo', in30Str)
+        .order('data_prossimo_controllo')
+        .limit(8);
+      var pres = rSc.data || [];
+      if(!pres.length){
+        elS.innerHTML = '<div class="rap-list-card"><div class="tit-empty">✅ Nessun presidio in scadenza nei prossimi 30 giorni</div></div>';
+      } else {
+        elS.innerHTML = '<div class="rap-list-card">' + pres.map(function(p){
+          var cli = p.clienti?.ragione_sociale || '—';
+          var scaduto = p.data_prossimo_controllo && p.data_prossimo_controllo < oggiStr;
+          return '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:0.5px solid rgba(0,0,0,.05);font-size:13px">' +
+            '<div><div style="font-weight:600">'+esc(cli)+'</div>' +
+            '<div style="color:var(--m);font-size:12px">'+tpl(p.tipo)+(p.matricola?' #'+esc(p.matricola):'')+(p.ubicazione?' — '+esc(p.ubicazione):'')+'</div></div>' +
+            '<div style="text-align:right"><div class="'+(scaduto?'se':sc(p.data_prossimo_controllo))+'">'+fd(p.data_prossimo_controllo)+'</div>' +
+            '<div style="font-size:11px;color:var(--m)">'+dd2(p.data_prossimo_controllo)+'</div></div>' +
+          '</div>';
+        }).join('') + '</div>';
+      }
+    }
+  }
 }
 
 async function loadTrattative() {

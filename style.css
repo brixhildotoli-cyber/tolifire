@@ -233,3 +233,62 @@ textarea{resize:vertical;min-height:80px}
   .tit-greet,.tit-period-bar,.tit-section{padding-left:16px;padding-right:16px}
   .kpi-grid,.tit-money-card,.tit-chart-card,.tit-list-card{margin-left:8px;margin-right:8px}
 }
+
+/* ── Dashboard rappresentante (iOS-like, coerente con altre) ── */
+.rap-wrap{max-width:900px;margin:0 auto;padding:8px 4px 40px}
+.rap-greet{padding:14px 4px 6px}
+.rap-greet h1{font-size:26px;font-weight:700;letter-spacing:-0.02em;color:var(--t)}
+.rap-greet p{font-size:14px;color:var(--m);text-transform:capitalize}
+
+.rap-primary{background:var(--g);color:white;border-radius:16px;padding:18px 20px;margin:14px 4px 10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;box-shadow:0 2px 6px rgba(8,80,65,.15),0 8px 20px rgba(8,80,65,.12);transition:all .15s;border:none;width:calc(100% - 8px);text-align:left}
+.rap-primary:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(8,80,65,.2),0 12px 28px rgba(8,80,65,.16)}
+.rap-primary:active{transform:scale(.99)}
+.rap-primary .ico{font-size:26px}
+.rap-primary .body{flex:1;margin-left:14px}
+.rap-primary .body .title{font-size:17px;font-weight:700;letter-spacing:-0.01em}
+.rap-primary .body .sub{font-size:13px;opacity:.88;margin-top:2px}
+.rap-primary .chev{font-size:22px;opacity:.7}
+
+.rap-secondary-row{display:flex;gap:8px;margin:0 4px 4px;flex-wrap:wrap}
+.rap-secondary-btn{flex:1;min-width:160px;background:var(--w);border:0.5px solid rgba(0,0,0,.04);border-radius:12px;padding:12px 14px;font-size:13px;font-weight:600;color:var(--t);cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:all .15s;display:flex;align-items:center;gap:8px}
+.rap-secondary-btn:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.rap-secondary-btn .ico{font-size:17px}
+
+.rap-section{margin:8px 4px 4px;padding:20px 6px 10px;font-size:12px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.06em}
+
+.rap-sopr-card{background:var(--w);border-radius:14px;padding:12px 14px;margin:0 4px 8px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:0.5px solid rgba(0,0,0,.04)}
+.rap-sopr-card .body{flex:1;min-width:0}
+.rap-sopr-card .cli{font-size:14px;font-weight:600;color:var(--t)}
+.rap-sopr-card .meta{font-size:12px;color:var(--m);margin-top:2px}
+.rap-sopr-card .urg{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0}
+.rap-sopr-card .urg.urgente{background:var(--rl);color:var(--r)}
+.rap-sopr-card .urg.entro_30gg{background:var(--al);color:var(--a)}
+.rap-sopr-card .urg.normale{background:var(--gyl);color:var(--m)}
+
+.rap-heatmap{background:var(--w);border-radius:14px;padding:16px;margin:0 4px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:0.5px solid rgba(0,0,0,.04)}
+.rap-heatmap-head{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}
+.rap-heatmap-head span{text-align:center;font-size:10px;color:var(--m);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.rap-heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.rap-heatmap-day{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:var(--m);position:relative;cursor:default;background:var(--bg)}
+.rap-heatmap-day.today{box-shadow:inset 0 0 0 2px var(--g)}
+.rap-heatmap-day .n{font-weight:600;color:var(--t)}
+.rap-heatmap-day.l0{background:var(--bg)}
+.rap-heatmap-day.l1{background:var(--gl)}
+.rap-heatmap-day.l2{background:#B8E1D2}
+.rap-heatmap-day.l3{background:var(--gm);color:white}
+.rap-heatmap-day.l3 .n{color:white}
+.rap-heatmap-day.past{opacity:.4}
+.rap-heatmap-legend{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;color:var(--m)}
+.rap-heatmap-legend .sw{width:14px;height:14px;border-radius:4px}
+
+.rap-list-card{background:var(--w);border-radius:14px;padding:14px 16px;margin:0 4px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:0.5px solid rgba(0,0,0,.04)}
+
+.rap-insoluti{background:var(--gyl);border-radius:14px;padding:16px;margin:20px 4px 0;color:var(--m);font-size:13px;line-height:1.5;border:0.5px dashed rgba(0,0,0,.1)}
+.rap-insoluti h4{font-size:13px;font-weight:600;color:var(--t);margin-bottom:6px}
+.rap-insoluti code{background:var(--w);padding:1px 6px;border-radius:4px;font-size:11px}
+
+@media(max-width:520px){
+  .rap-wrap{padding:4px 0 30px}
+  .rap-greet,.rap-section{padding-left:16px;padding-right:16px}
+  .rap-primary,.rap-secondary-row,.rap-sopr-card,.rap-heatmap,.rap-list-card,.rap-insoluti{margin-left:8px;margin-right:8px}
+}

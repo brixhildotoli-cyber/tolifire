@@ -450,39 +450,79 @@
 
 <!-- DASHBOARD RAPPRESENTANTE -->
 <div class="page" id="pg-dashboard-rapp">
-  <div class="sh">
-    <div><div class="st" id="rapp-welcome">Buongiorno</div><div style="font-size:13px;color:var(--m);margin-top:2px" id="ddate-r"></div></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn" onclick="gotoPage('clienti')">Clienti</button>
-      <button class="btn" onclick="gotoPage('sopralluogo')">+ Sopralluogo</button>
-      <button class="btn p" onclick="openNewCli()">+ Prospect</button>
+  <div class="rap-wrap">
+    <div class="rap-greet">
+      <h1 id="rapp-welcome">Buongiorno</h1>
+      <p id="ddate-r"></p>
     </div>
-  </div>
-  <div class="g4" style="margin-bottom:20px">
-    <div class="stat g"><div style="font-size:11px;color:var(--m);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Prospect attivi</div><div style="font-size:26px;font-weight:700" id="rk1">0</div></div>
-    <div class="stat a"><div style="font-size:11px;color:var(--m);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Clienti attivi</div><div style="font-size:26px;font-weight:700" id="rk3">0</div></div>
-    <div class="stat p"><div style="font-size:11px;color:var(--m);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Straord. aperti</div><div style="font-size:26px;font-weight:700" id="rk4">0</div></div>
-    <div class="stat b"><div style="font-size:11px;color:var(--m);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Scadenze 30gg</div><div style="font-size:26px;font-weight:700" id="rk2">0</div></div>
-  </div>
-  <div class="g2">
-    <div>
-      <div class="card" style="margin-bottom:14px">
-        <div style="font-size:14px;font-weight:600;margin-bottom:14px">Azioni rapide</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <button class="btn p" style="width:100%;justify-content:flex-start;padding:12px 14px" onclick="gotoPage('sopralluogo')">📋 Nuova scheda sopralluogo</button>
-          <button class="btn" style="width:100%;justify-content:flex-start;padding:12px 14px" onclick="openNewCli()">👤 Aggiungi prospect</button>
-          <button class="btn" style="width:100%;justify-content:flex-start;padding:12px 14px" onclick="gotoPage('trattative')">💼 Trattative in corso</button>
-          <button class="btn" style="width:100%;justify-content:flex-start;padding:12px 14px" onclick="openNuovoOdlVuoto()">📋 + Pianifica intervento (da pianificare)</button>
-        </div>
-      </div>
-      <div class="card"><div style="font-size:14px;font-weight:600;margin-bottom:14px">Prospect da convertire</div><div id="rapp-prospect"><div class="load">Caricamento...</div></div></div>
+
+    <!-- Azione primaria -->
+    <button class="rap-primary" onclick="gotoPage('sopralluogo')">
+      <span class="ico">📋</span>
+      <span class="body">
+        <span class="title">Nuovo sopralluogo</span>
+        <span class="sub">Raccogli dati cliente, struttura, impianti, anomalie</span>
+      </span>
+      <span class="chev">›</span>
+    </button>
+    <div class="rap-secondary-row">
+      <button class="rap-secondary-btn" onclick="openNewCli()"><span class="ico">👤</span>+ Prospect</button>
+      <button class="rap-secondary-btn" onclick="openNuovoOdlVuoto()"><span class="ico">📋</span>+ Intervento da pianificare</button>
     </div>
-    <div>
-      <div class="card" style="margin-bottom:14px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><div style="font-size:14px;font-weight:600">Presidi in scadenza (30gg)</div><button class="btn sm" onclick="gotoPage('presidi')">Vedi tutti</button></div>
-        <div id="rapp-scadenze"><div class="load">Caricamento...</div></div>
+
+    <!-- KPI -->
+    <div class="rap-section">📊 A colpo d'occhio</div>
+    <div class="kpi-grid">
+      <div class="kpi-card warn"><div class="kpi-icon">🗂</div><div class="kpi-num" id="rap-k-sopr-aperti">—</div><div class="kpi-label">Sopralluoghi aperti</div></div>
+      <div class="kpi-card success"><div class="kpi-icon">✅</div><div class="kpi-num" id="rap-k-sopr-conv">—</div><div class="kpi-label">Convertiti questo mese</div></div>
+      <div class="kpi-card clickable" onclick="gotoPage('clienti')"><div class="kpi-icon">👥</div><div class="kpi-num" id="rap-k-tuoi-cli">—</div><div class="kpi-label">I tuoi clienti</div></div>
+      <div class="kpi-card attention"><div class="kpi-icon">🚨</div><div class="kpi-num" id="rap-k-presidi-scad">—</div><div class="kpi-label">Presidi scaduti — tuoi clienti</div></div>
+    </div>
+
+    <!-- Sopralluoghi da seguire -->
+    <div class="rap-section">🗂 Sopralluoghi da seguire</div>
+    <div id="rap-sopr-lista"><div class="rap-list-card"><div class="tit-empty">⏳ Caricamento...</div></div></div>
+
+    <!-- Heatmap calendario -->
+    <div class="rap-section">📅 Disponibilità prossime 5 settimane</div>
+    <div class="rap-heatmap">
+      <div class="rap-heatmap-head"><span>Lun</span><span>Mar</span><span>Mer</span><span>Gio</span><span>Ven</span><span>Sab</span><span>Dom</span></div>
+      <div class="rap-heatmap-grid" id="rap-heatmap-grid"></div>
+      <div class="rap-heatmap-legend">
+        <span>Meno carico</span>
+        <span class="sw l0"></span>
+        <span class="sw l1"></span>
+        <span class="sw l2"></span>
+        <span class="sw l3"></span>
+        <span>Più carico</span>
       </div>
-      <div class="card"><div style="font-size:14px;font-weight:600;margin-bottom:14px">Ultimi sopralluoghi</div><div id="rapp-sopralluoghi"><div class="load">Caricamento...</div></div></div>
+    </div>
+
+    <!-- Presidi in scadenza tuoi clienti -->
+    <div class="rap-section">🧯 Presidi in scadenza — tuoi clienti (30gg)</div>
+    <div id="rap-scadenze-lista"><div class="rap-list-card"><div class="tit-empty">⏳ Caricamento...</div></div></div>
+
+    <!-- Insoluti (secondo piano) -->
+    <div class="rap-section">💔 Insoluti comunicati dalla segreteria</div>
+    <div id="rap-insoluti-box">
+      <div class="rap-insoluti">
+        <h4>Funzione da configurare</h4>
+        Oggi nel database non c'è un meccanismo per tracciare gli insoluti.
+        Per attivare questo pannello servono:
+        <ul style="margin:8px 0 0 18px;line-height:1.6">
+          <li>un campo <code>flag_insoluto</code> + <code>nota_insoluto</code> su <code>clienti</code>, attivabile dalla segreteria, oppure</li>
+          <li>una tabella <code>comunicazioni_segreteria(cliente_id, tipo, messaggio, creato_il)</code> con tipi inclusi <code>'insoluto'</code></li>
+        </ul>
+        Quando uno dei due sarà disponibile, la lista degli insoluti comparirà qui automaticamente.
+      </div>
+    </div>
+
+    <!-- Quick actions in fondo -->
+    <div class="rap-section">Altro</div>
+    <div class="rap-secondary-row">
+      <button class="rap-secondary-btn" onclick="gotoPage('trattative')"><span class="ico">💼</span>Trattative / sopralluoghi</button>
+      <button class="rap-secondary-btn" onclick="gotoPage('clienti')"><span class="ico">👥</span>Clienti</button>
+      <button class="rap-secondary-btn" onclick="gotoPage('presidi')"><span class="ico">🧯</span>Presidi</button>
     </div>
   </div>
 </div>
