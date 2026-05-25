@@ -1269,7 +1269,7 @@ async function ctLoadCalendarioSettimana(){
         if(o.in_ritardo_il) urg = 'urg-ritardo';
         else if(o.tipo === 'straordinario' || o.tipo === 'ordinario_chiamata') urg = 'urg-tipo';
         var cli = o.clienti?.ragione_sociale || '—';
-        return '<div class="ct-cal-ev '+urg+'" onclick="openEditOdl(\''+o.id+'\')" title="'+esc(cli)+'">' +
+        return '<div class="ct-cal-ev '+urg+'" draggable="true" data-odl="'+o.id+'" ondragstart="ctEvDragStart(event)" ondragend="ctDragEnd(event)" onclick="ctEvClick(event,\''+o.id+'\')" title="'+esc(cli)+'">' +
           '<div class="ev-cli">'+esc(cli)+'</div>' +
           (o.fascia_oraria?'<div class="ev-meta">'+esc(o.fascia_oraria)+'</div>':'') +
         '</div>';
@@ -1297,7 +1297,7 @@ function ctWeekToday(){
   ctLoadCalendarioSettimana();
 }
 
-// Drag & drop
+// Drag & drop — sorgente: card lista "Da pianificare"
 function ctDragStart(e){
   var card = e.target.closest('.ct-odl-card');
   if(!card) return;
@@ -1306,9 +1306,27 @@ function ctDragStart(e){
   e.dataTransfer.effectAllowed = 'move';
   card.classList.add('dragging');
 }
+// Drag & drop — sorgente: evento già nel calendario (drag inverso o riassegnazione)
+function ctEvDragStart(e){
+  e.stopPropagation();
+  var ev = e.target.closest('.ct-cal-ev');
+  if(!ev) return;
+  var id = ev.getAttribute('data-odl');
+  e.dataTransfer.setData('text/plain', id);
+  e.dataTransfer.effectAllowed = 'move';
+  ev.classList.add('dragging');
+}
+// Click su evento già nel calendario: apre modal edit
+// (drag e click sono mutuamente esclusivi: il browser non genera click dopo drag)
+function ctEvClick(e, odlId){
+  e.stopPropagation();
+  openEditOdl(odlId);
+}
 function ctDragEnd(e){
   var card = e.target.closest('.ct-odl-card');
   if(card) card.classList.remove('dragging');
+  var ev = e.target.closest('.ct-cal-ev');
+  if(ev) ev.classList.remove('dragging');
 }
 function ctDragOver(e){
   e.preventDefault();
@@ -1329,8 +1347,11 @@ async function ctDrop(e){
   var tecId = cell.getAttribute('data-tec');
   var day = cell.getAttribute('data-day');
   // Recupera info per conferma
-  var r = await db.from('ordini_lavoro').select('clienti(ragione_sociale)').eq('id', odlId).single();
-  var cli = r.data?.clienti?.ragione_sociale || 'intervento';
+  var r = await db.from('ordini_lavoro').select('tecnico_id,data_pianificata,clienti(ragione_sociale)').eq('id', odlId).single();
+  if(!r.data){ toast('Errore caricamento intervento','err'); return; }
+  // No-op se la cella è la stessa
+  if(r.data.tecnico_id === tecId && r.data.data_pianificata === day) return;
+  var cli = r.data.clienti?.ragione_sociale || 'intervento';
   // Recupera nome tecnico
   var rT = await db.from('utenti').select('nome,cognome').eq('id', tecId).single();
   var tecNome = rT.data ? (rT.data.nome + ' ' + rT.data.cognome) : 'tecnico';
@@ -1343,9 +1364,43 @@ async function ctDrop(e){
   }).eq('id', odlId);
   if(up.error){ toast('Errore: '+up.error.message,'err'); return; }
   toast('✅ Intervento pianificato','ok');
-  await ctLoadListaDaPianificare();
-  await ctLoadCalendarioSettimana();
-  // Aggiorna anche i KPI in alto
+  await loadDashCapoTecnicoPg();
+}
+
+// Drop sulla lista "Da pianificare" = drag inverso (annulla assegnazione)
+function ctListDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  var list = ge('ct-list-content');
+  if(list) list.classList.add('drag-over-list');
+}
+function ctListDragLeave(e){
+  // Evita flickering: rimuovi solo se davvero usciamo dal contenitore
+  var list = ge('ct-list-content');
+  if(!list) return;
+  if(e.relatedTarget && list.contains(e.relatedTarget)) return;
+  list.classList.remove('drag-over-list');
+}
+async function ctDropOnList(e){
+  e.preventDefault();
+  var list = ge('ct-list-content');
+  if(list) list.classList.remove('drag-over-list');
+  var odlId = e.dataTransfer.getData('text/plain');
+  if(!odlId) return;
+  var r = await db.from('ordini_lavoro').select('stato,clienti(ragione_sociale)').eq('id', odlId).single();
+  if(!r.data){ toast('Errore caricamento intervento','err'); return; }
+  // Se già da_pianificare, no-op (utente ha trascinato una card della lista sulla lista stessa)
+  if(r.data.stato === 'da_pianificare') return;
+  var cli = r.data.clienti?.ragione_sociale || 'intervento';
+  if(!confirm('Riportare "'+cli+'" in coda "Da pianificare"? Verranno rimossi tecnico e data assegnati.')) return;
+  var up = await db.from('ordini_lavoro').update({
+    tecnico_id: null,
+    data_pianificata: null,
+    stato: 'da_pianificare',
+    in_ritardo_il: null
+  }).eq('id', odlId);
+  if(up.error){ toast('Errore: '+up.error.message,'err'); return; }
+  toast('↩️ Intervento rimesso in coda','ok');
   await loadDashCapoTecnicoPg();
 }
 
