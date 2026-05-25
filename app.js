@@ -1857,145 +1857,250 @@ async function editPresidioTec(pid) {
 }
 
 
-// ── CALENDARIO TEAM ──────────────────────────────────────────
-var _calTeamAnno = new Date().getFullYear();
-var _calTeamMese = new Date().getMonth();
-var _calTeamFiltro = 'tutti'; // 'tutti' o tecnico_id
+// ── CALENDARIO TEAM (Giorno / Settimana / Mese) ─────────────
+var _calTeamData = new Date(); _calTeamData.setHours(0,0,0,0);
+var _calTeamVista = 'settimana'; // 'giorno' | 'settimana' | 'mese'
+var _calTeamFiltro = 'tutti';    // 'tutti' | 'nessuno' | <tecnico_id>
 var _calTeamOdls = [];
-var _calTeamTecnici = [];
+var _calTeamTecniciAll = [];     // tecnici attivi (per i bottoni filtro)
+window._calTeamSediMap = {};
 
-function calTeamPrev() { _calTeamMese--; if(_calTeamMese<0){_calTeamMese=11;_calTeamAnno--;} loadCalendarioTeam(); }
-function calTeamNext() { _calTeamMese++; if(_calTeamMese>11){_calTeamMese=0;_calTeamAnno++;} loadCalendarioTeam(); }
+function ctmMondayOf(d){
+  var x = new Date(d); x.setHours(0,0,0,0);
+  var dow = x.getDay();
+  x.setDate(x.getDate() + ((dow === 0) ? -6 : 1 - dow));
+  return x;
+}
 
-function filtraCalTeam(id) {
-  _calTeamFiltro = id;
-  // Aggiorna stile bottoni
-  var btnTutti = ge('cteam-btn-tutti');
-  if(btnTutti) btnTutti.className = 'btn' + (id==='tutti'?' on':'');
-  document.querySelectorAll('.cteam-btn-tec').forEach(function(b){
-    b.className = 'btn cteam-btn-tec' + (b.dataset.id===id?' on':'');
+function setCalTeamVista(v){
+  _calTeamVista = v;
+  ['giorno','settimana','mese'].forEach(function(x){
+    var el = ge('ctm-vista-'+x); if(el) el.classList.toggle('on', x===v);
   });
+  loadCalendarioTeam();
+}
+
+function calTeamPrev(){
+  var d = new Date(_calTeamData);
+  if(_calTeamVista === 'giorno') d.setDate(d.getDate()-1);
+  else if(_calTeamVista === 'settimana') d.setDate(d.getDate()-7);
+  else d.setMonth(d.getMonth()-1);
+  _calTeamData = d;
+  loadCalendarioTeam();
+}
+function calTeamNext(){
+  var d = new Date(_calTeamData);
+  if(_calTeamVista === 'giorno') d.setDate(d.getDate()+1);
+  else if(_calTeamVista === 'settimana') d.setDate(d.getDate()+7);
+  else d.setMonth(d.getMonth()+1);
+  _calTeamData = d;
+  loadCalendarioTeam();
+}
+function calTeamToday(){
+  _calTeamData = new Date(); _calTeamData.setHours(0,0,0,0);
+  loadCalendarioTeam();
+}
+
+function filtraCalTeam(id){
+  _calTeamFiltro = id;
+  var btnTutti = ge('cteam-btn-tutti');
+  if(btnTutti) btnTutti.classList.toggle('on', id==='tutti');
+  document.querySelectorAll('#cteam-btn-tecnici .btn').forEach(function(b){
+    b.classList.toggle('on', b.dataset.id === id);
+  });
+  // Re-render (no need to re-fetch dati)
   renderCalTeam();
 }
 
-async function loadCalendarioTeam() {
-  var mesi = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
-  var titEl = ge('cal-team-title');
-  if(titEl) titEl.textContent = mesi[_calTeamMese] + ' ' + _calTeamAnno;
+async function loadCalendarioTeam(){
+  // Calcola range in base alla vista
+  var start, end, titolo;
+  if(_calTeamVista === 'giorno'){
+    start = new Date(_calTeamData); start.setHours(0,0,0,0);
+    end = new Date(start); end.setDate(end.getDate()+1);
+    titolo = start.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  } else if(_calTeamVista === 'settimana'){
+    start = ctmMondayOf(_calTeamData);
+    end = new Date(start); end.setDate(end.getDate()+7);
+    var endLabel = new Date(end); endLabel.setDate(endLabel.getDate()-1);
+    titolo = start.toLocaleDateString('it-IT',{day:'numeric',month:'short'}) + ' – ' + endLabel.toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'});
+  } else {
+    start = new Date(_calTeamData.getFullYear(), _calTeamData.getMonth(), 1);
+    end = new Date(_calTeamData.getFullYear(), _calTeamData.getMonth()+1, 1);
+    titolo = start.toLocaleDateString('it-IT',{month:'long',year:'numeric'});
+  }
+  var titEl = ge('cal-team-title'); if(titEl) titEl.textContent = titolo;
 
-  var dataInizio = new Date(_calTeamAnno, _calTeamMese, 1).toISOString().split('T')[0];
-  var dataFine = new Date(_calTeamAnno, _calTeamMese+1, 0).toISOString().split('T')[0];
+  var body = ge('cal-team-body');
+  if(body) body.innerHTML = '<div class="load">Caricamento...</div>';
 
-  ge('cal-team-body').innerHTML = '<div class="load">Caricamento...</div>';
+  // Carica tecnici attivi + OdL nel periodo (in parallelo)
+  var [rTec, rOdl] = await Promise.all([
+    db.from('utenti').select('id,nome,cognome').eq('ruolo','tecnico').eq('attivo',true).order('cognome'),
+    db.from('ordini_lavoro')
+      .select('id,numero,tipo,stato,data_pianificata,fascia_oraria,sede_id,in_ritardo_il,tecnico_id,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(id,nome,cognome)')
+      .is('eliminato_il', null)
+      .gte('data_pianificata', start.toISOString().split('T')[0])
+      .lt('data_pianificata', end.toISOString().split('T')[0])
+      .neq('stato','annullato')
+  ]);
+  _calTeamTecniciAll = rTec.data || [];
+  _calTeamOdls = rOdl.data || [];
 
-  // Carica tutti gli OdL del mese
-  var r = await db.from('ordini_lavoro')
-    .select('id,tipo,stato,data_pianificata,fascia_oraria,sede_id,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(id,nome,cognome)')
-    .gte('data_pianificata', dataInizio)
-    .lte('data_pianificata', dataFine)
-    .neq('stato','annullato')
-    .order('data_pianificata');
+  // Bottoni filtro tecnico
+  var bDiv = ge('cteam-btn-tecnici');
+  if(bDiv){
+    var html = _calTeamTecniciAll.map(function(t){
+      return '<button class="btn'+(t.id===_calTeamFiltro?' on':'')+'" data-id="'+t.id+'" onclick="filtraCalTeam(this.dataset.id)">'+esc(t.nome)+' '+esc(t.cognome)+'</button>';
+    }).join('');
+    var nonAss = _calTeamOdls.filter(function(o){return !o.tecnico_id;}).length;
+    html += '<button class="btn'+('nessuno'===_calTeamFiltro?' on':'')+'" data-id="nessuno" onclick="filtraCalTeam(this.dataset.id)">⚠️ Non assegnati'+(nonAss?' ('+nonAss+')':'')+'</button>';
+    bDiv.innerHTML = html;
+  }
+  var btnTutti = ge('cteam-btn-tutti'); if(btnTutti) btnTutti.classList.toggle('on', _calTeamFiltro==='tutti');
 
-  _calTeamOdls = r.data || [];
-
-  // Carica sedi
+  // Carica sedi referenziate (per tooltip e edit modal)
   var sedeIds = _calTeamOdls.map(function(o){return o.sede_id;}).filter(Boolean);
   window._calTeamSediMap = {};
-  if(sedeIds.length) {
+  if(sedeIds.length){
     var rs = await db.from('sedi_cliente').select('id,tipo,nome,via,civico,citta').in('id',sedeIds);
     (rs.data||[]).forEach(function(s){ window._calTeamSediMap[s.id]=s; });
   }
 
-  // Estrai tecnici unici dagli OdL
-  var tecMap = {};
-  _calTeamOdls.forEach(function(o) {
-    if(o.utenti) tecMap[o.utenti.id] = o.utenti;
-  });
-  _calTeamTecnici = Object.values(tecMap);
-
-  // Colori per tecnico
-  var colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#84cc16'];
-  _calTeamTecnici.forEach(function(t, i){ t._color = colors[i % colors.length]; });
-
-  // Aggiungi "Non assegnati" se ci sono OdL senza tecnico
-  var nonAssegnati = _calTeamOdls.filter(function(o){return !o.utenti;});
-  if(nonAssegnati.length) {
-    _calTeamTecnici.push({id:'nessuno', nome:'Non', cognome:'assegnati', _color:'#9ca3af'});
-  }
-
-  // Render bottoni tecnici
-  var bDiv = ge('cteam-btn-tecnici');
-  if(bDiv) {
-    bDiv.innerHTML = _calTeamTecnici.map(function(t) {
-      return '<button class="btn cteam-btn-tec'+(t.id===_calTeamFiltro?' on':'')+'" data-id="'+t.id+'" onclick="filtraCalTeam(this.dataset.id)" style="border-left:3px solid '+t._color+'">' +
-        esc(t.nome)+' '+esc(t.cognome)+'</button>';
-    }).join('');
-  }
-
-  renderCalTeam();
+  renderCalTeam(start, end);
 }
 
-function renderCalTeam() {
+function renderCalTeam(start, end){
   var el = ge('cal-team-body');
   if(!el) return;
-
-  var odls = _calTeamFiltro === 'tutti'
-    ? _calTeamOdls
-    : _calTeamFiltro === 'nessuno'
-      ? _calTeamOdls.filter(function(o){return !o.utenti;})
-      : _calTeamOdls.filter(function(o){return o.utenti && o.utenti.id === _calTeamFiltro;});
-
-  if(!odls.length) {
-    el.innerHTML = '<div class="empty">Nessun intervento questo mese' + (_calTeamFiltro!=='tutti'?' per questo tecnico':'') + '.</div>';
-    return;
+  // Se chiamata senza argomenti (es. dal filtraCalTeam), ricalcola
+  if(!start || !end){
+    if(_calTeamVista === 'giorno'){
+      start = new Date(_calTeamData); start.setHours(0,0,0,0);
+      end = new Date(start); end.setDate(end.getDate()+1);
+    } else if(_calTeamVista === 'settimana'){
+      start = ctmMondayOf(_calTeamData);
+      end = new Date(start); end.setDate(end.getDate()+7);
+    } else {
+      start = new Date(_calTeamData.getFullYear(), _calTeamData.getMonth(), 1);
+      end = new Date(_calTeamData.getFullYear(), _calTeamData.getMonth()+1, 1);
+    }
   }
 
-  var tipi = {ordinario_programmato:'🔧',ordinario_chiamata:'📞',straordinario:'⚡',corso:'📚'};
+  // Applica filtro tecnico
+  var odls = _calTeamOdls.filter(function(o){
+    if(_calTeamFiltro === 'tutti') return true;
+    if(_calTeamFiltro === 'nessuno') return !o.tecnico_id;
+    return o.tecnico_id === _calTeamFiltro;
+  });
 
-  // Se vista tutti: raggruppa per tecnico
-  if(_calTeamFiltro === 'tutti') {
-    // Raggruppa per tecnico
-    var gruppi = {};
-    odls.forEach(function(o) {
-      var tecId = o.utenti ? o.utenti.id : 'nessuno';
-      if(!gruppi[tecId]) gruppi[tecId] = {tec: o.utenti, odls:[]};
-      gruppi[tecId].odls.push(o);
-    });
-
-    el.innerHTML = Object.values(gruppi).map(function(g) {
-      var tecNome = g.tec ? g.tec.nome+' '+g.tec.cognome : 'Non assegnati';
-      var tecObj = _calTeamTecnici.find(function(t){return t.id===(g.tec?g.tec.id:'nessuno');});
-      var color = tecObj ? tecObj._color : '#9ca3af';
-      return '<div style="margin-bottom:20px">' +
-        '<div style="font-size:13px;font-weight:700;padding:8px 12px;border-radius:var(--rs);margin-bottom:8px;border-left:4px solid '+color+';background:var(--bg)">👤 '+tecNome+' <span style="font-size:12px;font-weight:400;color:var(--m)">('+g.odls.length+' interventi)</span></div>' +
-        renderOdlsTeam(g.odls, color) +
-      '</div>';
-    }).join('');
-
+  // Tecnici da mostrare nelle righe (vista griglia)
+  var tecniciRighe;
+  if(_calTeamFiltro === 'tutti'){
+    // include "Non assegnati" come pseudo-riga in fondo solo se ci sono OdL senza tecnico
+    tecniciRighe = _calTeamTecniciAll.slice();
+    if(_calTeamOdls.some(function(o){return !o.tecnico_id;})){
+      tecniciRighe.push({id:'nessuno', nome:'Non', cognome:'assegnati'});
+    }
+  } else if(_calTeamFiltro === 'nessuno'){
+    tecniciRighe = [{id:'nessuno', nome:'Non', cognome:'assegnati'}];
   } else {
-    // Vista singolo tecnico
-    var tecObj = _calTeamTecnici.find(function(t){return t.id===_calTeamFiltro;});
-    var color = tecObj ? tecObj._color : '#3b82f6';
-    el.innerHTML = renderOdlsTeam(odls, color);
+    var found = _calTeamTecniciAll.find(function(t){return t.id===_calTeamFiltro;});
+    tecniciRighe = found ? [found] : [];
+  }
+
+  if(_calTeamVista === 'mese'){
+    el.innerHTML = renderCalTeamMese(start, odls);
+  } else {
+    // Giorno o Settimana: griglia tecnico × giorno
+    var giorni = [];
+    var d = new Date(start);
+    while(d < end){ giorni.push(new Date(d)); d.setDate(d.getDate()+1); }
+    el.innerHTML = renderCalTeamGriglia(giorni, odls, tecniciRighe);
   }
 }
 
-function renderOdlsTeam(odls, color) {
-  var tipiLabel = {ordinario_programmato:'🔧 Manutenzione',ordinario_chiamata:'📞 Su chiamata',straordinario:'⚡ Straordinario',corso:'📚 Corso'};
-  return odls.map(function(o) {
-    var cli = o.clienti ? o.clienti.ragione_sociale : '—';
-    var data = o.data_pianificata ? new Date(o.data_pianificata+'T00:00:00').toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'short'}) : '—';
-    var sedeObj = o.sede_id && window._calTeamSediMap ? window._calTeamSediMap[o.sede_id] : null;
-    var sedeStr = sedeObj ? (sedeObj.tipo||'').toUpperCase()+(sedeObj.nome?' — '+sedeObj.nome:'')+': '+(sedeObj.via||'')+' '+(sedeObj.civico||'')+(sedeObj.citta?' ('+sedeObj.citta+')':'') : 'Sede principale';
-    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-left:3px solid '+color+';border-radius:0 var(--rs) var(--rs) 0;background:var(--bg);margin-bottom:6px;gap:10px">' +
-      '<div style="flex:1">' +
-        '<div style="font-size:13px;font-weight:600">'+cli+'</div>' +
-        '<div style="font-size:12px;color:var(--m);margin-top:2px">'+data+(o.fascia_oraria?' · '+o.fascia_oraria:'')+' · '+(tipiLabel[o.tipo]||o.tipo)+'</div>' +
-        '<div style="font-size:11px;color:var(--m);margin-top:2px">📍 '+sedeStr+'</div>' +
-      '</div>' +
-      '<button class="btn sm" data-id="'+o.id+'" onclick="apriEditOdlCal(this.dataset.id)">✏️</button>' +
-    '</div>';
-  }).join('');
+function renderCalTeamGriglia(giorni, odls, tecnici){
+  if(!tecnici.length) return '<div class="ct-empty">Nessun tecnico da mostrare.</div>';
+  var today = new Date(); today.setHours(0,0,0,0);
+  var dayLabels = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  var html = '<div class="ct-cal-grid"><table class="ct-cal-table"><thead><tr><th class="tec-col">Tecnico</th>';
+  giorni.forEach(function(d){
+    var isToday = d.getTime() === today.getTime();
+    var dow = d.getDay();
+    var lbl = dayLabels[dow===0?6:dow-1];
+    html += '<th class="'+(isToday?'today':'')+'">'+lbl+'<br><span style="font-size:11px;font-weight:600">'+d.getDate()+'/'+(d.getMonth()+1)+'</span></th>';
+  });
+  html += '</tr></thead><tbody>';
+  tecnici.forEach(function(t){
+    var tecLabel = (t.id === 'nessuno') ? '⚠️ Non assegnati' : esc(t.nome+' '+(t.cognome||'').charAt(0)+'.');
+    html += '<tr><td><div class="ct-cal-tec" title="'+esc(t.nome+' '+t.cognome)+'">'+tecLabel+'</div></td>';
+    giorni.forEach(function(d){
+      var isToday = d.getTime() === today.getTime();
+      var ds = d.toISOString().split('T')[0];
+      var dayInts = odls.filter(function(o){
+        if(t.id === 'nessuno') return !o.tecnico_id && o.data_pianificata === ds;
+        return o.tecnico_id === t.id && o.data_pianificata === ds;
+      });
+      html += '<td class="ct-cal-cell '+(isToday?'today':'')+'">' + dayInts.map(renderCalTeamEv).join('') + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function renderCalTeamEv(o){
+  var tipoCls = {ordinario_programmato:'ev-ord',ordinario_chiamata:'ev-chi',straordinario:'ev-str',corso:'ev-cor'}[o.tipo] || 'ev-ord';
+  var ritardo = o.in_ritardo_il ? ' ev-ritardo' : '';
+  var cli = o.clienti?.ragione_sociale || '—';
+  return '<div class="ct-cal-ev '+tipoCls+ritardo+'" onclick="event.stopPropagation();openEditOdl(\''+o.id+'\')" title="'+esc(cli)+'">' +
+    '<div class="ev-cli">'+esc(cli)+'</div>' +
+    (o.fascia_oraria?'<div class="ev-meta">'+esc(o.fascia_oraria)+'</div>':'') +
+  '</div>';
+}
+
+function renderCalTeamMese(start, odls){
+  // Griglia mensile classica 7 colonne × N settimane.
+  // Per cella: numero giorno + fino a 3 eventi colorati per tipo, "+N altri" se di più.
+  var mese = start.getMonth();
+  var firstDow = start.getDay();
+  // Allinea a lunedì
+  var firstMonday = new Date(start);
+  firstMonday.setDate(firstMonday.getDate() - ((firstDow === 0) ? 6 : firstDow - 1));
+  var today = new Date(); today.setHours(0,0,0,0);
+
+  var html = '<div class="ctm-month-grid">';
+  ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'].forEach(function(g){ html += '<div class="ctm-month-head">'+g+'</div>'; });
+  var current = new Date(firstMonday);
+  // Numero settimane: max 6 per coprire tutti i mesi possibili
+  for(var w=0; w<6; w++){
+    for(var d=0; d<7; d++){
+      var ds = current.toISOString().split('T')[0];
+      var isOtherMonth = current.getMonth() !== mese;
+      var isToday = current.getTime() === today.getTime();
+      var dayInts = odls.filter(function(o){return o.data_pianificata === ds;});
+      var cls = 'ctm-month-day';
+      if(isOtherMonth) cls += ' other-month';
+      if(isToday) cls += ' today';
+      html += '<div class="'+cls+'"><div class="ctm-day-n">'+current.getDate()+'</div>';
+      dayInts.slice(0,3).forEach(function(o){
+        var tipoCls = {ordinario_programmato:'ev-ord',ordinario_chiamata:'ev-chi',straordinario:'ev-str',corso:'ev-cor'}[o.tipo] || 'ev-ord';
+        var ritardo = o.in_ritardo_il ? ' ev-ritardo' : '';
+        var cli = o.clienti?.ragione_sociale || '—';
+        var tecAbbr = o.utenti ? esc(((o.utenti.nome||'').charAt(0)+(o.utenti.cognome||'').charAt(0)).toUpperCase()) : '—';
+        var tooltip = cli + (o.utenti ? (' · '+o.utenti.nome+' '+o.utenti.cognome) : ' · non assegnato');
+        html += '<div class="ctm-month-ev '+tipoCls+ritardo+'" onclick="event.stopPropagation();openEditOdl(\''+o.id+'\')" title="'+esc(tooltip)+'">' + tecAbbr + ' ' + esc(cli) + '</div>';
+      });
+      if(dayInts.length > 3) html += '<div class="ctm-month-more">+'+(dayInts.length-3)+' altri</div>';
+      html += '</div>';
+      current.setDate(current.getDate()+1);
+    }
+    // Fine se abbiamo già coperto tutto il mese
+    if(current.getMonth() !== mese && current.getDay() === 1) break;
+  }
+  html += '</div>';
+  return html;
 }
 
 // ── CALENDARIO TECNICO ───────────────────────────────────────

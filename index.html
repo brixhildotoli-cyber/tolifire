@@ -516,21 +516,41 @@
 <div class="page" id="pg-calendario-team">
   <div class="sh">
     <div><div class="st">👥 Calendari team</div><div style="font-size:13px;color:var(--m);margin-top:2px">Panoramica interventi per tecnico</div></div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <button class="btn" onclick="calTeamPrev()">← Prec.</button>
-      <div style="font-size:15px;font-weight:700;min-width:160px;text-align:center" id="cal-team-title"></div>
-      <button class="btn" onclick="calTeamNext()">Succ. →</button>
+  </div>
+
+  <!-- Vista (Giorno/Settimana/Mese) + Navigazione -->
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+    <div class="tit-period-bar">
+      <button class="tit-period-btn" id="ctm-vista-giorno" onclick="setCalTeamVista('giorno')">Giorno</button>
+      <button class="tit-period-btn on" id="ctm-vista-settimana" onclick="setCalTeamVista('settimana')">Settimana</button>
+      <button class="tit-period-btn" id="ctm-vista-mese" onclick="setCalTeamVista('mese')">Mese</button>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
+      <button class="btn" onclick="calTeamPrev()">←</button>
+      <button class="btn" onclick="calTeamToday()">Oggi</button>
+      <button class="btn" onclick="calTeamNext()">→</button>
+      <div style="font-size:14px;font-weight:700;margin-left:10px" id="cal-team-title"></div>
     </div>
   </div>
 
   <!-- Filtro tecnico -->
-  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
-    <span style="font-size:13px;color:var(--m)">Visualizza:</span>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+    <span style="font-size:13px;color:var(--m)">Tecnico:</span>
     <button class="btn on" id="cteam-btn-tutti" onclick="filtraCalTeam('tutti')">🗓️ Tutti</button>
     <div id="cteam-btn-tecnici" style="display:flex;gap:6px;flex-wrap:wrap"></div>
   </div>
 
-  <!-- Vista totale o per singolo tecnico -->
+  <!-- Legenda colori per tipo intervento -->
+  <div class="ctm-legenda">
+    <span>Tipo intervento:</span>
+    <span><span class="sw" style="background:var(--gm)"></span>Manutenzione</span>
+    <span><span class="sw" style="background:var(--b)"></span>Su chiamata</span>
+    <span><span class="sw" style="background:var(--r)"></span>Straordinario</span>
+    <span><span class="sw" style="background:var(--p)"></span>Corso</span>
+    <span style="margin-left:8px"><span class="sw" style="background:transparent;outline:2px solid var(--r);outline-offset:-2px"></span>In ritardo</span>
+  </div>
+
+  <!-- Vista corrente -->
   <div id="cal-team-body"><div class="load">Caricamento...</div></div>
 </div>
 

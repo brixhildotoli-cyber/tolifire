@@ -261,6 +261,33 @@ textarea{resize:vertical;min-height:80px}
 
 .ct-empty{color:var(--m);font-size:13px;text-align:center;padding:24px 12px}
 
+/* Colori eventi per tipo (usati da Calendari team) */
+.ct-cal-ev.ev-ord{border-left-color:var(--gm);background:var(--gl)}
+.ct-cal-ev.ev-chi{border-left-color:var(--b);background:var(--bl)}
+.ct-cal-ev.ev-str{border-left-color:var(--r);background:var(--rl)}
+.ct-cal-ev.ev-cor{border-left-color:var(--p);background:var(--pl)}
+.ct-cal-ev.ev-ritardo{outline:2px solid var(--r);outline-offset:-2px}
+
+/* Vista mese — griglia classica 7 colonne */
+.ctm-month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.ctm-month-head{text-align:center;font-size:11px;font-weight:700;color:var(--m);text-transform:uppercase;padding:8px 0;letter-spacing:.04em}
+.ctm-month-day{min-height:108px;background:var(--w);border-radius:6px;padding:6px;border:0.5px solid rgba(0,0,0,.05);display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.ctm-month-day.other-month{opacity:.4;background:var(--bg)}
+.ctm-month-day.today{box-shadow:inset 0 0 0 2px var(--g)}
+.ctm-day-n{font-size:12px;font-weight:600;color:var(--m);margin-bottom:2px}
+.ctm-month-day.today .ctm-day-n{color:var(--g)}
+.ctm-month-ev{font-size:10px;padding:2px 5px;border-radius:4px;cursor:pointer;border-left:3px solid var(--gm);background:var(--gl);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
+.ctm-month-ev:hover{transform:translateX(1px)}
+.ctm-month-ev.ev-chi{border-left-color:var(--b);background:var(--bl)}
+.ctm-month-ev.ev-str{border-left-color:var(--r);background:var(--rl)}
+.ctm-month-ev.ev-cor{border-left-color:var(--p);background:var(--pl)}
+.ctm-month-ev.ev-ritardo{outline:1px solid var(--r);outline-offset:-1px}
+.ctm-month-more{font-size:10px;color:var(--m);padding:1px 4px;font-style:italic}
+
+/* Legenda colori tipi */
+.ctm-legenda{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;font-size:11px;color:var(--m);align-items:center}
+.ctm-legenda .sw{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:middle;margin-right:4px}
+
 /* ── Modal m-odl context-aware (B4) ──────────────────────── */
 .m-odl-modal{display:flex;flex-direction:column}
 .m-odl-modal .mh{order:0}
