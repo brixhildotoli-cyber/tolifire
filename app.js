@@ -65,7 +65,7 @@ function openM(id){
   if(id==='m-odl') {
     var editId = ge('mcli-odl-id');
     if(!editId || !editId.value) {
-      if(ge('modal-odl-title')) ge('modal-odl-title').textContent='Nuovo ordine di lavoro';
+      if(ge('modal-odl-title')) ge('modal-odl-title').textContent='Nuovo intervento';
     }
   }
   var el = ge(id);
@@ -2211,7 +2211,7 @@ async function pianificaDaTicket(ticketId, cliId, sedeId) {
     note_per_tecnico: 'Intervento da richiesta cliente'
   }).select().single();
 
-  if(rOdl.error) { toast('Errore creazione OdL: '+rOdl.error.message,'err'); return; }
+  if(rOdl.error) { toast('Errore creazione intervento: '+rOdl.error.message,'err'); return; }
 
   // Aggiorna ticket: salva odl_id per mostrare data al cliente nel portale
   await db.from('ticket_clienti').update({
@@ -3200,7 +3200,7 @@ async function saveCli(){
 
 // ── INTERVENTI ────────────────────────────────────────────────
 async function loadOdl(){const {data}=await db.from('ordini_lavoro').select('*,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)').order('data_pianificata',{ascending:false});ODLS=data||[];renderO(ODLS);}
-function renderO(data){const tb=ge('otbody');if(!data.length){tb.innerHTML='<tr><td colspan="7"><div class="empty">Nessun ordine di lavoro</div></td></tr>';return;}tb.innerHTML=data.map(o=>`<tr>
+function renderO(data){const tb=ge('otbody');if(!data.length){tb.innerHTML='<tr><td colspan="7"><div class="empty">Nessun intervento</div></td></tr>';return;}tb.innerHTML=data.map(o=>`<tr>
     <td style="color:var(--m)">#${o.numero||'—'}</td>
     <td><strong>${esc(o.clienti?.ragione_sociale||'—')}</strong></td>
     <td>${tl(o.tipo)}</td>
@@ -3492,7 +3492,7 @@ async function salvaInt(){
   const chkDone=[];document.querySelectorAll('.ci input:checked').forEach(cb=>{chkDone.push(cb.nextElementSibling.textContent);});
   const chkTxt=chkDone.length?'CHECK-LIST:\n'+chkDone.map(t=>'✓ '+t).join('\n'):null;
   const sedeId=v('tc1-sede')||null;const {data:odl,error:e1}=await db.from('ordini_lavoro').insert({cliente_id:cid,tipo:v('tc2'),tecnico_id:tid||null,data_pianificata:di,stato:'completato',note_per_tecnico:v('tc6')||null,sede_id:sedeId}).select().single();
-  if(e1){toast('Errore OdL: '+e1.message,'err');btn.disabled=false;btn.textContent='Salva e chiudi intervento ✓';return;}
+  if(e1){toast('Errore intervento: '+e1.message,'err');btn.disabled=false;btn.textContent='Salva e chiudi intervento ✓';return;}
   const straord=v('tc14')==='true';
   const {data:schedaData,error:e2}=await db.from('schede_lavoro').insert({odl_id:odl.id,tecnico_id:tid||ME.id,cliente_id:cid,data_intervento:di,ora_inizio:v('tc4')||null,ora_fine:v('tc17')||null,lavori_eseguiti:chkTxt?chkTxt+'\n\n'+(v('tc10')||''):v('tc10')||null,anomalie_rilevate:v('tc12')||null,
       esito: impossibilitato ? 'non_completato' : v('tc13'),
@@ -3554,9 +3554,9 @@ async function saveOdl(){
   }
   if(ge('mcli-odl-id')) ge('mcli-odl-id').value='';
   if(ge('mo-sopr-id')) ge('mo-sopr-id').value='';
-  if(ge('modal-odl-title')) ge('modal-odl-title').textContent='Nuovo ordine di lavoro';
+  if(ge('modal-odl-title')) ge('modal-odl-title').textContent='Nuovo intervento';
   closeM('m-odl');
-  toast(editId?'OdL aggiornato ✓':'OdL creato ✓','ok');
+  toast(editId?'Intervento aggiornato ✓':'Intervento creato ✓','ok');
   await loadCS();loadDash();
   if(ge('pg-interventi')&&ge('pg-interventi').classList.contains('on'))loadOdl();
   if(ge('pg-calendario')&&ge('pg-calendario').classList.contains('on'))loadCalendario();
@@ -3603,7 +3603,7 @@ async function accettaSopralluogo(soprId){
   ge('mo-sopr-id').value = soprId;
   if(ge('mcli-odl-id')) ge('mcli-odl-id').value='';
   await calcolaPresidiSede(s.cliente_id, null, 'mo-presidi-preview');
-  if(ge('modal-odl-title')) ge('modal-odl-title').textContent='Accettazione sopralluogo → nuovo OdL';
+  if(ge('modal-odl-title')) ge('modal-odl-title').textContent='Accettazione sopralluogo → nuovo intervento';
   openM('m-odl');
 }
 async function saveImp(){const {error}=await db.from('impostazioni').update({ragione_sociale:v('si1')||null,indirizzo:v('si2')||null,cap:v('si3')||null,citta:v('si4')||null,piva:v('si5')||null,telefono:v('si6')||null,email:v('si7')||null}).eq('id',1);if(error){toast('Errore: '+error.message,'err');return;}toast('Dati aziendali salvati ✓','ok');loadImp();}
@@ -3730,7 +3730,7 @@ function calDayClick(dateStr) {
   // Apre modal OdL nuovo con la data precompilata
   var editId = ge('mcli-odl-id');
   if(editId) editId.value = ''; // assicura nuovo OdL
-  if(ge('modal-odl-title')) ge('modal-odl-title').textContent = 'Nuovo ordine di lavoro';
+  if(ge('modal-odl-title')) ge('modal-odl-title').textContent = 'Nuovo intervento';
   ge('mo3').value = dateStr;
   openM('m-odl');
 }
@@ -3748,7 +3748,7 @@ function renderCalList() {
   el.innerHTML = calOdls.map(function(o) {
     var cli = o.clienti && o.clienti.ragione_sociale ? esc(o.clienti.ragione_sociale) : '—';
     var tec = o.utenti ? esc(o.utenti.nome + ' ' + o.utenti.cognome) : '<span style="color:var(--r)">Non assegnato</span>';
-    var statoLabel = o.stato === 'da_pianificare' ? '<span class="bx bblue">Pianificato</span>' : bs(o.stato);
+    var statoLabel = bs(o.stato);
     var sedeObj = o.sede_id && window._calSediMap ? window._calSediMap[o.sede_id] : null;
     var sedeStr = sedeObj ? '📍 ' + esc((sedeObj.tipo||'').toUpperCase()) + (sedeObj.nome?' — '+esc(sedeObj.nome):'') + ': ' + esc(sedeObj.via||'') + ' ' + esc(sedeObj.civico||'') + (sedeObj.citta?' ('+esc(sedeObj.citta)+')':'') : '📍 Sede principale';
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:0.5px solid var(--bo);gap:10px">' +
@@ -4103,7 +4103,7 @@ async function stampaDDT(ddtId) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('Data: ' + (ddt.data_emissione || '—'), 150, 30);
-    if(ddt.ordini_lavoro) doc.text('OdL: #' + ddt.ordini_lavoro.numero, 150, 35);
+    if(ddt.ordini_lavoro) doc.text('Intervento: #' + ddt.ordini_lavoro.numero, 150, 35);
 
     // Dati cliente - box destinatario
     var cli = ddt.clienti || {};
@@ -4433,7 +4433,7 @@ async function loadSopralluoghiList() {
     var cls = s.urgenza === 'urgente' ? 'berr' : s.urgenza === 'entro_30gg' ? 'bwarn' : 'bgray';
     var azione;
     if(s.odl_creato_id){
-      azione = '<span style="font-size:12px;color:var(--g);font-weight:600">✅ OdL creato</span>';
+      azione = '<span style="font-size:12px;color:var(--g);font-weight:600">✅ Intervento creato</span>';
     } else {
       azione = '<button class="btn sm p" data-sid="'+s.id+'" onclick="accettaSopralluogo(this.dataset.sid)">✅ Accetta → crea OdL</button>';
     }
@@ -4786,7 +4786,7 @@ async function stampaDDT(ddtId) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text('Data: ' + (ddt.data_emissione || '—'), 150, 30);
-    if(ddt.ordini_lavoro) doc.text('OdL: #' + ddt.ordini_lavoro.numero, 150, 35);
+    if(ddt.ordini_lavoro) doc.text('Intervento: #' + ddt.ordini_lavoro.numero, 150, 35);
 
     // Dati cliente - box destinatario
     var cli = ddt.clienti || {};
@@ -5185,7 +5185,7 @@ async function eliminaOdl(id) {
   await db.from('schede_lavoro').delete().eq('odl_id', id);
   var r = await db.from('ordini_lavoro').delete().eq('id', id);
   if(r.error) { toast('Errore: ' + r.error.message, 'err'); return; }
-  toast('OdL eliminato', 'ok');
+  toast('Intervento eliminato', 'ok');
   loadOdl();
   loadDash();
 }
@@ -5210,7 +5210,7 @@ async function openEditOdl(id) {
   await loadSediForOdl();
   if(o.sede_id){ var se = ge('mo-sede'); if(se) se.value = o.sede_id; }
   await calcolaPresidiSede(o.cliente_id, o.sede_id, 'mo-presidi-preview');
-  ge('modal-odl-title') && (ge('modal-odl-title').textContent = 'Modifica OdL #' + (o.numero||''));
+  ge('modal-odl-title') && (ge('modal-odl-title').textContent = 'Modifica intervento #' + (o.numero||''));
   openM('m-odl');
 }
 

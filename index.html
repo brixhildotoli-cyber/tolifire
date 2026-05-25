@@ -207,9 +207,9 @@
       <div class="tit-section">💼 Lavoro</div>
       <div class="kpi-grid">
         <div class="kpi-card clickable success" onclick="gotoPage('interventi')"><div class="kpi-icon">✅</div><div class="kpi-num" id="tit-k-completati">—</div><div class="kpi-label">Completati nel periodo</div></div>
-        <div class="kpi-card clickable" onclick="gotoPage('calendario')"><div class="kpi-icon">📅</div><div class="kpi-num" id="tit-k-pianificati">—</div><div class="kpi-label">Pianificati nel periodo</div></div>
+        <div class="kpi-card clickable info" onclick="gotoPage('calendario')"><div class="kpi-icon">📅</div><div class="kpi-num" id="tit-k-pianificati">—</div><div class="kpi-label">Pianificati nel periodo</div></div>
         <div class="kpi-card clickable attention" onclick="gotoPage('interventi')"><div class="kpi-icon">⏰</div><div class="kpi-num" id="tit-k-ritardo">—</div><div class="kpi-label">In ritardo (totale)</div></div>
-        <div class="kpi-card clickable warn" onclick="gotoPage('interventi')"><div class="kpi-icon">❓</div><div class="kpi-num" id="tit-k-dapianif">—</div><div class="kpi-label">Da pianificare (totale)</div></div>
+        <div class="kpi-card clickable" onclick="gotoPage('interventi')"><div class="kpi-icon">❓</div><div class="kpi-num" id="tit-k-dapianif">—</div><div class="kpi-label">Da pianificare (totale)</div></div>
       </div>
 
       <div class="tit-section">🧯 Compliance presidi</div>
@@ -224,7 +224,7 @@
       <div class="kpi-grid">
         <div class="kpi-card"><div class="kpi-icon">👨‍🔧</div><div class="kpi-num" id="tit-k-tec-attivi">—</div><div class="kpi-label">Tecnici attivi</div></div>
         <div class="kpi-card"><div class="kpi-icon">🏆</div><div class="kpi-num muted" id="tit-k-top-tec">—</div><div class="kpi-label" id="tit-k-top-tec-label">Top tecnico del periodo</div></div>
-        <div class="kpi-card clickable warn" onclick="gotoPage('workflow')"><div class="kpi-icon">✍️</div><div class="kpi-num" id="tit-k-da-approvare">—</div><div class="kpi-label">Schede da approvare</div></div>
+        <div class="kpi-card clickable attention" onclick="gotoPage('workflow')"><div class="kpi-icon">✍️</div><div class="kpi-num" id="tit-k-da-approvare">—</div><div class="kpi-label">Schede da approvare</div></div>
         <div class="kpi-card clickable" onclick="gotoPage('workflow')"><div class="kpi-icon">💜</div><div class="kpi-num" id="tit-k-da-fatturare">—</div><div class="kpi-label">Schede da fatturare</div></div>
       </div>
 
@@ -274,9 +274,9 @@
 
       <div class="tit-section">⚡ Coda operativa</div>
       <div class="kpi-grid">
-        <div class="kpi-card clickable warn" onclick="gotoPage('workflow')"><div class="kpi-icon">✍️</div><div class="kpi-num" id="seg-k-approvare">—</div><div class="kpi-label">Schede da approvare</div></div>
+        <div class="kpi-card clickable attention" onclick="gotoPage('workflow')"><div class="kpi-icon">✍️</div><div class="kpi-num" id="seg-k-approvare">—</div><div class="kpi-label">Schede da approvare</div></div>
         <div class="kpi-card clickable" onclick="gotoPage('workflow')"><div class="kpi-icon">💜</div><div class="kpi-num" id="seg-k-fatturare">—</div><div class="kpi-label">Schede da fatturare → al contabile</div></div>
-        <div class="kpi-card clickable warn" onclick="gotoPage('interventi')"><div class="kpi-icon">❓</div><div class="kpi-num" id="seg-k-dapianif">—</div><div class="kpi-label">OdL da pianificare</div></div>
+        <div class="kpi-card clickable" onclick="gotoPage('interventi')"><div class="kpi-icon">❓</div><div class="kpi-num" id="seg-k-dapianif">—</div><div class="kpi-label">Interventi da pianificare</div></div>
         <div class="kpi-card clickable" onclick="gotoPage('interventi')"><div class="kpi-icon">✏️</div><div class="kpi-num" id="seg-k-richmod">—</div><div class="kpi-label">Richieste modifica tecnici</div></div>
       </div>
 
@@ -862,7 +862,7 @@
 
 <!-- INTERVENTI -->
 <div class="page" id="pg-interventi">
-  <div class="sh"><div class="st">Ordini di lavoro</div><div style="display:flex;gap:8px"><button class="btn" onclick="gotoPage('calendario')">📅 Calendario</button><button class="btn p" onclick="openM('m-odl')">+ Pianifica intervento</button></div></div>
+  <div class="sh"><div class="st">Interventi</div><div style="display:flex;gap:8px"><button class="btn" onclick="gotoPage('calendario')">📅 Calendario</button><button class="btn p" onclick="openM('m-odl')">+ Pianifica intervento</button></div></div>
   <div class="sb"><input type="text" id="osearch" placeholder="Cerca..." oninput="filterO()"><select id="ofilt" onchange="filterO()" style="width:auto"><option value="">Tutti</option><option value="da_pianificare">Da pianificare</option><option value="pianificato">Pianificato</option><option value="completato">Completato</option></select></div>
   <div class="tw"><table><thead><tr><th>N°</th><th>Cliente</th><th>Tipo</th><th>Tecnico</th><th>Data</th><th>Stato</th><th></th></tr></thead><tbody id="otbody"><tr><td colspan="7"><div class="load">Caricamento...</div></td></tr></tbody></table></div>
 </div>
@@ -886,7 +886,7 @@
     </div>
     <div class="sp on" id="ts0">
       <div class="card">
-        <div class="f"><label>Ordine di lavoro assegnato</label><select id="tc-odl" onchange="preloadFromOdl()"><option value="">— Seleziona OdL o compila manualmente —</option></select></div>
+        <div class="f"><label>Intervento assegnato</label><select id="tc-odl" onchange="preloadFromOdl()"><option value="">— Seleziona intervento o compila manualmente —</option></select></div>
         <div id="tec-odl-info" style="display:none"></div>
         <div class="f"><label>Cliente *</label><select id="tc1" onchange="loadSediTec()"><option value="">Seleziona...</option></select></div>
         <div class="f"><label>📍 Sede intervento</label><select id="tc1-sede" onchange="mostraInfoSede()"><option value="">Sede principale (indirizzo del cliente)</option></select></div>
@@ -1029,7 +1029,7 @@
 <div class="mbg" id="m-ddt"><div class="modal" style="max-width:700px">
   <div class="mh">Nuovo DDT <button class="mx" onclick="closeM('m-ddt')">✕</button></div>
   <div class="fr"><div class="f"><label>Cliente *</label><select id="ddt-cli"><option value="">Seleziona...</option></select></div><div class="f"><label>Data emissione *</label><input type="date" id="ddt-data"></div></div>
-  <div class="fr"><div class="f"><label>Causale</label><input type="text" id="ddt-causale" placeholder="Es: Fornitura estintori"></div><div class="f"><label>OdL collegato</label><select id="ddt-odl"><option value="">Nessuno</option></select></div></div>
+  <div class="fr"><div class="f"><label>Causale</label><input type="text" id="ddt-causale" placeholder="Es: Fornitura estintori"></div><div class="f"><label>Intervento collegato</label><select id="ddt-odl"><option value="">Nessuno</option></select></div></div>
   <div class="f"><label>Luogo di consegna</label><select id="ddt-luogo"><option value="">Sede legale (default)</option></select></div>
   <div style="font-size:13px;font-weight:600;margin-bottom:8px">Righe</div>
   <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
@@ -1091,7 +1091,7 @@
 </div>
 
 <div class="mbg" id="m-odl"><div class="modal">
-  <div class="mh" id="modal-odl-title">Nuovo ordine di lavoro <button class="mx" onclick="closeM('m-odl')">✕</button></div>
+  <div class="mh" id="modal-odl-title">Nuovo intervento <button class="mx" onclick="closeM('m-odl')">✕</button></div>
   <input type="hidden" id="mo-sopr-id">
   <div class="f"><label>Cliente *</label><select id="mo1" onchange="loadSediForOdl();calcolaPresidiSede(v('mo1'),v('mo-sede'),'mo-presidi-preview')"><option value="">Seleziona...</option></select></div>
   <div class="f"><label>Sede / Indirizzo intervento</label><select id="mo-sede" onchange="calcolaPresidiSede(v('mo1'),v('mo-sede'),'mo-presidi-preview')"><option value="">Sede principale / da definire</option></select></div>
@@ -1105,7 +1105,7 @@
   <div class="f"><label>Presidi della sede <span style="font-weight:400;color:var(--m);font-size:11px">(auto-calcolato da database, sola lettura)</span></label><div id="mo-presidi-preview" style="font-size:13px;color:var(--m);padding:8px;background:var(--bg);border-radius:6px">Seleziona prima un cliente.</div></div>
   <div class="f"><label>Note operative al tecnico <span style="font-weight:400;color:var(--m);font-size:11px">(per il capo cantiere)</span></label><textarea id="mo-note-cap" style="min-height:70px" placeholder="Es. citofono Rossi, parcheggio interno, contattare il referente prima di arrivare..."></textarea></div>
 
-  <div style="display:flex;gap:8px;margin-top:16px"><button class="btn" onclick="closeM('m-odl')">Annulla</button><button class="btn p" onclick="saveOdl()">Crea OdL</button></div>
+  <div style="display:flex;gap:8px;margin-top:16px"><button class="btn" onclick="closeM('m-odl')">Annulla</button><button class="btn p" onclick="saveOdl()">Crea intervento</button></div>
 </div></div>
 
 <div class="mbg" id="m-user"><div class="modal">

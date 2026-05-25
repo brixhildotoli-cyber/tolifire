@@ -105,3 +105,13 @@ una sessione e l'altra.
    `relazioni_tecniche`; va controllato se esiste un trigger Postgres
    o una Edge Function Supabase che le crea automaticamente al passaggio
    di una scheda firmata. Se non esiste, va costruita.
+
+4. **Stato intervento 'da riprogrammare'** — quando un tecnico non
+   riesce a completare o svolgere un intervento pianificato (imprevisto,
+   lavoro non finito, cliente assente), deve poterlo segnalare e
+   l'intervento torna automaticamente in coda "da pianificare" per
+   essere ripianificato. Oggi questo stato non esiste: il ciclo è solo
+   lineare `da_pianificare → pianificato → completato`. Va aggiunto lo
+   stato (o un meccanismo equivalente, es. trigger che riporta a
+   `da_pianificare` quando il tecnico segna "non completato" sulla
+   scheda di lavoro).

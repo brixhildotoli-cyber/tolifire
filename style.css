@@ -192,6 +192,8 @@ textarea{resize:vertical;min-height:80px}
 .kpi-card.warn .kpi-num{color:var(--a)}
 .kpi-card.success{background:var(--gl)}
 .kpi-card.success .kpi-num{color:var(--g)}
+.kpi-card.info{background:var(--bl)}
+.kpi-card.info .kpi-num{color:var(--b)}
 
 .tit-money-card{background:var(--w);border-radius:14px;padding:14px 16px;margin:12px 4px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,.04);border:0.5px solid rgba(0,0,0,.04)}
 .tit-money-card .left{display:flex;align-items:center;gap:12px}
