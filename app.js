@@ -2063,7 +2063,7 @@ function apriRichiestaModifica(odlId, dataAttuale, nomeCliente) {
     m.id = 'm-richiesta-modifica';
     m.className = 'mbg';
     m.innerHTML = '<div class="modal" style="max-width:480px">' +
-      '<div class="mh">✏️ Richiesta modifica intervento <button class="mx" onclick="chiudiModal(\"m-richiesta-modifica\")">✕</button></div>' +
+      '<div class="mh">✏️ Richiesta modifica intervento <button class="mx" data-mid="m-richiesta-modifica" onclick="closeM(this.dataset.mid)">✕</button></div>' +
       '<div id="m-rich-body"></div></div>';
     document.body.appendChild(m);
     m.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('on'); });
@@ -2085,7 +2085,7 @@ function apriRichiestaModifica(odlId, dataAttuale, nomeCliente) {
     '<div class="f"><label>Motivo / note</label><textarea id="rich-note" style="min-height:80px" placeholder="Spiega il motivo della richiesta..."></textarea></div>' +
     '<div class="al2 i" style="margin-top:8px">La richiesta verrà inviata al capo tecnico e al titolare per approvazione.</div>' +
     '<div style="display:flex;gap:8px;margin-top:14px">' +
-      '<button class="btn" onclick="chiudiModal(\"m-richiesta-modifica\")">Annulla</button>' +
+      '<button class="btn" data-mid="m-richiesta-modifica" onclick="closeM(this.dataset.mid)">Annulla</button>' +
       '<button class="btn p" data-odl="'+odlId+'" onclick="inviaRichiestaModifica(this.dataset.odl)">📤 Invia richiesta</button>' +
     '</div></div>';
 
@@ -2326,7 +2326,7 @@ async function apriTicket(id) {
       '</div>'
     : '') +
     '<div style="display:flex;gap:8px;margin-top:16px">' +
-      '<button class="btn" onclick="chiudiModal(\"m-ticket\")">Chiudi</button>' +
+      '<button class="btn" data-mid="m-ticket" onclick="closeM(this.dataset.mid)">Chiudi</button>' +
       '<button class="btn p" data-id="'+t.id+'" onclick="salvaTicket(this.dataset.id)">💾 Salva</button>' +
       (ROLE==='titolare'||ROLE==='segreteria' ? '<button class="btn" data-id="'+t.id+'" onclick="eliminaTicket(this.dataset.id)" style="color:var(--r)">🗑️</button>' : '') +
     '</div>' +
@@ -2338,7 +2338,7 @@ async function apriTicket(id) {
     m = document.createElement('div');
     m.id = 'm-ticket';
     m.className = 'mbg';
-    m.innerHTML = '<div class="modal" style="max-width:680px"><div class="mh">Gestione richiesta <button class="mx" onclick="chiudiModal(\"m-ticket\")">✕</button></div><div id="m-ticket-body"></div></div>';
+    m.innerHTML = '<div class="modal" style="max-width:680px"><div class="mh">Gestione richiesta <button class="mx" data-mid="m-ticket" onclick="closeM(this.dataset.mid)">✕</button></div><div id="m-ticket-body"></div></div>';
     document.body.appendChild(m);
     m.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('on'); });
   }
@@ -3963,7 +3963,7 @@ function renderCalendar() {
     var evHtml = dayOdls.slice(0,3).map(function(o) {
       var cls = o.tipo === 'straordinario' ? 'str' : o.tipo === 'corso' ? 'cor' : o.tipo === 'ordinario_chiamata' ? 'chi' : 'ord';
       var cli = o.clienti && o.clienti.ragione_sociale ? o.clienti.ragione_sociale : '—';
-      return '<div class="cal-ev ' + cls + '" onclick="openOdlDetail(\'' + o.id + '\')" title="' + cli + '">' + cli + '</div>';
+      return '<div class="cal-ev ' + cls + '" onclick="event.stopPropagation();openOdlDetail(\'' + o.id + '\')" title="' + cli + '">' + cli + '</div>';
     }).join('');
     if(dayOdls.length > 3) evHtml += '<div style="font-size:10px;color:var(--m)">+' + (dayOdls.length-3) + ' altri</div>';
     // Cicli pianificati senza OdL (da schedulare)
@@ -4071,7 +4071,7 @@ async function apriEditOdlCal(id) {
   }
 
   m.innerHTML = '<div class="modal" style="max-width:500px">' +
-    '<div class="mh">✏️ Modifica intervento <button class="mx" onclick="chiudiModal(\"m-cal-edit\")">✕</button></div>' +
+    '<div class="mh">✏️ Modifica intervento <button class="mx" data-mid="m-cal-edit" onclick="closeM(this.dataset.mid)">✕</button></div>' +
     '<div style="padding:16px">' +
       '<div style="font-size:14px;font-weight:600;margin-bottom:14px">'+(odl.clienti?.ragione_sociale||'—')+'</div>' +
       '<div class="fr">' +
@@ -4083,11 +4083,11 @@ async function apriEditOdlCal(id) {
       '<div class="f"><label>Note</label><textarea id="ce-note" style="min-height:60px" '+(canEdit?'':'readonly')+'>'+(esc(odl.note_per_tecnico)||'')+'</textarea></div>' +
       (canEdit ?
         '<div style="display:flex;gap:8px;margin-top:14px">' +
-          '<button class="btn" onclick="chiudiModal(\"m-cal-edit\")">Annulla</button>' +
+          '<button class="btn" data-mid="m-cal-edit" onclick="closeM(this.dataset.mid)">Annulla</button>' +
           '<button class="btn p" data-id="'+id+'" onclick="salvaEditOdlCal(this.dataset.id)">💾 Salva</button>' +
         '</div>'
         :
-        '<div style="margin-top:14px"><button class="btn" onclick="chiudiModal(\"m-cal-edit\")">Chiudi</button></div>'
+        '<div style="margin-top:14px"><button class="btn" data-mid="m-cal-edit" onclick="closeM(this.dataset.mid)">Chiudi</button></div>'
       ) +
     '</div></div>';
 
