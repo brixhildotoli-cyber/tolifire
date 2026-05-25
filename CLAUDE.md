@@ -92,13 +92,35 @@ una sessione e l'altra.
    (o equivalente sconto-per-cliente) con storico applicabile in
    automatico al momento della creazione del DDT/fattura.
 
-2. **Modulo Fatture / RIBA / Solleciti completo** — oggi la tabella
-   `fatture` esiste ma è vuota e inutilizzata dal frontend. Non ci
-   sono scadenze pagamento per singola fattura, stato pagato/insoluto,
-   import/export RIBA, né storico solleciti. Da costruire schema
-   completo + UI di gestione. La transizione `da_fatturare → fatturata`
-   oggi è solo un cambio di stato sulla `schede_lavoro`, non emette
-   nulla nel DB.
+2. **Modulo Fatture / RIBA / Solleciti** — IN COSTRUZIONE (12 fasi).
+   Decisioni di progetto approvate:
+   - Manodopera: `impostazioni.tariffa_oraria_standard` ×
+     `schede_lavoro.ore_lavorate`.
+   - Niente fatturazione elettronica SDI in questo modulo (Modulo 2 futuro).
+   - Una sola aliquota IVA per fattura.
+   - Snapshot dati fiscali cliente al momento dell'emissione.
+   - Rate multiple per fattura (tabella `fatture_scadenze`).
+   - Ogni fattura nasce da almeno una scheda di lavoro (vincolo UI).
+   - Annullamento solo via nota di credito (`riferimento_fattura_id`).
+   - Rappresentante vede insoluti solo per `clienti.rappresentante_id=ME`.
+   - Solleciti sempre manuali (segreteria).
+   - Numerazione separata per fatture e note di credito.
+
+   Fasi:
+   - [ ] Fase 1 — Schema DB (tabelle, RLS, trigger). SQL pronto.
+   - [ ] Fase 2 — Lista fatture read-only (pagina pg-fatture).
+   - [ ] Fase 3 — Creazione bozza fattura (modal m-fattura).
+   - [ ] Fase 4 — Auto-popolamento righe da scheda/DDT/manodopera.
+   - [ ] Fase 5 — Emissione fattura (assegna numero, scadenze).
+   - [ ] Fase 6 — Vista scadenze + KPI dashboard.
+   - [ ] Fase 7 — Registrazione pagamenti.
+   - [ ] Fase 8 — RIBA: presentazioni e righe.
+   - [ ] Fase 9 — Esiti RIBA (accreditato/insoluto).
+   - [ ] Fase 10 — Solleciti.
+   - [ ] Fase 11 — Aggiornamento dashboard ruoli.
+   - [ ] Fase 12 — Export PDF fattura.
+   Dipendenza esterna: `clienti.rappresentante_id` da aggiungere
+   prima della Fase 11 (per filtro insoluti rappresentante).
 
 3. **Generazione automatica relazioni tecniche** — da verificare se
    funziona davvero. Il frontend non inserisce mai righe in
