@@ -321,6 +321,58 @@
     </div>
   </div>
 
+  <!-- DASHBOARD CAPO_TECNICO (visibile solo per ruolo=capo_tecnico) -->
+  <div id="dash-capo-tecnico-pg" style="display:none">
+    <div class="ct-wrap">
+      <div class="ct-greet">
+        <h1 id="ct-greet-nome">Buongiorno</h1>
+        <p id="ct-greet-data"></p>
+      </div>
+
+      <!-- KPI -->
+      <div class="kpi-grid">
+        <div class="kpi-card warn"><div class="kpi-icon">❓</div><div class="kpi-num" id="ct-k-dapianif">—</div><div class="kpi-label">Da pianificare</div></div>
+        <div class="kpi-card attention"><div class="kpi-icon">⏰</div><div class="kpi-num" id="ct-k-ritardo">—</div><div class="kpi-label">In ritardo</div></div>
+        <div class="kpi-card warn"><div class="kpi-icon">✏️</div><div class="kpi-num" id="ct-k-richmod">—</div><div class="kpi-label">Richieste modifica</div></div>
+        <div class="kpi-card"><div class="kpi-icon">⚡</div><div class="kpi-num" id="ct-k-urgenti">—</div><div class="kpi-label">Urgenti pendenti</div></div>
+      </div>
+
+      <!-- Split principale: lista + calendario -->
+      <div class="ct-split">
+        <div class="ct-pane">
+          <div class="ct-pane-head">
+            <div class="ct-pane-title">📋 Da pianificare</div>
+            <span class="ct-pane-count" id="ct-list-count">0</span>
+          </div>
+          <div class="ct-list-content" id="ct-list-content"><div class="ct-empty">⏳ Caricamento...</div></div>
+          <div style="font-size:11px;color:var(--m);margin-top:8px;padding:6px 8px;background:var(--bg);border-radius:6px">💡 Trascina una card sul calendario a destra per assegnare data e tecnico</div>
+        </div>
+        <div class="ct-pane">
+          <div class="ct-pane-head">
+            <div class="ct-pane-title">📅 Settimana</div>
+            <div class="ct-cal-nav">
+              <button onclick="ctWeekPrev()">←</button>
+              <button onclick="ctWeekToday()">Oggi</button>
+              <button onclick="ctWeekNext()">→</button>
+              <span class="ct-cal-week-label" id="ct-cal-week-label">—</span>
+            </div>
+          </div>
+          <div class="ct-cal-grid" id="ct-cal-grid"><div class="ct-empty">⏳ Caricamento...</div></div>
+        </div>
+      </div>
+
+      <!-- Pannelli esistenti riusati con target ID diversi -->
+      <div class="ct-section-title">📅 Interventi periodici del mese</div>
+      <div class="ct-pane"><div id="ct-cicli-mese"><div class="ct-empty">⏳ Caricamento...</div></div></div>
+
+      <div class="ct-section-title">✏️ Richieste modifica dai tecnici</div>
+      <div class="ct-pane"><div id="ct-richieste-modifica"><div class="ct-empty">⏳ Caricamento...</div></div></div>
+
+      <div class="ct-section-title">🎫 Ticket clienti in arrivo</div>
+      <div class="ct-pane"><div id="ct-ticket-lista"><div class="ct-empty">⏳ Caricamento...</div></div></div>
+    </div>
+  </div>
+
   <!-- DASHBOARD STANDARD (altri ruoli) -->
   <div id="dash-standard">
   <div class="sh">

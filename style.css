@@ -195,6 +195,64 @@ textarea{resize:vertical;min-height:80px}
 .kpi-card.info{background:var(--bl)}
 .kpi-card.info .kpi-num{color:var(--b)}
 
+/* ── Dashboard capo_tecnico (split lista + calendario settimanale) ── */
+.ct-wrap{max-width:1280px;margin:0 auto;padding:8px 4px 40px}
+.ct-greet{padding:14px 4px 6px}
+.ct-greet h1{font-size:26px;font-weight:700;letter-spacing:-0.02em;color:var(--t)}
+.ct-greet p{font-size:14px;color:var(--m);text-transform:capitalize}
+.ct-section-title{margin:24px 4px 10px;padding:0 6px;font-size:12px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.06em}
+
+.ct-split{display:grid;grid-template-columns:380px 1fr;gap:14px;margin:12px 4px}
+@media(max-width:980px){.ct-split{grid-template-columns:1fr}}
+
+.ct-pane{background:var(--w);border-radius:14px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);border:0.5px solid rgba(0,0,0,.04)}
+.ct-pane-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.ct-pane-title{font-size:14px;font-weight:700;color:var(--t);display:flex;align-items:center;gap:8px}
+.ct-pane-count{background:var(--gyl);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600;color:var(--m)}
+
+/* Lista da pianificare */
+.ct-list-content{max-height:560px;overflow-y:auto}
+.ct-odl-card{background:var(--bg);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:grab;border:0.5px solid var(--bo);transition:all .12s;position:relative;overflow:hidden}
+.ct-odl-card:hover{border-color:var(--gm);transform:translateY(-1px);box-shadow:0 2px 6px rgba(0,0,0,.04)}
+.ct-odl-card:active{cursor:grabbing}
+.ct-odl-card.dragging{opacity:.4;cursor:grabbing}
+.ct-odl-card.urg-ritardo{background:var(--rl);border-color:var(--r)}
+.ct-odl-card.urg-tipo{background:var(--al);border-color:#EF9F27}
+.ct-odl-card .bar{position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gm)}
+.ct-odl-card.urg-ritardo .bar{background:var(--r)}
+.ct-odl-card.urg-tipo .bar{background:var(--a)}
+.ct-odl-cli{font-size:13px;font-weight:600;color:var(--t);margin-left:6px}
+.ct-odl-meta{font-size:11px;color:var(--m);margin-top:2px;margin-left:6px}
+.ct-odl-tag{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;margin-left:6px;text-transform:uppercase;letter-spacing:.03em}
+.ct-odl-tag.tipo-str{background:var(--rl);color:var(--r)}
+.ct-odl-tag.tipo-chi{background:var(--bl);color:var(--b)}
+.ct-odl-tag.tipo-ord{background:var(--gl);color:var(--g)}
+.ct-odl-tag.tipo-cor{background:var(--pl);color:var(--p)}
+.ct-odl-tag.in-ritardo{background:var(--r);color:white}
+
+/* Calendario settimanale */
+.ct-cal-nav{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.ct-cal-nav button{background:none;border:0.5px solid var(--bo);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--t)}
+.ct-cal-nav button:hover{background:var(--bg)}
+.ct-cal-nav .ct-cal-week-label{font-size:13px;font-weight:600;color:var(--t);margin-right:auto;margin-left:4px}
+.ct-cal-grid{overflow-x:auto;max-height:560px}
+.ct-cal-table{width:100%;border-collapse:separate;border-spacing:4px;min-width:680px}
+.ct-cal-table th{font-size:10px;font-weight:600;color:var(--m);text-transform:uppercase;letter-spacing:.04em;text-align:center;padding:4px 2px;background:transparent}
+.ct-cal-table th.today{color:var(--g);font-weight:700}
+.ct-cal-table th.tec-col{text-align:left;padding-left:8px;min-width:90px;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ct-cal-cell{background:var(--bg);border-radius:6px;min-height:64px;padding:4px;vertical-align:top;transition:background .12s}
+.ct-cal-cell.today{background:var(--gl)}
+.ct-cal-cell.drag-over{background:var(--bl);outline:2px dashed var(--b)}
+.ct-cal-tec{font-size:12px;font-weight:600;color:var(--t);padding:6px 8px;background:var(--w);border-radius:6px;border:0.5px solid var(--bo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+.ct-cal-ev{background:var(--w);border-radius:5px;padding:4px 6px;margin-bottom:3px;font-size:11px;line-height:1.3;cursor:pointer;border-left:3px solid var(--gm);transition:all .12s}
+.ct-cal-ev:hover{transform:translateY(-1px);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.ct-cal-ev.urg-ritardo{border-left-color:var(--r);background:var(--rl)}
+.ct-cal-ev.urg-tipo{border-left-color:var(--a);background:var(--al)}
+.ct-cal-ev .ev-cli{font-weight:600;color:var(--t);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ct-cal-ev .ev-meta{font-size:10px;color:var(--m)}
+
+.ct-empty{color:var(--m);font-size:13px;text-align:center;padding:24px 12px}
+
 /* ── Modal m-odl context-aware (B4) ──────────────────────── */
 .m-odl-modal{display:flex;flex-direction:column}
 .m-odl-modal .mh{order:0}

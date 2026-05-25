@@ -595,17 +595,19 @@ function gotoPage(id){
 
 // ── DASHBOARD ─────────────────────────────────────────────────
 async function loadDash(){
-  // Smistamento per ruolo: tecnico, titolare, segreteria hanno dashboard dedicate.
-  var dtSec = ge('dash-tecnico'), ttSec = ge('dash-titolare'), sgSec = ge('dash-segreteria-pg'), dsSec = ge('dash-standard');
+  // Smistamento per ruolo: tecnico, titolare, segreteria, capo_tecnico hanno dashboard dedicate.
+  var dtSec = ge('dash-tecnico'), ttSec = ge('dash-titolare'), sgSec = ge('dash-segreteria-pg'), ctSec = ge('dash-capo-tecnico-pg'), dsSec = ge('dash-standard');
   function showOnly(sec){
     if(dtSec) dtSec.style.display = (sec==='tecnico') ? 'block' : 'none';
     if(ttSec) ttSec.style.display = (sec==='titolare') ? 'block' : 'none';
     if(sgSec) sgSec.style.display = (sec==='segreteria') ? 'block' : 'none';
+    if(ctSec) ctSec.style.display = (sec==='capo_tecnico') ? 'block' : 'none';
     if(dsSec) dsSec.style.display = (sec==='standard') ? 'block' : 'none';
   }
   if(ROLE==='tecnico'){ showOnly('tecnico'); await loadDashTecnico(); return; }
   if(ROLE==='titolare'){ showOnly('titolare'); await loadDashTitolare(); return; }
   if(ROLE==='segreteria'){ showOnly('segreteria'); await loadDashSegreteriaPg(); return; }
+  if(ROLE==='capo_tecnico'){ showOnly('capo_tecnico'); await loadDashCapoTecnicoPg(); return; }
   showOnly('standard');
   const today=new Date().toISOString().split('T')[0];const in30=new Date(Date.now()+30*86400000).toISOString().split('T')[0];
   // Query KPI filtrate per ruolo
@@ -1130,6 +1132,221 @@ async function loadDashSegreteriaPg(){
       }).join('') + '</div>';
     }
   }
+}
+
+// ── DASHBOARD CAPO_TECNICO (split lista + calendario settimanale, D&D) ──
+// Stato settimana corrente (lunedì 00:00 della settimana mostrata)
+window._ctWeekStart = null;
+
+function ctMondayOf(d){
+  var x = new Date(d); x.setHours(0,0,0,0);
+  var dow = x.getDay();
+  x.setDate(x.getDate() + ((dow === 0) ? -6 : 1 - dow));
+  return x;
+}
+
+async function loadDashCapoTecnicoPg(){
+  var ora = new Date().getHours();
+  var saluto = ora < 12 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
+  var el = ge('ct-greet-nome'); if(el) el.textContent = saluto + (ME?.nome ? ', ' + esc(ME.nome) : '');
+  el = ge('ct-greet-data'); if(el) el.textContent = new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+
+  if(!window._ctWeekStart) window._ctWeekStart = ctMondayOf(new Date());
+
+  // Refresh marcatura ritardi pendenti (idempotente)
+  try { await db.rpc('marca_ritardi_pendenti'); } catch(e){}
+
+  // KPI in parallelo
+  var Q = function(tbl){
+    var SOFT = ['ordini_lavoro','schede_lavoro','clienti','impianti','ddt','ticket_clienti'];
+    var q = db.from(tbl).select('*',{count:'exact',head:true});
+    if(SOFT.indexOf(tbl) !== -1) q = q.is('eliminato_il', null);
+    return q;
+  };
+  var [rDaPianif, rRitardo, rRichMod, rUrgenti] = (await Promise.allSettled([
+    Q('ordini_lavoro').eq('stato','da_pianificare'),
+    Q('ordini_lavoro').not('in_ritardo_il','is',null),
+    Q('richieste_modifica_odl').eq('stato','in_attesa'),
+    Q('ordini_lavoro').eq('stato','da_pianificare').in('tipo',['straordinario','ordinario_chiamata'])
+  ])).map(function(s){ return s.status === 'fulfilled' ? s.value : { error:s.reason, count:0 }; });
+  function num(r){ return (!r || r.error) ? '—' : (r.count || 0); }
+  el = ge('ct-k-dapianif'); if(el) el.textContent = num(rDaPianif);
+  el = ge('ct-k-ritardo');  if(el) el.textContent = num(rRitardo);
+  el = ge('ct-k-richmod');  if(el) el.textContent = num(rRichMod);
+  el = ge('ct-k-urgenti');  if(el) el.textContent = num(rUrgenti);
+
+  // Carica lista da pianificare + calendario settimanale
+  await ctLoadListaDaPianificare();
+  await ctLoadCalendarioSettimana();
+
+  // Pannelli riusati (refactored per accettare targetId)
+  await loadDashCapoTecnico('ct-cicli-mese');
+  await loadRichiesteModifica('ct-richieste-modifica');
+  await loadDashTicket('ct-ticket-lista');
+}
+
+async function ctLoadListaDaPianificare(){
+  var el = ge('ct-list-content');
+  if(!el) return;
+  var r = await db.from('ordini_lavoro')
+    .select('id,numero,tipo,data_pianificata,fascia_oraria,in_ritardo_il,note_per_tecnico,materiali_da_portare,clienti(ragione_sociale)')
+    .is('eliminato_il', null)
+    .eq('stato','da_pianificare')
+    .order('in_ritardo_il',{ascending:true,nullsFirst:false})
+    .order('creato_il',{ascending:true})
+    .limit(40);
+  var odls = r.data || [];
+  var cntEl = ge('ct-list-count'); if(cntEl) cntEl.textContent = odls.length;
+  if(!odls.length){
+    el.innerHTML = '<div class="ct-empty">🎉 Nessun intervento da pianificare</div>';
+    return;
+  }
+  el.innerHTML = odls.map(function(o){
+    var urg = '';
+    if(o.in_ritardo_il) urg = 'urg-ritardo';
+    else if(o.tipo === 'straordinario' || o.tipo === 'ordinario_chiamata') urg = 'urg-tipo';
+    var cli = o.clienti?.ragione_sociale || '—';
+    var tipoLabel = {ordinario_programmato:'Manutenzione',ordinario_chiamata:'Su chiamata',straordinario:'Straordinario',corso:'Corso'}[o.tipo] || o.tipo || '—';
+    var tipoCls = {ordinario_programmato:'tipo-ord',ordinario_chiamata:'tipo-chi',straordinario:'tipo-str',corso:'tipo-cor'}[o.tipo] || 'tipo-ord';
+    var tags = '<span class="ct-odl-tag '+tipoCls+'">'+esc(tipoLabel)+'</span>';
+    if(o.in_ritardo_il) tags += '<span class="ct-odl-tag in-ritardo">⏰ In ritardo</span>';
+    var note = o.note_per_tecnico || o.materiali_da_portare;
+    return '<div class="ct-odl-card '+urg+'" draggable="true" data-odl="'+o.id+'" ondragstart="ctDragStart(event)" ondragend="ctDragEnd(event)">' +
+      '<div class="bar"></div>' +
+      '<div class="ct-odl-cli">'+(o.numero?'#'+esc(o.numero)+' · ':'')+esc(cli)+'</div>' +
+      '<div class="ct-odl-meta">'+tags+(o.fascia_oraria?' · '+esc(o.fascia_oraria):'')+'</div>' +
+      (note ? '<div class="ct-odl-meta" style="margin-top:4px;font-style:italic">📝 '+esc(String(note).substring(0,80))+(String(note).length>80?'…':'')+'</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+async function ctLoadCalendarioSettimana(){
+  var el = ge('ct-cal-grid');
+  if(!el) return;
+  var monday = new Date(window._ctWeekStart); monday.setHours(0,0,0,0);
+  var sunday = new Date(monday); sunday.setDate(sunday.getDate()+6);
+  var lbl = ge('ct-cal-week-label');
+  if(lbl) lbl.textContent = monday.toLocaleDateString('it-IT',{day:'numeric',month:'short'}) + ' – ' + sunday.toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'});
+
+  // Carica tecnici attivi + interventi della settimana
+  var [rTec, rOdl] = await Promise.all([
+    db.from('utenti').select('id,nome,cognome').eq('ruolo','tecnico').eq('attivo',true).order('cognome'),
+    db.from('ordini_lavoro')
+      .select('id,numero,tipo,tecnico_id,data_pianificata,fascia_oraria,stato,in_ritardo_il,clienti(ragione_sociale)')
+      .is('eliminato_il', null)
+      .gte('data_pianificata', monday.toISOString().split('T')[0])
+      .lte('data_pianificata', sunday.toISOString().split('T')[0])
+      .neq('stato','annullato')
+  ]);
+  var tecnici = rTec.data || [];
+  var interventi = rOdl.data || [];
+
+  if(!tecnici.length){
+    el.innerHTML = '<div class="ct-empty">Nessun tecnico attivo configurato.</div>';
+    return;
+  }
+
+  // Header giorni + indicazione "oggi"
+  var today = new Date(); today.setHours(0,0,0,0);
+  var giorni = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  var html = '<table class="ct-cal-table"><thead><tr><th class="tec-col">Tecnico</th>';
+  for(var i=0; i<7; i++){
+    var d = new Date(monday); d.setDate(d.getDate()+i);
+    var isToday = d.getTime() === today.getTime();
+    html += '<th class="' + (isToday?'today':'') + '">'+giorni[i]+'<br><span style="font-size:11px;font-weight:600">'+d.getDate()+'</span></th>';
+  }
+  html += '</tr></thead><tbody>';
+  tecnici.forEach(function(t){
+    html += '<tr>';
+    html += '<td><div class="ct-cal-tec" title="'+esc(t.nome+' '+t.cognome)+'">'+esc(t.nome+' '+(t.cognome||'').charAt(0)+'.')+'</div></td>';
+    for(var i=0; i<7; i++){
+      var d = new Date(monday); d.setDate(d.getDate()+i);
+      var ds = d.toISOString().split('T')[0];
+      var isToday = d.getTime() === today.getTime();
+      var dayInts = interventi.filter(function(o){ return o.tecnico_id === t.id && o.data_pianificata === ds; });
+      var cellHtml = dayInts.map(function(o){
+        var urg = '';
+        if(o.in_ritardo_il) urg = 'urg-ritardo';
+        else if(o.tipo === 'straordinario' || o.tipo === 'ordinario_chiamata') urg = 'urg-tipo';
+        var cli = o.clienti?.ragione_sociale || '—';
+        return '<div class="ct-cal-ev '+urg+'" onclick="openEditOdl(\''+o.id+'\')" title="'+esc(cli)+'">' +
+          '<div class="ev-cli">'+esc(cli)+'</div>' +
+          (o.fascia_oraria?'<div class="ev-meta">'+esc(o.fascia_oraria)+'</div>':'') +
+        '</div>';
+      }).join('');
+      html += '<td class="ct-cal-cell '+(isToday?'today':'')+'" data-tec="'+t.id+'" data-day="'+ds+'" ondragover="ctDragOver(event)" ondragleave="ctDragLeave(event)" ondrop="ctDrop(event)">' + cellHtml + '</td>';
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function ctWeekPrev(){
+  var d = new Date(window._ctWeekStart); d.setDate(d.getDate()-7);
+  window._ctWeekStart = d;
+  ctLoadCalendarioSettimana();
+}
+function ctWeekNext(){
+  var d = new Date(window._ctWeekStart); d.setDate(d.getDate()+7);
+  window._ctWeekStart = d;
+  ctLoadCalendarioSettimana();
+}
+function ctWeekToday(){
+  window._ctWeekStart = ctMondayOf(new Date());
+  ctLoadCalendarioSettimana();
+}
+
+// Drag & drop
+function ctDragStart(e){
+  var card = e.target.closest('.ct-odl-card');
+  if(!card) return;
+  var id = card.getAttribute('data-odl');
+  e.dataTransfer.setData('text/plain', id);
+  e.dataTransfer.effectAllowed = 'move';
+  card.classList.add('dragging');
+}
+function ctDragEnd(e){
+  var card = e.target.closest('.ct-odl-card');
+  if(card) card.classList.remove('dragging');
+}
+function ctDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  var cell = e.target.closest('.ct-cal-cell');
+  if(cell) cell.classList.add('drag-over');
+}
+function ctDragLeave(e){
+  var cell = e.target.closest('.ct-cal-cell');
+  if(cell) cell.classList.remove('drag-over');
+}
+async function ctDrop(e){
+  e.preventDefault();
+  var cell = e.target.closest('.ct-cal-cell');
+  if(cell) cell.classList.remove('drag-over');
+  var odlId = e.dataTransfer.getData('text/plain');
+  if(!odlId || !cell) return;
+  var tecId = cell.getAttribute('data-tec');
+  var day = cell.getAttribute('data-day');
+  // Recupera info per conferma
+  var r = await db.from('ordini_lavoro').select('clienti(ragione_sociale)').eq('id', odlId).single();
+  var cli = r.data?.clienti?.ragione_sociale || 'intervento';
+  // Recupera nome tecnico
+  var rT = await db.from('utenti').select('nome,cognome').eq('id', tecId).single();
+  var tecNome = rT.data ? (rT.data.nome + ' ' + rT.data.cognome) : 'tecnico';
+  var dStr = new Date(day+'T00:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+  if(!confirm('Assegnare "'+cli+'" a '+tecNome+' per '+dStr+'?')) return;
+  var up = await db.from('ordini_lavoro').update({
+    tecnico_id: tecId,
+    data_pianificata: day,
+    stato: 'pianificato'
+  }).eq('id', odlId);
+  if(up.error){ toast('Errore: '+up.error.message,'err'); return; }
+  toast('✅ Intervento pianificato','ok');
+  await ctLoadListaDaPianificare();
+  await ctLoadCalendarioSettimana();
+  // Aggiorna anche i KPI in alto
+  await loadDashCapoTecnicoPg();
 }
 
 // ── FOTO TECNICO ─────────────────────────────────────────────
@@ -1907,8 +2124,8 @@ async function inviaRichiestaModifica(odlId) {
 }
 
 // ── DASHBOARD CAPO TECNICO / TITOLARE: approva richieste ─────
-async function loadRichiesteModifica() {
-  var el = ge('dash-richieste-modifica');
+async function loadRichiesteModifica(targetId) {
+  var el = ge(targetId || 'dash-richieste-modifica');
   if(!el) return;
 
   var r = await db.from('richieste_modifica_odl')
@@ -1989,8 +2206,8 @@ async function rispondiRichiesta(richId, odlId, tipo, nuovaData, stato) {
 }
 
 // ── DASHBOARD TICKET ─────────────────────────────────────────
-async function loadDashTicket() {
-  var el = ge('dash-ticket-lista');
+async function loadDashTicket(targetId) {
+  var el = ge(targetId || 'dash-ticket-lista');
   var cnt = ge('dash-ticket-count');
   if(!el) return;
 
@@ -2312,8 +2529,8 @@ async function apriClienteSegreteria(id) {
 }
 
 // ── DASHBOARD CAPO TECNICO ───────────────────────────────────
-async function loadDashCapoTecnico() {
-  var el = ge('dash-ct-lista');
+async function loadDashCapoTecnico(targetId) {
+  var el = ge(targetId || 'dash-ct-lista');
   var meseEl = ge('dash-ct-mese');
   if(!el) return;
 
