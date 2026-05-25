@@ -2387,8 +2387,6 @@ async function loadDashTicket(targetId) {
   var r = await query;
   var tickets = r.data || [];
 
-  // DEBUG visibile
-  console.log('TICKET DEBUG - ROLE:', ROLE, 'count:', tickets.length, 'error:', r.error);
   if(r.error) {
     el.innerHTML = '<div style="color:red;padding:10px">Errore query: ' + r.error.message + '</div>';
     return;
