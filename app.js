@@ -868,10 +868,10 @@ async function loadDashTitolare(){
     rCompletati, rPianificati, rRitardo, rDaPianif,
     rPresidiScad, rPresidi30, rCliAtt, rCliNuovi,
     rTecAtt, rDaApprov, rDaFatt
-  ] = await Promise.all([
+  ] = (await Promise.allSettled([
     Q('ordini_lavoro').eq('stato','completato').gte('data_pianificata',range.start).lt('data_pianificata',range.end),
     Q('ordini_lavoro').eq('stato','pianificato').gte('data_pianificata',range.start).lt('data_pianificata',range.end),
-    Q('ordini_lavoro').lt('data_pianificata',oggiStr).not('stato','in','(completato,annullato)'),
+    Q('ordini_lavoro').lt('data_pianificata',oggiStr).neq('stato','completato').neq('stato','annullato'),
     Q('ordini_lavoro').eq('stato','da_pianificare'),
     Q('impianti').lt('data_prossimo_controllo',oggiStr),
     Q('impianti').gte('data_prossimo_controllo',oggiStr).lte('data_prossimo_controllo',in30Str),
@@ -880,9 +880,9 @@ async function loadDashTitolare(){
     Q('utenti').eq('ruolo','tecnico').eq('attivo',true),
     Q('schede_lavoro').eq('stato','firmata'),
     Q('schede_lavoro').eq('stato','da_fatturare')
-  ]);
+  ])).map(function(s){ return s.status === 'fulfilled' ? s.value : { error: s.reason, count: 0 }; });
 
-  function num(r){ return r.error ? '—' : (r.count || 0); }
+  function num(r){ return (!r || r.error) ? '—' : (r.count || 0); }
   ge('tit-k-completati').textContent = num(rCompletati);
   ge('tit-k-pianificati').textContent = num(rPianificati);
   ge('tit-k-ritardo').textContent = num(rRitardo);
@@ -968,7 +968,7 @@ async function loadDashTitolare(){
   var rRit = await db.from('ordini_lavoro')
     .select('id,numero,data_pianificata,stato,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)')
     .lt('data_pianificata', oggiStr)
-    .not('stato','in','(completato,annullato)')
+    .neq('stato','completato').neq('stato','annullato')
     .order('data_pianificata')
     .limit(5);
   var ritEl = ge('tit-ritardo-lista');
