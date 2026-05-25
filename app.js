@@ -2731,9 +2731,25 @@ async function loadDashCapoTecnico(targetId) {
           g.tipi.map(function(t){return '<span style="background:var(--bl);color:var(--b);padding:2px 8px;border-radius:10px;font-size:11px">'+tpl(t)+'</span>';}).join('') +
         '</div>' +
       '</div>' +
-      '<button class="btn sm p" onclick="creaOdlDaCiclo(\"'+cliId+'\",\"'+meseStr+'\")">+ Schedula OdL</button>' +
+      '<button class="btn sm p" data-cli="'+cliId+'" data-mese="'+meseStr+'" onclick="creaOdlDaCiclo(this.dataset.cli,this.dataset.mese)">+ Schedula intervento</button>' +
     '</div>';
   }).join('');
+}
+
+// Apre m-odl pre-compilato per schedulare un intervento periodico
+// (chiamato dal pannello "Interventi periodici del mese" della dashboard capo_tecnico)
+async function creaOdlDaCiclo(cliId, meseAnno){
+  if(!cliId) return;
+  await apriNuovoIntervento();
+  // Pre-seleziona cliente e carica sedi
+  var cliSel = ge('mo1');
+  if(cliSel){ cliSel.value = cliId; }
+  await loadSediForOdl();
+  await calcolaPresidiSede(cliId, null, 'mo-presidi-preview');
+  // Tipo default per periodici
+  var t = ge('mo2'); if(t) t.value = 'ordinario_programmato';
+  // Nota suggerita
+  var n = ge('mo6'); if(n) n.value = 'Intervento periodico — ' + (meseAnno || '');
 }
 
 // ── WORKFLOW ──────────────────────────────────────────────────
