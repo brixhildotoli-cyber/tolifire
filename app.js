@@ -589,25 +589,18 @@ function gotoPage(id){
 
 // ── DASHBOARD ─────────────────────────────────────────────────
 async function loadDash(){
-  // Smistamento per ruolo: tecnico e titolare hanno dashboard dedicate.
-  var dtSec = ge('dash-tecnico'), ttSec = ge('dash-titolare'), dsSec = ge('dash-standard');
-  if(ROLE==='tecnico'){
-    if(dtSec) dtSec.style.display='block';
-    if(ttSec) ttSec.style.display='none';
-    if(dsSec) dsSec.style.display='none';
-    await loadDashTecnico();
-    return;
+  // Smistamento per ruolo: tecnico, titolare, segreteria hanno dashboard dedicate.
+  var dtSec = ge('dash-tecnico'), ttSec = ge('dash-titolare'), sgSec = ge('dash-segreteria-pg'), dsSec = ge('dash-standard');
+  function showOnly(sec){
+    if(dtSec) dtSec.style.display = (sec==='tecnico') ? 'block' : 'none';
+    if(ttSec) ttSec.style.display = (sec==='titolare') ? 'block' : 'none';
+    if(sgSec) sgSec.style.display = (sec==='segreteria') ? 'block' : 'none';
+    if(dsSec) dsSec.style.display = (sec==='standard') ? 'block' : 'none';
   }
-  if(ROLE==='titolare'){
-    if(dtSec) dtSec.style.display='none';
-    if(ttSec) ttSec.style.display='block';
-    if(dsSec) dsSec.style.display='none';
-    await loadDashTitolare();
-    return;
-  }
-  if(dtSec) dtSec.style.display='none';
-  if(ttSec) ttSec.style.display='none';
-  if(dsSec) dsSec.style.display='block';
+  if(ROLE==='tecnico'){ showOnly('tecnico'); await loadDashTecnico(); return; }
+  if(ROLE==='titolare'){ showOnly('titolare'); await loadDashTitolare(); return; }
+  if(ROLE==='segreteria'){ showOnly('segreteria'); await loadDashSegreteriaPg(); return; }
+  showOnly('standard');
   const today=new Date().toISOString().split('T')[0];const in30=new Date(Date.now()+30*86400000).toISOString().split('T')[0];
   // Query KPI filtrate per ruolo
   var qOdl = db.from('ordini_lavoro').select('id',{count:'exact'}).eq('data_pianificata',today);
@@ -992,6 +985,121 @@ async function loadDashTitolare(){
           '<div class="when">' + when + '</div>' +
         '</div>';
       }).join('');
+    }
+  }
+}
+
+// ── DASHBOARD SEGRETERIA (iOS-like, Variante A) ─────────────
+async function loadDashSegreteriaPg(){
+  var ora = new Date().getHours();
+  var saluto = ora < 12 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
+  var el;
+  el = ge('seg-greet-nome'); if(el) el.textContent = saluto + (ME?.nome ? ', ' + esc(ME.nome) : '');
+  el = ge('seg-greet-data'); if(el) el.textContent = new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+
+  var oggi = new Date(); oggi.setHours(0,0,0,0);
+  var oggiStr = oggi.toISOString().split('T')[0];
+  var in30Str = new Date(Date.now()+30*86400000).toISOString().split('T')[0];
+  var Q = function(tbl){ return db.from(tbl).select('*',{count:'exact',head:true}); };
+
+  // KPI in parallelo (Promise.allSettled per resilienza)
+  var [
+    rApprovare, rFatturare, rDaPianif, rRichMod,
+    rPresidiScad, rPresidi30, rCliAtt, rInviate
+  ] = (await Promise.allSettled([
+    Q('schede_lavoro').eq('stato','firmata'),
+    Q('schede_lavoro').eq('stato','da_fatturare'),
+    Q('ordini_lavoro').eq('stato','da_pianificare'),
+    Q('richieste_modifica_odl').eq('stato','in_attesa'),
+    Q('impianti').lt('data_prossimo_controllo',oggiStr),
+    Q('impianti').gte('data_prossimo_controllo',oggiStr).lte('data_prossimo_controllo',in30Str),
+    Q('clienti').eq('stato','attivo'),
+    Q('schede_lavoro').eq('stato','inviata_cliente')
+  ])).map(function(s){ return s.status === 'fulfilled' ? s.value : { error: s.reason, count: 0 }; });
+
+  function num(r){ return (!r || r.error) ? '—' : (r.count || 0); }
+  el = ge('seg-k-approvare'); if(el) el.textContent = num(rApprovare);
+  el = ge('seg-k-fatturare'); if(el) el.textContent = num(rFatturare);
+  el = ge('seg-k-dapianif'); if(el) el.textContent = num(rDaPianif);
+  el = ge('seg-k-richmod'); if(el) el.textContent = num(rRichMod);
+  el = ge('seg-k-presidi-scad'); if(el) el.textContent = num(rPresidiScad);
+  el = ge('seg-k-presidi-30'); if(el) el.textContent = num(rPresidi30);
+  el = ge('seg-k-cli-attivi'); if(el) el.textContent = num(rCliAtt);
+  el = ge('seg-k-inviate'); if(el) el.textContent = num(rInviate);
+
+  // Ticket aperti assegnati alla segreteria (top 5)
+  var rTk = await db.from('ticket_clienti')
+    .select('id,titolo,priorita,tipo,creato_il,clienti(ragione_sociale)')
+    .eq('stato','aperto').eq('assegnato_a','segreteria')
+    .order('creato_il',{ascending:false}).limit(5);
+  var elTk = ge('seg-ticket-lista');
+  if(elTk){
+    var tks = rTk.data || [];
+    if(!tks.length){
+      elTk.innerHTML = '<div class="rap-list-card"><div class="tit-empty">🎉 Nessuna richiesta cliente aperta</div></div>';
+    } else {
+      elTk.innerHTML = '<div class="rap-list-card">' + tks.map(function(t){
+        var prCls = t.priorita==='urgente'?'urgente':(t.priorita==='alta'?'entro_30gg':'normale');
+        return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid rgba(0,0,0,.05);font-size:13px">' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-weight:600">'+esc(t.titolo||'(senza titolo)')+'</div>' +
+            '<div style="font-size:12px;color:var(--m)">'+esc(t.clienti?.ragione_sociale||'—')+' · '+fd(t.creato_il)+' · '+(t.tipo||'segnalazione')+'</div>' +
+          '</div>' +
+          '<span class="urg '+prCls+'" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;text-transform:uppercase;background:var(--gyl);color:var(--m)">'+(t.priorita||'normale')+'</span>' +
+        '</div>';
+      }).join('') + '</div>';
+    }
+  }
+
+  // Anagrafiche da completare (per fatturazione)
+  var rAnag = await db.from('clienti')
+    .select('id,ragione_sociale,indirizzo_fattura,codice_sdi,modalita_pagamento,pec,iban')
+    .eq('stato','attivo')
+    .or('indirizzo_fattura.is.null,codice_sdi.is.null,modalita_pagamento.is.null')
+    .order('creato_il',{ascending:false}).limit(8);
+  var elAn = ge('seg-anag-lista');
+  if(elAn){
+    var ans = rAnag.data || [];
+    if(rAnag.error){
+      elAn.innerHTML = '<div class="rap-list-card"><div class="tit-empty">Errore: '+esc(rAnag.error.message)+'</div></div>';
+    } else if(!ans.length){
+      elAn.innerHTML = '<div class="rap-list-card"><div class="tit-empty">✅ Tutti i clienti attivi hanno i dati di fatturazione completi</div></div>';
+    } else {
+      elAn.innerHTML = '<div class="rap-list-card">' + ans.map(function(c){
+        var manca = [];
+        if(!c.indirizzo_fattura) manca.push('indirizzo');
+        if(!c.codice_sdi) manca.push('SDI');
+        if(!c.modalita_pagamento) manca.push('mod. pagamento');
+        if(!c.pec) manca.push('PEC');
+        if(!c.iban) manca.push('IBAN');
+        return '<div onclick="openClienteDetail(\''+c.id+'\')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid rgba(0,0,0,.05);font-size:13px">' +
+          '<div style="font-weight:600">'+esc(c.ragione_sociale)+'</div>' +
+          '<div style="font-size:11px;color:var(--a)">manca: '+manca.join(', ')+'</div>' +
+        '</div>';
+      }).join('') + '</div>';
+    }
+  }
+
+  // Clienti con modalità RIBA
+  var rRiba = await db.from('clienti')
+    .select('id,ragione_sociale,modalita_pagamento,giorni_pagamento,iban')
+    .eq('stato','attivo')
+    .ilike('modalita_pagamento','%riba%')
+    .order('ragione_sociale').limit(20);
+  var elRb = ge('seg-riba-lista');
+  if(elRb){
+    var rbs = rRiba.data || [];
+    if(rRiba.error){
+      elRb.innerHTML = '<div class="rap-list-card"><div class="tit-empty">Errore: '+esc(rRiba.error.message)+'</div></div>';
+    } else if(!rbs.length){
+      elRb.innerHTML = '<div class="rap-list-card"><div class="tit-empty">Nessun cliente con modalità pagamento RIBA</div></div>';
+    } else {
+      elRb.innerHTML = '<div class="rap-list-card">' + rbs.map(function(c){
+        return '<div onclick="openClienteDetail(\''+c.id+'\')" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid rgba(0,0,0,.05);font-size:13px">' +
+          '<div style="font-weight:600">'+esc(c.ragione_sociale)+'</div>' +
+          '<div style="font-size:12px;color:var(--m)">'+esc(c.modalita_pagamento||'')+' · '+(c.giorni_pagamento||30)+'gg'+(c.iban?' · IBAN ok':' · <span style="color:var(--a)">IBAN mancante</span>')+'</div>' +
+        '</div>';
+      }).join('') + '</div>';
     }
   }
 }

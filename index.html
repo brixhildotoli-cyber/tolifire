@@ -264,6 +264,63 @@
     </div>
   </div>
 
+  <!-- DASHBOARD SEGRETERIA (visibile solo per ruolo=segreteria) -->
+  <div id="dash-segreteria-pg" style="display:none">
+    <div class="tit-wrap">
+      <div class="tit-greet">
+        <h1 id="seg-greet-nome">Buongiorno</h1>
+        <p id="seg-greet-data"></p>
+      </div>
+
+      <div class="tit-section">⚡ Coda operativa</div>
+      <div class="kpi-grid">
+        <div class="kpi-card clickable warn" onclick="gotoPage('workflow')"><div class="kpi-icon">✍️</div><div class="kpi-num" id="seg-k-approvare">—</div><div class="kpi-label">Schede da approvare</div></div>
+        <div class="kpi-card clickable" onclick="gotoPage('workflow')"><div class="kpi-icon">💜</div><div class="kpi-num" id="seg-k-fatturare">—</div><div class="kpi-label">Schede da fatturare → al contabile</div></div>
+        <div class="kpi-card clickable warn" onclick="gotoPage('interventi')"><div class="kpi-icon">❓</div><div class="kpi-num" id="seg-k-dapianif">—</div><div class="kpi-label">OdL da pianificare</div></div>
+        <div class="kpi-card clickable" onclick="gotoPage('interventi')"><div class="kpi-icon">✏️</div><div class="kpi-num" id="seg-k-richmod">—</div><div class="kpi-label">Richieste modifica tecnici</div></div>
+      </div>
+
+      <div class="tit-section">🎫 Richieste clienti aperte</div>
+      <div id="seg-ticket-lista"><div class="rap-list-card"><div class="tit-empty">⏳ Caricamento...</div></div></div>
+
+      <div class="tit-section">📝 Anagrafiche da completare (per fatturazione)</div>
+      <div id="seg-anag-lista"><div class="rap-list-card"><div class="tit-empty">⏳ Caricamento...</div></div></div>
+
+      <div class="tit-section">🧯 Compliance presidi</div>
+      <div class="kpi-grid">
+        <div class="kpi-card clickable attention" onclick="gotoPage('presidi')"><div class="kpi-icon">🚨</div><div class="kpi-num" id="seg-k-presidi-scad">—</div><div class="kpi-label">Presidi scaduti</div></div>
+        <div class="kpi-card clickable warn" onclick="gotoPage('presidi')"><div class="kpi-icon">⏳</div><div class="kpi-num" id="seg-k-presidi-30">—</div><div class="kpi-label">In scadenza nei 30gg</div></div>
+        <div class="kpi-card clickable" onclick="gotoPage('clienti')"><div class="kpi-icon">👥</div><div class="kpi-num" id="seg-k-cli-attivi">—</div><div class="kpi-label">Clienti attivi</div></div>
+        <div class="kpi-card clickable" onclick="gotoPage('documenti')"><div class="kpi-icon">📄</div><div class="kpi-num" id="seg-k-inviate">—</div><div class="kpi-label">Schede inviate al cliente</div></div>
+      </div>
+
+      <div class="tit-section">💳 Clienti con modalità RIBA</div>
+      <div id="seg-riba-lista"><div class="rap-list-card"><div class="tit-empty">⏳ Caricamento...</div></div></div>
+
+      <div class="tit-section">📅 Scadenze pagamenti / solleciti</div>
+      <div id="seg-pagamenti-box">
+        <div class="rap-insoluti">
+          <h4>Funzione da costruire</h4>
+          Oggi nel database non c'è una tabella <code>fatture</code> popolata né un meccanismo per scadenze, stato pagato/insoluto, o solleciti. Vedi voce 2 di <code>MODULI DA COSTRUIRE</code> in <code>CLAUDE.md</code>.
+          <br><br>
+          Quando il modulo sarà costruito, qui appariranno: scadenze in arrivo, insoluti, e pulsanti per inviare solleciti.
+        </div>
+      </div>
+
+      <div class="tit-section">Azioni rapide</div>
+      <div class="tit-quick">
+        <button class="tit-quick-btn" onclick="openM('m-odl')"><span class="ico">📋</span><span class="lbl">Pianifica intervento</span></button>
+        <button class="tit-quick-btn" onclick="openNewCli()"><span class="ico">👤</span><span class="lbl">Nuovo cliente</span></button>
+        <button class="tit-quick-btn" onclick="openM('m-ddt')"><span class="ico">📦</span><span class="lbl">Nuovo DDT</span></button>
+        <button class="tit-quick-btn" onclick="gotoPage('workflow')"><span class="ico">📋</span><span class="lbl">Workflow schede</span></button>
+        <button class="tit-quick-btn" onclick="gotoPage('clienti')"><span class="ico">👥</span><span class="lbl">Clienti</span></button>
+        <button class="tit-quick-btn" onclick="gotoPage('documenti')"><span class="ico">📄</span><span class="lbl">Documenti</span></button>
+        <button class="tit-quick-btn" onclick="gotoPage('catalogo')"><span class="ico">📦</span><span class="lbl">Catalogo</span></button>
+        <button class="tit-quick-btn" onclick="gotoPage('calendario')"><span class="ico">📅</span><span class="lbl">Calendario</span></button>
+      </div>
+    </div>
+  </div>
+
   <!-- DASHBOARD STANDARD (altri ruoli) -->
   <div id="dash-standard">
   <div class="sh">

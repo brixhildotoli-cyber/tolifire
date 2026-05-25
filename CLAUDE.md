@@ -80,3 +80,28 @@ modifiche allo schema DB, attivare RLS in produzione.
 ## Metodo
 Un modulo alla volta: scritto, provato dall'utente, corretto, poi il
 prossimo. Ordine: sicurezza, funzioni, estetica (salvo diversa indicazione).
+
+## MODULI DA COSTRUIRE (work in corso)
+Annotare qui i moduli identificati ma rinviati, per non perderli tra
+una sessione e l'altra.
+
+1. **Listini prezzi per cliente** — prezzi personalizzati, soprattutto
+   per i controlli semestrali. Oggi `prodotti_catalogo.prezzo_cliente`
+   è un campo unico per tutti i clienti, e nei DDT i prezzi vanno
+   corretti a mano riga per riga. Serve una tabella `listini_cliente`
+   (o equivalente sconto-per-cliente) con storico applicabile in
+   automatico al momento della creazione del DDT/fattura.
+
+2. **Modulo Fatture / RIBA / Solleciti completo** — oggi la tabella
+   `fatture` esiste ma è vuota e inutilizzata dal frontend. Non ci
+   sono scadenze pagamento per singola fattura, stato pagato/insoluto,
+   import/export RIBA, né storico solleciti. Da costruire schema
+   completo + UI di gestione. La transizione `da_fatturare → fatturata`
+   oggi è solo un cambio di stato sulla `schede_lavoro`, non emette
+   nulla nel DB.
+
+3. **Generazione automatica relazioni tecniche** — da verificare se
+   funziona davvero. Il frontend non inserisce mai righe in
+   `relazioni_tecniche`; va controllato se esiste un trigger Postgres
+   o una Edge Function Supabase che le crea automaticamente al passaggio
+   di una scheda firmata. Se non esiste, va costruita.
