@@ -122,6 +122,16 @@ una sessione e l'altra.
    Dipendenza esterna: `clienti.rappresentante_id` da aggiungere
    prima della Fase 11 (per filtro insoluti rappresentante).
 
+   **Stati canonici (decisi e da rispettare ovunque)**:
+   - `fatture.stato`: `bozza → emessa → annullata`
+   - `fatture.stato_pagamento`: `da_pagare → in_riba | pagata | parzialmente_pagata | insoluta → sollecitata`
+   - `fatture_scadenze.stato`: `aperta → in_riba | pagata | insoluta → sollecitata`
+   - `riba_presentazioni.stato`: `preparata → inviata → accreditata | parzialmente_accreditata | chiusa`
+   - `riba_righe.esito`: `NULL → accreditato | insoluto`
+   - `solleciti.esito`: `inviato → risposto | ignorato`
+   Default applicati con ALTER post-Fase 1: `fatture.stato='bozza'`
+   (era 'da_emettere' pre-esistente, allineato dopo decisione).
+
 3. **Generazione automatica relazioni tecniche** — da verificare se
    funziona davvero. Il frontend non inserisce mai righe in
    `relazioni_tecniche`; va controllato se esiste un trigger Postgres
