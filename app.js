@@ -609,13 +609,13 @@ async function loadDash(){
   showOnly('standard');
   const today=new Date().toISOString().split('T')[0];const in30=new Date(Date.now()+30*86400000).toISOString().split('T')[0];
   // Query KPI filtrate per ruolo
-  var qOdl = db.from('ordini_lavoro').select('id',{count:'exact'}).eq('data_pianificata',today);
+  var qOdl = db.from('ordini_lavoro').select('id',{count:'exact'}).is('eliminato_il',null).eq('data_pianificata',today);
   if(ROLE==='tecnico') qOdl = qOdl.eq('tecnico_id', ME.id);
   const [o,wf,fat,c]=await Promise.all([
     qOdl,
-    db.from('schede_lavoro').select('id',{count:'exact'}).eq('stato','firmata'),
-    db.from('schede_lavoro').select('id',{count:'exact'}).eq('stato','da_fatturare'),
-    db.from('clienti').select('id',{count:'exact'}).eq('stato','attivo'),
+    db.from('schede_lavoro').select('id',{count:'exact'}).is('eliminato_il',null).eq('stato','firmata'),
+    db.from('schede_lavoro').select('id',{count:'exact'}).is('eliminato_il',null).eq('stato','da_fatturare'),
+    db.from('clienti').select('id',{count:'exact'}).is('eliminato_il',null).eq('stato','attivo'),
   ]);
   ge('ds1').textContent=o.count||0;
   ge('ds2').textContent=ROLE==='contabile'?fat.count||0:wf.count||0;
@@ -629,7 +629,7 @@ async function loadDash(){
   if(ROLE==='contabile'){
     ge('ds2').closest('.stat').querySelector('div').textContent='Da fatturare';
   }
-  var odlQ = db.from('ordini_lavoro').select('numero,stato,data_pianificata,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)').order('creato_il',{ascending:false}).limit(6);
+  var odlQ = db.from('ordini_lavoro').select('numero,stato,data_pianificata,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)').is('eliminato_il',null).order('creato_il',{ascending:false}).limit(6);
   if(ROLE==='tecnico') odlQ = odlQ.eq('tecnico_id', ME.id);
   const {data:odl}=await odlQ;
   const de=ge('dodl');
@@ -640,7 +640,7 @@ async function loadDash(){
     de.innerHTML='<div class="empty">'+emptyMsg+'</div>';
   }
   else{de.innerHTML=`<table><thead><tr><th>Cliente</th><th>Tecnico</th><th>Data</th><th>Stato</th></tr></thead><tbody>${odl.map(o=>`<tr><td>${esc(o.clienti?.ragione_sociale||'—')}</td><td>${esc(o.utenti?o.utenti.nome+' '+o.utenti.cognome:'—')}</td><td>${fd(o.data_pianificata)}</td><td>${bs(o.stato)}</td></tr>`).join('')}</tbody></table>`;}
-  const {data:scl}=await db.from('impianti').select('tipo,matricola,ubicazione,data_prossimo_controllo,clienti(ragione_sociale)').lte('data_prossimo_controllo',in30).order('data_prossimo_controllo').limit(10);
+  const {data:scl}=await db.from('impianti').select('tipo,matricola,ubicazione,data_prossimo_controllo,clienti(ragione_sociale)').is('eliminato_il',null).lte('data_prossimo_controllo',in30).order('data_prossimo_controllo').limit(10);
   const ds=ge('dscad');
   if(!scl?.length){ds.innerHTML='<div class="empty">✅ Nessun presidio in scadenza nei prossimi 30 giorni</div>';}
   else{ds.innerHTML=scl.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--bo);font-size:13px"><div><div style="font-weight:500">${esc(p.clienti?.ragione_sociale||'—')}</div><div style="color:var(--m);font-size:12px">${tpl(p.tipo)} ${p.matricola?'#'+esc(p.matricola):''} — ${esc(p.ubicazione||'')}</div></div><div style="text-align:right"><div class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)}</div><div style="font-size:11px;color:var(--m)">${dd2(p.data_prossimo_controllo)}</div></div></div>`).join('');}
@@ -685,6 +685,7 @@ async function loadDashTecnico(){
   // Carica tutti gli OdL del tecnico da oggi a +6 giorni
   var r = await db.from('ordini_lavoro')
     .select('id,numero,tipo,stato,data_pianificata,fascia_oraria,note_per_tecnico,sede_id,clienti(ragione_sociale,referente_telefono)')
+    .is('eliminato_il', null)
     .eq('tecnico_id', ME.id)
     .gte('data_pianificata', todayStr)
     .lte('data_pianificata', weekEndStr)
@@ -866,7 +867,12 @@ async function loadDashTitolare(){
   try { await db.rpc('marca_ritardi_pendenti'); } catch(e){}
 
   // KPI in parallelo (solo head:true count quando possibile)
-  var Q = function(tbl){ return db.from(tbl).select('*',{count:'exact',head:true}); };
+  var SOFT_TABLES = ['ordini_lavoro','schede_lavoro','clienti','impianti','ddt','ticket_clienti'];
+  var Q = function(tbl){
+    var q = db.from(tbl).select('*',{count:'exact',head:true});
+    if(SOFT_TABLES.indexOf(tbl) !== -1) q = q.is('eliminato_il', null);
+    return q;
+  };
   var [
     rCompletati, rPianificati, rRitardo, rDaPianif,
     rPresidiScad, rPresidi30, rCliAtt, rCliNuovi,
@@ -901,6 +907,7 @@ async function loadDashTitolare(){
   // Top tecnico nel periodo
   var rTopRaw = await db.from('ordini_lavoro')
     .select('tecnico_id,utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)')
+    .is('eliminato_il', null)
     .eq('stato','completato')
     .gte('data_pianificata', range.start)
     .lt('data_pianificata', range.end)
@@ -923,7 +930,7 @@ async function loadDashTitolare(){
   }
 
   // Valore materiali DDT nel periodo
-  var rDdt = await db.from('ddt').select('id').gte('data_emissione', range.start).lt('data_emissione', range.end);
+  var rDdt = await db.from('ddt').select('id').is('eliminato_il', null).gte('data_emissione', range.start).lt('data_emissione', range.end);
   var ddtEl = ge('tit-k-ddt-eur');
   if(rDdt.error || !rDdt.data || !rDdt.data.length){
     if(ddtEl) ddtEl.textContent = '€ 0,00';
@@ -942,7 +949,7 @@ async function loadDashTitolare(){
   var dow8 = weeksAgo8.getDay();
   weeksAgo8.setDate(weeksAgo8.getDate() + ((dow8 === 0) ? -6 : 1 - dow8));
   var weeksAgoStr = weeksAgo8.toISOString().split('T')[0];
-  var rChart = await db.from('ordini_lavoro').select('data_pianificata').eq('stato','completato').gte('data_pianificata', weeksAgoStr);
+  var rChart = await db.from('ordini_lavoro').select('data_pianificata').is('eliminato_il', null).eq('stato','completato').gte('data_pianificata', weeksAgoStr);
   var weeks = [];
   for(var i=0; i<8; i++){
     var ws = new Date(weeksAgo8); ws.setDate(ws.getDate() + 7*i);
@@ -970,6 +977,7 @@ async function loadDashTitolare(){
   // Lista interventi in ritardo (top 5)
   var rRit = await db.from('ordini_lavoro')
     .select('id,numero,data_pianificata,stato,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)')
+    .is('eliminato_il', null)
     .not('in_ritardo_il','is',null)
     .order('data_pianificata')
     .limit(5);
@@ -1009,7 +1017,12 @@ async function loadDashSegreteriaPg(){
   var oggi = new Date(); oggi.setHours(0,0,0,0);
   var oggiStr = oggi.toISOString().split('T')[0];
   var in30Str = new Date(Date.now()+30*86400000).toISOString().split('T')[0];
-  var Q = function(tbl){ return db.from(tbl).select('*',{count:'exact',head:true}); };
+  var SOFT_TABLES = ['ordini_lavoro','schede_lavoro','clienti','impianti','ddt','ticket_clienti'];
+  var Q = function(tbl){
+    var q = db.from(tbl).select('*',{count:'exact',head:true});
+    if(SOFT_TABLES.indexOf(tbl) !== -1) q = q.is('eliminato_il', null);
+    return q;
+  };
 
   // Refresh ritardi pendenti (idempotente)
   try { await db.rpc('marca_ritardi_pendenti'); } catch(e){}
@@ -1042,6 +1055,7 @@ async function loadDashSegreteriaPg(){
   // Ticket aperti assegnati alla segreteria (top 5)
   var rTk = await db.from('ticket_clienti')
     .select('id,titolo,priorita,tipo,creato_il,clienti(ragione_sociale)')
+    .is('eliminato_il', null)
     .eq('stato','aperto').eq('assegnato_a','segreteria')
     .order('creato_il',{ascending:false}).limit(5);
   var elTk = ge('seg-ticket-lista');
@@ -1066,6 +1080,7 @@ async function loadDashSegreteriaPg(){
   // Anagrafiche da completare (per fatturazione)
   var rAnag = await db.from('clienti')
     .select('id,ragione_sociale,indirizzo_fattura,codice_sdi,modalita_pagamento,pec,iban')
+    .is('eliminato_il', null)
     .eq('stato','attivo')
     .or('indirizzo_fattura.is.null,codice_sdi.is.null,modalita_pagamento.is.null')
     .order('creato_il',{ascending:false}).limit(8);
@@ -1095,6 +1110,7 @@ async function loadDashSegreteriaPg(){
   // Clienti con modalità RIBA
   var rRiba = await db.from('clienti')
     .select('id,ragione_sociale,modalita_pagamento,giorni_pagamento,iban')
+    .is('eliminato_il', null)
     .eq('stato','attivo')
     .ilike('modalita_pagamento','%riba%')
     .order('ragione_sociale').limit(20);
@@ -1981,6 +1997,7 @@ async function loadDashTicket() {
   // Query base senza filtro stato
   var query = db.from('ticket_clienti')
     .select('*, clienti(ragione_sociale)')
+    .is('eliminato_il', null)
     .neq('stato','chiuso')
     .order('creato_il', {ascending:false})
     .limit(20);
@@ -2205,6 +2222,7 @@ async function loadDashSegreteria() {
   // Carica tutti i clienti attivi con tutti i campi
   var r = await db.from('clienti')
     .select('id,ragione_sociale,piva,codice_fiscale,referente_nome,referente_telefono,referente_email,citta,indirizzo_fattura,cap_fattura,citta_fattura,codice_sdi,modalita_pagamento')
+    .is('eliminato_il', null)
     .eq('stato','attivo')
     .order('ragione_sociale');
 
@@ -4322,6 +4340,7 @@ async function loadDashRappresentante() {
   if(cliIdsArr.length){
     var rPS = await db.from('impianti')
       .select('id',{count:'exact',head:true})
+      .is('eliminato_il',null)
       .in('cliente_id', cliIdsArr)
       .lt('data_prossimo_controllo', oggiStr);
     presidiScaduti = rPS.error ? '—' : (rPS.count || 0);
@@ -4356,6 +4375,7 @@ async function loadDashRappresentante() {
   // B3 — I miei interventi inviati (top 10), con stato attuale visibile
   var rMieiOdl = await db.from('ordini_lavoro')
     .select('id,numero,tipo,stato,data_pianificata,fascia_oraria,creato_il,in_ritardo_il,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)')
+    .is('eliminato_il', null)
     .eq('creato_da', ME.id)
     .order('creato_il',{ascending:false})
     .limit(10);
@@ -4394,6 +4414,7 @@ async function loadDashRappresentante() {
   var endHM = new Date(startMon); endHM.setDate(endHM.getDate() + 35);
   var rOdl = await db.from('ordini_lavoro')
     .select('data_pianificata,stato')
+    .is('eliminato_il', null)
     .gte('data_pianificata', startMon.toISOString().split('T')[0])
     .lt('data_pianificata', endHM.toISOString().split('T')[0])
     .neq('stato','annullato');
@@ -4426,6 +4447,7 @@ async function loadDashRappresentante() {
     } else {
       var rSc = await db.from('impianti')
         .select('tipo,matricola,ubicazione,data_prossimo_controllo,clienti(ragione_sociale)')
+        .is('eliminato_il', null)
         .in('cliente_id', cliIdsArr)
         .lte('data_prossimo_controllo', in30Str)
         .order('data_prossimo_controllo')
