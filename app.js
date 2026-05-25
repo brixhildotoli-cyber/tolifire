@@ -855,6 +855,10 @@ async function loadDashTitolare(){
   var gn = ge('tit-greet-nome'); if(gn) gn.textContent = pref + ', ' + (ME?.nome || '');
   var gd = ge('tit-greet-data'); if(gd) gd.textContent = new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
 
+  // Refresh: marca come in_ritardo eventuali OdL diventati tardivi dal solo passare del tempo.
+  // Idempotente; ignora errori se la RPC non è (ancora) installata sul DB.
+  try { await db.rpc('marca_ritardi_pendenti'); } catch(e){}
+
   // KPI in parallelo (solo head:true count quando possibile)
   var Q = function(tbl){ return db.from(tbl).select('*',{count:'exact',head:true}); };
   var [
@@ -864,7 +868,7 @@ async function loadDashTitolare(){
   ] = (await Promise.allSettled([
     Q('ordini_lavoro').eq('stato','completato').gte('data_pianificata',range.start).lt('data_pianificata',range.end),
     Q('ordini_lavoro').eq('stato','pianificato').gte('data_pianificata',range.start).lt('data_pianificata',range.end),
-    Q('ordini_lavoro').lt('data_pianificata',oggiStr).neq('stato','completato').neq('stato','annullato'),
+    Q('ordini_lavoro').not('in_ritardo_il','is',null),
     Q('ordini_lavoro').eq('stato','da_pianificare'),
     Q('impianti').lt('data_prossimo_controllo',oggiStr),
     Q('impianti').gte('data_prossimo_controllo',oggiStr).lte('data_prossimo_controllo',in30Str),
@@ -960,8 +964,7 @@ async function loadDashTitolare(){
   // Lista interventi in ritardo (top 5)
   var rRit = await db.from('ordini_lavoro')
     .select('id,numero,data_pianificata,stato,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)')
-    .lt('data_pianificata', oggiStr)
-    .neq('stato','completato').neq('stato','annullato')
+    .not('in_ritardo_il','is',null)
     .order('data_pianificata')
     .limit(5);
   var ritEl = ge('tit-ritardo-lista');
@@ -1001,6 +1004,9 @@ async function loadDashSegreteriaPg(){
   var oggiStr = oggi.toISOString().split('T')[0];
   var in30Str = new Date(Date.now()+30*86400000).toISOString().split('T')[0];
   var Q = function(tbl){ return db.from(tbl).select('*',{count:'exact',head:true}); };
+
+  // Refresh ritardi pendenti (idempotente)
+  try { await db.rpc('marca_ritardi_pendenti'); } catch(e){}
 
   // KPI in parallelo (Promise.allSettled per resilienza)
   var [
@@ -4328,6 +4334,40 @@ async function loadDashRappresentante() {
           '<button class="btn sm p" data-sid="'+s.id+'" onclick="accettaSopralluogo(this.dataset.sid)">✅ Accetta</button>' +
         '</div>';
       }).join('') + (aperti.length > 5 ? '<div style="text-align:center;padding:8px"><button class="btn sm" onclick="gotoPage(\'trattative\')">Vedi tutti ('+aperti.length+')</button></div>' : '');
+    }
+  }
+
+  // B3 — I miei interventi inviati (top 10), con stato attuale visibile
+  var rMieiOdl = await db.from('ordini_lavoro')
+    .select('id,numero,tipo,stato,data_pianificata,fascia_oraria,creato_il,in_ritardo_il,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)')
+    .eq('creato_da', ME.id)
+    .order('creato_il',{ascending:false})
+    .limit(10);
+  var elM = ge('rap-miei-odl-lista');
+  if(elM){
+    if(rMieiOdl.error){
+      elM.innerHTML = '<div class="rap-list-card"><div class="tit-empty">Errore: '+esc(rMieiOdl.error.message)+'</div></div>';
+    } else {
+      var mieiOdl = rMieiOdl.data || [];
+      if(!mieiOdl.length){
+        elM.innerHTML = '<div class="rap-list-card"><div class="tit-empty">Nessun intervento ancora inviato.<br><span style="font-size:12px">Quando crei un intervento ("+ Intervento da pianificare" o accettando un sopralluogo) lo trovi qui con il suo stato attuale.</span></div></div>';
+      } else {
+        elM.innerHTML = '<div class="rap-list-card">' + mieiOdl.map(function(o){
+          var cli = o.clienti?.ragione_sociale || '—';
+          var tec = o.utenti ? (o.utenti.nome + ' ' + o.utenti.cognome) : null;
+          var ritardo = o.in_ritardo_il ? '<span class="bx berr" style="margin-left:6px">⏰ In ritardo</span>' : '';
+          var when = o.data_pianificata ? fd(o.data_pianificata) : '—';
+          var fascia = o.fascia_oraria ? ' · '+o.fascia_oraria : '';
+          return '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:0.5px solid rgba(0,0,0,.05);font-size:13px;gap:10px">' +
+            '<div style="flex:1;min-width:0">' +
+              '<div style="font-weight:600">'+esc(cli)+(o.numero?' <span style="color:var(--m);font-weight:400">· #'+esc(o.numero)+'</span>':'')+'</div>' +
+              '<div style="font-size:12px;color:var(--m);margin-top:2px">Inviato il '+fd(o.creato_il)+(tec?' · 👤 '+esc(tec):' · 👤 da assegnare')+'</div>' +
+              (when!=='—'?'<div style="font-size:12px;color:var(--m)">📅 '+when+fascia+'</div>':'') +
+            '</div>' +
+            '<div style="text-align:right;flex-shrink:0">'+bs(o.stato)+ritardo+'</div>' +
+          '</div>';
+        }).join('') + '</div>';
+      }
     }
   }
 
