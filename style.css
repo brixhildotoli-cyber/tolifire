@@ -195,6 +195,30 @@ textarea{resize:vertical;min-height:80px}
 .kpi-card.info{background:var(--bl)}
 .kpi-card.info .kpi-num{color:var(--b)}
 
+/* ── Modal m-odl context-aware (B4) ──────────────────────── */
+.m-odl-modal{display:flex;flex-direction:column}
+.m-odl-modal .mh{order:0}
+.m-odl-modal #mo-readonly-summary{order:1}
+.m-odl-modal #mo-pian-group{order:3}
+.m-odl-modal #mo-dati-group{order:2}
+.m-odl-modal #mo-note-op-group{order:4}
+.m-odl-modal #mo-actions{order:5}
+.mo-section-title{margin:10px 0 10px;font-size:12px;font-weight:700;color:var(--t);letter-spacing:-0.01em;padding-bottom:6px;border-bottom:0.5px solid var(--bo)}
+
+/* Modalità ASSIGN (capo_tecnico assegna un da_pianificare):
+   pianificazione PRIMO PIANO (sopra), dati intervento nascosti (sostituiti dal summary read-only). */
+.m-odl-modal.mode-assign #mo-pian-group{order:2;background:var(--gl);border-radius:10px;padding:14px;border:1px solid var(--gm)}
+.m-odl-modal.mode-assign #mo-pian-header{color:var(--g);font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-bottom:none;padding-bottom:0;margin-bottom:12px}
+.m-odl-modal.mode-assign #mo-dati-group{display:none}
+
+/* Modalità TECNICO-SELF: nasconde campo tecnico (sarà ME), pianificazione sotto i dati */
+.m-odl-modal.mode-tecnico-self #mo-readonly-summary{display:none}
+.m-odl-modal.mode-tecnico-self #mo-tecnico-field{display:none}
+
+/* Modalità CREATE / EDIT: layout standard, summary nascosto */
+.m-odl-modal.mode-create #mo-readonly-summary,
+.m-odl-modal.mode-edit #mo-readonly-summary{display:none}
+
 .tit-money-card{background:var(--w);border-radius:14px;padding:14px 16px;margin:12px 4px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,.04);border:0.5px solid rgba(0,0,0,.04)}
 .tit-money-card .left{display:flex;align-items:center;gap:12px}
 .tit-money-card .ico{font-size:24px}

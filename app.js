@@ -61,6 +61,12 @@ function toast(msg,type='ok'){const t=ge('toast');t.textContent=msg;t.className=
 function fd(d){if(!d)return'—';try{return new Date(d+'T00:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});}catch(e){return d;}}
 // Escape HTML per dati provenienti dal DB o dall'utente prima dell'interpolazione in innerHTML.
 function esc(s){return String(s??'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+// B7 — Soft-delete helper. Marca la riga come eliminata anziche' cancellarla.
+// Tracking automatico di chi e quando tramite eliminato_il e eliminato_da.
+function softDel(tabella){
+  return db.from(tabella).update({ eliminato_il: new Date().toISOString(), eliminato_da: ME?.id || null });
+}
 function openM(id){
   if(id==='m-odl') {
     var editId = ge('mcli-odl-id');
@@ -1769,106 +1775,12 @@ async function loadCalendarioTecnico() {
 }
 
 
-async function apriSchedulazionePersonale() {
-  // Carica clienti
-  var cliSel = CLIS.length ? CLIS : (await db.from('clienti').select('id,ragione_sociale').eq('stato','attivo').order('ragione_sociale')).data || [];
-  var today = new Date().toISOString().split('T')[0];
+// B5: vecchio modal m-schedula-tec + helpers rimossi. La funzione
+// apriSchedulazionePersonale ora riusa m-odl in modalità 'tecnico-self'
+// (definita più in basso). caricaSediSchedula e inviaSchedulazione
+// sono diventate obsolete; loadSediForOdl e saveOdl coprono entrambi.
 
-  var opzioniClienti = '<option value="">Seleziona cliente...</option>' +
-    cliSel.map(function(c){ return '<option value="'+c.id+'">'+esc(c.ragione_sociale)+'</option>'; }).join('');
-
-  // Crea o aggiorna modal — ricostruisce sempre il contenuto
-  var m = ge('m-schedula-tec');
-  if(!m) {
-    m = document.createElement('div');
-    m.id = 'm-schedula-tec';
-    m.className = 'mbg';
-    document.body.appendChild(m);
-    m.addEventListener('click', function(e){ if(e.target===this) closeM('m-schedula-tec'); });
-  }
-
-  // Ricostruisce sempre l'interno per avere DOM fresco
-  m.innerHTML =
-    '<div class="modal" style="max-width:480px">' +
-    '<div class="mh">📅 Nuovo intervento <button class="mx" data-mid="m-schedula-tec" onclick="closeM(this.dataset.mid)">✕</button></div>' +
-    '<div style="padding:16px">' +
-      '<div class="f"><label>Cliente *</label>' +
-        '<select id="sch-cli" style="width:100%" onchange="caricaSediSchedula(this.value)">'+opzioniClienti+'</select>' +
-      '</div>' +
-      '<div class="f"><label>Sede / indirizzo</label>' +
-        '<select id="sch-sede" style="width:100%"><option value="">Sede principale (default)</option></select>' +
-      '</div>' +
-      '<div class="f"><label>Tipo intervento *</label>' +
-        '<select id="sch-tipo" style="width:100%">' +
-          '<option value="ordinario_chiamata">📞 Su chiamata</option>' +
-          '<option value="straordinario">⚡ Straordinario</option>' +
-          '<option value="ordinario_programmato">🔧 Manutenzione ordinaria</option>' +
-          '<option value="corso">📚 Corso antincendio</option>' +
-        '</select>' +
-      '</div>' +
-      '<div class="f"><label>Data *</label><input type="date" id="sch-data" value="'+today+'"></div>' +
-      '<div class="f"><label>Fascia oraria</label><input type="text" id="sch-fascia" placeholder="Es: mattina, 09:00-13:00"></div>' +
-      '<div class="f"><label>Note / descrizione</label><textarea id="sch-note" style="min-height:70px" placeholder="Descrivi brevemente il tipo di intervento..."></textarea></div>' +
-      '<div style="display:flex;gap:8px;margin-top:14px">' +
-        '<button class="btn" data-mid="m-schedula-tec" onclick="closeM(this.dataset.mid)">Annulla</button>' +
-        '<button class="btn p" onclick="inviaSchedulazione()">✅ Schedula</button>' +
-      '</div>' +
-    '</div></div>';
-
-  // onchange già inline nell'HTML del select
-
-  openM('m-schedula-tec');
-  // Se c'è già un cliente selezionato (es. primo della lista), carica subito le sedi
-  var selCli2 = ge('sch-cli');
-  if(selCli2 && selCli2.value) caricaSediSchedula(selCli2.value);
-}
-
-async function caricaSediSchedula(cliId) {
-  var sel = ge('sch-sede');
-  if(!sel) return;
-  sel.innerHTML = '<option value="">Sede principale (default)</option>';
-  if(!cliId) return;
-  var r = await db.from('sedi_cliente').select('id,tipo,nome,via,civico,citta').eq('cliente_id', cliId).order('tipo');
-  (r.data||[]).forEach(function(s) {
-    var label = (s.tipo||'').toUpperCase() + (s.nome?' — '+s.nome:'') + ': ' + (s.via||'') + ' ' + (s.civico||'') + (s.citta?' ('+s.citta+')':'');
-    var opt = document.createElement('option');
-    opt.value = s.id; opt.textContent = label;
-    sel.appendChild(opt);
-  });
-}
-
-async function inviaSchedulazione() {
-  var cliId = ge('sch-cli') ? ge('sch-cli').value : '';
-  var tipo = ge('sch-tipo') ? ge('sch-tipo').value : '';
-  var data = ge('sch-data') ? ge('sch-data').value : '';
-  if(!cliId) { toast('Seleziona il cliente','err'); return; }
-  if(!data) { toast('Inserisci la data','err'); return; }
-
-  var fascia = ge('sch-fascia') ? ge('sch-fascia').value.trim() : '';
-  var note = ge('sch-note') ? ge('sch-note').value.trim() : '';
-
-  // Crea direttamente l'OdL assegnato al tecnico loggato
-  var sedeId = ge('sch-sede') ? ge('sch-sede').value || null : null;
-  var r = await db.from('ordini_lavoro').insert({
-    cliente_id: cliId,
-    tipo: tipo,
-    tecnico_id: ME.id,
-    data_pianificata: data,
-    fascia_oraria: fascia || null,
-    note_per_tecnico: note || null,
-    sede_id: sedeId,
-    stato: 'pianificato'
-  });
-
-  if(r.error) { toast('Errore: '+r.error.message,'err'); return; }
-  toast('✅ Intervento schedulato nel tuo calendario','ok');
-  closeM('m-schedula-tec');
-  // Reset form
-  ['sch-cli','sch-sede','sch-tipo','sch-data','sch-fascia','sch-note'].forEach(function(id){
-    var el = ge(id); if(el) el.value = id==='sch-tipo' ? 'ordinario_chiamata' : '';
-  });
-  await loadCalendarioTecnico();
-}function calTecPrev() {
+function calTecPrev() {
   _calTecMese--;
   if(_calTecMese < 0) { _calTecMese = 11; _calTecAnno--; }
   loadCalendarioTecnico();
@@ -2248,9 +2160,12 @@ async function salvaTicket(id) {
 }
 
 async function eliminaTicket(id) {
-  if(!confirm('Eliminare questa richiesta?')) return;
+  if(!confirm('Eliminare questa richiesta? (Soft-delete: la traccia resta nel DB)')) return;
+  // Allegati: hard-delete (sono solo metadati di file)
   await db.from('ticket_allegati').delete().eq('ticket_id', id);
-  await db.from('ticket_clienti').delete().eq('id', id);
+  // Ticket: soft-delete
+  var r = await softDel('ticket_clienti').eq('id', id);
+  if(r.error){ toast('Errore: '+r.error.message,'err'); return; }
   toast('Ticket eliminato','ok');
   closeM('m-ticket');
   await loadDashTicket();
@@ -2443,7 +2358,7 @@ async function loadWorkflow(){
   const ids=['list-f','list-a','list-i','list-d','list-t'];
   const cnts=['cnt-f','cnt-a','cnt-i','cnt-d'];
   for(let i=0;i<stati.length;i++){
-    const {data}=await db.from('schede_lavoro').select('*,clienti(ragione_sociale),utenti!schede_lavoro_tecnico_id_fkey(nome,cognome),ordini_lavoro(tipo)').eq('stato',stati[i]).order('aggiornato_il',{ascending:false});
+    const {data}=await db.from('schede_lavoro').select('*,clienti(ragione_sociale),utenti!schede_lavoro_tecnico_id_fkey(nome,cognome),ordini_lavoro(tipo)').eq('stato',stati[i]).is('eliminato_il',null).order('aggiornato_il',{ascending:false});
     if(cnts[i]&&ge(cnts[i]))ge(cnts[i]).textContent=data?.length?`(${data.length})`:'';
     const el=ge(ids[i]);if(!el)continue;
     if(!data?.length){el.innerHTML='<div class="empty">Nessuna scheda in questo stato</div>';continue;}
@@ -2516,7 +2431,7 @@ async function openScheda(id){
 
 // ── PRESIDI ───────────────────────────────────────────────────
 async function loadPresidi(){
-  const {data}=await db.from('impianti').select('*,clienti(ragione_sociale),sedi_cliente(id,tipo,indirizzo,citta)').order('tipo').order('creato_il',{ascending:false});
+  const {data}=await db.from('impianti').select('*,clienti(ragione_sociale),sedi_cliente(id,tipo,indirizzo,citta)').is('eliminato_il',null).order('tipo').order('creato_il',{ascending:false});
   PA=data||[];PF=PA;renderPC(PA);renderPT(PA);renderPS(PA);
   const names=[...new Set(PA.map(p=>p.clienti?.ragione_sociale).filter(Boolean))].sort();
   const cur=v('pcli');ge('pcli').innerHTML='<option value="">Tutti i clienti</option>'+names.map(n=>`<option value="${n}"${n===cur?' selected':''}>${n}</option>`).join('');
@@ -3007,7 +2922,7 @@ async function editCliById(id){
 
 // ── CLIENTI ───────────────────────────────────────────────────
 async function loadCli(){
-  const {data,error}=await db.from('clienti').select('*').order('ragione_sociale');
+  const {data,error}=await db.from('clienti').select('*').is('eliminato_il',null).order('ragione_sociale');
   if(error){ge('ctbody').innerHTML=`<tr><td colspan="5"><div class="al2 e">Errore: ${error.message}</div></td></tr>`;return;}
   CLIS=data||[];ge('cli-count').textContent=`(${CLIS.length} totali)`;renderC(CLIS);
 }
@@ -3205,7 +3120,7 @@ async function saveCli(){
 }
 
 // ── INTERVENTI ────────────────────────────────────────────────
-async function loadOdl(){const {data}=await db.from('ordini_lavoro').select('*,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)').order('data_pianificata',{ascending:false});ODLS=data||[];renderO(ODLS);}
+async function loadOdl(){const {data}=await db.from('ordini_lavoro').select('*,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)').is('eliminato_il',null).order('data_pianificata',{ascending:false});ODLS=data||[];renderO(ODLS);}
 function renderO(data){const tb=ge('otbody');if(!data.length){tb.innerHTML='<tr><td colspan="7"><div class="empty">Nessun intervento</div></td></tr>';return;}tb.innerHTML=data.map(o=>`<tr>
     <td style="color:var(--m)">#${o.numero||'—'}</td>
     <td><strong>${esc(o.clienti?.ragione_sociale||'—')}</strong></td>
@@ -3223,8 +3138,8 @@ function filterO(){const q=v('osearch').toLowerCase(),s=v('ofilt');renderO(ODLS.
 // ── DOCUMENTI ─────────────────────────────────────────────────
 async function loadDocs(){
   const [sr,dr,rr]=await Promise.all([
-    db.from('schede_lavoro').select('*,clienti(ragione_sociale),utenti!schede_lavoro_tecnico_id_fkey(nome,cognome)').order('creato_il',{ascending:false}),
-    db.from('ddt').select('*,clienti(ragione_sociale)').order('creato_il',{ascending:false}),
+    db.from('schede_lavoro').select('*,clienti(ragione_sociale),utenti!schede_lavoro_tecnico_id_fkey(nome,cognome)').is('eliminato_il',null).order('creato_il',{ascending:false}),
+    db.from('ddt').select('*,clienti(ragione_sociale)').is('eliminato_il',null).order('creato_il',{ascending:false}),
     db.from('relazioni_tecniche').select('*,clienti(ragione_sociale),utenti!relazioni_tecniche_tecnico_id_fkey(nome,cognome)').order('creato_il',{ascending:false}),
   ]);
   const st=sr.data||[];ge('stbody').innerHTML=!st.length?'<tr><td colspan="7"><div class="empty">Nessuna scheda</div></td></tr>':st.map(s=>`<tr><td>#${s.numero||'—'}</td><td>${esc(s.clienti?.ragione_sociale||'—')}</td><td>${esc(s.utenti?s.utenti.nome+' '+s.utenti.cognome:'—')}</td><td>${fd(s.data_intervento)}</td><td>${s.esito?be(s.esito):'—'}</td><td>${bs(s.stato)}</td><td><button class="btn sm" onclick="openScheda('${s.id}')">📄 Gestisci</button>
@@ -3237,7 +3152,7 @@ async function loadDocs(){
 
 // ── SELECTS ───────────────────────────────────────────────────
 async function loadCS(){
-  const {data,error}=await db.from('clienti').select('id,ragione_sociale').order('ragione_sociale');
+  const {data,error}=await db.from('clienti').select('id,ragione_sociale').is('eliminato_il',null).order('ragione_sociale');
   if(error){console.warn('loadCS:',error.message);return;}
   CLIS=data||[];
   ['tc1','mo1','mpcl'].forEach(id=>{const el=ge(id);if(!el)return;const cur=el.value;el.innerHTML='<option value="">Seleziona cliente...</option>'+(data||[]).map(c=>`<option value="${c.id}">${esc(c.ragione_sociale)}</option>`).join('');if(cur)el.value=cur;});
@@ -3536,6 +3451,52 @@ async function salvaInt(){
 }
 
 // ── SAVE ──────────────────────────────────────────────────────
+// B4 — Imposta la modalità del modal m-odl. Modi: 'create' | 'edit' | 'assign' | 'tecnico-self'.
+// Aggiorna classe CSS, titolo, label CTA, e popola summary se necessario.
+function setModalMode(mode){
+  var m = document.querySelector('#m-odl .modal');
+  if(!m) return;
+  m.classList.remove('mode-create','mode-edit','mode-assign','mode-tecnico-self');
+  m.classList.add('mode-' + mode);
+  var btn = ge('mo-btn-save');
+  var title = ge('modal-odl-title');
+  if(mode === 'assign'){
+    if(title) title.firstChild.nodeValue = 'Assegna intervento ';
+    if(btn) btn.textContent = '✅ Assegna';
+    // Popola summary con i valori attuali dei campi
+    populateAssignSummary();
+  } else if(mode === 'edit'){
+    if(btn) btn.textContent = 'Salva modifiche';
+  } else if(mode === 'tecnico-self'){
+    if(title) title.firstChild.nodeValue = 'Schedula intervento personale ';
+    if(btn) btn.textContent = '📅 Aggiungi al mio calendario';
+  } else {
+    // create
+    if(title) title.firstChild.nodeValue = 'Nuovo intervento ';
+    if(btn) btn.textContent = 'Crea intervento';
+  }
+}
+
+function populateAssignSummary(){
+  var el = ge('mo-summary-content');
+  if(!el) return;
+  var cliSel = ge('mo1');
+  var cliText = cliSel ? (cliSel.options[cliSel.selectedIndex]?.text || '—') : '—';
+  var sedeSel = ge('mo-sede');
+  var sedeText = sedeSel ? (sedeSel.options[sedeSel.selectedIndex]?.text || '—') : '—';
+  var tipoSel = ge('mo2');
+  var tipoText = tipoSel ? (tipoSel.options[tipoSel.selectedIndex]?.text || '—') : '—';
+  var note = v('mo6');
+  var materiali = v('mo-materiali');
+  var html = '';
+  html += '<div style="margin-bottom:6px"><strong>'+esc(cliText)+'</strong></div>';
+  if(sedeText && sedeText !== 'Sede principale / da definire') html += '<div style="font-size:12px;color:var(--m);margin-bottom:4px">📍 '+esc(sedeText)+'</div>';
+  html += '<div style="font-size:12px;color:var(--m);margin-bottom:6px">🔧 '+esc(tipoText)+'</div>';
+  if(materiali) html += '<div style="font-size:12px;color:var(--g);margin-top:8px;padding:6px 8px;background:var(--gl);border-radius:6px"><strong>📦 Materiali:</strong> '+esc(materiali)+'</div>';
+  if(note) html += '<div style="font-size:12px;color:var(--m);margin-top:6px"><em>📝 '+esc(note)+'</em></div>';
+  el.innerHTML = html;
+}
+
 async function saveOdl(){
   const cid=v('mo1'),tipo=v('mo2'),data=v('mo3');
   if(!cid||!tipo||!data){toast('Compila cliente, tipo e data','err');return;}
@@ -3548,7 +3509,13 @@ async function saveOdl(){
     const r = await db.from('ordini_lavoro').update(payload).eq('id',editId);
     error = r.error;
   } else {
-    payload.stato = (ROLE === 'capo_tecnico') ? 'pianificato' : 'da_pianificare';
+    // Tecnico che schedula sé stesso: forza tecnico_id=ME e stato=pianificato
+    if(ROLE === 'tecnico'){
+      payload.tecnico_id = ME.id;
+      payload.stato = 'pianificato';
+    } else {
+      payload.stato = (ROLE === 'capo_tecnico') ? 'pianificato' : 'da_pianificare';
+    }
     const r = await db.from('ordini_lavoro').insert(payload).select().single();
     error = r.error;
     if(!error && r.data) newOdlId = r.data.id;
@@ -3566,6 +3533,7 @@ async function saveOdl(){
   await loadCS();loadDash();
   if(ge('pg-interventi')&&ge('pg-interventi').classList.contains('on'))loadOdl();
   if(ge('pg-calendario')&&ge('pg-calendario').classList.contains('on'))loadCalendario();
+  if(ge('pg-calendario-tec')&&ge('pg-calendario-tec').classList.contains('on'))loadCalendarioTecnico();
   if(ge('pg-trattative')&&ge('pg-trattative').classList.contains('on'))loadSopralluoghiList();
 }
 
@@ -3579,7 +3547,52 @@ async function openNuovoOdlVuoto(){
   if(ge('mcli-odl-id')) ge('mcli-odl-id').value='';
   if(ge('mo-sopr-id')) ge('mo-sopr-id').value='';
   var pp = ge('mo-presidi-preview'); if(pp) pp.innerHTML='<div style="color:var(--m);font-size:12px;padding:4px">Seleziona prima un cliente.</div>';
-  if(ge('modal-odl-title')) ge('modal-odl-title').textContent='Nuovo ordine di lavoro (da pianificare)';
+  setModalMode('create');
+  if(ge('modal-odl-title')) ge('modal-odl-title').firstChild && (ge('modal-odl-title').firstChild.nodeValue='Nuovo intervento (da pianificare) ');
+  openM('m-odl');
+}
+
+// Apre m-odl in modalità "create" pulito (usato dai bottoni "+ Pianifica intervento").
+async function apriNuovoIntervento(){
+  await loadCS(); await loadUS();
+  if(ge('mcli-odl-id')) ge('mcli-odl-id').value='';
+  if(ge('mo-sopr-id')) ge('mo-sopr-id').value='';
+  ['mo1','mo-sede','mo3','mo5','mo6','mo-materiali','mo-note-cap'].forEach(function(id){
+    var el = ge(id); if(el) el.value = '';
+  });
+  var t = ge('mo2'); if(t) t.value = 'ordinario_programmato';
+  var f = ge('mo4'); if(f) f.value = 'mattina';
+  var pp = ge('mo-presidi-preview'); if(pp) pp.innerHTML='<div style="color:var(--m);font-size:12px;padding:4px">Seleziona prima un cliente.</div>';
+  setModalMode('create');
+  if(ge('modal-odl-title') && ge('modal-odl-title').firstChild){
+    ge('modal-odl-title').firstChild.nodeValue = 'Nuovo intervento ';
+  }
+  openM('m-odl');
+}
+
+// Apre m-odl in modalità "tecnico-self": il tecnico schedula un proprio intervento.
+// Sostituisce il vecchio m-schedula-tec (B5).
+async function apriSchedulazionePersonale(){
+  await loadCS(); // CLIS popolato
+  // Reset
+  ['mo1','mo-sede','mo3','mo4','mo6','mo-materiali','mo-note-cap'].forEach(function(id){
+    var el = ge(id); if(el) el.value = '';
+  });
+  // Tipo default "su chiamata", data oggi, fascia mattina
+  var t = ge('mo2'); if(t) t.value = 'ordinario_chiamata';
+  var d = ge('mo3'); if(d) d.value = new Date().toISOString().split('T')[0];
+  var f = ge('mo4'); if(f) f.value = 'mattina';
+  // Popola dropdown clienti
+  var cliSel = ge('mo1');
+  if(cliSel){
+    cliSel.innerHTML = '<option value="">Seleziona cliente...</option>' +
+      (CLIS||[]).map(function(c){ return '<option value="'+c.id+'">'+esc(c.ragione_sociale)+'</option>'; }).join('');
+  }
+  // Reset altri stati modal
+  if(ge('mcli-odl-id')) ge('mcli-odl-id').value='';
+  if(ge('mo-sopr-id')) ge('mo-sopr-id').value='';
+  var pp = ge('mo-presidi-preview'); if(pp) pp.innerHTML='<div style="color:var(--m);font-size:12px;padding:4px">Seleziona prima un cliente.</div>';
+  setModalMode('tecnico-self');
   openM('m-odl');
 }
 
@@ -3609,7 +3622,10 @@ async function accettaSopralluogo(soprId){
   ge('mo-sopr-id').value = soprId;
   if(ge('mcli-odl-id')) ge('mcli-odl-id').value='';
   await calcolaPresidiSede(s.cliente_id, null, 'mo-presidi-preview');
-  if(ge('modal-odl-title')) ge('modal-odl-title').textContent='Accettazione sopralluogo → nuovo intervento';
+  setModalMode('create');
+  if(ge('modal-odl-title') && ge('modal-odl-title').firstChild){
+    ge('modal-odl-title').firstChild.nodeValue = 'Accettazione sopralluogo → nuovo intervento ';
+  }
   openM('m-odl');
 }
 async function saveImp(){const {error}=await db.from('impostazioni').update({ragione_sociale:v('si1')||null,indirizzo:v('si2')||null,cap:v('si3')||null,citta:v('si4')||null,piva:v('si5')||null,telefono:v('si6')||null,email:v('si7')||null}).eq('id',1);if(error){toast('Errore: '+error.message,'err');return;}toast('Dati aziendali salvati ✓','ok');loadImp();}
@@ -3873,9 +3889,9 @@ async function salvaEditOdlCal(id) {
 
 async function eliminaOdlCal(id) {
   if(ROLE !== 'titolare') { toast('Solo il titolare può eliminare','err'); return; }
-  if(!confirm('Eliminare questo intervento dal calendario?')) return;
-  await db.from('schede_lavoro').delete().eq('odl_id', id);
-  var r = await db.from('ordini_lavoro').delete().eq('id', id);
+  if(!confirm('Eliminare questo intervento dal calendario? (Soft-delete: recuperabile)')) return;
+  await softDel('schede_lavoro').eq('odl_id', id);
+  var r = await softDel('ordini_lavoro').eq('id', id);
   if(r.error) { toast('Errore: '+r.error.message,'err'); return; }
   toast('Intervento eliminato','ok');
   loadCalendario();
@@ -5221,9 +5237,9 @@ async function addProdottoCatalogo() {
 
 async function eliminaOdl(id) {
   if(!['titolare','capo_tecnico'].includes(ROLE)) { toast('Non hai i permessi per eliminare', 'err'); return; }
-  if(!confirm('Eliminare questo ordine di lavoro? Verranno eliminate anche le schede collegate.')) return;
-  await db.from('schede_lavoro').delete().eq('odl_id', id);
-  var r = await db.from('ordini_lavoro').delete().eq('id', id);
+  if(!confirm('Eliminare questo intervento? Le schede collegate verranno marcate come eliminate (recuperabili).')) return;
+  await softDel('schede_lavoro').eq('odl_id', id);
+  var r = await softDel('ordini_lavoro').eq('id', id);
   if(r.error) { toast('Errore: ' + r.error.message, 'err'); return; }
   toast('Intervento eliminato', 'ok');
   loadOdl();
@@ -5250,14 +5266,19 @@ async function openEditOdl(id) {
   await loadSediForOdl();
   if(o.sede_id){ var se = ge('mo-sede'); if(se) se.value = o.sede_id; }
   await calcolaPresidiSede(o.cliente_id, o.sede_id, 'mo-presidi-preview');
-  ge('modal-odl-title') && (ge('modal-odl-title').textContent = 'Modifica intervento #' + (o.numero||''));
+  // Modalità: capo_tecnico su un da_pianificare → 'assign'; altrimenti 'edit'
+  var mode = (ROLE === 'capo_tecnico' && o.stato === 'da_pianificare') ? 'assign' : 'edit';
+  setModalMode(mode);
+  if(ge('modal-odl-title') && ge('modal-odl-title').firstChild){
+    ge('modal-odl-title').firstChild.nodeValue = (mode === 'assign' ? 'Assegna intervento #' : 'Modifica intervento #') + (o.numero||'') + ' ';
+  }
   openM('m-odl');
 }
 
 async function eliminaCliente(id) {
   if(ROLE !== 'titolare') { toast('Solo il titolare può eliminare i clienti', 'err'); return; }
-  if(!confirm('Eliminare questo cliente? L\'operazione è irreversibile.')) return;
-  var r = await db.from('clienti').delete().eq('id', id);
+  if(!confirm('Eliminare questo cliente? (Soft-delete: il record resta nel DB e può essere ripristinato)')) return;
+  var r = await softDel('clienti').eq('id', id);
   if(r.error) { toast('Errore: ' + r.error.message, 'err'); return; }
   toast('Cliente eliminato', 'ok');
   loadCli();
@@ -5265,8 +5286,8 @@ async function eliminaCliente(id) {
 
 async function eliminaPresidio(id) {
   if(ROLE !== 'titolare' && ROLE !== 'capo_tecnico') { toast('Non hai i permessi', 'err'); return; }
-  if(!confirm('Eliminare questo presidio?')) return;
-  var r = await db.from('impianti').delete().eq('id', id);
+  if(!confirm('Eliminare questo presidio? (Soft-delete: recuperabile)')) return;
+  var r = await softDel('impianti').eq('id', id);
   if(r.error) { toast('Errore: ' + r.error.message, 'err'); return; }
   toast('Presidio eliminato', 'ok');
   loadPresidi();
@@ -5274,8 +5295,8 @@ async function eliminaPresidio(id) {
 
 async function eliminaScheda(id) {
   if(ROLE !== 'titolare') { toast('Solo il titolare può eliminare', 'err'); return; }
-  if(!confirm('Eliminare questa scheda lavoro?')) return;
-  var r = await db.from('schede_lavoro').delete().eq('id', id);
+  if(!confirm('Eliminare questa scheda lavoro? (Soft-delete: recuperabile)')) return;
+  var r = await softDel('schede_lavoro').eq('id', id);
   if(r.error) { toast('Errore: ' + r.error.message, 'err'); return; }
   toast('Scheda eliminata', 'ok');
   loadDocs(); loadDash();
@@ -5427,10 +5448,8 @@ function copiaLinkCliente(cliId) {
 
 async function eliminaDDT(id) {
   if(ROLE !== 'titolare') { toast('Solo il titolare può eliminare', 'err'); return; }
-  if(!confirm('Eliminare questo DDT? L\'operazione è irreversibile.')) return;
-  // Prima elimina le righe
-  await db.from('ddt_righe').delete().eq('ddt_id', id);
-  var res = await db.from('ddt').delete().eq('id', id);
+  if(!confirm('Eliminare questo DDT? (Soft-delete: il record resta nel DB e può essere ripristinato. Le righe restano collegate.)')) return;
+  var res = await softDel('ddt').eq('id', id);
   if(res.error) { toast('Errore: ' + res.error.message, 'err'); return; }
   toast('DDT eliminato', 'ok');
   loadDocs();

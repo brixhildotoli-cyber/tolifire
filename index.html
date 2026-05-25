@@ -253,7 +253,7 @@
       <div class="tit-section">Azioni rapide</div>
       <div class="tit-quick">
         <button class="tit-quick-btn" onclick="openNewCli()"><span class="ico">👤</span><span class="lbl">Nuovo cliente</span></button>
-        <button class="tit-quick-btn" onclick="openM('m-odl')"><span class="ico">📋</span><span class="lbl">Pianifica intervento</span></button>
+        <button class="tit-quick-btn" onclick="apriNuovoIntervento()"><span class="ico">📋</span><span class="lbl">Pianifica intervento</span></button>
         <button class="tit-quick-btn" onclick="resetPF();openM('m-presidio')"><span class="ico">🧯</span><span class="lbl">Nuovo presidio</span></button>
         <button class="tit-quick-btn" onclick="openM('m-ddt')"><span class="ico">📦</span><span class="lbl">Nuovo DDT</span></button>
         <button class="tit-quick-btn" onclick="openM('m-user')"><span class="ico">👤</span><span class="lbl">Nuovo utente</span></button>
@@ -309,7 +309,7 @@
 
       <div class="tit-section">Azioni rapide</div>
       <div class="tit-quick">
-        <button class="tit-quick-btn" onclick="openM('m-odl')"><span class="ico">📋</span><span class="lbl">Pianifica intervento</span></button>
+        <button class="tit-quick-btn" onclick="apriNuovoIntervento()"><span class="ico">📋</span><span class="lbl">Pianifica intervento</span></button>
         <button class="tit-quick-btn" onclick="openNewCli()"><span class="ico">👤</span><span class="lbl">Nuovo cliente</span></button>
         <button class="tit-quick-btn" onclick="openM('m-ddt')"><span class="ico">📦</span><span class="lbl">Nuovo DDT</span></button>
         <button class="tit-quick-btn" onclick="gotoPage('workflow')"><span class="ico">📋</span><span class="lbl">Workflow schede</span></button>
@@ -328,7 +328,7 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap" id="dash-actions">
       <button class="btn" onclick="gotoPage('presidi')" id="dash-btn-presidi" style="display:none">🧯 Presidi</button>
       <button class="btn" onclick="gotoPage('workflow')" id="dash-btn-workflow" style="display:none">📋 Da gestire</button>
-      <button class="btn p" onclick="openM('m-odl')" id="dash-btn-odl" style="display:none">+ Pianifica intervento</button>
+      <button class="btn p" onclick="apriNuovoIntervento()" id="dash-btn-odl" style="display:none">+ Pianifica intervento</button>
     </div>
   </div>
   <!-- KPI -->
@@ -343,7 +343,7 @@
     <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--m);margin-bottom:10px">Azioni rapide</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn p" onclick="openNewCli()">👤 Nuovo cliente</button>
-      <button class="btn p" onclick="openM('m-odl')">📋 Pianifica intervento</button>
+      <button class="btn p" onclick="apriNuovoIntervento()">📋 Pianifica intervento</button>
       <button class="btn p" onclick="resetPF();openM('m-presidio')">🧯 Nuovo presidio</button>
       <button class="btn p" onclick="openM('m-ddt')">📦 Nuovo DDT</button>
       <button class="btn p" onclick="openM('m-user')">👤 Nuovo utente</button>
@@ -487,7 +487,7 @@
   <div class="sh">
     <div><div class="st">📅 Calendario interventi</div></div>
     <div style="display:flex;gap:8px">
-      <button class="btn" onclick="openM('m-odl')">+ Pianifica intervento</button>
+      <button class="btn" onclick="apriNuovoIntervento()">+ Pianifica intervento</button>
     </div>
   </div>
   <div class="card">
@@ -866,7 +866,7 @@
 
 <!-- INTERVENTI -->
 <div class="page" id="pg-interventi">
-  <div class="sh"><div class="st">Interventi</div><div style="display:flex;gap:8px"><button class="btn" onclick="gotoPage('calendario')">📅 Calendario</button><button class="btn p" onclick="openM('m-odl')">+ Pianifica intervento</button></div></div>
+  <div class="sh"><div class="st">Interventi</div><div style="display:flex;gap:8px"><button class="btn" onclick="gotoPage('calendario')">📅 Calendario</button><button class="btn p" onclick="apriNuovoIntervento()">+ Pianifica intervento</button></div></div>
   <div class="sb"><input type="text" id="osearch" placeholder="Cerca..." oninput="filterO()"><select id="ofilt" onchange="filterO()" style="width:auto"><option value="">Tutti</option><option value="da_pianificare">Da pianificare</option><option value="pianificato">Pianificato</option><option value="completato">Completato</option></select></div>
   <div class="tw"><table><thead><tr><th>N°</th><th>Cliente</th><th>Tipo</th><th>Tecnico</th><th>Data</th><th>Stato</th><th></th></tr></thead><tbody id="otbody"><tr><td colspan="7"><div class="load">Caricamento...</div></td></tr></tbody></table></div>
 </div>
@@ -1094,22 +1094,45 @@
 </div>
 </div>
 
-<div class="mbg" id="m-odl"><div class="modal">
+<div class="mbg" id="m-odl"><div class="modal m-odl-modal">
   <div class="mh" id="modal-odl-title">Nuovo intervento <button class="mx" onclick="closeM('m-odl')">✕</button></div>
   <input type="hidden" id="mo-sopr-id">
-  <div class="f"><label>Cliente *</label><select id="mo1" onchange="loadSediForOdl();calcolaPresidiSede(v('mo1'),v('mo-sede'),'mo-presidi-preview')"><option value="">Seleziona...</option></select></div>
-  <div class="f"><label>Sede / Indirizzo intervento</label><select id="mo-sede" onchange="calcolaPresidiSede(v('mo1'),v('mo-sede'),'mo-presidi-preview')"><option value="">Sede principale / da definire</option></select></div>
-  <div class="f"><label>Tipo *</label><select id="mo2"><option value="ordinario_programmato">Manutenzione ordinaria</option><option value="ordinario_chiamata">Su chiamata</option><option value="straordinario">Straordinario</option><option value="corso">Corso</option></select></div>
-  <div class="fr"><div class="f"><label>Data *</label><input type="date" id="mo3"></div><div class="f"><label>Fascia</label><select id="mo4"><option value="mattina">Mattina</option><option value="pomeriggio">Pomeriggio</option><option value="giornata">Giornata</option></select></div></div>
-  <div class="f"><label>Tecnico</label><select id="mo5"><option value="">Seleziona...</option></select></div>
-  <div class="f"><label>Note generali</label><textarea id="mo6" style="min-height:50px" placeholder="Es. periodicità mensile, intervento da richiesta cliente..."></textarea></div>
 
-  <div style="margin:18px 0 8px;font-size:11px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.05em">📦 Cosa preparare per il tecnico</div>
-  <div class="f"><label>Materiali da portare <span style="font-weight:400;color:var(--m);font-size:11px">(di solito compilato da chi accetta il lavoro)</span></label><textarea id="mo-materiali" style="min-height:60px" placeholder="Es. 2 estintori CO2 5kg, 1 manichetta UNI 45, ricariche..."></textarea></div>
-  <div class="f"><label>Presidi della sede <span style="font-weight:400;color:var(--m);font-size:11px">(auto-calcolato da database, sola lettura)</span></label><div id="mo-presidi-preview" style="font-size:13px;color:var(--m);padding:8px;background:var(--bg);border-radius:6px">Seleziona prima un cliente.</div></div>
-  <div class="f"><label>Note operative al tecnico <span style="font-weight:400;color:var(--m);font-size:11px">(per il capo cantiere)</span></label><textarea id="mo-note-cap" style="min-height:70px" placeholder="Es. citofono Rossi, parcheggio interno, contattare il referente prima di arrivare..."></textarea></div>
+  <!-- Summary read-only (visibile solo in modalità 'assign') -->
+  <div id="mo-readonly-summary" class="mo-section" style="display:none">
+    <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px">
+      <div style="font-size:11px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">📋 Dati intervento (sola lettura)</div>
+      <div id="mo-summary-content">—</div>
+      <button class="btn sm" type="button" onclick="setModalMode('edit')" style="margin-top:10px;font-size:11px">✏️ Modifica dati intervento</button>
+    </div>
+  </div>
 
-  <div style="display:flex;gap:8px;margin-top:16px"><button class="btn" onclick="closeM('m-odl')">Annulla</button><button class="btn p" onclick="saveOdl()">Crea intervento</button></div>
+  <!-- Pianificazione: data, fascia, tecnico -->
+  <div id="mo-pian-group" class="mo-section">
+    <div id="mo-pian-header" class="mo-section-title">Pianificazione</div>
+    <div class="fr"><div class="f"><label>Data *</label><input type="date" id="mo3"></div><div class="f"><label>Fascia</label><select id="mo4"><option value="mattina">Mattina</option><option value="pomeriggio">Pomeriggio</option><option value="giornata">Giornata</option></select></div></div>
+    <div class="f" id="mo-tecnico-field"><label>Tecnico</label><select id="mo5"><option value="">Seleziona...</option></select></div>
+  </div>
+
+  <!-- Dati intervento: cliente, sede, tipo, materiali, presidi, note generali -->
+  <div id="mo-dati-group" class="mo-section">
+    <div class="mo-section-title">Dati intervento</div>
+    <div class="f"><label>Cliente *</label><select id="mo1" onchange="loadSediForOdl();calcolaPresidiSede(v('mo1'),v('mo-sede'),'mo-presidi-preview')"><option value="">Seleziona...</option></select></div>
+    <div class="f"><label>Sede / Indirizzo intervento</label><select id="mo-sede" onchange="calcolaPresidiSede(v('mo1'),v('mo-sede'),'mo-presidi-preview')"><option value="">Sede principale / da definire</option></select></div>
+    <div class="f"><label>Tipo *</label><select id="mo2"><option value="ordinario_programmato">Manutenzione ordinaria</option><option value="ordinario_chiamata">Su chiamata</option><option value="straordinario">Straordinario</option><option value="corso">Corso</option></select></div>
+    <div class="f"><label>Note generali</label><textarea id="mo6" style="min-height:50px" placeholder="Es. periodicità mensile, intervento da richiesta cliente..."></textarea></div>
+    <div style="margin:14px 0 8px;font-size:11px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.05em">📦 Cosa preparare per il tecnico</div>
+    <div class="f"><label>Materiali da portare <span style="font-weight:400;color:var(--m);font-size:11px">(di solito compilato da chi accetta il lavoro)</span></label><textarea id="mo-materiali" style="min-height:60px" placeholder="Es. 2 estintori CO2 5kg, 1 manichetta UNI 45, ricariche..."></textarea></div>
+    <div class="f"><label>Presidi della sede <span style="font-weight:400;color:var(--m);font-size:11px">(auto-calcolato da database, sola lettura)</span></label><div id="mo-presidi-preview" style="font-size:13px;color:var(--m);padding:8px;background:var(--bg);border-radius:6px">Seleziona prima un cliente.</div></div>
+  </div>
+
+  <!-- Note operative al tecnico (sempre editabile) -->
+  <div id="mo-note-op-group" class="mo-section">
+    <div class="mo-section-title">Note operative al tecnico</div>
+    <div class="f"><label><span style="font-weight:400;color:var(--m);font-size:11px">(per il capo cantiere — istruzioni operative)</span></label><textarea id="mo-note-cap" style="min-height:70px" placeholder="Es. citofono Rossi, parcheggio interno, contattare il referente prima di arrivare..."></textarea></div>
+  </div>
+
+  <div id="mo-actions" style="display:flex;gap:8px;margin-top:16px"><button class="btn" onclick="closeM('m-odl')">Annulla</button><button class="btn p" id="mo-btn-save" onclick="saveOdl()">Crea intervento</button></div>
 </div></div>
 
 <div class="mbg" id="m-user"><div class="modal">
