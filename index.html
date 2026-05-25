@@ -936,6 +936,38 @@
   </div>
 </div>
 
+<!-- FATTURE (Modulo Fatture / Fase 2: lista read-only) -->
+<div class="page" id="pg-fatture">
+  <div class="sh">
+    <div>
+      <div class="st">💰 Fatture</div>
+      <div style="font-size:13px;color:var(--m);margin-top:2px">Documenti emessi, bozze e note di credito (sola lettura)</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="fat-count" style="font-size:12px;color:var(--m)"></span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <select id="fat-fil-stato" onchange="loadFatture()" style="width:auto">
+        <option value="">Tutti gli stati</option>
+        <option value="bozza">Solo bozze</option>
+        <option value="emessa">Solo emesse</option>
+        <option value="annullata">Annullate</option>
+      </select>
+      <select id="fat-fil-tipo" onchange="loadFatture()" style="width:auto">
+        <option value="">Fatture e note di credito</option>
+        <option value="fattura">Solo fatture</option>
+        <option value="nota_credito">Solo note di credito</option>
+      </select>
+      <input type="text" id="fat-fil-search" placeholder="Cerca per cliente o numero..." oninput="loadFatture()" style="flex:1;min-width:200px">
+    </div>
+  </div>
+
+  <div id="fat-body"><div class="load">Caricamento...</div></div>
+</div>
+
 <!-- INTERVENTI -->
 <div class="page" id="pg-interventi">
   <div class="sh"><div class="st">Interventi</div><div style="display:flex;gap:8px"><button class="btn" onclick="gotoPage('calendario')">📅 Calendario</button><button class="btn p" onclick="apriNuovoIntervento()">+ Pianifica intervento</button></div></div>

@@ -18,12 +18,12 @@ const PERIO_OPT=['mensile','bimestrale','trimestrale','quadrimestrale','semestra
 const PERIO_MESI={mensile:1,bimestrale:2,trimestrale:3,quadrimestrale:4,semestrale:6,annuale:12,biennale:24};
 
 const NAV={
-  titolare:[{id:'dashboard',l:'Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'workflow',l:'📋 Da gestire'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'Clienti'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'},{id:'impostazioni',l:'Impostazioni'}],
+  titolare:[{id:'dashboard',l:'Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'workflow',l:'📋 Da gestire'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'Clienti'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'},{id:'impostazioni',l:'Impostazioni'}],
   capo_tecnico:[{id:'dashboard',l:'Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'calendario-team',l:'👥 Calendari team'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'Clienti'},{id:'documenti',l:'Documenti'}],
-  segreteria:[{id:'dashboard',l:'Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'workflow',l:'📋 Da gestire'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'Clienti'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
-  contabile:[{id:'dashboard',l:'Dashboard'},{id:'workflow',l:'💜 Da fatturare'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
+  segreteria:[{id:'dashboard',l:'Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'workflow',l:'📋 Da gestire'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'Clienti'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
+  contabile:[{id:'dashboard',l:'Dashboard'},{id:'workflow',l:'💜 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
   tecnico:[{id:'dashboard',l:'Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
-  commerciale:[{id:'dashboard',l:'Dashboard'},{id:'clienti',l:'Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
+  commerciale:[{id:'dashboard',l:'Dashboard'},{id:'clienti',l:'Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
   rappresentante:[{id:'dashboard-rapp',l:'Dashboard'},{id:'clienti',l:'Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'trattative',l:'💼 Trattative'}],
 };
 
@@ -117,7 +117,9 @@ function tpl(t){return TIPI_LABEL[t]||t||'—';}
 function tl(t){return{ordinario_programmato:'Manutenzione ordinaria',ordinario_chiamata:'Su chiamata',straordinario:'Straordinario',corso:'Corso antincendio'}[t]||t||'—';}
 function al2(a){return{polvere_abc:'Polvere ABC',co2:'CO₂',schiuma:'Schiuma',idrico:'Idrico'}[a]||a||'—';}
 function si2(s){return{ok:'✅',anomalia:'⚠️',scaduto:'❌',fuori_servizio:'🔴'}[s]||'•';}
-function bs(s){const m={da_pianificare:'<span class="bx bgray">Da pianificare</span>',pianificato:'<span class="bx bblue">Pianificato</span>',completato:'<span class="bx bok">Completato</span>',bozza:'<span class="bx bgray">Bozza</span>',firmata:'<span class="bx berr">Da approvare</span>',approvata:'<span class="bx bwarn">Approvata</span>',inviata_cliente:'<span class="bx bok">Inviata cliente</span>',da_fatturare:'<span class="bx bpur">Da fatturare</span>',fatturata:'<span class="bx bok">Fatturata</span>'};return m[s]||`<span class="bx bgray">${s||'—'}</span>`;}
+function bs(s){const m={da_pianificare:'<span class="bx bgray">Da pianificare</span>',pianificato:'<span class="bx bblue">Pianificato</span>',completato:'<span class="bx bok">Completato</span>',bozza:'<span class="bx bgray">Bozza</span>',firmata:'<span class="bx berr">Da approvare</span>',approvata:'<span class="bx bwarn">Approvata</span>',inviata_cliente:'<span class="bx bok">Inviata cliente</span>',da_fatturare:'<span class="bx bpur">Da fatturare</span>',fatturata:'<span class="bx bok">Fatturata</span>',emessa:'<span class="bx bok">Emessa</span>',annullata:'<span class="bx berr">Annullata</span>'};return m[s]||`<span class="bx bgray">${s||'—'}</span>`;}
+// Badge per stato_pagamento di fatture/scadenze
+function bsPag(s){const m={da_pagare:'<span class="bx bgray">Da pagare</span>',in_riba:'<span class="bx bblue">In RIBA</span>',pagata:'<span class="bx bok">Pagata</span>',parzialmente_pagata:'<span class="bx bwarn">Parz. pagata</span>',insoluta:'<span class="bx berr">Insoluta</span>',sollecitata:'<span class="bx berr">Sollecitata</span>',aperta:'<span class="bx bgray">Aperta</span>'};return m[s]||`<span class="bx bgray">${s||'—'}</span>`;}
 function be(e){const m={conforme:'<span class="bx bok">Conforme</span>',conforme_osservazioni:'<span class="bx bwarn">Con osservazioni</span>',non_conforme:'<span class="bx berr">Non conforme</span>',non_conforme_urgente:'<span class="bx berr">URGENTE</span>'};return m[e]||`<span class="bx bgray">${e||'—'}</span>`;}
 function bc(s){return{attivo:'<span class="bx bok">Attivo</span>',prospect:'<span class="bx bblue">Prospect</span>',sospeso:'<span class="bx bwarn">Sospeso</span>',perso:'<span class="bx bgray">Perso</span>'}[s]||`<span class="bx bgray">${s||'—'}</span>`;}
 function ir(l,v2){return `<div style="padding:8px;background:var(--bg);border-radius:var(--rs)"><div style="font-size:11px;color:var(--m);margin-bottom:2px">${l}</div><div style="font-size:13px;font-weight:500">${esc(v2||'—')}</div></div>`;}
@@ -550,12 +552,12 @@ function buildNav(){
 
 // Pagine accessibili per ruolo
 const PAGINE_RUOLO = {
-  titolare:       ['dashboard','calendario','piano-mensile','presidi','workflow','interventi','clienti','documenti','catalogo','impostazioni','cliente-detail','tecnico','sopralluogo'],
+  titolare:       ['dashboard','calendario','piano-mensile','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','tecnico','sopralluogo'],
   capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','clienti','documenti','cliente-detail'],
-  segreteria:     ['dashboard','calendario','workflow','presidi','interventi','clienti','documenti','catalogo','cliente-detail'],
-  contabile:      ['dashboard','workflow','documenti','catalogo'],
+  segreteria:     ['dashboard','calendario','workflow','presidi','interventi','clienti','documenti','fatture','catalogo','cliente-detail'],
+  contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
-  commerciale:    ['dashboard','clienti','presidi','documenti','catalogo','cliente-detail'],
+  commerciale:    ['dashboard','clienti','presidi','documenti','fatture','catalogo','cliente-detail'],
   rappresentante: ['dashboard','dashboard-rapp','clienti','presidi','sopralluogo','trattative','cliente-detail'],
 };
 
@@ -588,6 +590,7 @@ function gotoPage(id){
   if(id==='dashboard-rapp')loadDashRappresentante();
   if(id==='trattative')loadTrattative();
   if(id==='catalogo'){loadPaginaCatalogo();var _ba=ge('btn-add-prodotto');if(_ba)_ba.style.display=(ROLE==='titolare')?'':'none';var _bi=ge('btn-import-excel');if(_bi)_bi.style.display=(ROLE==='titolare')?'':'none';}
+  if(id==='fatture'){loadFatture();}
   if(id==='tecnico')loadOdlTecnico();
   if(id==='sopralluogo' && ROLE!=='rappresentante' && ROLE!=='titolare'){toast('Accesso non consentito','err');return;}
   window.scrollTo(0,0);
@@ -2748,6 +2751,73 @@ async function creaOdlDaCiclo(cliId, meseAnno){
   var t = ge('mo2'); if(t) t.value = 'ordinario_programmato';
   // Nota suggerita
   var n = ge('mo6'); if(n) n.value = 'Intervento periodico — ' + (meseAnno || '');
+}
+
+// ── FATTURE — lista read-only (Fase 2 modulo Fatture) ─────────
+async function loadFatture(){
+  var el = ge('fat-body');
+  if(!el) return;
+  el.innerHTML = '<div class="load">Caricamento...</div>';
+
+  var fStato = v('fat-fil-stato');
+  var fTipo  = v('fat-fil-tipo');
+  var fSearch = (v('fat-fil-search')||'').toLowerCase().trim();
+
+  var q = db.from('fatture')
+    .select('id,numero,anno,tipo_documento,data_emissione,totale,stato,stato_pagamento,snap_ragione_sociale,creato_il,clienti(ragione_sociale)')
+    .is('eliminato_il', null);
+  if(fStato) q = q.eq('stato', fStato);
+  if(fTipo)  q = q.eq('tipo_documento', fTipo);
+  q = q.order('creato_il', {ascending:false}).limit(200);
+
+  var r = await q;
+  if(r.error){
+    el.innerHTML = '<div class="al2 e">Errore: '+esc(r.error.message)+'</div>';
+    return;
+  }
+  var data = r.data || [];
+
+  // Filtro testo client-side (cerca in cliente o numero)
+  if(fSearch){
+    data = data.filter(function(f){
+      var cli = ((f.snap_ragione_sociale || f.clienti?.ragione_sociale) || '').toLowerCase();
+      var num = (f.numero||'').toLowerCase();
+      return cli.indexOf(fSearch) !== -1 || num.indexOf(fSearch) !== -1;
+    });
+  }
+
+  var cntEl = ge('fat-count');
+  if(cntEl) cntEl.textContent = data.length + (data.length === 1 ? ' fattura' : ' fatture');
+
+  if(!data.length){
+    el.innerHTML = '<div class="empty">Nessuna fattura corrispondente ai filtri</div>';
+    return;
+  }
+
+  el.innerHTML = '<div class="tw"><table>' +
+    '<thead><tr>' +
+      '<th>Numero</th><th>Cliente</th><th>Tipo</th><th>Data emiss.</th>' +
+      '<th style="text-align:right">Totale €</th><th>Stato doc.</th><th>Pagamento</th>' +
+    '</tr></thead><tbody>' +
+    data.map(function(f){
+      var cli = f.snap_ragione_sociale || f.clienti?.ragione_sociale || '—';
+      var numCell = f.numero
+        ? '<span style="font-family:monospace">'+esc(f.numero)+'</span>'
+        : '<span style="color:var(--m);font-style:italic">(da emettere)</span>';
+      var tipoLbl = f.tipo_documento === 'nota_credito'
+        ? '<span class="bx bpur">🔁 Nota credito</span>'
+        : '<span class="bx bblue">📄 Fattura</span>';
+      var totale = (f.totale||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
+      return '<tr>' +
+        '<td>'+numCell+'</td>' +
+        '<td>'+esc(cli)+'</td>' +
+        '<td>'+tipoLbl+'</td>' +
+        '<td>'+fd(f.data_emissione)+'</td>' +
+        '<td style="text-align:right;font-weight:600">€ '+totale+'</td>' +
+        '<td>'+bs(f.stato)+'</td>' +
+        '<td>'+bsPag(f.stato_pagamento)+'</td>' +
+      '</tr>';
+    }).join('') + '</tbody></table></div>';
 }
 
 // ── WORKFLOW ──────────────────────────────────────────────────
