@@ -24,7 +24,7 @@ const NAV={
   contabile:[{id:'dashboard',l:'Dashboard'},{id:'workflow',l:'💜 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
   tecnico:[{id:'dashboard',l:'Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
   commerciale:[{id:'dashboard',l:'Dashboard'},{id:'clienti',l:'Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
-  rappresentante:[{id:'dashboard-rapp',l:'Dashboard'},{id:'clienti',l:'Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'trattative',l:'💼 Trattative'}],
+  rappresentante:[{id:'dashboard-rapp',l:'Dashboard'},{id:'calendario-appuntamenti', l:'📅 Appuntamenti'},{id:'clienti',l:'Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'trattative',l:'💼 Trattative'}],
 };
 
 // Checklist operative per tipo intervento
@@ -558,7 +558,7 @@ const PAGINE_RUOLO = {
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
   commerciale:    ['dashboard','clienti','presidi','documenti','fatture','catalogo','cliente-detail'],
-  rappresentante: ['dashboard','dashboard-rapp','clienti','presidi','sopralluogo','trattative','cliente-detail'],
+  rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti','presidi','sopralluogo','trattative','cliente-detail'],
 };
 
 function canAccessPage(id) {
