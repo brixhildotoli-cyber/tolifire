@@ -721,6 +721,52 @@
   <div class="tc" id="tr-s"><div id="tr-sop-list"><div class="load">Caricamento...</div></div></div>
 </div>
 
+<!-- CALENDARIO APPUNTAMENTI COMMERCIALI -->
+<div class="page" id="pg-calendario-appuntamenti">
+  <div class="sh">
+    <div>
+      <div class="st">📅 I miei appuntamenti</div>
+      <div style="font-size:13px;color:var(--m);margin-top:2px">
+        Visite, richiami, sopralluoghi e appuntamenti commerciali
+      </div>
+    </div>
+
+    <button class="btn p"
+      onclick="apriNuovoAppuntamento(new Date().toISOString().split('T')[0])">
+      + Nuovo appuntamento
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="cambiaMeseAppuntamenti(-1)">
+        ← Mese precedente
+      </button>
+
+      <div id="app-mese-label"
+        style="font-size:16px;font-weight:700;text-transform:capitalize">
+      </div>
+
+      <button class="cal-nav-btn" onclick="cambiaMeseAppuntamenti(1)">
+        Mese successivo →
+      </button>
+    </div>
+
+    <div class="cal-grid" id="app-cal-heads"></div>
+    <div class="cal-grid" id="app-cal-body"></div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:14px;font-weight:600;margin-bottom:14px">
+      Appuntamenti del mese
+    </div>
+
+    <div id="app-lista">
+      <div class="load">Caricamento...</div>
+    </div>
+  </div>
+</div>
+
 <!-- CATALOGO -->
 <div class="page" id="pg-catalogo">
   <div class="sh">
@@ -1266,6 +1312,71 @@
 </div>
 </div>
 
+<!--rappresentante calendario-->
+<div class="mbg" id="m-appuntamento">
+  <div class="modal">
+    <div class="mh">
+      Appuntamento commerciale
+      <button class="mx" onclick="closeM('m-appuntamento')">✕</button>
+    </div>
+
+    <input type="hidden" id="ma-id">
+
+    <div class="f">
+      <label>Cliente / prospect</label>
+      <select id="ma-cliente"></select>
+    </div>
+
+    <div class="f">
+      <label>Titolo *</label>
+      <input type="text" id="ma-titolo"
+        placeholder="Es. Sopralluogo presso Cliente Rossi">
+    </div>
+
+    <div class="f">
+      <label>Tipo appuntamento</label>
+      <select id="ma-tipo">
+        <option value="visita">Visita</option>
+        <option value="richiamo">Richiamo</option>
+        <option value="sopralluogo">Sopralluogo</option>
+        <option value="presentazione_preventivo">Presentazione preventivo</option>
+        <option value="riunione">Riunione</option>
+      </select>
+    </div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Inizio *</label>
+        <input type="datetime-local" id="ma-inizio">
+      </div>
+
+      <div class="f">
+        <label>Fine</label>
+        <input type="datetime-local" id="ma-fine">
+      </div>
+    </div>
+
+    <div class="f">
+      <label>Stato</label>
+      <select id="ma-stato">
+        <option value="pianificato">Pianificato</option>
+        <option value="completato">Completato</option>
+        <option value="annullato">Annullato</option>
+      </select>
+    </div>
+
+    <div class="f">
+      <label>Note</label>
+      <textarea id="ma-note" placeholder="Note per l'appuntamento..."></textarea>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn" onclick="closeM('m-appuntamento')">Annulla</button>
+      <button class="btn p" onclick="salvaAppuntamento()">Salva appuntamento</button>
+    </div>
+  </div>
+</div>
 <script src="app.js"></script>
+
 </body>
 </html>
