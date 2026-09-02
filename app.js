@@ -11,6 +11,10 @@ let ME=null,ROLE=null,CLIS=[],UTENTI=[],ODLS=[],PA=[],PF=[];
 let _pianoAnno=new Date().getFullYear(),_pianoMese=new Date().getMonth()+1;
 let calCicli=[];
 let currentCliId=null;
+let progettiClienteDati = [];
+let appAnno = new Date().getFullYear();
+let appMese = new Date().getMonth();
+let appDati = [];
 
 const TIPI_PRESIDI=['estintore','porta_rei','idrante','naspo','luce_emergenza','pompa_antincendio','centrale_rivelazione','sprinkler','uscita_emergenza'];
 const TIPI_LABEL={estintore:'🧯 Estintori',porta_rei:'🚪 Porte REI',idrante:'🚿 Idranti',naspo:'🌀 Naspi',luce_emergenza:'💡 Luci emergenza',pompa_antincendio:'⚙️ Pompa antincendio',centrale_rivelazione:'🖥 Centrale rivelazione',sprinkler:'🌧 Sprinkler',uscita_emergenza:'🚪 Uscite emergenza'};
@@ -24,7 +28,7 @@ const NAV={
   contabile:[{id:'dashboard',l:'Dashboard'},{id:'workflow',l:'💜 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
   tecnico:[{id:'dashboard',l:'Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
   commerciale:[{id:'dashboard',l:'Dashboard'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
-  rappresentante:[{id:'dashboard-rapp',l:'Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'trattative',l:'💼 Trattative'}],
+  rappresentante:[{id:'dashboard-rapp',l:'Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'progetti', l:'📐 Progetti'},{id:'presidi',l:'🧯 Presidi'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'trattative',l:'💼 Trattative'}],
 };
 
 // Checklist operative per tipo intervento
@@ -558,7 +562,7 @@ const PAGINE_RUOLO = {
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
   commerciale:    ['dashboard','clienti','presidi','documenti','fatture','catalogo','cliente-detail'],
-  rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti','presidi','sopralluogo','trattative','cliente-detail'],
+  rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','sopralluogo','trattative','cliente-detail'],
 };
 
 function canAccessPage(id) {
@@ -583,12 +587,13 @@ function gotoPage(id){
   if(id==='presidi')loadPresidi();
   if(id==='impostazioni')loadTeam();
   if(id==='workflow')loadWorkflow();
-  if (id === 'calendario-appuntamenti'){loadAppuntamentiCommerciali();}
+  if(id==='calendario-appuntamenti'){loadAppuntamentiCommerciali();}
   if(id==='calendario')loadCalendario();
   if(id==='calendario-tec'){loadCalendarioTecnico();}
   if(id==='calendario-team'){loadCalendarioTeam();}
   if(id==='piano-mensile'){var n=new Date();_pianoAnno=n.getFullYear();_pianoMese=n.getMonth()+1;aggiornaPianoLabel();loadPianificazioneMensile(_pianoAnno,_pianoMese);}
   if(id==='dashboard-rapp')loadDashRappresentante();
+  if(id==='progetti'){loadPaginaProgetti();}
   if(id==='trattative')loadTrattative();
   if(id==='catalogo'){loadPaginaCatalogo();var _ba=ge('btn-add-prodotto');if(_ba)_ba.style.display=(ROLE==='titolare')?'':'none';var _bi=ge('btn-import-excel');if(_bi)_bi.style.display=(ROLE==='titolare')?'':'none';}
   if(id==='fatture'){loadFatture();}
@@ -4107,8 +4112,6 @@ async function saveUser(){
 }
 
 
-// ── CALENDARIO APPUNTAMENTI COMMERCIALI ──────────────────────
-eers
 // ── CALENDARIO ───────────────────────────────────────────────
 
 var calYear = new Date().getFullYear();
@@ -5707,9 +5710,6 @@ function filtraCatalogo() {
 
 // ── CALENDARIO APPUNTAMENTI COMMERCIALI ──────────────────────
 
-let appAnno = new Date().getFullYear();
-let appMese = new Date().getMonth();
-let appDati = [];
 
 function dataLocaleApp(iso) {
   const d = new Date(iso);
@@ -5766,7 +5766,7 @@ function renderCalendarioAppuntamenti() {
   const heads = ge('app-cal-heads');
   const body = ge('app-cal-body');
   const lista = ge('app-lista');
-
+  
   if (!label || !heads || !body || !lista) return;
 
   const primo = new Date(appAnno, appMese, 1);
@@ -5984,6 +5984,162 @@ function cambiaMeseAppuntamenti(delta) {
   loadAppuntamentiCommerciali();
 }
 
+// ── PROGETTI TECNICI CLIENTE ─────────────────────────────────
+
+async function loadProgettiCliente(clienteId) {
+  const lista = ge('cd-progetti-lista');
+
+  if (!clienteId || !lista) return;
+
+  lista.innerHTML = '<div class="load">Caricamento...</div>';
+
+  const { data, error } = await db
+    .from('progetti_tecnici')
+    .select('*')
+    .eq('cliente_id', clienteId)
+    .order('creato_il', { ascending: false });
+
+  if (error) {
+    lista.innerHTML =
+      '<div class="al2 e">Errore: ' + esc(error.message) + '</div>';
+    return;
+  }
+
+  progettiClienteDati = data || [];
+
+  if (!progettiClienteDati.length) {
+    lista.innerHTML =
+      '<div class="empty">Nessun progetto tecnico per questo cliente.</div>';
+    return;
+  }
+
+  lista.innerHTML = progettiClienteDati.map(function(p) {
+    const stato = {
+      bozza: 'Bozza',
+      inviato_a_commerciale: 'Inviato al commerciale',
+      in_valutazione: 'In valutazione',
+      pronto_per_preventivo: 'Pronto per preventivo',
+      approvato: 'Approvato',
+      archiviato: 'Archiviato'
+    }[p.stato] || p.stato;
+
+    return '<div class="card" style="margin-bottom:10px">' +
+      '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
+        '<div>' +
+          '<div style="font-size:14px;font-weight:700">' +
+            esc(p.titolo) +
+          '</div>' +
+          '<div style="font-size:12px;color:var(--m);margin-top:4px">' +
+            esc(p.tipologia) +
+            ' · Creato il ' +
+            new Date(p.creato_il).toLocaleDateString('it-IT') +
+          '</div>' +
+        '</div>' +
+        '<span class="bx bblue">' + esc(stato) + '</span>' +
+      '</div>' +
+      '<div style="font-size:13px;white-space:pre-wrap;margin-top:10px">' +
+        esc(p.descrizione_tecnica) +
+      '</div>' +
+      '<div style="display:flex;gap:8px;margin-top:12px">' +
+        '<button class="btn sm" onclick="modificaProgetto(\'' + p.id + '\')">' +
+          '✏️ Modifica' +
+        '</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function apriNuovoProgetto() {
+  if (!currentCliId) {
+    toast('Apri prima la scheda di un cliente', 'err');
+    return;
+  }
+
+  ge('mp-id').value = '';
+  ge('mp-titolo-modal').textContent = 'Nuovo progetto tecnico';
+  ge('mp-titolo').value = '';
+  ge('mp-tipologia').value = '';
+  ge('mp-descrizione').value = '';
+  ge('mp-materiali').value = '';
+
+  openM('m-progetto');
+}
+
+function modificaProgetto(id) {
+  const progetto = progettiClienteDati.find(p => p.id === id);
+
+  if (!progetto) {
+    toast('Progetto non trovato', 'err');
+    return;
+  }
+
+  ge('mp-id').value = progetto.id;
+  ge('mp-titolo-modal').textContent = 'Modifica progetto tecnico';
+  ge('mp-titolo').value = progetto.titolo || '';
+  ge('mp-tipologia').value = progetto.tipologia || '';
+  ge('mp-descrizione').value = progetto.descrizione_tecnica || '';
+  ge('mp-materiali').value = progetto.materiali_note || '';
+
+  openM('m-progetto');
+}
+
+async function salvaProgetto() {
+  const id = v('mp-id');
+  const titolo = v('mp-titolo').trim();
+  const tipologia = v('mp-tipologia');
+  const descrizione = v('mp-descrizione').trim();
+
+  if (!titolo || !tipologia || !descrizione) {
+    toast('Titolo, tipologia e descrizione sono obbligatori', 'err');
+    return;
+  }
+
+  const payload = {
+    titolo: titolo,
+    tipologia: tipologia,
+    descrizione_tecnica: descrizione,
+    materiali_note: v('mp-materiali').trim() || null
+  };
+
+  let result;
+
+  if (id) {
+    result = await db
+      .from('progetti_tecnici')
+      .update(payload)
+      .eq('id', id);
+  } else {
+    payload.cliente_id = currentCliId;
+    payload.rappresentante_id = ME.id;
+    payload.stato = 'bozza';
+
+    result = await db
+      .from('progetti_tecnici')
+      .insert(payload);
+  }
+
+  if (result.error) {
+    toast('Errore: ' + result.error.message, 'err');
+    return;
+  }
+
+  closeM('m-progetto');
+  toast(id ? 'Progetto aggiornato' : 'Progetto creato come bozza', 'ok');
+  loadProgettiCliente(currentCliId);
+}
+
+// MOSTRA PASSWORD 
+
+function togglePasswordLogin() {
+  const input = ge('lpw');
+  const button = ge('toggle-password');
+
+  if (!input || !button) return;
+
+  const nascosta = input.type === 'password';
+  input.type = nascosta ? 'text' : 'password';
+  button.textContent = nascosta ? 'Nascondi' : 'Mostra';
+}
 
 // ── INIT ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',async()=>{

@@ -21,7 +21,28 @@
     <div style="font-size:14px;color:var(--m);margin-bottom:28px">Gestionale antincendio — Accedi</div>
     <div id="lerr"></div>
     <div class="f"><label>Email</label><input type="email" id="lem" placeholder="email@toli-fire.com" autocomplete="email"></div>
-    <div class="f"><label>Password</label><input type="password" id="lpw" placeholder="••••••••" autocomplete="current-password"></div>
+   <div class="f">
+  <label>Password</label>
+
+  <div style="position:relative">
+    <input
+      type="password"
+      id="lpw"
+      placeholder="••••••••"
+      autocomplete="current-password"
+      style="padding-right:74px">
+
+    <button
+      type="button"
+      id="toggle-password"
+      onclick="togglePasswordLogin()"
+      style="position:absolute;right:8px;top:50%;transform:translateY(-50%);
+             border:none;background:none;color:var(--g);font-size:12px;
+             font-weight:600;cursor:pointer">
+      Mostra
+    </button>
+  </div>
+</div>
     <button class="btn p" style="width:100%;justify-content:center;padding:12px;font-size:14px" id="lbtn" onclick="doLogin()">Accedi</button>
   </div>
 </div>
@@ -885,23 +906,33 @@
     <button class="tab" onclick="stab(this,'cd-interventi')">Interventi</button>
     <button class="tab" onclick="stab(this,'cd-documenti')">Documenti</button>
     <button class="tab" onclick="stab(this,'cd-files');loadDocumentiCliente(currentCliId)">📎 File</button>
+    <button class="tab" onclick="stab(this,'cd-progetti');loadProgettiCliente(currentCliId)"> 📐 Progetti tecnici </button>
     <button class="tab" onclick="stab(this,'cd-periodicita')">Periodicità</button>
-    <button class="tab" onclick="stab(this,'cd-file');loadFileCliente()">📎 File</button>
   </div>
   <div class="tc on" id="cd-info"><div id="cd-info-content"><div class="load">Caricamento...</div></div></div>
   <div class="tc" id="cd-presidi"><div id="cd-presidi-content"><div class="load">Caricamento...</div></div></div>
   <div class="tc" id="cd-interventi"><div id="cd-interventi-content"><div class="load">Caricamento...</div></div></div>
   <div class="tc" id="cd-documenti"><div id="cd-documenti-content"><div class="load">Caricamento...</div></div></div>
-  <div class="tc" id="cd-file">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <div style="font-size:13px;color:var(--m)">Documenti e file allegati al cliente</div>
-      <label class="btn p" style="cursor:pointer">
-        📎 Carica file
-        <input type="file" id="file-upload-input" multiple style="display:none" onchange="uploadFileCliente(this)">
-      </label>
+
+<div class="tc" id="cd-progetti">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div>
+      <div style="font-size:14px;font-weight:600">Progetti tecnici</div>
+      <div style="font-size:12px;color:var(--m);margin-top:2px">
+        Studi tecnici e richieste da inviare al commerciale
+      </div>
     </div>
-    <div id="cd-file-content"><div class="load">Caricamento...</div></div>
+
+    <button class="btn p" onclick="apriNuovoProgetto()">
+      + Nuovo progetto
+    </button>
   </div>
+
+  <div id="cd-progetti-lista">
+    <div class="load">Caricamento...</div>
+  </div>
+</div>
+
 
   <div class="tc" id="cd-files">
     <!-- Upload area -->
@@ -1029,6 +1060,27 @@
   <div class="tc" id="tc-dd"><div class="tw"><table><thead><tr><th>N°</th><th>Cliente</th><th>Data</th><th>Causale</th><th></th></tr></thead><tbody id="dtbody"></tbody></table></div></div>
   <div class="tc" id="tc-rd"><div class="tw"><table><thead><tr><th>N°</th><th>Cliente</th><th>Impianto</th><th>Data</th><th>Esito</th><th>Straord.</th><th></th></tr></thead><tbody id="rttbody"></tbody></table></div></div>
 </div>
+
+<!--PROGETTI TECNICI - SEZIONE CLIENTI-->
+<div class="tc" id="cd-progetti">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div>
+      <div style="font-size:14px;font-weight:600">Progetti tecnici</div>
+      <div style="font-size:12px;color:var(--m);margin-top:2px">
+        Studi tecnici e richieste da inviare al commerciale
+      </div>
+    </div>
+
+    <button class="btn p" onclick="apriNuovoProgetto()">
+      + Nuovo progetto
+    </button>
+  </div>
+
+  <div id="cd-progetti-lista">
+    <div class="load">Caricamento...</div>
+  </div>
+</div>
+
 
 <!-- TECNICO -->
 <div class="page" id="pg-tecnico">
@@ -1312,7 +1364,7 @@
 </div>
 </div>
 
-<!--rappresentante calendario-->
+<!--Rappresentante calendario-->
 <div class="mbg" id="m-appuntamento">
   <div class="modal">
     <div class="mh">
@@ -1376,6 +1428,61 @@
     </div>
   </div>
 </div>
+
+<!--Progetti - sezione cliente -->
+<div class="mbg" id="m-progetto">
+  <div class="modal">
+    <div class="mh">
+      <span id="mp-titolo-modal">Nuovo progetto tecnico</span>
+      <button class="mx" onclick="closeM('m-progetto')">✕</button>
+    </div>
+
+    <input type="hidden" id="mp-id">
+
+    <div class="f">
+      <label>Titolo progetto *</label>
+      <input type="text" id="mp-titolo"
+        placeholder="Es. Adeguamento porte REI — sede centrale">
+    </div>
+
+    <div class="f">
+      <label>Tipologia progetto *</label>
+      <select id="mp-tipologia">
+        <option value="">Seleziona...</option>
+        <option value="Porte REI / tagliafuoco">Porte REI / tagliafuoco</option>
+        <option value="Estintori">Estintori</option>
+        <option value="Idranti e naspi">Idranti e naspi</option>
+        <option value="Luci di emergenza">Luci di emergenza</option>
+        <option value="Impianto rivelazione incendi">Impianto rivelazione incendi</option>
+        <option value="Sprinkler">Sprinkler</option>
+        <option value="Pompa antincendio">Pompa antincendio</option>
+        <option value="Segnaletica / uscite di emergenza">Segnaletica / uscite di emergenza</option>
+        <option value="Adeguamento completo">Adeguamento completo</option>
+        <option value="Altro">Altro</option>
+      </select>
+    </div>
+
+    <div class="f">
+      <label>Descrizione / studio tecnico *</label>
+      <textarea id="mp-descrizione"
+        placeholder="Descrivi il progetto, le criticità rilevate e la soluzione proposta...">
+      </textarea>
+    </div>
+
+    <div class="f">
+      <label>Materiali necessari (facoltativo)</label>
+      <textarea id="mp-materiali"
+        placeholder="Es. 4 porte REI 120, maniglioni antipanico, chiudiporta...">
+      </textarea>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn" onclick="closeM('m-progetto')">Annulla</button>
+      <button class="btn p" onclick="salvaProgetto()">Salva bozza</button>
+    </div>
+  </div>
+</div>
+
 <script src="app.js"></script>
 
 </body>
