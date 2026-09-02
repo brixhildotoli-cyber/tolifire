@@ -472,3 +472,43 @@ textarea{resize:vertical;min-height:80px}
     display: none;
   }
 }
+/* ── INFO RUOLO SW ──── */
+
+.guida-ruolo h3 {
+  margin-bottom: 10px;
+}
+
+.guida-ruolo h4 {
+  margin: 22px 0 8px;
+  color: var(--g);
+}
+
+.guida-ruolo p,
+.guida-ruolo li {
+  line-height: 1.6;
+}
+
+.guida-ruolo ul {
+  padding-left: 20px;
+}
+
+.sep {
+  border: 0;
+  border-top: 1px solid var(--br);
+  margin: 24px 0;
+}
+
+.info-esempio {
+  background: #f4f7f6;
+  border-left: 4px solid var(--g);
+  border-radius: 6px;
+  margin: 12px 0;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.info-esempio code {
+  color: #174f43;
+  font-size: 12px;
+}

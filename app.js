@@ -28,7 +28,7 @@ const NAV={
   contabile:[{id:'dashboard',l:'Dashboard'},{id:'workflow',l:'💜 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
   tecnico:[{id:'dashboard',l:'Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
   commerciale:[{id:'dashboard',l:'Dashboard'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
-  rappresentante:[{id:'dashboard-rapp',l:'Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'progetti', l:'📐 Progetti'},{id:'presidi',l:'🧯 Presidi'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'trattative',l:'💼 Trattative'}],
+  rappresentante:[{id:'dashboard-rapp',l:'Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead e trattative'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'progetti', l:'📐 Progetti'},{id:'presidi',l:'🧯 Presidi'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'info',l:'ⓘ Info'}],
 };
 
 // NAV MOBILE
@@ -570,6 +570,7 @@ async function scaricaPortale(path, nomeFile) {
   a.click();
   document.body.removeChild(a);
 }
+
 function toggleNavMobile() {
   const nav = ge('nav');
   const btn = ge('nav-toggle');
@@ -625,13 +626,109 @@ const PAGINE_RUOLO = {
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
   commerciale:    ['dashboard','clienti','presidi','documenti','fatture','catalogo','cliente-detail'],
-  rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','sopralluogo','trattative','cliente-detail'],
+  rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','sopralluogo','trattative','cliente-detail','info'],
 };
 
 function canAccessPage(id) {
   if(!ROLE) return false;
   var allowed = PAGINE_RUOLO[ROLE] || [];
   return allowed.indexOf(id) !== -1;
+}
+
+const GUIDE_RUOLO = {
+  rappresentante: {
+    titolo: 'Guida area rappresentante',
+    testo: `
+      <h3>Benvenuto nell’area rappresentante</h3>
+      <p>Qui gestisci i tuoi clienti, i contatti commerciali e le attività prima del passaggio a commerciale, tecnico o acquisti.</p>
+
+      <h4>Dashboard</h4>
+      <p>Mostra un riepilogo delle attività e degli appuntamenti principali.</p>
+
+      <h4>Calendario</h4>
+      <p>Crea, modifica o elimina i tuoi appuntamenti: visite, richiami e sopralluoghi commerciali.</p>
+
+      <h4>Clienti</h4>
+      <p>Consulta le schede dei clienti assegnati a te, con anagrafica, documenti e informazioni disponibili.</p>
+
+      <h4>Lead e trattative</h4>
+      <p>Registra nuovi contatti da Google, passaparola, eventi o segnalazioni. Indica sempre fonte, prossima azione e data del richiamo.</p>
+
+      <h4>Sopralluogo</h4>
+      <p>Dopo una visita, inserisci le informazioni raccolte, le esigenze del cliente e le note utili al reparto tecnico o commerciale.</p>
+
+      <h4>Progetti</h4>
+      <p>Qui verranno raccolti studi tecnici, descrizioni del progetto, documenti obbligatori e materiali collegati al cliente.</p>
+
+      <h4>Regole importanti</h4>
+      <ul>
+        <li>Scrivi note chiare e complete.</li>
+        <li>Aggiorna sempre la prossima azione del lead.</li>
+        <li>Se un appuntamento salta, modificalo o eliminalo.</li>
+        <li>Non condividere password o dati riservati dei clienti.</li>
+      </ul>
+    `
+  },
+
+  tecnico: {
+    titolo: 'Guida area tecnico',
+    testo: `
+      <h3>Guida rapida per tecnici</h3>
+      <p>Consulta gli interventi assegnati, il calendario tecnico e la documentazione collegata.</p>
+      <ul>
+        <li>Controlla gli appuntamenti prima di iniziare la giornata.</li>
+        <li>Compila correttamente le attività e le note di intervento.</li>
+        <li>Carica o consulta i documenti collegati quando necessario.</li>
+      </ul>
+    `
+  },
+
+  capo_tecnico: {
+    titolo: 'Guida area capo tecnico',
+    testo: `
+      <h3>Guida rapida per capo tecnico</h3>
+      <p>Coordina interventi, calendario del team, pianificazione e clienti assegnati.</p>
+      <ul>
+        <li>Verifica disponibilità e carichi del team.</li>
+        <li>Controlla gli interventi in programma.</li>
+        <li>Assegna attività e monitora le informazioni tecniche ricevute.</li>
+      </ul>
+    `
+  },
+
+  commerciale: {
+    titolo: 'Guida area commerciale',
+    testo: `
+      <h3>Guida area commerciale</h3>
+      <p>Gestisci clienti, sopralluoghi ricevuti, preventivi, documenti e attività commerciali.</p>
+    `
+  },
+
+  segreteria: {
+    titolo: 'Guida area segreteria',
+    testo: `
+      <h3>Guida area segreteria</h3>
+      <p>Gestisci le attività amministrative, i clienti, i documenti, le fatture e il coordinamento operativo.</p>
+    `
+  },
+
+  titolare: {
+    titolo: 'Guida area titolare',
+    testo: `
+      <h3>Guida area titolare</h3>
+      <p>Hai una visione completa del gestionale: utenti, pianificazione, clienti, documenti, fatture e configurazioni.</p>
+    `
+  }
+};
+
+function loadInfo() {
+  const guida = GUIDE_RUOLO[ROLE] || {
+    titolo: 'Informazioni',
+    testo: '<p>Nessuna guida disponibile per questo ruolo.</p>'
+  };
+
+  ge('info-titolo').textContent = guida.titolo;
+  ge('info-contenuto').innerHTML = guida.testo;
 }
 
 function gotoPage(id){
@@ -662,6 +759,7 @@ function gotoPage(id){
   if(id==='fatture'){loadFatture();}
   if(id==='tecnico')loadOdlTecnico();
   if(id==='sopralluogo' && ROLE!=='rappresentante' && ROLE!=='titolare'){toast('Accesso non consentito','err');return;}
+  if(id === 'info') loadInfo();
   window.scrollTo(0,0);
 }
 
@@ -4753,26 +4851,286 @@ async function loadDashRappresentante() {
     }
   }
 }
-
 async function loadTrattative() {
-  var res = await db.from('clienti').select('*').eq('stato','prospect').order('creato_il',{ascending:false});
-  _allProspect = res.data || [];
+  const [clientiRes, pipelineRes] = await Promise.all([
+    db
+      .from('clienti')
+      .select('*')
+      .eq('stato', 'prospect')
+      .is('eliminato_il', null)
+      .order('creato_il', { ascending: false }),
+
+    db
+      .from('pipeline_crm')
+      .select('*')
+      .order('aggiornato_il', { ascending: false })
+  ]);
+
+  if (clientiRes.error) {
+    toast('Errore caricamento lead: ' + clientiRes.error.message, 'err');
+    return;
+  }
+
+  const pipelinePerCliente = {};
+
+  (pipelineRes.data || []).forEach(p => {
+    if (!pipelinePerCliente[p.cliente_id]) {
+      pipelinePerCliente[p.cliente_id] = p;
+    }
+  });
+
+  _allProspect = (clientiRes.data || []).map(c => ({
+    ...c,
+    pipeline: pipelinePerCliente[c.id] || null
+  }));
+_allProspect = _allProspect.filter(c =>
+  !c.pipeline || c.pipeline.fase !== 'perso'
+);
   renderProspectListT(_allProspect);
 }
 
 function renderProspectListT(data) {
-  var el = ge('tr-prospect-list'); if(!el) return;
-  if(!data.length) { el.innerHTML = '<div class="empty">Nessun prospect.</div>'; return; }
-  el.innerHTML = data.map(function(c) {
-    var tel = esc(c.referente_telefono) ? '<a href="tel:' + esc(c.referente_telefono) + '" class="btn sm">Chiama</a>' : '';
-    return '<div class="card" style="margin-bottom:10px">' +
-      '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">' +
-      '<div><div style="font-size:14px;font-weight:600">' + esc(c.ragione_sociale) + '</div>' +
-      '<div style="font-size:12px;color:var(--m)">' + (esc(c.citta)||'') + (esc(c.referente_nome)?' · '+esc(c.referente_nome):'') + (esc(c.referente_telefono)?' · '+esc(c.referente_telefono):'') + '</div></div>' +
-      '<span class="bx bblue">Prospect</span></div>' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' +
-      '<button class="btn sm" onclick="openClienteDetail(\'' + c.id + '\')">Scheda</button> ' + tel + '</div></div>';
-  }).join('');
+  const el = ge('tr-prospect-list');
+  if (!el) return;
+
+  if (!data.length) {
+    el.innerHTML =
+       '<div class="empty">Nessun lead. <br><button class="btn p sm" style="margin-top:10px" onclick="apriNuovoLead()">+ Nuovo lead</button></div>';
+    return;
+  }
+
+  const etichetteFonte = {
+    google_ads: 'Google Ads',
+    passaparola: 'Passaparola',
+    relazionale: 'Relazionale',
+    sito_web: 'Sito web',
+    telefonata: 'Telefonata',
+    evento: 'Evento',
+    altro: 'Altro'
+  };
+
+  const etichetteFase = {
+    primo_contatto: 'Primo contatto',
+    qualificato: 'Qualificato',
+    appuntamento_fissato: 'Appuntamento fissato',
+    sopralluogo: 'Sopralluogo',
+    progetto_tecnico: 'Progetto tecnico',
+    preventivo_inviato: 'Preventivo inviato',
+    vinto: 'Vinto',
+    perso: 'Perso'
+  };
+
+  el.innerHTML = data.map(c => {
+    const p = c.pipeline;
+    const telefono = c.referente_telefono
+      ? '<a href="tel:' + esc(c.referente_telefono) + '" class="btn sm">Chiama</a>'
+      : '';
+
+    const fonte = p
+      ? (etichetteFonte[p.fonte_lead] || p.fonte_lead || '—')
+      : 'Da qualificare';
+
+    const fase = p
+      ? (etichetteFase[p.fase] || p.fase || 'Primo contatto')
+      : 'Senza trattativa';
+
+    const richiamo = p && p.data_prossimo_contatto
+      ? ' · Prossimo: ' + fd(p.data_prossimo_contatto)
+      : '';
+
+    const valore = p && p.valore_stimato
+      ? ' · € ' + Number(p.valore_stimato).toLocaleString('it-IT')
+      : '';
+
+    return `
+    <div class="card" style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:14px;font-weight:600">${esc(c.ragione_sociale)}</div>
+
+        <div style="font-size:12px;color:var(--m);margin-top:3px">
+          ${esc(c.citta || 'Città non indicata')}
+          ${c.referente_nome ? ' · ' + esc(c.referente_nome) : ''}
+          ${c.referente_telefono ? ' · ' + esc(c.referente_telefono) : ''}
+        </div>
+      </div>
+
+      <span class="bx bblue">${esc(fase)}</span>
+    </div>
+
+    <div style="font-size:12px;color:var(--m);margin-top:8px">
+      🎯 Fonte: ${esc(fonte)}
+      ${richiamo}
+      ${valore}
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button class="btn sm" onclick="openClienteDetail('${c.id}')">
+        Scheda
+      </button>
+
+      ${telefono}
+
+      <button class="btn sm info" onclick="apriAppuntamentoDaLead('${c.id}')">
+        📅 Fissa appuntamento
+      </button>
+
+      <button
+        class="btn sm"
+        style="color:var(--r)"
+        onclick="segnaLeadPerso('${c.id}')">
+        ✕ Segna perso
+      </button>
+    </div>
+  </div>
+`;
+}).join('');
+}
+
+function apriNuovoLead() {
+  [
+    'lead-ragione',
+    'lead-referente',
+    'lead-telefono',
+    'lead-email',
+    'lead-citta',
+    'lead-dettaglio',
+    'lead-prossimo-contatto',
+    'lead-valore',
+    'lead-note'
+  ].forEach(id => {
+    const el = ge(id);
+    if (el) el.value = '';
+  });
+
+  ge('lead-attivita').value = '';
+  ge('lead-fonte').value = '';
+  ge('lead-prossima-azione').value = 'chiamata';
+  ge('lead-probabilita').value = '10';
+  ge('lead-errore').innerHTML = '';
+
+  openM('m-lead');
+}
+
+async function salvaLead() {
+  const ragioneSociale = v('lead-ragione').trim();
+  const fonteLead = v('lead-fonte');
+  const erroreBox = ge('lead-errore');
+  const bottone = ge('lead-salva');
+
+  if (!ragioneSociale || !fonteLead) {
+    erroreBox.innerHTML =
+      '<div class="al2 e">Ragione sociale e fonte del lead sono obbligatorie.</div>';
+    return;
+  }
+
+  bottone.disabled = true;
+  bottone.textContent = 'Creazione in corso...';
+  erroreBox.innerHTML = '';
+
+  try {
+    const { data: cliente, error: erroreCliente } = await db
+      .from('clienti')
+      .insert({
+        ragione_sociale: ragioneSociale,
+        tipo_attivita: v('lead-attivita') || null,
+        referente_nome: v('lead-referente').trim() || null,
+        referente_telefono: v('lead-telefono').trim() || null,
+        referente_email: v('lead-email').trim() || null,
+        citta: v('lead-citta').trim() || null,
+        stato: 'prospect',
+        rappresentante_id: ME.id,
+        note_commerciali: v('lead-note').trim() || null
+      })
+      .select()
+      .single();
+
+    if (erroreCliente) throw erroreCliente;
+
+    const probabilita = Math.min(
+      100,
+      Math.max(0, parseInt(v('lead-probabilita')) || 0)
+    );
+
+    const { error: errorePipeline } = await db
+      .from('pipeline_crm')
+      .insert({
+        cliente_id: cliente.id,
+        rappresentante_id: ME.id,
+        fase: 'primo_contatto',
+        fonte_lead: fonteLead,
+        dettaglio_fonte: v('lead-dettaglio').trim() || null,
+        valore_stimato: parseFloat(v('lead-valore')) || null,
+        data_prossimo_contatto: v('lead-prossimo-contatto') || null,
+        tipo_prossima_azione: v('lead-prossima-azione') || null,
+        probabilita_chiusura: probabilita,
+        note_trattativa: v('lead-note').trim() || null
+      });
+
+    if (errorePipeline) {
+      throw new Error(
+        'Prospect creato, ma trattativa non salvata: ' +
+        errorePipeline.message
+      );
+    }
+
+    closeM('m-lead');
+    toast('Lead creato correttamente', 'ok');
+
+    await loadCS();
+    await loadTrattative();
+
+  } catch (e) {
+    erroreBox.innerHTML =
+      '<div class="al2 e">Errore: ' + esc(e.message) + '</div>';
+  } finally {
+    bottone.disabled = false;
+    bottone.textContent = 'Crea lead';
+  }
+}
+
+function apriAppuntamentoDaLead(clienteId) {
+  const lead = _allProspect.find(c => c.id === clienteId);
+
+  apriNuovoAppuntamento(new Date().toISOString().split('T')[0]);
+
+  ge('ma-cliente').value = clienteId;
+
+  if (lead) {
+    ge('ma-titolo').value = 'Contatto lead — ' + lead.ragione_sociale;
+  }
+}
+async function segnaLeadPerso(clienteId) {
+  const lead = _allProspect.find(c => c.id === clienteId);
+
+  if (!lead || !lead.pipeline) {
+    toast('Questo prospect non ha ancora una trattativa collegata', 'err');
+    return;
+  }
+
+  const motivo = prompt(
+    'Motivo della perdita / archiviazione del lead:',
+    lead.pipeline.motivo_perdita || ''
+  );
+
+  if (motivo === null) return;
+
+  const { error } = await db
+    .from('pipeline_crm')
+    .update({
+      fase: 'perso',
+      motivo_perdita: motivo.trim() || null,
+      aggiornato_il: new Date().toISOString()
+    })
+    .eq('id', lead.pipeline.id);
+
+  if (error) {
+    toast('Errore: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Lead archiviato come perso', 'ok');
+  await loadTrattative();
 }
 
 function filterTrattative() {

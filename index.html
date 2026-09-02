@@ -698,6 +698,9 @@
       <button class="rap-secondary-btn" onclick="gotoPage('presidi')"><span class="ico">🧯</span>Presidi</button>
     </div>
   </div>
+  <button class="btn" onclick="gotoPage('info')">
+  ⓘ Come funziona questa area?
+</button>
 </div>
 <!--Progetti tecnici resume-->
 <section class="page" id="pg-progetti">
@@ -760,9 +763,20 @@
   </div>
 </div>
 
-<!-- TRATTATIVE -->
+<!-- LEAD -->
 <div class="page" id="pg-trattative">
-  <div class="sh"><div><div class="st">Trattative</div></div><button class="btn p" onclick="openNewCli()">+ Prospect</button></div>
+  <div class="sh">
+  <div>
+    <div class="st">🎯 Lead</div>
+    <div style="font-size:13px;color:var(--m);margin-top:2px">
+      Contatti e opportunità commerciali da qualificare
+    </div>
+  </div>
+
+  <button class="btn p" onclick="apriNuovoLead()">
+    + Nuovo lead
+  </button>
+</div>
   <div class="tabs">
     <button class="tab on" onclick="stab(this,'tr-p')">Prospect</button>
     <button class="tab" onclick="stab(this,'tr-s');loadSopralluoghiList()">Sopralluoghi</button>
@@ -1231,7 +1245,165 @@
     </div>
   </div>
 </div>
-</div><!-- /app -->
+</div>
+
+<div class="page" id="pg-info">
+  <div class="sh">
+    <div>
+      <div class="st" id="info-titolo">Informazioni</div>
+      <div class="sub">Guida pratica all’uso del gestionale.</div>
+    </div>
+  </div>
+
+  <div id="info-contenuto">
+
+    <!-- GUIDA RAPPRESENTANTE -->
+    <div
+      class="card guida-ruolo"
+      id="guida-rappresentante"
+      data-titolo="Guida pratica — Rappresentante"
+      style="display:none"
+    >
+      <h3>🎯 Come usare il gestionale nel lavoro quotidiano</h3>
+
+      <p>
+        Usa il gestionale per registrare nuovi contatti, seguire i clienti,
+        fissare appuntamenti e passare informazioni complete agli altri reparti.
+      </p>
+
+      <hr class="sep">
+
+      <h4>1. Hai un nuovo contatto? Crea un lead</h4>
+
+      <p>
+        Vai in <b>Lead e trattative</b> e premi <b>+ Nuovo lead</b>.
+        Inserisci almeno ragione sociale e fonte del contatto.
+      </p>
+
+      <div class="info-esempio">
+        <b>Esempio: contatto da Google Ads</b><br>
+        <code>fonte_lead: google_ads</code><br>
+        <code>dettaglio_fonte: Campagna estintori Milano</code>
+      </div>
+
+      <div class="info-esempio">
+        <b>Esempio: contatto da passaparola</b><br>
+        <code>fonte_lead: passaparola</code><br>
+        <code>dettaglio_fonte: Segnalato da Mario Rossi</code>
+      </div>
+
+      <p>
+        Compila sempre anche la <b>prossima azione</b> e la data del
+        <b>prossimo contatto</b>, altrimenti il lead rischia di essere dimenticato.
+      </p>
+
+      <div class="info-esempio">
+        <b>Esempio di follow-up</b><br>
+        <code>prossima_azione: Chiamata</code><br>
+        <code>data_prossimo_contatto: 10/09/2026</code><br>
+        <code>note_iniziali: Cliente interessato a manutenzione estintori per ufficio di 3 piani.</code>
+      </div>
+
+      <hr class="sep">
+
+      <h4>2. Il lead risponde? Fissa un appuntamento</h4>
+
+      <p>
+        Dalla scheda del lead premi <b>📅 Fissa appuntamento</b>.
+        Inserisci data, orario, cliente e motivo dell’incontro.
+      </p>
+
+      <p>
+        Se l’appuntamento viene spostato, aprilo dal <b>Calendario</b> e modificalo.
+        Se viene annullato definitivamente, eliminalo.
+      </p>
+
+      <hr class="sep">
+
+      <h4>3. Dopo la visita: compila il sopralluogo</h4>
+
+      <p>
+        Vai in <b>Sopralluogo</b> e raccogli le informazioni realmente utili:
+        esigenza del cliente, impianti presenti, anomalie, urgenza, budget,
+        decisore e documentazione disponibile.
+      </p>
+
+      <div class="info-esempio">
+        <b>Esempio nota sopralluogo</b><br>
+        <code>Richiesta sostituzione di 12 estintori e verifica porte REI.</code><br>
+        <code>Decisore: amministratore condominio.</code><br>
+        <code>Urgenza: entro fine mese.</code>
+      </div>
+
+      <hr class="sep">
+
+      <h4>4. Lead non interessato o non recuperabile</h4>
+
+      <p>
+        Nella lista Lead premi <b>✕ Segna perso</b> e inserisci il motivo.
+        Non eliminare informazioni importanti: il motivo della perdita è utile
+        per capire cosa migliorare in futuro.
+      </p>
+
+      <div class="info-esempio">
+        <b>Esempi di motivo perdita</b><br>
+        <code>Ha rinnovato con il fornitore attuale.</code><br>
+        <code>Budget non disponibile.</code><br>
+        <code>Nessuna risposta dopo tre tentativi di contatto.</code>
+      </div>
+
+      <hr class="sep">
+
+      <h4>5. Clienti e documenti</h4>
+
+      <p>
+        In <b>Clienti</b> puoi consultare le schede dei clienti assegnati,
+        le informazioni anagrafiche e i documenti disponibili.
+        Non inserire o modificare dati di clienti che non sono di tua competenza.
+      </p>
+
+      <hr class="sep">
+
+      <h4>Regole pratiche</h4>
+
+      <ul>
+        <li>Scrivi note come se dovesse leggerle un collega che non ti conosce.</li>
+        <li>Non lasciare lead senza prossima azione o data di richiamo.</li>
+        <li>Non inserire password, dati bancari o informazioni riservate nelle note.</li>
+        <li>Aggiorna appuntamenti e sopralluoghi appena conclusi.</li>
+        <li>Se hai dubbi su un cliente, verifica prima con il responsabile.</li>
+      </ul>
+    </div>
+
+    <!-- GUIDA TECNICO: da compilare in seguito -->
+    <div
+      class="card guida-ruolo"
+      id="guida-tecnico"
+      data-titolo="Guida pratica — Tecnico"
+      style="display:none"
+    >
+      <h3>Guida area tecnico</h3>
+      <p>Guida in preparazione.</p>
+    </div>
+
+    <!-- GUIDA CAPO TECNICO: da compilare in seguito -->
+    <div
+      class="card guida-ruolo"
+      id="guida-capo_tecnico"
+      data-titolo="Guida pratica — Capo tecnico"
+      style="display:none"
+    >
+      <h3>Guida area capo tecnico</h3>
+      <p>Guida in preparazione.</p>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- /app -->
+
+
 
 <!-- MODALS -->
 <div class="mbg" id="m-presidio">
@@ -1515,9 +1687,130 @@
   </div>
 </div>
 
+<div class="mbg" id="m-lead">
+  <div class="modal" style="max-width:700px">
+    <div class="mh">
+      <span>🎯 Nuovo lead</span>
+      <button class="mx" onclick="closeM('m-lead')">✕</button>
+    </div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Ragione sociale *</label>
+        <input type="text" id="lead-ragione" placeholder="Azienda / condominio / contatto">
+      </div>
+
+      <div class="f">
+        <label>Tipo attività</label>
+        <select id="lead-attivita">
+          <option value="">Seleziona...</option>
+          <option value="ufficio">Ufficio</option>
+          <option value="magazzino">Magazzino / produzione</option>
+          <option value="hotel_ristorazione">Hotel / ristorazione</option>
+          <option value="condominio">Condominio</option>
+          <option value="pubblico_sanitario">Pubblico / sanitario</option>
+          <option value="commercio">Commercio</option>
+          <option value="industria">Industria</option>
+          <option value="altro">Altro</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Referente</label>
+        <input type="text" id="lead-referente">
+      </div>
+
+      <div class="f">
+        <label>Telefono</label>
+        <input type="tel" id="lead-telefono">
+      </div>
+    </div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Email</label>
+        <input type="email" id="lead-email">
+      </div>
+
+      <div class="f">
+        <label>Città</label>
+        <input type="text" id="lead-citta">
+      </div>
+    </div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Fonte lead *</label>
+        <select id="lead-fonte">
+          <option value="">Seleziona...</option>
+          <option value="google_ads">Google Ads</option>
+          <option value="passaparola">Passaparola</option>
+          <option value="relazionale">Contatto relazionale</option>
+          <option value="sito_web">Sito web</option>
+          <option value="telefonata">Telefonata</option>
+          <option value="evento">Evento / fiera</option>
+          <option value="altro">Altro</option>
+        </select>
+      </div>
+
+      <div class="f">
+        <label>Dettaglio fonte</label>
+        <input type="text" id="lead-dettaglio" placeholder="Campagna, nome segnalatore, evento...">
+      </div>
+    </div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Prossimo contatto</label>
+        <input type="date" id="lead-prossimo-contatto">
+      </div>
+
+      <div class="f">
+        <label>Prossima azione</label>
+        <select id="lead-prossima-azione">
+          <option value="chiamata">Chiamata</option>
+          <option value="email">Email</option>
+          <option value="visita">Visita</option>
+          <option value="preventivo">Preparare preventivo</option>
+          <option value="altro">Altro</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Valore stimato (€)</label>
+        <input type="number" min="0" step="0.01" id="lead-valore">
+      </div>
+
+      <div class="f">
+        <label>Probabilità chiusura (%)</label>
+        <input type="number" min="0" max="100" value="10" id="lead-probabilita">
+      </div>
+    </div>
+
+    <div class="f">
+      <label>Note iniziali</label>
+      <textarea id="lead-note" placeholder="Esigenza del cliente, impianti interessati, informazioni utili..."></textarea>
+    </div>
+
+    <div id="lead-errore"></div>
+
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn" onclick="closeM('m-lead')">Annulla</button>
+      <button class="btn p" style="flex:1;justify-content:center" id="lead-salva" onclick="salvaLead()">
+        Crea lead
+      </button>
+    </div>
+  </div>
+</div>
+
 
 
 <script src="app.js"></script>
+
 
 </body>
 </html>
