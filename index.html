@@ -50,7 +50,18 @@
 <!-- NAV -->
 <nav id="nav">
   <div class="nl">🔥 <span id="nc">Toli Fire</span></div>
+
+  <button
+    id="nav-toggle"
+    type="button"
+    onclick="toggleNavMobile()"
+    aria-label="Apri menu"
+    aria-expanded="false">
+    ☰ Menu
+  </button>
+
   <div class="nt" id="ntabs"></div>
+
   <div class="nr">
     <div class="nrole" id="nrole"></div>
     <div class="nu" id="nusr" onclick="doLogout()">Esci</div>
@@ -58,6 +69,14 @@
 </nav>
 
 <div id="app" style="display:none">
+  <button
+  id="nav-toggle"
+  type="button"
+  onclick="toggleNavMobile()"
+  aria-label="Apri menu"
+  aria-expanded="false">
+  ☰ Menu
+</button>
 
 <!-- DASHBOARD -->
 <!-- PORTALE CLIENTE -->
@@ -680,6 +699,19 @@
     </div>
   </div>
 </div>
+<!--Progetti tecnici resume-->
+<section class="page" id="pg-progetti">
+  <div class="ph">
+    <div>
+      <h2>📐 Progetti tecnici</h2>
+      <p>Tutti i progetti tecnici dei tuoi clienti</p>
+    </div>
+  </div>
+
+  <div id="progetti-lista">
+    <div class="load">Caricamento...</div>
+  </div>
+</section>
 
 <!-- SOPRALLUOGO -->
 <div class="page" id="pg-sopralluogo">
@@ -1482,6 +1514,8 @@
     </div>
   </div>
 </div>
+
+
 
 <script src="app.js"></script>
 

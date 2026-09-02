@@ -411,3 +411,64 @@ textarea{resize:vertical;min-height:80px}
   .rap-greet,.rap-section{padding-left:16px;padding-right:16px}
   .rap-primary,.rap-secondary-row,.rap-sopr-card,.rap-heatmap,.rap-list-card,.rap-insoluti{margin-left:8px;margin-right:8px}
 }
+
+/* ── MENU MOBILE A TENDINA ──────────────────────────────────── */
+#nav-toggle {
+  display: none;
+}
+
+@media (max-width: 700px) {
+#nav {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px;
+
+  height: auto;
+  min-height: 52px;
+  overflow: visible;
+}
+
+  #nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    border: 1px solid rgba(255,255,255,.35);
+    border-radius: 7px;
+    background: transparent;
+    color: white;
+    padding: 7px 10px;
+    cursor: pointer;
+  }
+
+  #ntabs {
+    display: none;
+    order: 10;
+    width: 100%;
+    flex-direction: column;
+    gap: 3px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,.2);
+
+    background: var(--g);
+    position: relative;
+    z-index: 101;
+  }
+
+  #nav.mobile-open #ntabs {
+    display: flex;
+  }
+
+  #ntabs .nb {
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+  }
+
+  #nrole,
+  #nusr {
+    display: none;
+  }
+}

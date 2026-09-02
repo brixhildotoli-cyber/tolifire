@@ -31,6 +31,30 @@ const NAV={
   rappresentante:[{id:'dashboard-rapp',l:'Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'progetti', l:'📐 Progetti'},{id:'presidi',l:'🧯 Presidi'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'trattative',l:'💼 Trattative'}],
 };
 
+// NAV MOBILE
+function toggleNavMobile() {
+  const nav = ge('nav');
+  const btn = ge('nav-toggle');
+
+  nav.classList.toggle('mobile-open');
+
+  const aperto = nav.classList.contains('mobile-open');
+  btn.setAttribute('aria-expanded', aperto ? 'true' : 'false');
+  btn.textContent = aperto ? '✕ Chiudi' : '☰ Menu';
+}
+
+function chiudiNavMobile() {
+  const nav = ge('nav');
+  const btn = ge('nav-toggle');
+
+  if (!nav || !btn) return;
+
+  nav.classList.remove('mobile-open');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.textContent = '☰ Menu';
+}
+
+
 // Checklist operative per tipo intervento
 const CKL={
   ordinario_programmato:{
@@ -546,13 +570,52 @@ async function scaricaPortale(path, nomeFile) {
   a.click();
   document.body.removeChild(a);
 }
+function toggleNavMobile() {
+  const nav = ge('nav');
+  const btn = ge('nav-toggle');
+
+  nav.classList.toggle('mobile-open');
+
+  const aperto = nav.classList.contains('mobile-open');
+  btn.setAttribute('aria-expanded', aperto ? 'true' : 'false');
+  btn.textContent = aperto ? '✕ Chiudi' : '☰ Menu';
+}
+
+function chiudiNavMobile() {
+  const nav = ge('nav');
+  const btn = ge('nav-toggle');
+
+  if (!nav || !btn) return;
+
+  nav.classList.remove('mobile-open');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.textContent = '☰ Menu';
+}
+
+function buildNav() {
+  const tabs = NAV[ROLE] || NAV.tecnico;
+  const c = ge('ntabs');
+
+  c.innerHTML = '';
+
+  tabs.forEach((t, i) => {
+    const b = document.createElement('button');
+
+    b.className = 'nb' + (i === 0 ? ' on' : '');
+    b.textContent = t.l;
+
+    b.onclick = () => {
+      gotoPage(t.id);
+      document.querySelectorAll('.nb').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      chiudiNavMobile();
+    };
+
+    c.appendChild(b);
+  });
+}
 
 // Fine portale
-
-function buildNav(){
-  const tabs=NAV[ROLE]||NAV.tecnico,c=ge('ntabs');c.innerHTML='';
-  tabs.forEach((t,i)=>{const b=document.createElement('button');b.className='nb'+(i===0?' on':'');b.textContent=t.l;b.onclick=()=>{gotoPage(t.id);document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));b.classList.add('on');};c.appendChild(b);});
-}
 
 // Pagine accessibili per ruolo
 const PAGINE_RUOLO = {
@@ -6126,6 +6189,70 @@ async function salvaProgetto() {
   closeM('m-progetto');
   toast(id ? 'Progetto aggiornato' : 'Progetto creato come bozza', 'ok');
   loadProgettiCliente(currentCliId);
+}
+
+
+// ── PAGINA PROGETTI TECNICI ────────────────────────────────────
+async function loadPaginaProgetti() {
+  const box = ge('progetti-lista');
+  if (!box) {
+    console.error('Manca l’elemento HTML con id="progetti-lista"');
+    return;
+  }
+
+  box.innerHTML = '<div class="load">Caricamento progetti...</div>';
+
+  const { data, error } = await db
+    .from('progetti_tecnici')
+    .select('*, clienti(ragione_sociale)')
+    .order('creato_il', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    box.innerHTML = '<div class="al2 e">Errore nel caricamento: ' + esc(error.message) + '</div>';
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    box.innerHTML = '<div class="empty">Nessun progetto tecnico creato.</div>';
+    return;
+  }
+
+  box.innerHTML = data.map(function(p) {
+    const cliente = p.clienti ? p.clienti.ragione_sociale : 'Cliente non disponibile';
+
+    return `
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:start">
+          <div>
+            <b>${esc(p.titolo)}</b>
+            <div class="muted">${esc(cliente)} · ${esc(p.tipologia)}</div>
+          </div>
+          <span class="badge">${esc(p.stato)}</span>
+        </div>
+        <p style="margin:10px 0">${esc(p.descrizione_tecnica)}</p>
+        <button class="btn sm" onclick="apriProgettoDaElenco('${p.id}')">
+          Apri / modifica
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function apriProgettoDaElenco(id) {
+  const { data, error } = await db
+    .from('progetti_tecnici')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    toast(error.message, 'err');
+    return;
+  }
+
+  currentCliId = data.cliente_id;
+  modificaProgetto(id);
 }
 
 // MOSTRA PASSWORD 
