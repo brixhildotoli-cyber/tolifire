@@ -512,3 +512,137 @@ textarea{resize:vertical;min-height:80px}
   color: #174f43;
   font-size: 12px;
 }
+
+/* ── CLIENTI: schede verticali su smartphone ────────────────── */
+@media (max-width: 700px) {
+  #pg-clienti .tw {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  #pg-clienti .clienti-table,
+  #pg-clienti .clienti-table tbody,
+  #pg-clienti .clienti-table tr,
+  #pg-clienti .clienti-table td {
+    display: block;
+    width: 100%;
+  }
+
+  #pg-clienti .clienti-table thead {
+    display: none;
+  }
+
+  #pg-clienti .clienti-table tr {
+    background: var(--w);
+    border: 0.5px solid var(--bo);
+    border-radius: var(--rd);
+    margin-bottom: 12px;
+    padding: 8px 12px;
+  }
+
+  #pg-clienti .clienti-table td {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 0.5px solid var(--bo);
+    overflow-wrap: anywhere;
+  }
+
+  #pg-clienti .clienti-table td:last-child {
+    border-bottom: 0;
+    flex-wrap: wrap;
+  }
+
+  #pg-clienti .clienti-table td::before {
+    width: 76px;
+    flex: 0 0 76px;
+    color: var(--m);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  #pg-clienti .clienti-table td:nth-child(1)::before {
+    content: "Cliente";
+  }
+
+  #pg-clienti .clienti-table td:nth-child(2)::before {
+    content: "Contatti";
+  }
+
+  #pg-clienti .clienti-table td:nth-child(3)::before {
+    content: "Città";
+  }
+
+  #pg-clienti .clienti-table td:nth-child(4)::before {
+    content: "Stato";
+  }
+
+  #pg-clienti .clienti-table td:nth-child(5)::before {
+    content: "Azioni";
+    flex-basis: 100%;
+  }
+
+  #pg-clienti .clienti-table td[colspan]::before {
+    display: none;
+  }
+
+  /* Scheda cliente: tab disposte su più righe, non a scorrimento */
+  #pg-cliente-detail .tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    gap: 0;
+  }
+
+  #pg-cliente-detail .tab {
+    flex: 1 0 auto;
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+
+  /* Anagrafica sempre verticale e leggibile */
+  #pg-cliente-detail #cd-info-content .g2 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Le tabelle Interventi e Documenti diventano schede */
+  #pg-cliente-detail .tw {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  #pg-cliente-detail .tw table,
+  #pg-cliente-detail .tw tbody,
+  #pg-cliente-detail .tw tr,
+  #pg-cliente-detail .tw td {
+    display: block;
+    width: 100%;
+  }
+
+  #pg-cliente-detail .tw thead {
+    display: none;
+  }
+
+  #pg-cliente-detail .tw tr {
+    background: var(--w);
+    border: 0.5px solid var(--bo);
+    border-radius: var(--rd);
+    margin-bottom: 10px;
+    padding: 8px 12px;
+  }
+
+  #pg-cliente-detail .tw td {
+    display: flex;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 0.5px solid var(--bo);
+    overflow-wrap: anywhere;
+  }
+
+  #pg-cliente-detail .tw td:last-child {
+    border-bottom: 0;
+  }
+}

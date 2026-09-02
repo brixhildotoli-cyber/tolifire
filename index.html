@@ -691,13 +691,13 @@
     </div>
 
     <!-- Quick actions in fondo -->
-    <div class="rap-section">Altro</div>
+   <!--  <div class="rap-section">Altro</div>
     <div class="rap-secondary-row">
       <button class="rap-secondary-btn" onclick="gotoPage('trattative')"><span class="ico">💼</span>Trattative / sopralluoghi</button>
       <button class="rap-secondary-btn" onclick="gotoPage('clienti')"><span class="ico">👥</span>Clienti</button>
-      <button class="rap-secondary-btn" onclick="gotoPage('presidi')"><span class="ico">🧯</span>Presidi</button>
+       <button class="rap-secondary-btn" onclick="gotoPage('presidi')"><span class="ico">🧯</span>Presidi</button>
     </div>
-  </div>
+  </div>-->
   <button class="btn" onclick="gotoPage('info')">
   ⓘ Come funziona questa area?
 </button>
@@ -934,7 +934,7 @@
     <input type="text" id="csearch" placeholder="Cerca ragione sociale, città, P.IVA..." oninput="filterC()">
     <select id="cfilt" onchange="filterC()" style="width:auto"><option value="">Tutti</option><option value="attivo">Attivi</option><option value="prospect">Prospect</option></select>
   </div>
-  <div class="tw"><table><thead><tr><th>Cliente</th><th>Email / Tel</th><th>Città</th><th>Stato</th><th>Azioni</th></tr></thead><tbody id="ctbody"><tr><td colspan="5"><div class="load">Caricamento...</div></td></tr></tbody></table></div>
+  <div class="tw"><table class="clienti-table"><thead><tr><th>Cliente</th><th>Email / Tel</th><th>Città</th><th>Stato</th><th>Azioni</th></tr></thead><tbody id="ctbody"><tr><td colspan="5"><div class="load">Caricamento...</div></td></tr></tbody></table></div>
 </div>
 
 <!-- SCHEDA CLIENTE -->
@@ -1364,6 +1364,66 @@
 
       <hr class="sep">
 
+<h4>6. Da nuovo cliente a progetto tecnico</h4>
+
+<p>
+  Quando un lead diventa concreto, crea o completa il <b>cliente/prospect</b>
+  con i dati disponibili: ragione sociale, referente, telefono, email, città
+  e note commerciali.
+</p>
+
+<p>
+  Poi apri la scheda del cliente dalla sezione <b>Clienti</b> e vai nella tab
+  <b>📐 Progetti tecnici</b>. Premi <b>+ Nuovo progetto</b> per creare lo studio
+  tecnico collegato a quel cliente.
+</p>
+
+<div class="info-esempio">
+  <b>Esempio di progetto tecnico</b><br>
+  <code>Titolo: Adeguamento antincendio sede Milano</code><br>
+  <code>Tipologia: Estintori e porte REI</code><br>
+  <code>Descrizione: Verifica impianti esistenti, sostituzione estintori scaduti e proposta porte REI.</code>
+</div>
+
+<div class="al2 w" style="margin-top:14px">
+  <b>Allegato obbligatorio</b><br>
+  Ogni progetto tecnico deve contenere almeno un file allegato:
+  <b>PDF</b>, <b>JPEG/JPG</b> oppure <b>PNG</b>.
+  Può essere una foto del sopralluogo, una planimetria, un documento tecnico
+  o un file ricevuto dal cliente.
+</div>
+
+<p>
+  Non inviare il progetto se non hai caricato almeno un allegato utile:
+  senza documentazione il reparto tecnico o commerciale non può valutare
+  correttamente la richiesta.
+</p>
+
+<h4>Perché creare un progetto tecnico?</h4>
+
+<p>
+  Il progetto tecnico non è un semplice appunto: serve a trasformare un’esigenza
+  commerciale in una richiesta chiara per chi dovrà preparare il preventivo,
+  valutare materiali e organizzare le attività tecniche.
+</p>
+
+<ul>
+  <li>collega il lavoro al cliente corretto;</li>
+  <li>spiega cosa deve essere studiato o preventivato;</li>
+  <li>raccoglie documenti, foto, planimetrie e allegati obbligatori;</li>
+  <li>riduce chiamate e passaggi di informazioni incompleti;</li>
+  <li>permette a commerciale e acquisti di capire materiali e lavorazioni necessari.</li>
+</ul>
+
+<p>
+  Prima di creare un progetto, verifica di avere una descrizione utile e i file
+  richiesti. Se mancano foto, documento o planimetria, annota chiaramente cosa
+  deve ancora essere recuperato.
+</p>
+
+
+      <hr class="sep">
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -1679,6 +1739,21 @@
         placeholder="Es. 4 porte REI 120, maniglioni antipanico, chiudiporta...">
       </textarea>
     </div>
+    <div class="f">
+  <label>Allegato tecnico obbligatorio *</label>
+
+  <input
+    type="file"
+    id="mp-file"
+    accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+  >
+
+  <div style="font-size:12px;color:var(--m);margin-top:5px">
+    Formati ammessi: PDF, JPG/JPEG, PNG. Dimensione massima: 10 MB.
+  </div>
+
+  <div id="mp-allegati" style="margin-top:10px"></div>
+</div>
 
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn" onclick="closeM('m-progetto')">Annulla</button>

@@ -28,7 +28,7 @@ const NAV={
   contabile:[{id:'dashboard',l:'Dashboard'},{id:'workflow',l:'💜 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
   tecnico:[{id:'dashboard',l:'Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
   commerciale:[{id:'dashboard',l:'Dashboard'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
-  rappresentante:[{id:'dashboard-rapp',l:'Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead e trattative'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'progetti', l:'📐 Progetti'},{id:'presidi',l:'🧯 Presidi'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'info',l:'ⓘ Info'}],
+  rappresentante:[{id:'dashboard-rapp',l:'Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead e trattative'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'progetti', l:'📐 Progetti'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'info',l:'ⓘ Info'}],
 };
 
 // NAV MOBILE
@@ -635,100 +635,23 @@ function canAccessPage(id) {
   return allowed.indexOf(id) !== -1;
 }
 
-const GUIDE_RUOLO = {
-  rappresentante: {
-    titolo: 'Guida area rappresentante',
-    testo: `
-      <h3>Benvenuto nell’area rappresentante</h3>
-      <p>Qui gestisci i tuoi clienti, i contatti commerciali e le attività prima del passaggio a commerciale, tecnico o acquisti.</p>
-
-      <h4>Dashboard</h4>
-      <p>Mostra un riepilogo delle attività e degli appuntamenti principali.</p>
-
-      <h4>Calendario</h4>
-      <p>Crea, modifica o elimina i tuoi appuntamenti: visite, richiami e sopralluoghi commerciali.</p>
-
-      <h4>Clienti</h4>
-      <p>Consulta le schede dei clienti assegnati a te, con anagrafica, documenti e informazioni disponibili.</p>
-
-      <h4>Lead e trattative</h4>
-      <p>Registra nuovi contatti da Google, passaparola, eventi o segnalazioni. Indica sempre fonte, prossima azione e data del richiamo.</p>
-
-      <h4>Sopralluogo</h4>
-      <p>Dopo una visita, inserisci le informazioni raccolte, le esigenze del cliente e le note utili al reparto tecnico o commerciale.</p>
-
-      <h4>Progetti</h4>
-      <p>Qui verranno raccolti studi tecnici, descrizioni del progetto, documenti obbligatori e materiali collegati al cliente.</p>
-
-      <h4>Regole importanti</h4>
-      <ul>
-        <li>Scrivi note chiare e complete.</li>
-        <li>Aggiorna sempre la prossima azione del lead.</li>
-        <li>Se un appuntamento salta, modificalo o eliminalo.</li>
-        <li>Non condividere password o dati riservati dei clienti.</li>
-      </ul>
-    `
-  },
-
-  tecnico: {
-    titolo: 'Guida area tecnico',
-    testo: `
-      <h3>Guida rapida per tecnici</h3>
-      <p>Consulta gli interventi assegnati, il calendario tecnico e la documentazione collegata.</p>
-      <ul>
-        <li>Controlla gli appuntamenti prima di iniziare la giornata.</li>
-        <li>Compila correttamente le attività e le note di intervento.</li>
-        <li>Carica o consulta i documenti collegati quando necessario.</li>
-      </ul>
-    `
-  },
-
-  capo_tecnico: {
-    titolo: 'Guida area capo tecnico',
-    testo: `
-      <h3>Guida rapida per capo tecnico</h3>
-      <p>Coordina interventi, calendario del team, pianificazione e clienti assegnati.</p>
-      <ul>
-        <li>Verifica disponibilità e carichi del team.</li>
-        <li>Controlla gli interventi in programma.</li>
-        <li>Assegna attività e monitora le informazioni tecniche ricevute.</li>
-      </ul>
-    `
-  },
-
-  commerciale: {
-    titolo: 'Guida area commerciale',
-    testo: `
-      <h3>Guida area commerciale</h3>
-      <p>Gestisci clienti, sopralluoghi ricevuti, preventivi, documenti e attività commerciali.</p>
-    `
-  },
-
-  segreteria: {
-    titolo: 'Guida area segreteria',
-    testo: `
-      <h3>Guida area segreteria</h3>
-      <p>Gestisci le attività amministrative, i clienti, i documenti, le fatture e il coordinamento operativo.</p>
-    `
-  },
-
-  titolare: {
-    titolo: 'Guida area titolare',
-    testo: `
-      <h3>Guida area titolare</h3>
-      <p>Hai una visione completa del gestionale: utenti, pianificazione, clienti, documenti, fatture e configurazioni.</p>
-    `
-  }
-};
 
 function loadInfo() {
-  const guida = GUIDE_RUOLO[ROLE] || {
-    titolo: 'Informazioni',
-    testo: '<p>Nessuna guida disponibile per questo ruolo.</p>'
-  };
+  document.querySelectorAll('.guida-ruolo').forEach(function(guida) {
+    guida.style.display = 'none';
+  });
 
-  ge('info-titolo').textContent = guida.titolo;
-  ge('info-contenuto').innerHTML = guida.testo;
+  const guidaAttiva = ge('guida-' + ROLE);
+
+  if (guidaAttiva) {
+    guidaAttiva.style.display = 'block';
+    ge('info-titolo').textContent =
+      guidaAttiva.getAttribute('data-titolo') || 'Informazioni';
+  } else {
+    ge('info-titolo').textContent = 'Informazioni';
+    ge('info-contenuto').innerHTML =
+      '<div class="al2">Nessuna guida disponibile per questo ruolo.</div>';
+  }
 }
 
 function gotoPage(id){
@@ -6407,6 +6330,87 @@ function cambiaMeseAppuntamenti(delta) {
 
 // ── PROGETTI TECNICI CLIENTE ─────────────────────────────────
 
+let allegatiProgettoDati = [];
+
+function fileProgettoValido(file) {
+  if (!file) return false;
+
+  const tipiAmmessi = [
+    'application/pdf',
+    'image/jpeg',
+    'image/png'
+  ];
+
+  const estensioniAmmesse = ['pdf', 'jpg', 'jpeg', 'png'];
+
+  const estensione = file.name.split('.').pop().toLowerCase();
+
+  return tipiAmmessi.includes(file.type) ||
+    estensioniAmmesse.includes(estensione);
+}
+
+async function caricaAllegatiProgetto(progettoId) {
+  const box = ge('mp-allegati');
+
+  if (!progettoId) {
+    allegatiProgettoDati = [];
+
+    if (box) {
+      box.innerHTML =
+        '<div class="al2 w">Per creare il progetto devi allegare almeno un PDF, JPG/JPEG o PNG.</div>';
+    }
+
+    return;
+  }
+
+  const { data, error } = await db
+    .from('progetti_tecnici_allegati')
+    .select('*')
+    .eq('progetto_id', progettoId)
+    .order('caricato_il', { ascending: false });
+
+  if (error) {
+    allegatiProgettoDati = [];
+
+    if (box) {
+      box.innerHTML =
+        '<div class="al2 e">Errore nel caricamento allegati.</div>';
+    }
+
+    return;
+  }
+
+  allegatiProgettoDati = data || [];
+
+  if (!box) return;
+
+  if (!allegatiProgettoDati.length) {
+    box.innerHTML =
+      '<div class="al2 w">Questo progetto non ha ancora allegati: carica un PDF, JPG/JPEG o PNG prima di salvare.</div>';
+    return;
+  }
+
+  box.innerHTML = allegatiProgettoDati.map(function(allegato) {
+    return `
+      <div style="
+        display:flex;
+        align-items:center;
+        gap:8px;
+        padding:8px 10px;
+        margin-top:6px;
+        background:var(--gl);
+        border-radius:var(--rs);
+        font-size:12px
+      ">
+        <span>📎</span>
+        <span style="font-weight:600;overflow-wrap:anywhere">
+          ${esc(allegato.nome_file)}
+        </span>
+      </div>
+    `;
+  }).join('');
+}
+
 async function loadProgettiCliente(clienteId) {
   const lista = ge('cd-progetti-lista');
 
@@ -6470,7 +6474,7 @@ async function loadProgettiCliente(clienteId) {
   }).join('');
 }
 
-function apriNuovoProgetto() {
+async function apriNuovoProgetto() {
   if (!currentCliId) {
     toast('Apri prima la scheda di un cliente', 'err');
     return;
@@ -6482,12 +6486,17 @@ function apriNuovoProgetto() {
   ge('mp-tipologia').value = '';
   ge('mp-descrizione').value = '';
   ge('mp-materiali').value = '';
+  ge('mp-file').value = '';
+
+  await caricaAllegatiProgetto(null);
 
   openM('m-progetto');
 }
 
-function modificaProgetto(id) {
-  const progetto = progettiClienteDati.find(p => p.id === id);
+async function modificaProgetto(id) {
+  const progetto = progettiClienteDati.find(function(p) {
+    return p.id === id;
+  });
 
   if (!progetto) {
     toast('Progetto non trovato', 'err');
@@ -6500,6 +6509,9 @@ function modificaProgetto(id) {
   ge('mp-tipologia').value = progetto.tipologia || '';
   ge('mp-descrizione').value = progetto.descrizione_tecnica || '';
   ge('mp-materiali').value = progetto.materiali_note || '';
+  ge('mp-file').value = '';
+
+  await caricaAllegatiProgetto(id);
 
   openM('m-progetto');
 }
@@ -6509,9 +6521,25 @@ async function salvaProgetto() {
   const titolo = v('mp-titolo').trim();
   const tipologia = v('mp-tipologia');
   const descrizione = v('mp-descrizione').trim();
+  const file = ge('mp-file').files[0];
 
   if (!titolo || !tipologia || !descrizione) {
     toast('Titolo, tipologia e descrizione sono obbligatori', 'err');
+    return;
+  }
+
+  if (file && !fileProgettoValido(file)) {
+    toast('Formato non valido: carica solo PDF, JPG/JPEG o PNG', 'err');
+    return;
+  }
+
+  if (file && file.size > 10 * 1024 * 1024) {
+    toast('Il file supera il limite di 10 MB', 'err');
+    return;
+  }
+
+  if (!file && allegatiProgettoDati.length === 0) {
+    toast('Devi allegare almeno un PDF, JPG/JPEG o PNG', 'err');
     return;
   }
 
@@ -6522,33 +6550,98 @@ async function salvaProgetto() {
     materiali_note: v('mp-materiali').trim() || null
   };
 
-  let result;
+  let progettoId = id;
 
   if (id) {
-    result = await db
+    const { error } = await db
       .from('progetti_tecnici')
       .update(payload)
       .eq('id', id);
+
+    if (error) {
+      toast('Errore: ' + error.message, 'err');
+      return;
+    }
   } else {
     payload.cliente_id = currentCliId;
     payload.rappresentante_id = ME.id;
     payload.stato = 'bozza';
 
-    result = await db
+    const { data, error } = await db
       .from('progetti_tecnici')
-      .insert(payload);
+      .insert(payload)
+      .select('id')
+      .single();
+
+    if (error) {
+      toast('Errore: ' + error.message, 'err');
+      return;
+    }
+
+    progettoId = data.id;
   }
 
-  if (result.error) {
-    toast('Errore: ' + result.error.message, 'err');
-    return;
+  if (file) {
+    const nomeSicuro = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+
+    const path =
+      ME.id + '/' +
+      progettoId + '/' +
+      Date.now() + '_' +
+      nomeSicuro;
+
+    const { error: erroreUpload } = await db.storage
+      .from('progetti-tecnici')
+      .upload(path, file, {
+        contentType: file.type,
+        upsert: false
+      });
+
+    if (erroreUpload) {
+      if (!id) {
+        await db
+          .from('progetti_tecnici')
+          .delete()
+          .eq('id', progettoId);
+      }
+
+      toast('Caricamento file non riuscito: ' + erroreUpload.message, 'err');
+      return;
+    }
+
+    const { error: erroreAllegato } = await db
+      .from('progetti_tecnici_allegati')
+      .insert({
+        progetto_id: progettoId,
+        nome_file: file.name,
+        storage_path: path,
+        mime_type: file.type,
+        dimensione: file.size,
+        caricato_da: ME.id
+      });
+
+    if (erroreAllegato) {
+      await db.storage
+        .from('progetti-tecnici')
+        .remove([path]);
+
+      if (!id) {
+        await db
+          .from('progetti_tecnici')
+          .delete()
+          .eq('id', progettoId);
+      }
+
+      toast('Errore salvataggio allegato: ' + erroreAllegato.message, 'err');
+      return;
+    }
   }
 
   closeM('m-progetto');
-  toast(id ? 'Progetto aggiornato' : 'Progetto creato come bozza', 'ok');
+  toast('Progetto tecnico salvato con allegato', 'ok');
+
   loadProgettiCliente(currentCliId);
 }
-
 
 // ── PAGINA PROGETTI TECNICI ────────────────────────────────────
 async function loadPaginaProgetti() {
