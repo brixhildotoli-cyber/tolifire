@@ -28,6 +28,8 @@ nav.on{display:flex}
   font-size: 14px;
   margin-right: 8px;
   white-space: nowrap;
+  cursor: pointer;
+
 }
 
 .nt {
