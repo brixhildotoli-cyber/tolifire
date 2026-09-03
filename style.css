@@ -418,7 +418,7 @@ textarea{resize:vertical;min-height:80px}
 }
 
 @media (max-width: 700px) {
-#nav {
+#nav.on {
   position: relative;
   display: flex;
   flex-wrap: wrap;
@@ -467,10 +467,20 @@ textarea{resize:vertical;min-height:80px}
     padding: 10px 12px;
   }
 
-  #nrole,
-  #nusr {
-    display: none;
-  }
+#nrole {
+  display: none;
+}
+
+#nusr {
+  display: block;
+  white-space: nowrap;
+  padding: 7px 10px;
+  font-size: 11px;
+}
+
+#nav .nr {
+  display: flex;
+  margin-left: 0;
 }
 /* ── INFO RUOLO SW ──── */
 
@@ -511,6 +521,7 @@ textarea{resize:vertical;min-height:80px}
 .info-esempio code {
   color: #174f43;
   font-size: 12px;
+}
 }
 
 /* ── CLIENTI: schede verticali su smartphone ────────────────── */
@@ -644,5 +655,103 @@ textarea{resize:vertical;min-height:80px}
 
   #pg-cliente-detail .tw td:last-child {
     border-bottom: 0;
+  }
+}
+/* ── Protezione overflow smartphone ─────────────────────────── */
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas,
+iframe {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+code,
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 700px) {
+  #app,
+  .page,
+  .card,
+  .modal,
+  .rap-wrap,
+  .tec-wrap,
+  .tit-wrap,
+  .ct-wrap {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .page {
+    padding: 12px;
+    overflow-x: hidden;
+  }
+
+  .card,
+  .rap-primary,
+  .rap-secondary-row,
+  .rap-sopr-card,
+  .rap-heatmap,
+  .rap-list-card,
+  .rap-insoluti {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* I campi affiancati diventano verticali */
+  .fr {
+    grid-template-columns: 1fr;
+  }
+
+  /* Testi, email e nomi file lunghi non spingono fuori lo schermo */
+  p,
+  span,
+  div,
+  td,
+  th,
+  button {
+    overflow-wrap: anywhere;
+  }
+
+  .sb input,
+  .sb select,
+  .sb button {
+    max-width: 100%;
+  }
+}
+
+/* ── Tablet ─────────────────────────────────────────────────── */
+@media (min-width: 701px) and (max-width: 1024px) {
+  .page {
+    padding: 20px;
+  }
+
+  .g4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .modal {
+    max-width: calc(100vw - 48px);
+  }
+
+  .rap-wrap,
+  .tec-wrap,
+  .tit-wrap,
+  .ct-wrap {
+    max-width: 100%;
   }
 }

@@ -4667,7 +4667,7 @@ async function loadImpegniTeamAnonimi() {
           return `
             <div style="display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--bo)">
               <span style="font-weight:600">
-                👷 ${esc(impegno.tecnico)}
+                👷 ${esc(impegno.ruolo)} — ${esc(impegno.tecnico)}
               </span>
 
               <span class="bx bblue">
