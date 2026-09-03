@@ -50,7 +50,6 @@ nav.on{display:flex}
   background: none;
 }
 .nt::-webkit-scrollbar{display:none}
-.nb{padding:7px 12px;border-radius:var(--rs);font-size:12px;cursor:pointer;white-space:nowrap;color:rgba(255,255,255,.7);border:none;background:none}
 .nb:hover,.nb.on{color:white;background:rgba(255,255,255,.2);font-weight:500}
 .nr{margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:8px}
 .nu{font-size:11px;background:rgba(255,255,255,.2);padding:4px 10px;border-radius:20px;cursor:pointer}
@@ -458,7 +457,7 @@ textarea{resize:vertical;min-height:80px}
   display: none;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 900px) {
 #nav.on {
   position: relative;
   display: flex;
@@ -523,6 +522,7 @@ textarea{resize:vertical;min-height:80px}
   display: flex;
   margin-left: 0;
 }
+}
 /* ── INFO RUOLO SW ──── */
 
 .guida-ruolo h3 {
@@ -563,8 +563,6 @@ textarea{resize:vertical;min-height:80px}
   color: #174f43;
   font-size: 12px;
 }
-}
-
 /* ── CLIENTI: schede verticali su smartphone ────────────────── */
 @media (max-width: 700px) {
   #pg-clienti .tw {
