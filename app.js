@@ -4611,6 +4611,77 @@ function nascondiCampoTecnico() {
 // ── RAPPRESENTANTE ───────────────────────────────────────────
 var _allProspect = [];
 
+async function loadImpegniTeamAnonimi() {
+  const box = ge('rap-impegni-team-lista');
+
+  if (!box) return;
+
+  const oggi = new Date();
+  oggi.setHours(0, 0, 0, 0);
+
+  const tra14Giorni = new Date(oggi);
+  tra14Giorni.setDate(tra14Giorni.getDate() + 14);
+
+  const { data, error } = await db.rpc('impegni_tecnici_dashboard', {
+    p_dal: oggi.toISOString().split('T')[0],
+    p_al: tra14Giorni.toISOString().split('T')[0]
+  });
+
+  if (error) {
+    box.innerHTML =
+      '<div class="al2 e">Impossibile caricare gli impegni del team.</div>';
+    return;
+  }
+
+  if (!data || !data.length) {
+    box.innerHTML =
+      '<div class="empty">Nessun impegno tecnico pianificato nei prossimi 14 giorni.</div>';
+    return;
+  }
+
+  const perData = {};
+
+  data.forEach(function(impegno) {
+    if (!perData[impegno.data]) {
+      perData[impegno.data] = [];
+    }
+
+    perData[impegno.data].push(impegno);
+  });
+
+  box.innerHTML = Object.keys(perData).map(function(data) {
+    const dataFormattata = new Date(data + 'T12:00:00')
+      .toLocaleDateString('it-IT', {
+        weekday: 'long',
+        day: '2-digit',
+        month: 'long'
+      });
+
+    return `
+      <div style="margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--m)">
+          ${esc(dataFormattata)}
+        </div>
+
+        ${perData[data].map(function(impegno) {
+          return `
+            <div style="display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--bo)">
+              <span style="font-weight:600">
+                👷 ${esc(impegno.tecnico)}
+              </span>
+
+              <span class="bx bblue">
+                ${esc(impegno.fascia)}
+              </span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }).join('');
+}
+
+
 async function loadDashRappresentante() {
   var ora = new Date().getHours();
   var saluto = ora < 12 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
@@ -4742,7 +4813,7 @@ async function loadDashRappresentante() {
     }
     elH.innerHTML = cells.join('');
   }
-
+  await loadImpegniTeamAnonimi();
   // Presidi in scadenza dei tuoi clienti (lista, 30gg)
   var elS = ge('rap-scadenze-lista');
   if(elS){
