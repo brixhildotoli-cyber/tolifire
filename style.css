@@ -837,3 +837,73 @@ pre {
     padding: 10px 12px;
   }
 }
+/* ── NAVBAR MOBILE: menu a tendina senza scorrimento orizzontale ── */
+@media (max-width: 900px) {
+  #nav.on {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+    overflow: visible;
+  }
+
+  #nav .nl {
+    margin-right: auto;
+    font-size: 13px;
+    min-width: 0;
+  }
+
+  #nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    order: 2;
+  }
+
+  #nav .nr {
+    display: flex;
+    margin-left: 0;
+    order: 3;
+    min-width: 0;
+  }
+
+  #nrole {
+    display: none;
+  }
+
+  #nusr {
+    display: block;
+    padding: 7px 9px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* Le pagine non restano più in riga */
+  #ntabs {
+    display: none !important;
+    order: 4;
+    flex-basis: 100%;
+    width: 100%;
+    overflow: visible;
+  }
+
+  /* Si vedono soltanto quando premi Menu */
+  #nav.mobile-open #ntabs {
+    display: flex !important;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: #075a49;
+    border-radius: 10px;
+  }
+
+  #ntabs .nb {
+    width: 100%;
+    text-align: left;
+    padding: 11px 12px;
+    font-size: 14px;
+    white-space: normal;
+  }
+}
