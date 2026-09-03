@@ -566,7 +566,7 @@ textarea{resize:vertical;min-height:80px}
   font-size: 12px;
 }
 /* ── CLIENTI: schede verticali su smartphone ────────────────── */
-@media (max-width: 700px) {
+@media (max-width: 900px) {
   #pg-clienti .tw {
     overflow: visible;
     border: 0;
