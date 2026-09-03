@@ -29,6 +29,7 @@ const NAV={
   tecnico:[{id:'dashboard',l:'Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
   commerciale:[{id:'dashboard',l:'Dashboard'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
   rappresentante:[{id:'dashboard-rapp',l:'Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead e trattative'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'progetti', l:'📐 Progetti'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'info',l:'ⓘ Info'}],
+  ingegnere: [{id: 'dashboard', l: '📊 Dashboard'},{id: 'calendario', l: '📅 Calendario'},{id: 'clienti', l: '🧑‍💼 Clienti'},{id: 'progetti', l: '📐 Progetti tecnici'},{id: 'documenti', l: '📄 Documenti'},{id: 'info', l: 'ℹ️ Info'}],
 };
 
 // NAV MOBILE
@@ -627,6 +628,7 @@ const PAGINE_RUOLO = {
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
   commerciale:    ['dashboard','clienti','presidi','documenti','fatture','catalogo','cliente-detail'],
   rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','sopralluogo','trattative','cliente-detail','info'],
+  ingegnere:      ['dashboard','calendario','clienti','progetti','documenti','cliente-detail','info'],
 };
 
 function canAccessPage(id) {
@@ -6512,7 +6514,7 @@ async function loadProgettiCliente(clienteId) {
   lista.innerHTML = progettiClienteDati.map(function(p) {
     const stato = {
       bozza: 'Bozza',
-      inviato_a_commerciale: 'Inviato al commerciale',
+      inviato_a_ufficio_tecnico: 'Inviato a ufficio tecnico',
       in_valutazione: 'In valutazione',
       pronto_per_preventivo: 'Pronto per preventivo',
       approvato: 'Approvato',
@@ -6536,11 +6538,21 @@ async function loadProgettiCliente(clienteId) {
       '<div style="font-size:13px;white-space:pre-wrap;margin-top:10px">' +
         esc(p.descrizione_tecnica) +
       '</div>' +
-      '<div style="display:flex;gap:8px;margin-top:12px">' +
-        '<button class="btn sm" onclick="modificaProgetto(\'' + p.id + '\')">' +
-          '✏️ Modifica' +
-        '</button>' +
-      '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
+  '<button class="btn sm" onclick="modificaProgetto(\'' + p.id + '\')">' +
+    '✏️ Modifica' +
+  '</button>' +
+
+  (p.stato === 'bozza'
+    ? '<button class="btn sm info" onclick="inviaProgettoAUfficioTecnico(\'' + p.id + '\')">' +
+        '📤 Invia al commerciale' +
+      '</button>'
+    : '') +
+
+  '<button class="btn sm" style="color:var(--r)" onclick="eliminaProgetto(\'' + p.id + '\')">' +
+    '🗑 Elimina' +
+  '</button>' +
+'</div>' +
     '</div>';
   }).join('');
 }
@@ -6558,6 +6570,7 @@ async function apriNuovoProgetto() {
   ge('mp-descrizione').value = '';
   ge('mp-materiali').value = '';
   ge('mp-file').value = '';
+  ge('mp-file-extra').value = '';
 
   await caricaAllegatiProgetto(null);
 
@@ -6581,6 +6594,7 @@ async function modificaProgetto(id) {
   ge('mp-descrizione').value = progetto.descrizione_tecnica || '';
   ge('mp-materiali').value = progetto.materiali_note || '';
   ge('mp-file').value = '';
+  ge('mp-file-extra').value = '';
 
   await caricaAllegatiProgetto(id);
 
@@ -6592,27 +6606,28 @@ async function salvaProgetto() {
   const titolo = v('mp-titolo').trim();
   const tipologia = v('mp-tipologia');
   const descrizione = v('mp-descrizione').trim();
-  const file = ge('mp-file').files[0];
+  const fileObbligatorio = ge('mp-file').files[0] || null;
+  if (files.some(file => !fileProgettoValido(file))) {
+  toast('Formato non valido: carica solo PDF, JPG/JPEG o PNG', 'err');
+  return;
+}
 
-  if (!titolo || !tipologia || !descrizione) {
-    toast('Titolo, tipologia e descrizione sono obbligatori', 'err');
-    return;
-  }
+if (files.some(file => file.size > 10 * 1024 * 1024)) {
+  toast('Un file supera il limite di 10 MB', 'err');
+  return;
+}
 
-  if (file && !fileProgettoValido(file)) {
-    toast('Formato non valido: carica solo PDF, JPG/JPEG o PNG', 'err');
-    return;
-  }
+// Un file principale è obbligatorio soltanto alla creazione.
+if (!id && !fileObbligatorio) {
+  toast('Devi caricare l’allegato tecnico obbligatorio', 'err');
+  return;
+}
 
-  if (file && file.size > 10 * 1024 * 1024) {
-    toast('Il file supera il limite di 10 MB', 'err');
-    return;
-  }
-
-  if (!file && allegatiProgettoDati.length === 0) {
-    toast('Devi allegare almeno un PDF, JPG/JPEG o PNG', 'err');
-    return;
-  }
+// In modifica è ammesso non scegliere file solo se il progetto ne possiede già uno.
+if (id && files.length === 0 && allegatiProgettoDati.length === 0) {
+  toast('Devi allegare almeno un PDF, JPG/JPEG o PNG', 'err');
+  return;
+} 
 
   const payload = {
     titolo: titolo,
@@ -6652,7 +6667,7 @@ async function salvaProgetto() {
     progettoId = data.id;
   }
 
-  if (file) {
+  for (const file of files) {
     const nomeSicuro = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
 
     const path =
@@ -6714,6 +6729,92 @@ async function salvaProgetto() {
   loadProgettiCliente(currentCliId);
 }
 
+async function eliminaProgetto(progettoId) {
+  if (!confirm('Vuoi eliminare definitivamente questo progetto tecnico?')) {
+    return;
+  }
+
+  const { data: allegati, error: erroreAllegati } = await db
+    .from('progetti_tecnici_allegati')
+    .select('storage_path')
+    .eq('progetto_id', progettoId);
+
+  if (erroreAllegati) {
+    toast('Errore: ' + erroreAllegati.message, 'err');
+    return;
+  }
+
+  const { error: erroreProgetto } = await db
+    .from('progetti_tecnici')
+    .delete()
+    .eq('id', progettoId);
+
+  if (erroreProgetto) {
+    toast('Errore eliminazione: ' + erroreProgetto.message, 'err');
+    return;
+  }
+
+  // Prova a togliere anche i file dal bucket.
+  const percorsi = (allegati || [])
+    .map(a => a.storage_path)
+    .filter(Boolean);
+
+  if (percorsi.length) {
+    const { error: erroreStorage } = await db.storage
+      .from('progetti-tecnici')
+      .remove(percorsi);
+
+    if (erroreStorage) {
+      console.warn('Progetto eliminato, ma alcuni file sono rimasti nel bucket:', erroreStorage.message);
+    }
+  }
+
+  toast('Progetto eliminato', 'ok');
+
+  await loadProgettiCliente(currentCliId);
+  await loadPaginaProgetti();
+}
+
+async function inviaProgettoAUfficioTecnico(progettoId) {
+  if (!confirm(
+    'Inviare il progetto a capo tecnico, ingegnere e titolare? Dopo l’invio non sarà più una bozza.'
+  )) {
+    return;
+  }
+
+  const { data: allegati, error: erroreAllegati } = await db
+    .from('progetti_tecnici_allegati')
+    .select('id')
+    .eq('progetto_id', progettoId);
+
+  if (erroreAllegati) {
+    toast('Errore verifica allegati: ' + erroreAllegati.message, 'err');
+    return;
+  }
+
+  if (!allegati || allegati.length === 0) {
+    toast('Non puoi inviare un progetto senza almeno un allegato', 'err');
+    return;
+  }
+
+  const { error } = await db
+    .from('progetti_tecnici')
+    .update({
+      stato: 'inviato_a_ufficio_tecnico'
+    })
+    .eq('id', progettoId);
+
+  if (error) {
+    toast('Errore invio: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Progetto inviato all’ufficio tecnico', 'ok');
+
+  await loadProgettiCliente(currentCliId);
+  await loadPaginaProgetti();
+}
+
 // ── PAGINA PROGETTI TECNICI ────────────────────────────────────
 async function loadPaginaProgetti() {
   const box = ge('progetti-lista');
@@ -6753,9 +6854,27 @@ async function loadPaginaProgetti() {
           <span class="badge">${esc(p.stato)}</span>
         </div>
         <p style="margin:10px 0">${esc(p.descrizione_tecnica)}</p>
-        <button class="btn sm" onclick="apriProgettoDaElenco('${p.id}')">
-          Apri / modifica
-        </button>
+       <div style="display:flex;gap:8px;flex-wrap:wrap">
+  <button class="btn sm" onclick="apriProgettoDaElenco('${p.id}')">
+    Apri / modifica
+  </button>
+
+  ${p.stato === 'bozza' ? `
+    <button
+      class="btn sm info"
+      onclick="inviaProgettoAUfficioTecnico('${p.id}')">
+      📤 Invia a ufficio tecnico
+    </button>
+  ` : ''}
+
+  <button
+    class="btn sm"
+    style="color:var(--r)"
+    onclick="eliminaProgetto('${p.id}')">
+    🗑 Elimina
+  </button>
+</div>
+</div>
       </div>
     `;
   }).join('');
@@ -6769,12 +6888,16 @@ async function apriProgettoDaElenco(id) {
     .single();
 
   if (error) {
-    toast(error.message, 'err');
+    toast('Errore apertura progetto: ' + error.message, 'err');
     return;
   }
 
   currentCliId = data.cliente_id;
-  modificaProgetto(id);
+
+  // Carica i progetti di quel cliente: modificaProgetto usa questa lista.
+  await loadProgettiCliente(currentCliId);
+
+  await modificaProgetto(id);
 }
 
 // MOSTRA PASSWORD 

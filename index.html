@@ -1747,16 +1747,32 @@
       </textarea>
     </div>
     <div class="f">
-  <label>Allegato tecnico obbligatorio *</label>
+  <label for="mp-file">Allegato tecnico obbligatorio *</label>
 
   <input
     type="file"
     id="mp-file"
-    accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-  >
+    accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
 
   <div style="font-size:12px;color:var(--m);margin-top:5px">
-    Formati ammessi: PDF, JPG/JPEG, PNG. Dimensione massima: 10 MB.
+    Carica un PDF, JPG/JPEG o PNG. Massimo 10 MB.
+  </div>
+
+  <div style="margin-top:14px">
+    <label for="mp-file-extra">
+      + Aggiungi altri file
+      <span style="font-weight:400;color:var(--m)">(facoltativi)</span>
+    </label>
+
+    <input
+      type="file"
+      id="mp-file-extra"
+      multiple
+      accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+
+    <div style="font-size:12px;color:var(--m);margin-top:5px">
+      Puoi aggiungere documenti, foto e planimetrie aggiuntive.
+    </div>
   </div>
 
   <div id="mp-allegati" style="margin-top:10px"></div>
