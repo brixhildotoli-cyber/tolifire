@@ -5206,6 +5206,42 @@ async function loadDashRappresentante() {
   el = ge('rap-k-sopr-conv'); if(el) el.textContent = convertitiMese.length;
   el = ge('rap-k-tuoi-cli'); if(el) el.textContent = cliIdsArr.length;
   el = ge('rap-k-presidi-scad'); if(el) el.textContent = presidiScaduti;
+    // Progetti rimandati dall’ingegnere al rappresentante.
+  const boxProgetti = ge('rap-progetti-da-integrare');
+
+   const { data: progettiDaIntegrare, error: erroreProgetti } = await db
+    .from('progetti_tecnici')
+    .select('id,titolo,nota_verifica_tecnica')
+    .eq('stato', 'da_integrare')
+    .order('creato_il', { ascending: false });
+    
+  if (boxProgetti) {
+    if (erroreProgetti || !progettiDaIntegrare?.length) {
+      boxProgetti.innerHTML = '';
+    } else {
+      const numero = progettiDaIntegrare.length;
+      const testo = numero === 1
+        ? '1 progetto tecnico da integrare'
+        : numero + ' progetti tecnici da integrare';
+
+      boxProgetti.innerHTML = `
+        <button
+          class="rap-primary"
+          style="background:#b45309;margin-top:14px"
+          onclick="gotoPage('progetti')"
+        >
+          <span class="ico">🔧</span>
+          <span class="body">
+            <span class="title">${testo}</span>
+            <span class="sub">
+              L’ingegnere ha richiesto modifiche. Apri i progetti, correggi e rimanda in verifica.
+            </span>
+          </span>
+          <span class="chev">›</span>
+        </button>
+      `;
+    }
+  }
 
   // Lista sopralluoghi da seguire (aperti, top 5)
   var elL = ge('rap-sopr-lista');
@@ -7064,7 +7100,10 @@ async function loadProgettiCliente(clienteId) {
       
     }[p.stato] || p.stato;
     const richiediVerifica = ['bozza', 'da_integrare'].includes(p.stato);
-    const inviaCommerciale = ['bozza', 'pronto_per_preventivo'].includes(p.stato);
+    const inviaCommerciale = [
+    'bozza',
+    'da_integrare',
+    'pronto_per_preventivo'].includes(p.stato);
 
     return '<div class="card" style="margin-bottom:10px">' +
       '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
@@ -7451,8 +7490,10 @@ async function loadPaginaProgetti() {
 
     // All’inizio può mandarlo direttamente al commerciale;
     // dopo la verifica lo può fare quando l’ingegnere lo dichiara pronto.
-    const puoInviareCommerciale =
-      p.stato === 'bozza' || p.stato === 'pronto_per_preventivo';
+   const puoInviareCommerciale =
+    p.stato === 'bozza' ||
+    p.stato === 'da_integrare' ||
+    p.stato === 'pronto_per_preventivo';
 
     return `
       <div class="card" style="margin-bottom:12px">
@@ -7472,6 +7513,12 @@ async function loadPaginaProgetti() {
         <div style="font-size:13px;white-space:pre-wrap;margin-top:10px">
           ${esc(p.descrizione_tecnica || '')}
         </div>
+        ${p.nota_verifica_tecnica ? `
+  <div class="al2 i" style="margin:10px 0">
+    <b>🔧 Nota dell’ingegnere</b><br>
+    ${esc(p.nota_verifica_tecnica)}
+  </div>
+` : ''}
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
           <button
@@ -7513,23 +7560,37 @@ async function loadPaginaProgetti() {
 }
 
 async function apriProgettoDaElenco(id) {
-  const { data, error } = await db
+  const { data: progetto, error } = await db
     .from('progetti_tecnici')
     .select('*')
     .eq('id', id)
     .single();
 
-  if (error) {
-    toast('Errore apertura progetto: ' + error.message, 'err');
+  if (error || !progetto) {
+    toast(
+      'Errore apertura progetto: ' +
+      (error?.message || 'progetto non trovato'),
+      'err'
+    );
     return;
   }
 
-  currentCliId = data.cliente_id;
+  // Mantiene il cliente corretto per il successivo salvataggio.
+  currentCliId = progetto.cliente_id;
 
-  // Carica i progetti di quel cliente: modificaProgetto usa questa lista.
-  await loadProgettiCliente(currentCliId);
+  // Apre direttamente il modal, senza passare dalla lista cliente nascosta.
+  ge('mp-id').value = progetto.id;
+  ge('mp-titolo-modal').textContent = 'Modifica progetto tecnico';
+  ge('mp-titolo').value = progetto.titolo || '';
+  ge('mp-tipologia').value = progetto.tipologia || '';
+  ge('mp-descrizione').value = progetto.descrizione_tecnica || '';
+  ge('mp-materiali').value = progetto.materiali_note || '';
+  ge('mp-file').value = '';
+  ge('mp-file-extra').value = '';
 
-  await modificaProgetto(id);
+  await caricaAllegatiProgetto(progetto.id);
+
+  openM('m-progetto');
 }
 
 async function apriVerificaTecnica(progettoId) {
