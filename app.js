@@ -6514,7 +6514,8 @@ async function loadProgettiCliente(clienteId) {
   lista.innerHTML = progettiClienteDati.map(function(p) {
     const stato = {
       bozza: 'Bozza',
-      inviato_a_ufficio_tecnico: 'Inviato a ufficio tecnico',
+      inviato_a_commerciale: 'Inviato al commerciale',
+      in_verifica_tecnica: 'In verifica tecnica',
       in_valutazione: 'In valutazione',
       pronto_per_preventivo: 'Pronto per preventivo',
       approvato: 'Approvato',
@@ -6544,7 +6545,7 @@ async function loadProgettiCliente(clienteId) {
   '</button>' +
 
   (p.stato === 'bozza'
-    ? '<button class="btn sm info" onclick="inviaProgettoAUfficioTecnico(\'' + p.id + '\')">' +
+    ? '<button class="btn sm info" onclick="inviaProgettoAlCommerciale(\'' + p.id + '\')">' +
         '📤 Invia al commerciale' +
       '</button>'
     : '') +
@@ -6606,28 +6607,40 @@ async function salvaProgetto() {
   const titolo = v('mp-titolo').trim();
   const tipologia = v('mp-tipologia');
   const descrizione = v('mp-descrizione').trim();
+
   const fileObbligatorio = ge('mp-file').files[0] || null;
+  const filesExtra = Array.from(ge('mp-file-extra').files || []);
+
+  const files = fileObbligatorio
+    ? [fileObbligatorio, ...filesExtra]
+    : filesExtra;
+
+  if (!titolo || !tipologia || !descrizione) {
+    toast('Titolo, tipologia e descrizione sono obbligatori', 'err');
+    return;
+  }
+
   if (files.some(file => !fileProgettoValido(file))) {
-  toast('Formato non valido: carica solo PDF, JPG/JPEG o PNG', 'err');
-  return;
-}
+    toast('Formato non valido: carica solo PDF, JPG/JPEG o PNG', 'err');
+    return;
+  }
 
-if (files.some(file => file.size > 10 * 1024 * 1024)) {
-  toast('Un file supera il limite di 10 MB', 'err');
-  return;
-}
+  if (files.some(file => file.size > 10 * 1024 * 1024)) {
+    toast('Un file supera il limite di 10 MB', 'err');
+    return;
+  }
 
-// Un file principale è obbligatorio soltanto alla creazione.
-if (!id && !fileObbligatorio) {
-  toast('Devi caricare l’allegato tecnico obbligatorio', 'err');
-  return;
-}
+  // Per un progetto nuovo il primo allegato è obbligatorio.
+  if (!id && !fileObbligatorio) {
+    toast('Devi caricare l’allegato tecnico obbligatorio', 'err');
+    return;
+  }
 
-// In modifica è ammesso non scegliere file solo se il progetto ne possiede già uno.
-if (id && files.length === 0 && allegatiProgettoDati.length === 0) {
-  toast('Devi allegare almeno un PDF, JPG/JPEG o PNG', 'err');
-  return;
-} 
+  // In modifica, se non aggiungi file, deve essercene già almeno uno.
+  if (id && files.length === 0 && allegatiProgettoDati.length === 0) {
+    toast('Devi allegare almeno un PDF, JPG/JPEG o PNG', 'err');
+    return;
+  } 
 
   const payload = {
     titolo: titolo,
@@ -6777,7 +6790,7 @@ async function eliminaProgetto(progettoId) {
 
 async function inviaProgettoAUfficioTecnico(progettoId) {
   if (!confirm(
-    'Inviare il progetto a capo tecnico, ingegnere e titolare? Dopo l’invio non sarà più una bozza.'
+    'Inviare il progetto a ingegnere e titolare per la verifica tecnica? Dopo l’invio non sarà più una bozza.'
   )) {
     return;
   }
@@ -6800,7 +6813,7 @@ async function inviaProgettoAUfficioTecnico(progettoId) {
   const { error } = await db
     .from('progetti_tecnici')
     .update({
-      stato: 'inviato_a_ufficio_tecnico'
+      stato: 'in_verifica_tecnica'
     })
     .eq('id', progettoId);
 
@@ -6811,6 +6824,38 @@ async function inviaProgettoAUfficioTecnico(progettoId) {
 
   toast('Progetto inviato all’ufficio tecnico', 'ok');
 
+  await loadProgettiCliente(currentCliId);
+  await loadPaginaProgetti();
+}
+
+async function inviaProgettoAlCommerciale(progettoId) {
+  if (!confirm('Inviare il progetto al commerciale per il preventivo?')) {
+    return;
+  }
+
+  const { data: allegati, error: erroreAllegati } = await db
+    .from('progetti_tecnici_allegati')
+    .select('id')
+    .eq('progetto_id', progettoId);
+
+  if (erroreAllegati || !allegati || allegati.length === 0) {
+    toast('Non puoi inviare un progetto senza almeno un allegato', 'err');
+    return;
+  }
+
+  const { error } = await db
+    .from('progetti_tecnici')
+    .update({
+      stato: 'inviato_a_commerciale'
+    })
+    .eq('id', progettoId);
+
+  if (error) {
+    toast('Errore invio: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Progetto inviato al commerciale', 'ok');
   await loadProgettiCliente(currentCliId);
   await loadPaginaProgetti();
 }
@@ -6863,9 +6908,17 @@ async function loadPaginaProgetti() {
     <button
       class="btn sm info"
       onclick="inviaProgettoAUfficioTecnico('${p.id}')">
-      📤 Invia a ufficio tecnico
+      🔧 Richiedi verifica tecnica
     </button>
   ` : ''}
+  
+  ${p.stato === 'bozza' ? `
+  <button
+    class="btn sm info"
+    onclick="inviaProgettoAlCommerciale('${p.id}')">
+    📤 Invia al commerciale
+  </button>
+` : ''}
 
   <button
     class="btn sm"
@@ -6899,6 +6952,7 @@ async function apriProgettoDaElenco(id) {
 
   await modificaProgetto(id);
 }
+
 
 // MOSTRA PASSWORD 
 
