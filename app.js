@@ -29,7 +29,7 @@ const NAV={
   tecnico:[{id:'dashboard',l:'Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
   commerciale:[{id:'dashboard',l:'Dashboard'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
   rappresentante:[{id:'dashboard-rapp',l:'Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead e trattative'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'progetti', l:'📐 Progetti'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'info',l:'ⓘ Info'}],
-  ingegnere: [{id: 'dashboard', l: '📊 Dashboard'},{id: 'calendario', l: '📅 Calendario'},{id: 'clienti', l: '🧑‍💼 Clienti'},{id: 'progetti', l: '📐 Progetti tecnici'},{id: 'documenti', l: '📄 Documenti'},{id: 'info', l: 'ℹ️ Info'}],
+  ingegnere: [{id: 'dashboard', l: '📊 Dashboard'},{id: 'calendario-ingegnere', l: '📅 Calendario'},{id: 'verifiche-tecniche', l: '🔧 Verifiche'},{id: 'documenti', l: '📄 Documenti'},{id: 'info', l: 'ℹ️ Info'}],
 };
 
 // NAV MOBILE
@@ -628,7 +628,7 @@ const PAGINE_RUOLO = {
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
   commerciale:    ['dashboard','clienti','presidi','documenti','fatture','catalogo','cliente-detail'],
   rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','sopralluogo','trattative','cliente-detail','info'],
-  ingegnere:      ['dashboard','calendario','clienti','progetti','documenti','cliente-detail','info'],
+  ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti','cliente-detail','info'],
 };
 
 function canAccessPage(id) {
@@ -678,12 +678,15 @@ function gotoPage(id){
   if(id==='calendario-team'){loadCalendarioTeam();}
   if(id==='piano-mensile'){var n=new Date();_pianoAnno=n.getFullYear();_pianoMese=n.getMonth()+1;aggiornaPianoLabel();loadPianificazioneMensile(_pianoAnno,_pianoMese);}
   if(id==='dashboard-rapp')loadDashRappresentante();
+  if(id==='calendario-ingegnere')loadCalendarioIngegnere();
+  if(id==='verifiche-tecniche')loadVerificheTecniche();
   if(id==='progetti'){loadPaginaProgetti();}
   if(id==='trattative')loadTrattative();
   if(id==='catalogo'){loadPaginaCatalogo();var _ba=ge('btn-add-prodotto');if(_ba)_ba.style.display=(ROLE==='titolare')?'':'none';var _bi=ge('btn-import-excel');if(_bi)_bi.style.display=(ROLE==='titolare')?'':'none';}
   if(id==='fatture'){loadFatture();}
   if(id==='tecnico')loadOdlTecnico();
   if(id==='sopralluogo' && ROLE!=='rappresentante' && ROLE!=='titolare'){toast('Accesso non consentito','err');return;}
+
   if(id === 'info') loadInfo();
   window.scrollTo(0,0);
 }
@@ -691,19 +694,54 @@ function gotoPage(id){
 // ── DASHBOARD ─────────────────────────────────────────────────
 async function loadDash(){
   // Smistamento per ruolo: tecnico, titolare, segreteria, capo_tecnico hanno dashboard dedicate.
-  var dtSec = ge('dash-tecnico'), ttSec = ge('dash-titolare'), sgSec = ge('dash-segreteria-pg'), ctSec = ge('dash-capo-tecnico-pg'), dsSec = ge('dash-standard');
-  function showOnly(sec){
-    if(dtSec) dtSec.style.display = (sec==='tecnico') ? 'block' : 'none';
-    if(ttSec) ttSec.style.display = (sec==='titolare') ? 'block' : 'none';
-    if(sgSec) sgSec.style.display = (sec==='segreteria') ? 'block' : 'none';
-    if(ctSec) ctSec.style.display = (sec==='capo_tecnico') ? 'block' : 'none';
-    if(dsSec) dsSec.style.display = (sec==='standard') ? 'block' : 'none';
+  var dtSec = ge('dash-tecnico');
+  var ttSec = ge('dash-titolare');
+  var sgSec = ge('dash-segreteria-pg');
+  var ctSec = ge('dash-capo-tecnico-pg');
+  var ingSec = ge('dash-ingegnere-pg');
+  var dsSec = ge('dash-standard');
+
+  function showOnly(sec) {
+    if (dtSec) dtSec.style.display = sec === 'tecnico' ? 'block' : 'none';
+    if (ttSec) ttSec.style.display = sec === 'titolare' ? 'block' : 'none';
+    if (sgSec) sgSec.style.display = sec === 'segreteria' ? 'block' : 'none';
+    if (ctSec) ctSec.style.display = sec === 'capo_tecnico' ? 'block' : 'none';
+    if (ingSec) ingSec.style.display = sec === 'ingegnere' ? 'block' : 'none';
+    if (dsSec) dsSec.style.display = sec === 'standard' ? 'block' : 'none';
   }
-  if(ROLE==='tecnico'){ showOnly('tecnico'); await loadDashTecnico(); return; }
-  if(ROLE==='titolare'){ showOnly('titolare'); await loadDashTitolare(); return; }
-  if(ROLE==='segreteria'){ showOnly('segreteria'); await loadDashSegreteriaPg(); return; }
-  if(ROLE==='capo_tecnico'){ showOnly('capo_tecnico'); await loadDashCapoTecnicoPg(); return; }
+
+  if (ROLE === 'tecnico') {
+    showOnly('tecnico');
+    await loadDashTecnico();
+    return;
+  }
+
+  if (ROLE === 'titolare') {
+    showOnly('titolare');
+    await loadDashTitolare();
+    return;
+  }
+
+  if (ROLE === 'segreteria') {
+    showOnly('segreteria');
+    await loadDashSegreteriaPg();
+    return;
+  }
+
+  if (ROLE === 'capo_tecnico') {
+    showOnly('capo_tecnico');
+    await loadDashCapoTecnicoPg();
+    return;
+  }
+
+  if (ROLE === 'ingegnere') {
+    showOnly('ingegnere');
+    await loadDashIngegnere();
+    return;
+  }
+
   showOnly('standard');
+
   const today=new Date().toISOString().split('T')[0];const in30=new Date(Date.now()+30*86400000).toISOString().split('T')[0];
   // Query KPI filtrate per ruolo
   var qOdl = db.from('ordini_lavoro').select('id',{count:'exact'}).is('eliminato_il',null).eq('data_pianificata',today);
@@ -760,6 +798,187 @@ async function loadDash(){
     if(window._ticketRefreshTimer) clearInterval(window._ticketRefreshTimer);
     window._ticketRefreshTimer = setInterval(function(){ loadDashTicket(); }, 60000);
   }
+}
+async function loadDashIngegnere() {
+  const adesso = new Date();
+  const ora = adesso.getHours();
+
+  // Alle 12 è ancora buongiorno.
+  const saluto = ora < 14
+    ? 'Buongiorno'
+    : ora < 18
+      ? 'Buon pomeriggio'
+      : 'Buonasera';
+
+  ge('ing-greet-nome').textContent =
+    saluto + (ME?.nome ? ', ' + ME.nome : '');
+
+  ge('ing-greet-data').textContent = adesso.toLocaleDateString('it-IT', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  });
+
+  const oggi = dataLocaleIng(adesso);
+  const inSetteGiorni = new Date(adesso);
+  inSetteGiorni.setDate(inSetteGiorni.getDate() + 7);
+
+  const primoMese = dataLocaleIng(
+    new Date(adesso.getFullYear(), adesso.getMonth(), 1)
+  );
+
+  const ultimoMese = dataLocaleIng(
+    new Date(adesso.getFullYear(), adesso.getMonth() + 1, 0)
+  );
+
+  const [
+    verificheRes,
+    attivitaMeseRes,
+    scadenzeRes,
+    prontiRes,
+    attivitaRes,
+    calendarioRes
+  ] = await Promise.all([
+    db.from('progetti_tecnici')
+      .select('id,titolo,tipologia,creato_il,clienti(ragione_sociale)', {
+        count: 'exact'
+      })
+      .eq('stato', 'in_verifica_tecnica')
+      .order('creato_il', { ascending: false })
+      .limit(5),
+
+    db.from('calendario_personale')
+      .select('id', { count: 'exact', head: true })
+      .eq('utente_id', ME.id)
+      .gte('data', primoMese)
+      .lte('data', ultimoMese),
+
+    db.from('calendario_personale')
+      .select('id', { count: 'exact', head: true })
+      .eq('utente_id', ME.id)
+      .eq('tipo', 'scadenza')
+      .gte('data', oggi)
+      .lte('data', dataLocaleIng(inSetteGiorni)),
+
+    db.from('progetti_tecnici')
+      .select('id', { count: 'exact', head: true })
+      .eq('stato', 'pronto_per_preventivo'),
+
+    db.from('calendario_personale')
+      .select('id,titolo,data,ora_inizio,tipo')
+      .eq('utente_id', ME.id)
+      .gte('data', oggi)
+      .order('data', { ascending: true })
+      .order('ora_inizio', { ascending: true })
+      .limit(5),
+
+    db.from('calendario_personale')
+      .select('id,titolo,data,ora_inizio')
+      .eq('utente_id', ME.id)
+      .gte('data', oggi)
+      .lte('data', dataLocaleIng(new Date(
+        adesso.getFullYear(),
+        adesso.getMonth(),
+        adesso.getDate() + 34
+      )))
+      .order('data', { ascending: true })
+  ]);
+
+  ge('ing-k-verifiche').textContent = verificheRes.count || 0;
+  ge('ing-k-attivita').textContent = attivitaMeseRes.count || 0;
+  ge('ing-k-scadenze').textContent = scadenzeRes.count || 0;
+  ge('ing-k-pronti').textContent = prontiRes.count || 0;
+
+  const verifiche = verificheRes.data || [];
+  ge('ing-verifiche-lista').innerHTML = verifiche.length
+    ? `<div class="rap-list-card">${
+        verifiche.map(p => `
+          <div class="rap-sopr-card" style="margin:0 0 8px">
+            <div class="body">
+              <div class="cli">🔧 ${esc(p.titolo)}</div>
+              <div class="meta">
+                ${esc(p.clienti?.ragione_sociale || 'Cliente non indicato')}
+                · ${esc(p.tipologia || 'Progetto tecnico')}
+              </div>
+            </div>
+          </div>
+        `).join('')
+      }
+      <button class="btn sm" onclick="gotoPage('verifiche-tecniche')">
+        Vedi tutte →
+      </button>
+    </div>`
+    : `<div class="rap-list-card">
+        <div class="tit-empty">✅ Nessuna verifica tecnica da svolgere.</div>
+      </div>`;
+
+  const attivita = attivitaRes.data || [];
+  ge('ing-attivita-lista').innerHTML = attivita.length
+    ? `<div class="rap-list-card">${
+        attivita.map(a => `
+          <div class="rap-sopr-card" style="margin:0 0 8px">
+            <div class="body">
+              <div class="cli">📌 ${esc(a.titolo)}</div>
+              <div class="meta">
+                ${new Date(a.data + 'T12:00:00').toLocaleDateString('it-IT', {
+                  day: 'numeric',
+                  month: 'short'
+                })}
+                ${a.ora_inizio ? ' · ' + a.ora_inizio.slice(0, 5) : ''}
+              </div>
+            </div>
+          </div>
+        `).join('')
+      }
+      <button class="btn sm" onclick="gotoPage('calendario-ingegnere')">
+        Apri calendario →
+      </button>
+    </div>`
+    : `<div class="rap-list-card">
+        <div class="tit-empty">
+          Nessuna attività prossima.<br><br>
+          <button class="btn p sm" onclick="apriNuovaAttivitaIngegnere()">
+            + Nuova attività
+          </button>
+        </div>
+      </div>`;
+
+  const perData = {};
+  (calendarioRes.data || []).forEach(a => {
+    perData[a.data] = (perData[a.data] || 0) + 1;
+  });
+
+  const inizio = new Date(adesso);
+  const giornoSettimana = inizio.getDay();
+  inizio.setDate(
+    inizio.getDate() + (giornoSettimana === 0 ? -6 : 1 - giornoSettimana)
+  );
+
+  const celle = [];
+
+  for (let i = 0; i < 35; i++) {
+    const data = new Date(inizio);
+    data.setDate(inizio.getDate() + i);
+
+    const chiave = dataLocaleIng(data);
+    const numero = perData[chiave] || 0;
+    const livello = numero === 0 ? 0 : numero <= 2 ? 1 : numero <= 4 ? 2 : 3;
+    const classeOggi = chiave === oggi ? ' today' : '';
+
+    celle.push(`
+      <div class="rap-heatmap-day l${livello}${classeOggi}"
+           title="${data.toLocaleDateString('it-IT', {
+             weekday: 'long',
+             day: 'numeric',
+             month: 'long'
+           })}: ${numero} attività"
+           onclick="gotoPage('calendario-ingegnere')">
+        <span class="n">${data.getDate()}</span>
+      </div>
+    `);
+  }
+
+  ge('ing-mini-calendario').innerHTML = celle.join('');
 }
 
 // ── DASHBOARD TECNICO (iOS-like) ─────────────────────────────
@@ -2196,6 +2415,265 @@ function renderCalTeamMese(start, odls){
   }
   html += '</div>';
   return html;
+}
+// ── CALENDARIO PERSONALE INGEGNERE ────────────────────────────
+let calIngAnno = new Date().getFullYear();
+let calIngMese = new Date().getMonth();
+let calIngDati = [];
+
+function dataLocaleIng(data) {
+  const anno = data.getFullYear();
+  const mese = String(data.getMonth() + 1).padStart(2, '0');
+  const giorno = String(data.getDate()).padStart(2, '0');
+
+  return `${anno}-${mese}-${giorno}`;
+}
+
+function calIngPrev() {
+  calIngMese--;
+
+  if (calIngMese < 0) {
+    calIngMese = 11;
+    calIngAnno--;
+  }
+
+  loadCalendarioIngegnere();
+}
+
+function calIngNext() {
+  calIngMese++;
+
+  if (calIngMese > 11) {
+    calIngMese = 0;
+    calIngAnno++;
+  }
+
+  loadCalendarioIngegnere();
+}
+
+async function loadCalendarioIngegnere() {
+  const box = ge('cal-ing-lista');
+  const titolo = ge('cal-ing-title');
+
+  if (!box) return;
+
+  const mesi = [
+    'Gennaio', 'Febbraio', 'Marzo', 'Aprile',
+    'Maggio', 'Giugno', 'Luglio', 'Agosto',
+    'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+  ];
+
+  if (titolo) {
+    titolo.textContent = `${mesi[calIngMese]} ${calIngAnno}`;
+  }
+
+  const inizio = dataLocaleIng(new Date(calIngAnno, calIngMese, 1));
+  const fine = dataLocaleIng(new Date(calIngAnno, calIngMese + 1, 0));
+
+  box.innerHTML = '<div class="load">Caricamento calendario...</div>';
+
+  const { data, error } = await db
+    .from('calendario_personale')
+    .select('*')
+    .eq('utente_id', ME.id)
+    .gte('data', inizio)
+    .lte('data', fine)
+    .order('data', { ascending: true })
+    .order('ora_inizio', { ascending: true });
+
+  if (error) {
+    box.innerHTML =
+      '<div class="al2 e">Errore: ' + esc(error.message) + '</div>';
+    return;
+  }
+
+  calIngDati = data || [];
+
+  const attivitaPerData = {};
+
+  calIngDati.forEach(function(attivita) {
+    if (!attivitaPerData[attivita.data]) {
+      attivitaPerData[attivita.data] = [];
+    }
+
+    attivitaPerData[attivita.data].push(attivita);
+  });
+
+  const giorniSettimana = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+
+  const primoGiorno = new Date(calIngAnno, calIngMese, 1);
+
+  // Converte domenica=0 in lunedì=0.
+  const spaziIniziali = (primoGiorno.getDay() + 6) % 7;
+
+  const giorniDelMese = new Date(
+    calIngAnno,
+    calIngMese + 1,
+    0
+  ).getDate();
+
+  const oggi = dataLocaleIng(new Date());
+
+  let html = giorniSettimana.map(function(giorno) {
+    return `<div class="cal-head">${giorno}</div>`;
+  }).join('');
+
+  for (let i = 0; i < spaziIniziali; i++) {
+    html += '<div class="cal-day other-month"></div>';
+  }
+
+  for (let giorno = 1; giorno <= giorniDelMese; giorno++) {
+    const dataCorrente = dataLocaleIng(
+      new Date(calIngAnno, calIngMese, giorno)
+    );
+
+    const attivitaDelGiorno = attivitaPerData[dataCorrente] || [];
+
+    const anteprima = attivitaDelGiorno.slice(0, 3).map(function(attivita) {
+      const ora = attivita.ora_inizio
+        ? attivita.ora_inizio.slice(0, 5) + ' '
+        : '';
+
+      const classe = attivita.tipo === 'scadenza' ? 'str' : 'ord';
+
+      return `
+        <div
+          class="cal-ev ${classe}"
+          onclick="event.stopPropagation(); modificaAttivitaIngegnere('${attivita.id}')">
+          ${ora}${esc(attivita.titolo)}
+        </div>
+      `;
+    }).join('');
+
+    const altreAttivita = attivitaDelGiorno.length > 3
+      ? `<div class="cal-ev ord">+${attivitaDelGiorno.length - 3} altre</div>`
+      : '';
+
+    html += `
+      <div
+        class="cal-day ${dataCorrente === oggi ? 'today' : ''}"
+        onclick="apriNuovaAttivitaIngegnere('${dataCorrente}')">
+
+        <div class="cal-day-n">${giorno}</div>
+
+        ${anteprima}
+        ${altreAttivita}
+      </div>
+    `;
+  }
+
+  box.innerHTML = `<div class="cal-grid">${html}</div>`;
+}
+
+function apriNuovaAttivitaIngegnere(dataSelezionata = null) {
+  ge('mai-id').value = '';
+  ge('mai-titolo').textContent = 'Nuova attività';
+  ge('mai-titolo-attivita').value = '';
+  ge('mai-data').value = dataSelezionata || dataLocaleIng(new Date());
+  ge('mai-tipo').value = 'attivita';
+  ge('mai-inizio').value = '';
+  ge('mai-fine').value = '';
+  ge('mai-descrizione').value = '';
+
+  openM('m-attivita-ingegnere');
+}
+
+function modificaAttivitaIngegnere(id) {
+  const attivita = calIngDati.find(function(item) {
+    return item.id === id;
+  });
+
+  if (!attivita) {
+    toast('Attività non trovata', 'err');
+    return;
+  }
+
+  ge('mai-id').value = attivita.id;
+  ge('mai-titolo').textContent = 'Modifica attività';
+  ge('mai-titolo-attivita').value = attivita.titolo || '';
+  ge('mai-data').value = attivita.data || '';
+  ge('mai-tipo').value = attivita.tipo || 'attivita';
+  ge('mai-inizio').value = attivita.ora_inizio
+    ? attivita.ora_inizio.slice(0, 5)
+    : '';
+  ge('mai-fine').value = attivita.ora_fine
+    ? attivita.ora_fine.slice(0, 5)
+    : '';
+  ge('mai-descrizione').value = attivita.descrizione || '';
+
+  openM('m-attivita-ingegnere');
+}
+
+async function salvaAttivitaIngegnere() {
+  const id = v('mai-id');
+  const titolo = v('mai-titolo-attivita').trim();
+  const data = v('mai-data');
+
+  if (!titolo || !data) {
+    toast('Titolo e data sono obbligatori', 'err');
+    return;
+  }
+
+  const inizio = v('mai-inizio') || null;
+  const fine = v('mai-fine') || null;
+
+  if (inizio && fine && fine <= inizio) {
+    toast('L’orario di fine deve essere successivo all’orario di inizio', 'err');
+    return;
+  }
+
+  const payload = {
+    titolo: titolo,
+    data: data,
+    tipo: v('mai-tipo'),
+    ora_inizio: inizio,
+    ora_fine: fine,
+    descrizione: v('mai-descrizione').trim() || null
+  };
+
+  let error;
+
+  if (id) {
+    ({ error } = await db
+      .from('calendario_personale')
+      .update(payload)
+      .eq('id', id));
+  } else {
+    payload.utente_id = ME.id;
+
+    ({ error } = await db
+      .from('calendario_personale')
+      .insert(payload));
+  }
+
+  if (error) {
+    toast('Errore salvataggio: ' + error.message, 'err');
+    return;
+  }
+
+  closeM('m-attivita-ingegnere');
+  toast(id ? 'Attività aggiornata' : 'Attività creata', 'ok');
+
+  await loadCalendarioIngegnere();
+}
+
+async function eliminaAttivitaIngegnere(id) {
+  if (!confirm('Eliminare questa attività dal calendario?')) {
+    return;
+  }
+
+  const { error } = await db
+    .from('calendario_personale')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    toast('Errore eliminazione: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Attività eliminata', 'ok');
+  await loadCalendarioIngegnere();
 }
 
 // ── CALENDARIO TECNICO ───────────────────────────────────────
@@ -6401,6 +6879,69 @@ function cambiaMeseAppuntamenti(delta) {
   loadAppuntamentiCommerciali();
 }
 
+async function loadVerificheTecniche() {
+  const box = ge('verifiche-tecniche-lista');
+
+  if (!box) return;
+
+  box.innerHTML = '<div class="load">Caricamento verifiche...</div>';
+
+  const { data, error } = await db
+    .from('progetti_tecnici')
+    .select('id, titolo, tipologia, descrizione_tecnica, stato, creato_il, clienti(ragione_sociale)')
+    .eq('stato', 'in_verifica_tecnica')
+    .order('creato_il', { ascending: false });
+
+  if (error) {
+    box.innerHTML =
+      '<div class="al2 e">Errore: ' + esc(error.message) + '</div>';
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    box.innerHTML =
+      '<div class="empty">Nessun progetto tecnico da verificare.</div>';
+    return;
+  }
+
+  box.innerHTML = data.map(function(progetto) {
+    const cliente = progetto.clienti?.ragione_sociale || 'Cliente non disponibile';
+
+    return `
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:15px;font-weight:700">
+              ${esc(progetto.titolo)}
+            </div>
+
+            <div style="font-size:12px;color:var(--m);margin-top:4px">
+              ${esc(cliente)} · ${esc(progetto.tipologia)}
+            </div>
+          </div>
+
+          <span class="bx bblue">In verifica tecnica</span>
+        </div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+  <button
+    class="btn sm p"
+    onclick="apriVerificaTecnica('${progetto.id}')"
+  >
+    🔧 Gestisci verifica
+  </button>
+</div>
+        <div style="font-size:13px;white-space:pre-wrap;margin-top:10px">
+          ${esc(progetto.descrizione_tecnica)}
+        </div>
+
+        <div style="font-size:12px;color:var(--m);margin-top:10px">
+          Inviato il ${new Date(progetto.creato_il).toLocaleDateString('it-IT')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 // ── PROGETTI TECNICI CLIENTE ─────────────────────────────────
 
 let allegatiProgettoDati = [];
@@ -6520,7 +7061,10 @@ async function loadProgettiCliente(clienteId) {
       pronto_per_preventivo: 'Pronto per preventivo',
       approvato: 'Approvato',
       archiviato: 'Archiviato'
+      
     }[p.stato] || p.stato;
+    const richiediVerifica = ['bozza', 'da_integrare'].includes(p.stato);
+    const inviaCommerciale = ['bozza', 'pronto_per_preventivo'].includes(p.stato);
 
     return '<div class="card" style="margin-bottom:10px">' +
       '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
@@ -6863,6 +7407,7 @@ async function inviaProgettoAlCommerciale(progettoId) {
 // ── PAGINA PROGETTI TECNICI ────────────────────────────────────
 async function loadPaginaProgetti() {
   const box = ge('progetti-lista');
+
   if (!box) {
     console.error('Manca l’elemento HTML con id="progetti-lista"');
     return;
@@ -6876,58 +7421,92 @@ async function loadPaginaProgetti() {
     .order('creato_il', { ascending: false });
 
   if (error) {
-    console.error(error);
-    box.innerHTML = '<div class="al2 e">Errore nel caricamento: ' + esc(error.message) + '</div>';
+    box.innerHTML =
+      '<div class="al2 e">Errore nel caricamento: ' +
+      esc(error.message) +
+      '</div>';
     return;
   }
 
-  if (!data || data.length === 0) {
-    box.innerHTML = '<div class="empty">Nessun progetto tecnico creato.</div>';
+  if (!data?.length) {
+    box.innerHTML =
+      '<div class="empty">Nessun progetto tecnico creato.</div>';
     return;
   }
 
   box.innerHTML = data.map(function(p) {
-    const cliente = p.clienti ? p.clienti.ragione_sociale : 'Cliente non disponibile';
+    const cliente = p.clienti?.ragione_sociale || 'Cliente non disponibile';
+
+    const stato = {
+      bozza: 'Bozza',
+      in_verifica_tecnica: 'In verifica tecnica',
+      da_integrare: 'Integrazione richiesta',
+      pronto_per_preventivo: 'Pronto per preventivo',
+      inviato_a_commerciale: 'Inviato al commerciale'
+    }[p.stato] || p.stato;
+
+    // Il rappresentante può rimandare all’ingegnere dopo le integrazioni.
+    const puoRichiedereVerifica =
+      p.stato === 'bozza' || p.stato === 'da_integrare';
+
+    // All’inizio può mandarlo direttamente al commerciale;
+    // dopo la verifica lo può fare quando l’ingegnere lo dichiara pronto.
+    const puoInviareCommerciale =
+      p.stato === 'bozza' || p.stato === 'pronto_per_preventivo';
 
     return `
       <div class="card" style="margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;gap:12px;align-items:start">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
           <div>
-            <b>${esc(p.titolo)}</b>
-            <div class="muted">${esc(cliente)} · ${esc(p.tipologia)}</div>
+            <div style="font-size:14px;font-weight:700">
+              ${esc(p.titolo)}
+            </div>
+            <div style="font-size:12px;color:var(--m);margin-top:3px">
+              ${esc(cliente)} · ${esc(p.tipologia)}
+            </div>
           </div>
-          <span class="badge">${esc(p.stato)}</span>
+
+          <span class="bx bblue">${esc(stato)}</span>
         </div>
-        <p style="margin:10px 0">${esc(p.descrizione_tecnica)}</p>
-       <div style="display:flex;gap:8px;flex-wrap:wrap">
-  <button class="btn sm" onclick="apriProgettoDaElenco('${p.id}')">
-    Apri / modifica
-  </button>
 
-  ${p.stato === 'bozza' ? `
-    <button
-      class="btn sm info"
-      onclick="inviaProgettoAUfficioTecnico('${p.id}')">
-      🔧 Richiedi verifica tecnica
-    </button>
-  ` : ''}
-  
-  ${p.stato === 'bozza' ? `
-  <button
-    class="btn sm info"
-    onclick="inviaProgettoAlCommerciale('${p.id}')">
-    📤 Invia al commerciale
-  </button>
-` : ''}
+        <div style="font-size:13px;white-space:pre-wrap;margin-top:10px">
+          ${esc(p.descrizione_tecnica || '')}
+        </div>
 
-  <button
-    class="btn sm"
-    style="color:var(--r)"
-    onclick="eliminaProgetto('${p.id}')">
-    🗑 Elimina
-  </button>
-</div>
-</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <button
+            class="btn sm"
+            onclick="apriProgettoDaElenco('${p.id}')"
+          >
+            Apri / modifica
+          </button>
+
+          ${puoRichiedereVerifica ? `
+            <button
+              class="btn sm info"
+              onclick="inviaProgettoAUfficioTecnico('${p.id}')"
+            >
+              🔧 Richiedi verifica tecnica
+            </button>
+          ` : ''}
+
+          ${puoInviareCommerciale ? `
+            <button
+              class="btn sm info"
+              onclick="inviaProgettoAlCommerciale('${p.id}')"
+            >
+              📤 Invia al commerciale
+            </button>
+          ` : ''}
+
+          <button
+            class="btn sm"
+            style="color:var(--r)"
+            onclick="eliminaProgetto('${p.id}')"
+          >
+            🗑 Elimina
+          </button>
+        </div>
       </div>
     `;
   }).join('');
@@ -6953,7 +7532,171 @@ async function apriProgettoDaElenco(id) {
   await modificaProgetto(id);
 }
 
+async function apriVerificaTecnica(progettoId) {
+  const { data: progetto, error } = await db
+    .from('progetti_tecnici')
+    .select(`
+      id,
+      titolo,
+      tipologia,
+      descrizione_tecnica,
+      nota_verifica_tecnica,
+      clienti(ragione_sociale)
+    `)
+    .eq('id', progettoId)
+    .single();
 
+  if (error || !progetto) {
+    toast('Errore apertura verifica: ' + (error?.message || ''), 'err');
+    return;
+  }
+
+  ge('mvt-id').value = progetto.id;
+  ge('mvt-note').value = progetto.nota_verifica_tecnica || '';
+
+  ge('mvt-riepilogo').innerHTML = `
+    <b>${esc(progetto.titolo)}</b><br>
+    ${esc(progetto.clienti?.ragione_sociale || 'Cliente non disponibile')}
+    · ${esc(progetto.tipologia || 'Progetto tecnico')}<br><br>
+    ${esc(progetto.descrizione_tecnica || 'Nessuna descrizione disponibile')}
+  `;
+ const inputAllegati = ge('mvt-file');
+
+if (inputAllegati) {
+  inputAllegati.value = '';
+}
+
+if (ge('mvt-allegati')) {
+  await caricaAllegatiVerifica(progetto.id);
+}
+
+  openM('m-verifica-tecnica');
+}
+
+async function salvaEsitoVerifica(nuovoStato) {
+  const progettoId = v('mvt-id');
+  const nota = v('mvt-note').trim();
+
+  if (!nota) {
+    toast('Scrivi prima l’esito della verifica tecnica', 'err');
+    return;
+  }
+try {
+  await caricaAllegatiDaVerifica(progettoId);
+} catch (errore) {
+  toast('Errore caricamento allegati: ' + errore.message, 'err');
+  return;
+}
+  const { error } = await db.rpc('salva_esito_verifica', {
+  p_progetto_id: progettoId,
+  p_stato: nuovoStato,
+  p_nota: nota
+});
+
+  if (error) {
+    toast('Errore salvataggio verifica: ' + error.message, 'err');
+    return;
+  }
+
+  closeM('m-verifica-tecnica');
+
+  toast(
+    nuovoStato === 'da_integrare'
+      ? 'Integrazione richiesta al rappresentante'
+      : 'Progetto segnato come pronto per preventivo',
+    'ok'
+  );
+
+  await loadVerificheTecniche();
+  await loadDashIngegnere();
+}
+async function caricaAllegatiVerifica(progettoId) {
+  const box = ge('mvt-allegati');
+
+  const { data, error } = await db
+    .from('progetti_tecnici_allegati')
+    .select('id,nome_file,caricato_il')
+    .eq('progetto_id', progettoId)
+    .order('caricato_il', { ascending: false });
+
+  if (error) {
+    box.innerHTML = '<div class="al2 e">Errore caricamento allegati.</div>';
+    return;
+  }
+
+  if (!data?.length) {
+    box.innerHTML = '<div style="font-size:12px;color:var(--m)">Nessun allegato disponibile.</div>';
+    return;
+  }
+
+  box.innerHTML = `
+    <div style="font-size:12px;font-weight:600;margin-bottom:6px">
+      Allegati già presenti
+    </div>
+    ${data.map(a => `
+      <div style="padding:7px 9px;background:var(--gl);border-radius:6px;margin-top:5px;font-size:12px">
+        📎 ${esc(a.nome_file)}
+      </div>
+    `).join('')}
+  `;
+}
+
+async function caricaAllegatiDaVerifica(progettoId) {
+  const files = Array.from(ge('mvt-file').files || []);
+
+  if (!files.length) return;
+
+  if (files.some(file => !fileProgettoValido(file))) {
+    throw new Error('Puoi caricare solo PDF, JPG/JPEG o PNG');
+  }
+
+  if (files.some(file => file.size > 10 * 1024 * 1024)) {
+    throw new Error('Un file supera il limite di 10 MB');
+  }
+
+  const { data: authData, error: authError } = await db.auth.getUser();
+
+  if (authError || !authData.user) {
+    throw new Error('Sessione non valida');
+  }
+
+  const utenteId = authData.user.id;
+
+  for (const file of files) {
+    const nomeSicuro = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+
+    const path =
+      utenteId + '/' +
+      progettoId + '/' +
+      Date.now() + '_' +
+      nomeSicuro;
+
+    const { error: erroreUpload } = await db.storage
+      .from('progetti-tecnici')
+      .upload(path, file, {
+        contentType: file.type,
+        upsert: false
+      });
+
+    if (erroreUpload) throw erroreUpload;
+
+    const { error: erroreAllegato } = await db
+      .from('progetti_tecnici_allegati')
+      .insert({
+        progetto_id: progettoId,
+        nome_file: file.name,
+        storage_path: path,
+        mime_type: file.type,
+        dimensione: file.size,
+        caricato_da: utenteId
+      });
+
+    if (erroreAllegato) {
+      await db.storage.from('progetti-tecnici').remove([path]);
+      throw erroreAllegato;
+    }
+  }
+}
 // MOSTRA PASSWORD 
 
 function togglePasswordLogin() {

@@ -411,11 +411,15 @@
   <!-- DASHBOARD STANDARD (altri ruoli) -->
   <div id="dash-standard">
   <div class="sh">
-    <div><div class="st">Dashboard</div><div style="font-size:13px;color:var(--m);margin-top:2px" id="ddate"></div></div>
+    <div>
+  <div class="st" id="dash-title">Dashboard</div>
+  <div style="font-size:13px;color:var(--m);margin-top:2px" id="ddate"></div>
+</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap" id="dash-actions">
       <button class="btn" onclick="gotoPage('presidi')" id="dash-btn-presidi" style="display:none">🧯 Presidi</button>
       <button class="btn" onclick="gotoPage('workflow')" id="dash-btn-workflow" style="display:none">📋 Da gestire</button>
       <button class="btn p" onclick="apriNuovoIntervento()" id="dash-btn-odl" style="display:none">+ Pianifica intervento</button>
+      <button class="btn" onclick="gotoPage('info')" id="dash-btn-info" style="display:none"> ⓘ Info </button>
     </div>
   </div>
   <!-- KPI -->
@@ -442,6 +446,7 @@
     <div class="card"><div style="font-size:14px;font-weight:600;margin-bottom:14px">📋 Interventi recenti</div><div id="dodl"><div class="load">Caricamento...</div></div></div>
     <div class="card"><div style="font-size:14px;font-weight:600;margin-bottom:14px">⚠️ Presidi in scadenza (30gg)</div><div id="dscad"><div class="load">Caricamento...</div></div></div>
   </div>
+
 
   <!-- SEZIONE SEGRETERIA: dati mancanti clienti -->
   <div id="dash-segreteria" style="display:none;margin-top:20px">
@@ -502,7 +507,94 @@
     </div>
   </div>
   </div><!-- /#dash-standard -->
+  <!-- DASHBOARD INGEGNERE -->
+<div id="dash-ingegnere-pg" style="display:none">
+  <div class="rap-wrap">
+
+    <div class="ing-greet">
+      <div>
+        <h1 id="ing-greet-nome">Buongiorno</h1>
+        <p id="ing-greet-data"></p>
+      </div>
+      <button class="btn sm" onclick="gotoPage('info')">ⓘ Info</button>
+    </div>
+
+    <button class="rap-primary" onclick="gotoPage('verifiche-tecniche')">
+      <span class="ico">🔧</span>
+      <span class="body">
+        <span class="title">Verifiche tecniche</span>
+        <span class="sub">Consulta i progetti inviati per valutazione</span>
+      </span>
+      <span class="chev">›</span>
+    </button>
+
+    <div class="rap-secondary-row">
+      <button class="rap-secondary-btn" onclick="apriNuovaAttivitaIngegnere()">
+        <span class="ico">➕</span> Nuova attività
+      </button>
+
+      <button class="rap-secondary-btn" onclick="gotoPage('calendario-ingegnere')">
+        <span class="ico">📅</span> Il mio calendario
+      </button>
+    </div>
+
+    <div class="rap-section">📊 A colpo d'occhio</div>
+
+    <div class="kpi-grid ing-kpi-grid">
+      <div class="kpi-card attention clickable" onclick="gotoPage('verifiche-tecniche')">
+        <div class="kpi-icon">🔧</div>
+        <div class="kpi-num" id="ing-k-verifiche">—</div>
+        <div class="kpi-label">Verifiche aperte</div>
+      </div>
+
+      <div class="kpi-card success clickable" onclick="gotoPage('calendario-ingegnere')">
+        <div class="kpi-icon">📅</div>
+        <div class="kpi-num" id="ing-k-attivita">—</div>
+        <div class="kpi-label">Attività questo mese</div>
+      </div>
+
+      <div class="kpi-card warn clickable" onclick="gotoPage('calendario-ingegnere')">
+        <div class="kpi-icon">⏰</div>
+        <div class="kpi-num" id="ing-k-scadenze">—</div>
+        <div class="kpi-label">Scadenze nei prossimi 7 giorni</div>
+      </div>
+
+      <div class="kpi-card clickable" onclick="gotoPage('verifiche-tecniche')">
+        <div class="kpi-icon">✅</div>
+        <div class="kpi-num" id="ing-k-pronti">—</div>
+        <div class="kpi-label">Pronti per preventivo</div>
+      </div>
+    </div>
+
+    <div class="rap-section">🔧 Verifiche da svolgere</div>
+    <div id="ing-verifiche-lista">
+      <div class="rap-list-card"><div class="tit-empty">Caricamento...</div></div>
+    </div>
+
+    <div class="rap-section">📌 Prossime attività personali</div>
+    <div id="ing-attivita-lista">
+      <div class="rap-list-card"><div class="tit-empty">Caricamento...</div></div>
+    </div>
+
+    <div class="rap-section">📅 Il mio calendario</div>
+    <div class="rap-heatmap">
+      <div class="rap-heatmap-head">
+        <span>Lun</span><span>Mar</span><span>Mer</span><span>Gio</span>
+        <span>Ven</span><span>Sab</span><span>Dom</span>
+      </div>
+      <div class="rap-heatmap-grid" id="ing-mini-calendario"></div>
+      <div class="rap-heatmap-legend">
+        <span>Le attività sono indicate con l’intensità del colore.</span>
+        <button class="btn sm" style="margin-left:auto" onclick="gotoPage('calendario-ingegnere')">
+          Apri →
+        </button>
+      </div>
+    </div>
+
+  </div>
 </div>
+</div>
+
 
 
 <!-- PIANO MENSILE -->
@@ -547,6 +639,35 @@
   </div>
 </div>
 
+<!-- CALENDARIO PERSONALE INGEGNERE -->
+<div class="page" id="pg-calendario-ingegnere">
+  <div class="sh">
+    <div>
+      <div class="st">📅 Il mio calendario</div>
+      <div style="font-size:13px;color:var(--m);margin-top:2px">
+        Attività, verifiche e scadenze personali
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn" onclick="calIngPrev()">← Prec.</button>
+      <div
+        id="cal-ing-title"
+        style="font-size:15px;font-weight:700;min-width:160px;text-align:center">
+      </div>
+      <button class="btn" onclick="calIngNext()">Succ. →</button>
+      <button class="btn p" onclick="apriNuovaAttivitaIngegnere()">
+        + Nuova attività
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="cal-ing-lista">
+      <div class="load">Caricamento calendario...</div>
+    </div>
+  </div>
+</div>
 <!-- CALENDARIO TEAM (capo tecnico) -->
 <div class="page" id="pg-calendario-team">
   <div class="sh">
@@ -722,6 +843,22 @@
     <div class="load">Caricamento...</div>
   </div>
 </section>
+</section>
+
+<!-- VERIFICHE TECNICHE — INGEGNERE -->
+<section class="page" id="pg-verifiche-tecniche">
+  <div class="ph">
+    <div>
+      <h2>🔧 Verifiche tecniche</h2>
+      <p>Progetti inviati all’ingegnere per valutazione tecnica</p>
+    </div>
+  </div>
+
+  <div id="verifiche-tecniche-lista">
+    <div class="load">Caricamento verifiche...</div>
+  </div>
+</section>
+
 
 <!-- SOPRALLUOGO -->
 <div class="page" id="pg-sopralluogo">
@@ -1466,10 +1603,228 @@
 
   </div>
 </div>
+    <!-- GUIDA INGEGNERE -->
+    <div
+      class="card guida-ruolo"
+      id="guida-ingegnere"
+      data-titolo="Guida pratica — Ingegnere"
+      style="display:none"
+    >
+      <h3>🔧 Come usare il gestionale — Ingegnere</h3>
 
+      <p>
+        Il tuo ruolo è verificare le richieste tecniche ricevute e tenere
+        organizzate le tue attività. Non devi usare il gestionale come il
+        rappresentante: non crei lead e non segui trattative commerciali.
+      </p>
+
+      <div class="al2 i">
+        <b>In breve:</b> quando una richiesta necessita di valutazione tecnica,
+        il rappresentante crea un progetto e lo invia a te e al titolare.
+      </div>
+
+      <hr class="sep">
+
+      <h4>1. Da dove partire ogni giorno</h4>
+
+      <p>
+        Apri la <b>Dashboard</b>. Qui trovi subito:
+      </p>
+
+      <ul>
+        <li><b>Verifiche aperte:</b> progetti da controllare;</li>
+        <li><b>Attività questo mese:</b> impegni personali inseriti nel calendario;</li>
+        <li><b>Scadenze nei prossimi 7 giorni:</b> attività segnate come scadenza;</li>
+        <li><b>Pronti per preventivo:</b> richieste che possono procedere verso il preventivo.</li>
+      </ul>
+
+      <p>
+        Se trovi un numero diverso da zero in <b>Verifiche aperte</b>, apri
+        subito la sezione <b>🔧 Verifiche</b>.
+      </p>
+
+      <hr class="sep">
+
+      <h4>2. Ti è arrivata una verifica tecnica: cosa guardare</h4>
+
+      <p>
+        Vai in <b>🔧 Verifiche</b>. Ogni riga rappresenta un progetto tecnico
+        inviato dal rappresentante per un cliente.
+      </p>
+
+      <p>
+        Prima di dare un parere, controlla che ci siano almeno queste cose:
+      </p>
+
+      <ul>
+        <li>titolo chiaro del progetto;</li>
+        <li>tipologia dell’impianto o della lavorazione;</li>
+        <li>descrizione comprensibile del problema o della richiesta;</li>
+        <li>almeno un allegato tecnico: PDF, JPG/JPEG o PNG;</li>
+        <li>eventuali materiali, quantità, misure o vincoli già noti.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio di richiesta ben compilata</b><br>
+        <code>Titolo: Adeguamento antincendio sede Milano</code><br>
+        <code>Tipologia: Estintori e porte REI</code><br>
+        <code>Descrizione: Sostituzione di 12 estintori scaduti e verifica di 4 porte REI.</code><br>
+        <code>Allegati: foto estintori + planimetria piano terra</code>
+      </div>
+
+      <div class="al2 w">
+        <b>Regola semplice:</b> se una persona che non è mai stata dal cliente
+        non capirebbe cosa serve, la richiesta è incompleta. Chiedi quindi
+        integrazioni prima di procedere.
+      </div>
+
+      <hr class="sep">
+
+      <h4>3. Quando serve davvero il tuo intervento</h4>
+
+      <p>
+        Il rappresentante non deve inviarti tutti i progetti: ti coinvolge
+        quando servono specifiche, valutazioni tecniche, dimensionamenti,
+        verifiche di conformità oppure dubbi sugli impianti.
+      </p>
+
+      <div class="info-esempio">
+        <b>Esempi di casi da verificare</b><br>
+        <code>Nuovo impianto sprinkler</code><br>
+        <code>Verifica compartimentazione e porte REI</code><br>
+        <code>Dimensionamento rete idranti</code><br>
+        <code>Impianto rivelazione fumi in struttura complessa</code>
+      </div>
+
+      <p>
+        Se invece la richiesta è già chiara e non richiede una valutazione
+        tecnica particolare, il rappresentante può inviarla direttamente a chi
+        prepara il preventivo.
+      </p>
+
+      <hr class="sep">
+
+      <h4>4. Usa il calendario personale</h4>
+
+      <p>
+        Apri <b>📅 Calendario</b> e premi <b>+ Nuova attività</b> ogni volta
+        che devi ricordarti un controllo, una chiamata, una riunione o una
+        scadenza.
+      </p>
+
+      <div class="info-esempio">
+        <b>Esempio: verifica tecnica</b><br>
+        <code>Titolo: Verifica progetto sprinkler — Condominio Verdi</code><br>
+        <code>Tipo: Verifica tecnica</code><br>
+        <code>Data: 08/09/2026</code><br>
+        <code>Ora: 10:00</code>
+      </div>
+
+      <div class="info-esempio">
+        <b>Esempio: promemoria interno</b><br>
+        <code>Titolo: Chiamare il titolare per confronto progetto</code><br>
+        <code>Tipo: Riunione</code><br>
+        <code>Data: 09/09/2026</code><br>
+        <code>Note: Portare planimetria e foto sopralluogo.</code>
+      </div>
+
+      <p>
+        Inserisci sempre un titolo che dica chiaramente <b>cosa</b> devi fare
+        e, se serve, <b>per quale cliente o progetto</b>.
+      </p>
+
+      <hr class="sep">
+
+      <h4>5. Cose da non fare</h4>
+
+      <ul>
+        <li>Non lasciare verifiche senza leggerne gli allegati.</li>
+        <li>Non usare note vaghe come “da controllare” o “sentire cliente”.</li>
+        <li>Non inserire password, dati bancari o dati riservati nelle note.</li>
+        <li>Non modificare informazioni commerciali se non sei stato incaricato.</li>
+        <li>Non creare doppioni dello stesso promemoria nel calendario.</li>
+      </ul>
+
+      <hr class="sep">
+
+      <h4>Checklist veloce prima di chiudere la giornata</h4>
+
+      <ul>
+        <li>Ho controllato le nuove verifiche aperte?</li>
+        <li>Ho letto descrizione e allegati dei progetti ricevuti?</li>
+        <li>Ho segnato in calendario ciò che devo fare nei prossimi giorni?</li>
+        <li>Le mie attività hanno una data e un titolo comprensibile?</li>
+      </ul>
+    </div>
 
 <!-- /app -->
 
+<!-- /verifiche tecniche -->
+<div class="mbg" id="m-verifica-tecnica">
+  <div class="modal" style="max-width:650px">
+    <div class="mh">
+      <span>🔧 Verifica tecnica</span>
+      <button class="mx" onclick="closeM('m-verifica-tecnica')">✕</button>
+    </div>
+
+    <input type="hidden" id="mvt-id">
+
+    <div class="al2 i" id="mvt-riepilogo"></div>
+
+    <div class="f" style="margin-top:16px">
+      <label>Esito / note tecniche *</label>
+      <textarea
+        id="mvt-note"
+        style="min-height:150px"
+        placeholder="Scrivi cosa hai verificato, cosa manca, eventuali materiali, misure, vincoli o indicazioni per il preventivo..."
+      ></textarea>
+
+      <div class="f">
+  <label for="mvt-file">
+    Allegati tecnici aggiuntivi
+    <span style="font-weight:400;color:var(--m)">(facoltativi)</span>
+  </label>
+
+  <input
+    type="file"
+    id="mvt-file"
+    multiple
+    accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
+
+  <div style="font-size:12px;color:var(--m);margin-top:5px">
+    Puoi aggiungere foto, PDF, planimetrie o relazioni. Massimo 10 MB per file.
+  </div>
+
+  <div id="mvt-allegati" style="margin-top:10px"></div>
+</div>
+    
+
+    <div class="al2 w">
+      Se mancano documenti, foto o informazioni, usa “Richiedi integrazione”.
+      Il progetto tornerà al rappresentante.
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
+      <button class="btn" onclick="closeM('m-verifica-tecnica')">
+        Annulla
+      </button>
+
+      <button
+        class="btn warn"
+        onclick="salvaEsitoVerifica('da_integrare')"
+      >
+        ↩ Richiedi integrazione
+      </button>
+
+      <button
+        class="btn p"
+        onclick="salvaEsitoVerifica('pronto_per_preventivo')"
+      >
+        ✅ Pronto per preventivo
+      </button>
+    </div>
+  </div>
+</div>
 
 
 <!-- MODALS -->
@@ -1781,6 +2136,74 @@
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn" onclick="closeM('m-progetto')">Annulla</button>
       <button class="btn p" onclick="salvaProgetto()">Salva bozza</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALE ATTIVITÀ PERSONALE INGEGNERE -->
+<div class="mbg" id="m-attivita-ingegnere">
+  <div class="modal" style="max-width:560px">
+    <div class="mh">
+      <span id="mai-titolo">Nuova attività</span>
+      <button class="x" onclick="closeM('m-attivita-ingegnere')">×</button>
+    </div>
+
+    <input type="hidden" id="mai-id">
+
+    <div class="f">
+      <label>Titolo attività *</label>
+      <input
+        type="text"
+        id="mai-titolo-attivita"
+        placeholder="Es. Verifica sprinkler cliente Erka">
+    </div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Data *</label>
+        <input type="date" id="mai-data">
+      </div>
+
+      <div class="f">
+        <label>Tipo *</label>
+        <select id="mai-tipo">
+          <option value="attivita">Attività</option>
+          <option value="verifica_tecnica">Verifica tecnica</option>
+          <option value="riunione">Riunione</option>
+          <option value="sopralluogo">Sopralluogo</option>
+          <option value="scadenza">Scadenza</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Ora inizio</label>
+        <input type="time" id="mai-inizio">
+      </div>
+
+      <div class="f">
+        <label>Ora fine</label>
+        <input type="time" id="mai-fine">
+      </div>
+    </div>
+
+    <div class="f">
+      <label>Note</label>
+      <textarea
+        id="mai-descrizione"
+        placeholder="Promemoria, dettagli tecnici, materiale da preparare...">
+      </textarea>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn" onclick="closeM('m-attivita-ingegnere')">
+        Annulla
+      </button>
+
+      <button class="btn p" onclick="salvaAttivitaIngegnere()">
+        Salva attività
+      </button>
     </div>
   </div>
 </div>

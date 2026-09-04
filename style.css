@@ -907,3 +907,61 @@ pre {
     white-space: normal;
   }
 }
+@media (max-width: 700px) {
+  #dash-standard .g4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  #dash-standard .stat {
+    min-width: 0;
+    padding: 12px;
+  }
+
+  #dash-standard .stat div[id^="ds"] {
+    font-size: 22px !important;
+  }
+
+  #dash-standard .cal-day {
+    min-height: 58px;
+  }
+
+  #dash-standard .cal-ev {
+    font-size: 9px;
+  }
+}
+.ing-greet {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 4px 6px;
+}
+
+.ing-greet h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--t);
+}
+
+.ing-greet p {
+  font-size: 14px;
+  color: var(--m);
+  text-transform: capitalize;
+}
+
+.ing-kpi-grid .kpi-card {
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .ing-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ing-greet {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
