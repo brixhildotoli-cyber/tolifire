@@ -27,7 +27,7 @@ const NAV={
   segreteria:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'workflow',l:'📋 Da gestire'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'Clienti'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
   contabile:[{id:'dashboard',l:'📊 Dashboard'},{id:'workflow',l:'📅 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
   tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
-  commerciale:[{id:'dashboard',l:'📊 Dashboard'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'fornitori',l:'🏭 Fornitori'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}, {id: 'info', l: 'ℹ️ Info'}],
+  commerciale:[{id:'dashboard',l:'📊 Dashboard'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'fornitori',l:'🏭 Fornitori'},{id:'preventivazione',l:'📋 Preventivazione'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}, {id: 'info', l: 'ℹ️ Info'}],
   rappresentante:[{id:'dashboard-rapp',l:'📊 Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead e trattative'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'progetti', l:'📐 Progetti'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'info',l:'ⓘ Info'}],
   ingegnere: [{id: 'dashboard', l: '📊 Dashboard'},{id: 'calendario-ingegnere', l: '📅 Calendario'},{id: 'verifiche-tecniche', l: '🔧 Verifiche'},{id: 'documenti', l: '📄 Documenti'},{id: 'info', l: 'ℹ️ Info'}],
 };
@@ -626,7 +626,7 @@ const PAGINE_RUOLO = {
   segreteria:     ['dashboard','calendario','workflow','presidi','interventi','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail'],
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
-  commerciale:    ['dashboard','progetti-da-preventivare', 'fornitori', 'fornitore-detail', 'clienti','documenti','fatture','catalogo','cliente-detail', 'info'],
+  commerciale:    ['dashboard','progetti-da-preventivare', 'fornitori', 'fornitore-detail', 'preventivazione', 'clienti','documenti','fatture','catalogo','cliente-detail', 'info'],
   rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','sopralluogo','trattative','cliente-detail','info'],
   ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti','cliente-detail','info'],
 };
@@ -688,6 +688,7 @@ function gotoPage(id){
   if(id==='fatture'){loadFatture();}
   if(id==='tecnico')loadOdlTecnico();
   if(id==='fornitori')loadFornitori();
+  if(id==='preventivazione') loadPreventivazione();
   if(id==='sopralluogo' && ROLE!=='rappresentante' && ROLE!=='titolare'){toast('Accesso non consentito','err');return;}
   if(id === 'info') loadInfo();
   window.scrollTo(0,0);
@@ -7982,6 +7983,341 @@ async function salvaNuovoPreventivo() {
   toast('Bozza preventivo n. ' + data.numero + ' creata', 'ok');
   await loadPreventivi();
 }
+
+let selezioniFornitoriDati = [];
+
+async function loadPreventivazione() {
+  const box = ge('preventivazione-lista');
+  if (!box) return;
+
+  box.innerHTML = '<div class="load">Caricamento progetti...</div>';
+
+  const risultati = await Promise.all([
+    db
+      .from('progetti_tecnici')
+      .select(`
+        id,
+        titolo,
+        tipologia,
+        descrizione_tecnica,
+        cliente_id,
+        clienti(ragione_sociale)
+      `)
+      .eq('stato', 'in_preventivazione')
+      .order('creato_il', { ascending: false }),
+
+    db
+      .from('progetti_tecnici_fornitori')
+      .select(`
+        progetto_tecnico_id,
+        tipologia,
+        stato,
+        fornitori(ragione_sociale)
+      `)
+      .neq('stato', 'scartato')
+  ]);
+
+  const progettiRes = risultati[0];
+  const selezioniRes = risultati[1];
+
+  if (progettiRes.error || selezioniRes.error) {
+    box.innerHTML =
+      '<div class="al2 e">Errore caricamento: ' +
+      esc(progettiRes.error?.message || selezioniRes.error?.message) +
+      '</div>';
+    return;
+  }
+
+  const selezioniPerProgetto = {};
+
+  (selezioniRes.data || []).forEach(function(s) {
+    if (!selezioniPerProgetto[s.progetto_tecnico_id]) {
+      selezioniPerProgetto[s.progetto_tecnico_id] = [];
+    }
+
+    selezioniPerProgetto[s.progetto_tecnico_id].push(s);
+  });
+
+  const progetti = progettiRes.data || [];
+
+  if (!progetti.length) {
+    box.innerHTML =
+      '<div class="empty">Nessun progetto in preventivazione.</div>';
+    return;
+  }
+
+  box.innerHTML = progetti.map(function(p) {
+    const cliente = p.clienti?.ragione_sociale || 'Cliente non disponibile';
+    const selezioni = selezioniPerProgetto[p.id] || [];
+
+    const fornitoriScelti = selezioni.length
+      ? selezioni.map(function(s) {
+          return `
+            <span class="bx bblue">
+              ${esc(s.tipologia)}: ${esc(s.fornitori?.ragione_sociale || 'Fornitore')}
+            </span>
+          `;
+        }).join(' ')
+      : '<span style="font-size:12px;color:var(--m)">Nessun fornitore selezionato.</span>';
+
+    return `
+      <div class="card" style="margin-bottom:12px">
+        <div style="font-size:15px;font-weight:700">
+          ${esc(p.titolo)}
+        </div>
+
+        <div style="font-size:12px;color:var(--m);margin-top:3px">
+          ${esc(cliente)} · ${esc(p.tipologia || 'Tipologia non indicata')}
+        </div>
+
+        ${p.descrizione_tecnica ? `
+          <div style="font-size:13px;margin-top:10px;white-space:pre-wrap">
+            ${esc(p.descrizione_tecnica)}
+          </div>
+        ` : ''}
+
+        <div style="margin-top:12px">
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px">
+            Fornitori selezionati
+          </div>
+
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${fornitoriScelti}
+          </div>
+        </div>
+
+        <button
+          class="btn sm p"
+          style="margin-top:14px"
+          onclick="apriSelezioneFornitori('${p.id}')"
+        >
+          🏭 Gestisci fornitori
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function apriSelezioneFornitori(progettoId) {
+  const { data: progetto, error } = await db
+    .from('progetti_tecnici')
+    .select('id,titolo,tipologia,clienti(ragione_sociale)')
+    .eq('id', progettoId)
+    .single();
+
+  if (error || !progetto) {
+    toast(
+      'Errore apertura progetto: ' +
+      (error?.message || 'progetto non trovato'),
+      'err'
+    );
+    return;
+  }
+
+  ge('sf-progetto-id').value = progetto.id;
+  ge('sf-tipologia').value = progetto.tipologia || '';
+
+  ge('sf-riepilogo').innerHTML = `
+    <b>${esc(progetto.titolo)}</b><br>
+    ${esc(progetto.clienti?.ragione_sociale || 'Cliente non disponibile')}
+  `;
+
+  openM('m-seleziona-fornitori');
+
+  await caricaFornitoriSelezionati();
+  await caricaFornitoriSelezionabili();
+}
+
+async function caricaFornitoriSelezionati() {
+  const progettoId = v('sf-progetto-id');
+  const box = ge('sf-selezionati');
+
+  if (!progettoId || !box) return;
+
+  const { data, error } = await db
+    .from('progetti_tecnici_fornitori')
+    .select(`
+      id,
+      fornitore_id,
+      fornitore_tipologia_id,
+      tipologia,
+      stato,
+      note,
+      fornitori(ragione_sociale)
+    `)
+    .eq('progetto_tecnico_id', progettoId)
+    .neq('stato', 'scartato')
+    .order('tipologia');
+
+  if (error) {
+    box.innerHTML =
+      '<div class="al2 e">Errore: ' + esc(error.message) + '</div>';
+    return;
+  }
+
+  selezioniFornitoriDati = data || [];
+
+  if (!selezioniFornitoriDati.length) {
+    box.innerHTML =
+      '<div class="empty">Nessun fornitore selezionato per ora.</div>';
+    return;
+  }
+
+  box.innerHTML = selezioniFornitoriDati.map(function(s) {
+    return `
+      <div class="card" style="margin-bottom:8px;padding:12px">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+          <div>
+            <b>${esc(s.fornitori?.ragione_sociale || 'Fornitore')}</b>
+            <div style="font-size:12px;color:var(--m);margin-top:3px">
+              ${esc(s.tipologia)} · ${esc(s.stato)}
+            </div>
+          </div>
+
+          <button
+            class="btn sm"
+            style="color:var(--r)"
+            onclick="rimuoviFornitoreDaProgetto('${s.id}')"
+          >
+            Rimuovi
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function caricaFornitoriSelezionabili() {
+  const box = ge('sf-disponibili');
+  const ricerca = v('sf-tipologia').trim();
+
+  if (!box) return;
+
+  box.innerHTML = '<div class="load">Ricerca fornitori...</div>';
+
+  let query = db
+    .from('fornitore_tipologie')
+    .select('*, fornitori(*)')
+    .eq('attivo', true)
+    .order('tipologia');
+
+  if (ricerca) {
+    query = query.ilike('tipologia', '%' + ricerca + '%');
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    box.innerHTML =
+      '<div class="al2 e">Errore: ' + esc(error.message) + '</div>';
+    return;
+  }
+
+  const disponibili = (data || []).filter(function(t) {
+    return t.fornitori && t.fornitori.attivo !== false;
+  });
+
+  if (!disponibili.length) {
+    box.innerHTML = ricerca
+      ? '<div class="empty">Nessun fornitore trovato per questa tipologia.</div>'
+      : '<div class="empty">Scrivi una tipologia per cercare i fornitori.</div>';
+    return;
+  }
+
+  box.innerHTML = disponibili.map(function(t) {
+    const giaScelto = selezioniFornitoriDati.some(function(s) {
+      return (
+        s.fornitore_id === t.fornitore_id &&
+        s.tipologia.toLowerCase() === t.tipologia.toLowerCase()
+      );
+    });
+
+    const numeroStessaTipologia = selezioniFornitoriDati.filter(function(s) {
+      return s.tipologia.toLowerCase() === t.tipologia.toLowerCase();
+    }).length;
+
+    const limiteRaggiunto = numeroStessaTipologia >= 2;
+
+    return `
+      <div class="card" style="margin-bottom:8px;padding:12px">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+          <div>
+            <div style="font-size:14px;font-weight:700">
+              ${esc(t.fornitori.ragione_sociale)}
+            </div>
+
+            <div style="font-size:12px;color:var(--m);margin-top:3px">
+              ${esc(t.tipologia)}
+              ${t.pronta_consegna ? ' · pronta consegna ' + esc(t.pronta_consegna) : ''}
+              ${t.tempi_consegna ? ' · consegna ' + esc(t.tempi_consegna) : ''}
+            </div>
+          </div>
+
+          <button
+            class="btn sm p"
+            ${giaScelto || limiteRaggiunto ? 'disabled' : ''}
+            onclick="selezionaFornitoreProgetto(
+              '${t.fornitore_id}',
+              '${t.id}',
+              '${esc(t.tipologia)}'
+            )"
+          >
+            ${giaScelto ? 'Selezionato' : limiteRaggiunto ? 'Limite raggiunto' : 'Seleziona'}
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function selezionaFornitoreProgetto(
+  fornitoreId,
+  fornitoreTipologiaId,
+  tipologia
+) {
+  const progettoId = v('sf-progetto-id');
+
+  const { error } = await db
+    .from('progetti_tecnici_fornitori')
+    .insert({
+      progetto_tecnico_id: progettoId,
+      fornitore_id: fornitoreId,
+      fornitore_tipologia_id: fornitoreTipologiaId,
+      tipologia: tipologia,
+      stato: 'selezionato',
+      selezionato_da: ME.id
+    });
+
+  if (error) {
+    toast('Errore selezione fornitore: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Fornitore selezionato', 'ok');
+  await caricaFornitoriSelezionati();
+  await caricaFornitoriSelezionabili();
+  await loadPreventivazione();
+}
+
+async function rimuoviFornitoreDaProgetto(selezioneId) {
+  if (!confirm('Rimuovere questo fornitore dal progetto?')) return;
+
+  const { error } = await db
+    .from('progetti_tecnici_fornitori')
+    .delete()
+    .eq('id', selezioneId);
+
+  if (error) {
+    toast('Errore rimozione fornitore: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Fornitore rimosso', 'ok');
+  await caricaFornitoriSelezionati();
+  await caricaFornitoriSelezionabili();
+  await loadPreventivazione();
+}
+
 
 let currentFornitoreId = null;
 

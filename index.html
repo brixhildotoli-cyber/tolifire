@@ -969,6 +969,20 @@
   </div>
 </div>
 
+<!-- PREVENTIVAZIONE -->
+<section class="page" id="pg-preventivazione">
+  <div class="ph">
+    <div>
+      <h2>📋 Preventivazione</h2>
+      <p>Confronta e seleziona fino a due fornitori per tipologia</p>
+    </div>
+  </div>
+
+  <div id="preventivazione-lista">
+    <div class="load">Caricamento progetti...</div>
+  </div>
+</section>
+
 <!-- VERIFICHE TECNICHE — INGEGNERE -->
 <section class="page" id="pg-verifiche-tecniche">
   <div class="ph">
@@ -2165,6 +2179,50 @@
     </div>
 
     <div class="ma" id="mf-azioni"></div>
+  </div>
+</div>
+
+<!-- SELEZIONE FORNITORI PER PROGETTO -->
+<div class="mbg" id="m-seleziona-fornitori">
+  <div class="modal">
+    <button class="x" onclick="closeM('m-seleziona-fornitori')">×</button>
+
+    <h3>🏭 Seleziona fornitori</h3>
+
+    <input type="hidden" id="sf-progetto-id">
+
+    <div id="sf-riepilogo" class="al2 i" style="margin-bottom:14px"></div>
+
+    <div class="f">
+      <label>Tipologia da confrontare</label>
+      <input
+        id="sf-tipologia"
+        placeholder="Es. Porte, estintori, sprinkler..."
+        oninput="caricaFornitoriSelezionabili()"
+      >
+    </div>
+
+    <div class="al2 i" style="margin-bottom:14px">
+      Puoi selezionare al massimo <b>2 fornitori</b> per ogni tipologia.
+    </div>
+
+    <div class="rap-section">Fornitori già selezionati</div>
+    <div id="sf-selezionati">
+      <div class="load">Caricamento...</div>
+    </div>
+
+    <div class="rap-section" style="margin-top:18px">
+      Fornitori disponibili
+    </div>
+    <div id="sf-disponibili">
+      <div class="load">Caricamento...</div>
+    </div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-seleziona-fornitori')">
+        Chiudi
+      </button>
+    </div>
   </div>
 </div>
 
