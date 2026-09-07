@@ -847,6 +847,128 @@
 </section>
 </section>
 
+
+<!-- PROGETTI RICEVUTI DAL COMMERCIALE -->
+<section class="page" id="pg-progetti-da-preventivare">
+  <div class="ph">
+    <div>
+      <h2>📐 Progetti da preventivare</h2>
+      <p>Progetti tecnici ricevuti dal rappresentante e pronti per il preventivo</p>
+    </div>
+  </div>
+
+  <div id="progetti-da-preventivare-lista">
+    <div class="load">Caricamento progetti...</div>
+  </div>
+</section>
+
+<!-- PREVENTIVI — COMMERCIALE -->
+<section class="page" id="pg-preventivi">
+  <div class="ph">
+    <div>
+      <h2>🧾 Preventivi</h2>
+      <p>Crea e gestisci i preventivi dei progetti approvati</p>
+    </div>
+  </div>
+
+  <div class="rap-section">Progetti da trasformare in preventivo</div>
+  <div id="preventivi-da-creare">
+    <div class="load">Caricamento...</div>
+  </div>
+
+  <div class="rap-section" style="margin-top:22px">Le mie bozze e preventivi</div>
+  <div id="preventivi-lista">
+    <div class="load">Caricamento...</div>
+  </div>
+</section>
+
+<!-- FORNITORI -->
+<section class="page" id="pg-fornitori">
+  <div class="ph">
+    <div>
+      <h2>🏭 Fornitori</h2>
+      <p>Contatti, tipologie trattate e valutazioni operative</p>
+    </div>
+
+    <button
+      class="btn p"
+      id="btn-nuovo-fornitore"
+      onclick="openNuovoFornitore()"
+    >
+      + Nuovo fornitore
+    </button>
+  </div>
+
+  <div class="sb">
+    <input
+      id="fornitori-cerca"
+      placeholder="Cerca per azienda, tipologia o contatto..."
+      oninput="filtraFornitori(this.value)"
+    >
+  </div>
+
+  <div id="fornitori-lista">
+    <div class="load">Caricamento fornitori...</div>
+  </div>
+</section>
+
+<!-- SCHEDA FORNITORE -->
+<div class="page" id="pg-fornitore-detail">
+  <div class="sh">
+    <div>
+      <button
+        class="btn sm"
+        onclick="gotoPage('fornitori')"
+        style="margin-bottom:8px"
+      >
+        ← Fornitori
+      </button>
+
+      <div class="st" id="fd-nome"></div>
+    </div>
+
+    <button
+      class="btn p"
+      id="fd-btn-modifica"
+      onclick="modificaFornitoreDaScheda()"
+    >
+      Modifica
+    </button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" onclick="stab(this,'fd-anagrafica')">
+      Anagrafica
+    </button>
+
+    <button class="tab" onclick="stab(this,'fd-tipologie')">
+      Tipologie e valutazioni
+    </button>
+
+    <button class="tab" onclick="stab(this,'fd-note')">
+      Note
+    </button>
+  </div>
+
+  <div class="tc on" id="fd-anagrafica">
+    <div id="fd-anagrafica-content">
+      <div class="load">Caricamento...</div>
+    </div>
+  </div>
+
+  <div class="tc" id="fd-tipologie">
+    <div id="fd-tipologie-content">
+      <div class="load">Caricamento...</div>
+    </div>
+  </div>
+
+  <div class="tc" id="fd-note">
+    <div id="fd-note-content">
+      <div class="load">Caricamento...</div>
+    </div>
+  </div>
+</div>
+
 <!-- VERIFICHE TECNICHE — INGEGNERE -->
 <section class="page" id="pg-verifiche-tecniche">
   <div class="ph">
@@ -1828,7 +1950,223 @@
   </div>
 </div>
 </div>
+<div class="mbg" id="m-integrazione-commerciale">
+  <div class="modal">
+    <button class="x" onclick="closeM('m-integrazione-commerciale')">×</button>
 
+    <h3>↩ Richiedi integrazione</h3>
+
+    <input type="hidden" id="mic-progetto-id">
+
+    <div class="f">
+      <label>Modifiche richieste al rappresentante *</label>
+      <textarea
+        id="mic-nota"
+        rows="6"
+        placeholder="Es.: manca la planimetria del piano terra; specificare quantità e modello delle porte..."
+      ></textarea>
+    </div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-integrazione-commerciale')">
+        Annulla
+      </button>
+
+      <button class="btn p" onclick="inviaIntegrazioneCommerciale()">
+        ↩ Rimanda al rappresentante
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- NUOVO PREVENTIVO -->
+<div class="mbg" id="m-nuovo-preventivo">
+  <div class="modal">
+    <button class="x" onclick="closeM('m-nuovo-preventivo')">×</button>
+
+    <h3>🧾 Crea preventivo</h3>
+
+    <input type="hidden" id="pv-progetto-id">
+    <input type="hidden" id="pv-cliente-id">
+    <input type="hidden" id="pv-rappresentante-id">
+
+    <div id="pv-riepilogo" class="al2 i" style="margin-bottom:16px"></div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Tipologia preventivo *</label>
+        <select id="pv-tipo">
+          <option value="fornitura_e_posa">Fornitura e posa</option>
+          <option value="fornitura">Solo fornitura</option>
+          <option value="manutenzione">Manutenzione</option>
+          <option value="altro">Altro</option>
+        </select>
+      </div>
+
+      <div class="f">
+        <label>Validità fino al *</label>
+        <input type="date" id="pv-scadenza">
+      </div>
+    </div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Sconto complessivo (%)</label>
+        <input type="number" id="pv-sconto" min="0" max="100" step="0.01" value="0">
+      </div>
+
+      <div class="f">
+        <label>IVA (%)</label>
+        <input type="number" id="pv-iva" min="0" max="100" step="0.01" value="22">
+      </div>
+    </div>
+
+    <div class="f">
+      <label>Note per il preventivo</label>
+      <textarea
+        id="pv-note"
+        rows="4"
+        placeholder="Condizioni commerciali, tempi indicativi, esclusioni, note per il cliente..."
+      ></textarea>
+    </div>
+
+    <div class="al2 i">
+      Dopo la creazione potrai aggiungere prodotti, quantità, prezzi e fornitori.
+    </div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-nuovo-preventivo')">
+        Annulla
+      </button>
+
+      <button class="btn p" onclick="salvaNuovoPreventivo()">
+        Crea bozza
+      </button>
+    </div>
+  </div>
+</div>
+<!-- FORNITORE -->
+<div class="mbg" id="m-fornitore">
+  <div class="modal">
+    <button class="x" onclick="closeM('m-fornitore')">×</button>
+
+    <h3 id="mf-titolo">Nuovo fornitore</h3>
+
+    <input type="hidden" id="mf-id">
+    <input type="hidden" id="mft-id">
+
+    <div class="fr">
+      <div class="f">
+        <label>Ragione sociale *</label>
+        <input id="mf-ragione-sociale" placeholder="Es. VFP S.r.l.">
+      </div>
+
+      <div class="f">
+        <label>Referente</label>
+        <input id="mf-referente" placeholder="Nome e cognome">
+      </div>
+    </div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Telefono</label>
+        <input id="mf-telefono" type="tel">
+      </div>
+
+      <div class="f">
+        <label>Email</label>
+        <input id="mf-email" type="email">
+      </div>
+    </div>
+
+    <div class="f">
+      <label>Indirizzo</label>
+      <input id="mf-indirizzo" placeholder="Via, città, provincia">
+    </div>
+
+    <div class="f">
+      <label>Note generali</label>
+      <textarea id="mf-note" rows="3"></textarea>
+    </div>
+
+    <div class="rap-section" style="margin-top:18px">
+      Tipologia e valutazione
+    </div>
+
+    <div class="f">
+      <label>Tipologia trattata *</label>
+      <input
+        id="mft-tipologia"
+        placeholder="Es. Porte, estintori, impianti..."
+      >
+    </div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Pronta consegna</label>
+        <select id="mft-pronta-consegna">
+          <option value="">Non indicata</option>
+          <option value="alta">Alta</option>
+          <option value="media">Media</option>
+          <option value="bassa">Bassa</option>
+        </select>
+      </div>
+
+      <div class="f">
+        <label>Tempi consegna</label>
+        <select id="mft-tempi-consegna">
+          <option value="">Non indicati</option>
+          <option value="veloce">Veloce</option>
+          <option value="normale">Normale</option>
+          <option value="lenta">Lenta</option>
+          <option value="variabile">Variabile</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Gestione ordine</label>
+        <select id="mft-gestione-ordine">
+          <option value="">Non indicata</option>
+          <option value="ottima">Ottima</option>
+          <option value="buona">Buona</option>
+          <option value="critica">Critica</option>
+        </select>
+      </div>
+
+      <div class="f">
+        <label>Varietà catalogo</label>
+        <select id="mft-varieta-catalogo">
+          <option value="">Non indicata</option>
+          <option value="alta">Alta</option>
+          <option value="media">Media</option>
+          <option value="bassa">Bassa</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Risposta ai preventivi</label>
+        <select id="mft-tempi-preventivo">
+          <option value="">Non indicata</option>
+          <option value="veloce">Veloce</option>
+          <option value="normale">Normale</option>
+          <option value="lenta">Lenta</option>
+          <option value="variabile">Variabile</option>
+        </select>
+      </div>
+
+      <div class="f">
+        <label>Note sulla tipologia</label>
+        <input id="mft-note" placeholder="Es. buon prezzo sulle porte REI">
+      </div>
+    </div>
+
+    <div class="ma" id="mf-azioni"></div>
+  </div>
+</div>
 
 <!-- MODALS -->
 <div class="mbg" id="m-presidio">

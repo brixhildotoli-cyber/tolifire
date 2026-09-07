@@ -22,13 +22,13 @@ const PERIO_OPT=['mensile','bimestrale','trimestrale','quadrimestrale','semestra
 const PERIO_MESI={mensile:1,bimestrale:2,trimestrale:3,quadrimestrale:4,semestrale:6,annuale:12,biennale:24};
 
 const NAV={
-  titolare:[{id:'dashboard',l:'Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'workflow',l:'📋 Da gestire'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'},{id:'impostazioni',l:'Impostazioni'}],
-  capo_tecnico:[{id:'dashboard',l:'Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'calendario-team',l:'👥 Calendari team'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'Documenti'}],
-  segreteria:[{id:'dashboard',l:'Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'workflow',l:'📋 Da gestire'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'Clienti'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
-  contabile:[{id:'dashboard',l:'Dashboard'},{id:'workflow',l:'💜 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
-  tecnico:[{id:'dashboard',l:'Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
-  commerciale:[{id:'dashboard',l:'Dashboard'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'presidi',l:'🧯 Presidi'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
-  rappresentante:[{id:'dashboard-rapp',l:'Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead e trattative'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'progetti', l:'📐 Progetti'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'info',l:'ⓘ Info'}],
+  titolare:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'workflow',l:'📋 Da gestire'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'},{id:'impostazioni',l:'Impostazioni'}],
+  capo_tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'calendario-team',l:'👥 Calendari team'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'Documenti'}],
+  segreteria:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'workflow',l:'📋 Da gestire'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'Clienti'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
+  contabile:[{id:'dashboard',l:'📊 Dashboard'},{id:'workflow',l:'📅 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
+  tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
+  commerciale:[{id:'dashboard',l:'📊 Dashboard'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'fornitori',l:'🏭 Fornitori'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}, {id: 'info', l: 'ℹ️ Info'}],
+  rappresentante:[{id:'dashboard-rapp',l:'📊 Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead e trattative'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'progetti', l:'📐 Progetti'},{id:'sopralluogo',l:'📋 Sopralluogo'},{id:'info',l:'ⓘ Info'}],
   ingegnere: [{id: 'dashboard', l: '📊 Dashboard'},{id: 'calendario-ingegnere', l: '📅 Calendario'},{id: 'verifiche-tecniche', l: '🔧 Verifiche'},{id: 'documenti', l: '📄 Documenti'},{id: 'info', l: 'ℹ️ Info'}],
 };
 
@@ -621,12 +621,12 @@ function buildNav() {
 
 // Pagine accessibili per ruolo
 const PAGINE_RUOLO = {
-  titolare:       ['dashboard','calendario','piano-mensile','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','tecnico','sopralluogo'],
+  titolare:       ['dashboard','calendario','piano-mensile','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','fornitore-detail', 'tecnico','sopralluogo'],
   capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','clienti','documenti','cliente-detail'],
-  segreteria:     ['dashboard','calendario','workflow','presidi','interventi','clienti','documenti','fatture','catalogo','cliente-detail'],
+  segreteria:     ['dashboard','calendario','workflow','presidi','interventi','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail'],
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
-  commerciale:    ['dashboard','clienti','presidi','documenti','fatture','catalogo','cliente-detail'],
+  commerciale:    ['dashboard','progetti-da-preventivare', 'fornitori', 'fornitore-detail', 'clienti','documenti','fatture','catalogo','cliente-detail', 'info'],
   rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','sopralluogo','trattative','cliente-detail','info'],
   ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti','cliente-detail','info'],
 };
@@ -681,12 +681,14 @@ function gotoPage(id){
   if(id==='calendario-ingegnere')loadCalendarioIngegnere();
   if(id==='verifiche-tecniche')loadVerificheTecniche();
   if(id==='progetti'){loadPaginaProgetti();}
+  if(id==='progetti-da-preventivare') loadProgettiDaPreventivare();
+  if(id==='preventivi') loadPreventivi();
   if(id==='trattative')loadTrattative();
   if(id==='catalogo'){loadPaginaCatalogo();var _ba=ge('btn-add-prodotto');if(_ba)_ba.style.display=(ROLE==='titolare')?'':'none';var _bi=ge('btn-import-excel');if(_bi)_bi.style.display=(ROLE==='titolare')?'':'none';}
   if(id==='fatture'){loadFatture();}
   if(id==='tecnico')loadOdlTecnico();
+  if(id==='fornitori')loadFornitori();
   if(id==='sopralluogo' && ROLE!=='rappresentante' && ROLE!=='titolare'){toast('Accesso non consentito','err');return;}
-
   if(id === 'info') loadInfo();
   window.scrollTo(0,0);
 }
@@ -5164,7 +5166,7 @@ async function loadImpegniTeamAnonimi() {
 
 async function loadDashRappresentante() {
   var ora = new Date().getHours();
-  var saluto = ora < 12 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
+  var saluto = ora < 14 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
   var el;
   el = ge('rapp-welcome'); if(el) el.textContent = saluto + (ME?.nome ? ', ' + esc(ME.nome) : '');
   el = ge('ddate-r'); if(el) el.textContent = new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
@@ -5214,7 +5216,7 @@ async function loadDashRappresentante() {
     .select('id,titolo,nota_verifica_tecnica')
     .eq('stato', 'da_integrare')
     .order('creato_il', { ascending: false });
-    
+
   if (boxProgetti) {
     if (erroreProgetti || !progettiDaIntegrare?.length) {
       boxProgetti.innerHTML = '';
@@ -7558,6 +7560,901 @@ async function loadPaginaProgetti() {
     `;
   }).join('');
 }
+
+async function loadProgettiDaPreventivare() {
+  const box = ge('progetti-da-preventivare-lista');
+
+  if (!box) return;
+
+  box.innerHTML = '<div class="load">Caricamento progetti...</div>';
+
+  const { data, error } = await db
+    .from('progetti_tecnici')
+    .select(`
+      id,
+      titolo,
+      tipologia,
+      descrizione_tecnica,
+      nota_verifica_tecnica,
+      creato_il,
+      cliente_id,
+      rappresentante_id,
+      clienti(ragione_sociale)
+    `)
+    .eq('stato', 'inviato_a_commerciale')
+    .order('creato_il', { ascending: false });
+
+  if (error) {
+    box.innerHTML =
+      '<div class="al2 e">Errore nel caricamento: ' +
+      esc(error.message) +
+      '</div>';
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    box.innerHTML =
+      '<div class="empty">🎉 Nessun progetto da preventivare al momento.</div>';
+    return;
+  }
+
+  box.innerHTML = data.map(function(p) {
+    const cliente = p.clienti?.ragione_sociale || 'Cliente non disponibile';
+    const dataInvio = p.creato_il
+      ? new Date(p.creato_il).toLocaleDateString('it-IT')
+      : '';
+
+    return `
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+          <div>
+            <div style="font-size:15px;font-weight:700">
+              ${esc(p.titolo)}
+            </div>
+            <div style="font-size:12px;color:var(--m);margin-top:3px">
+              ${esc(cliente)} · ${esc(p.tipologia || 'Tipologia non indicata')}
+            </div>
+          </div>
+
+          <span class="bx bblue">Da preventivare</span>
+        </div>
+
+        <div style="font-size:13px;white-space:pre-wrap;margin-top:10px">
+          ${esc(p.descrizione_tecnica || 'Nessuna descrizione tecnica inserita.')}
+        </div>
+
+        ${p.nota_verifica_tecnica ? `
+          <div class="al2 i" style="margin-top:10px">
+            <b>🔧 Esito della verifica tecnica</b><br>
+            ${esc(p.nota_verifica_tecnica)}
+          </div>
+        ` : ''}
+
+        <div style="font-size:12px;color:var(--m);margin-top:10px">
+          Ricevuto il ${esc(dataInvio)}
+        </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+  <button
+    class="btn sm"
+    style="color:#b45309"
+    onclick="apriIntegrazioneCommerciale('${p.id}')"
+  >
+    ↩ Richiedi integrazione
+  </button>
+
+  <button
+    class="btn sm p"
+    onclick="passaAPreventivazione('${p.id}')"
+  >
+    ✅ Passa a preventivazione
+  </button>
+</div>
+    `;
+  }).join('');
+}
+function apriIntegrazioneCommerciale(progettoId) {
+  ge('mic-progetto-id').value = progettoId;
+  ge('mic-nota').value = '';
+  openM('m-integrazione-commerciale');
+}
+
+async function inviaIntegrazioneCommerciale() {
+  const progettoId = v('mic-progetto-id');
+  const nota = v('mic-nota').trim();
+
+  if (!nota) {
+    toast('Scrivi le modifiche richieste al rappresentante', 'err');
+    return;
+  }
+
+  const { data, error } = await db
+    .from('progetti_tecnici')
+    .update({
+      stato: 'da_integrare',
+      nota_integrazione: nota,
+      integrazione_richiesta_da: 'commerciale'
+    })
+    .eq('id', progettoId)
+    .eq('stato', 'inviato_a_commerciale')
+    .select('id');
+
+  if (error || !data?.length) {
+    toast(
+      'Errore nel rinvio: ' + (error?.message || 'progetto non aggiornato'),
+      'err'
+    );
+    return;
+  }
+
+  closeM('m-integrazione-commerciale');
+  toast('Progetto rimandato al rappresentante', 'ok');
+  await loadProgettiDaPreventivare();
+}
+
+async function passaAPreventivazione(progettoId) {
+  if (!confirm('Passare questo progetto alla fase di preventivazione?')) {
+    return;
+  }
+
+  const { data, error } = await db
+    .from('progetti_tecnici')
+    .update({ stato: 'in_preventivazione' })
+    .eq('id', progettoId)
+    .eq('stato', 'inviato_a_commerciale')
+    .select('id');
+
+  if (error || !data?.length) {
+    toast(
+      'Errore: ' + (error?.message || 'progetto non aggiornato'),
+      'err'
+    );
+    return;
+  }
+
+  toast('Progetto passato a preventivazione', 'ok');
+  await loadProgettiDaPreventivare();
+}
+
+async function loadPreventivi() {
+  const boxDaCreare = ge('preventivi-da-creare');
+  const boxLista = ge('preventivi-lista');
+
+  if (!boxDaCreare || !boxLista) return;
+
+  boxDaCreare.innerHTML = '<div class="load">Caricamento...</div>';
+  boxLista.innerHTML = '<div class="load">Caricamento...</div>';
+
+  const risultati = await Promise.all([
+    db
+      .from('progetti_tecnici')
+      .select(`
+        id,
+        titolo,
+        tipologia,
+        cliente_id,
+        rappresentante_id,
+        clienti(ragione_sociale)
+      `)
+      .eq('stato', 'in_preventivazione')
+      .order('creato_il', { ascending: false }),
+
+    db
+      .from('preventivi')
+      .select(`
+        id,
+        numero,
+        cliente_id,
+        progetto_tecnico_id,
+        stato,
+        tipo,
+        data_scadenza,
+        totale_imponibile,
+        sconto_perc,
+        iva_perc,
+        creato_il,
+        clienti(ragione_sociale)
+      `)
+      .eq('commerciale_id', ME.id)
+      .order('creato_il', { ascending: false })
+  ]);
+
+  const progettiRes = risultati[0];
+  const preventiviRes = risultati[1];
+
+  if (progettiRes.error) {
+    boxDaCreare.innerHTML =
+      '<div class="al2 e">Errore progetti: ' +
+      esc(progettiRes.error.message) +
+      '</div>';
+  }
+
+  if (preventiviRes.error) {
+    boxLista.innerHTML =
+      '<div class="al2 e">Errore preventivi: ' +
+      esc(preventiviRes.error.message) +
+      '</div>';
+  }
+
+  if (progettiRes.error || preventiviRes.error) return;
+
+  const preventivi = preventiviRes.data || [];
+  const progettiConBozza = new Set(
+    preventivi
+      .filter(function(p) { return p.progetto_tecnico_id; })
+      .map(function(p) { return p.progetto_tecnico_id; })
+  );
+
+  const progettiDaCreare = (progettiRes.data || []).filter(function(p) {
+    return !progettiConBozza.has(p.id);
+  });
+
+  if (!progettiDaCreare.length) {
+    boxDaCreare.innerHTML =
+      '<div class="empty">Nessun progetto in attesa di preventivo.</div>';
+  } else {
+    boxDaCreare.innerHTML = progettiDaCreare.map(function(p) {
+      const cliente = p.clienti?.ragione_sociale || 'Cliente non disponibile';
+
+      return `
+        <div class="card" style="margin-bottom:10px">
+          <div style="font-size:14px;font-weight:700">
+            ${esc(p.titolo)}
+          </div>
+
+          <div style="font-size:12px;color:var(--m);margin-top:3px">
+            ${esc(cliente)} · ${esc(p.tipologia || 'Tipologia non indicata')}
+          </div>
+
+          <button
+            class="btn sm p"
+            style="margin-top:12px"
+            onclick="apriNuovoPreventivo('${p.id}')"
+          >
+            🧾 Crea preventivo
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  if (!preventivi.length) {
+    boxLista.innerHTML =
+      '<div class="empty">Non hai ancora creato preventivi.</div>';
+    return;
+  }
+
+  boxLista.innerHTML = preventivi.map(function(p) {
+    const cliente = p.clienti?.ragione_sociale || 'Cliente non disponibile';
+    const totale = Number(p.totale_imponibile || 0).toLocaleString('it-IT', {
+      style: 'currency',
+      currency: 'EUR'
+    });
+
+    const stato = {
+      bozza: 'Bozza',
+      inviato: 'Inviato',
+      accettato: 'Accettato',
+      rifiutato: 'Rifiutato',
+      scaduto: 'Scaduto'
+    }[p.stato] || p.stato;
+
+    return `
+      <div class="card" style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;gap:10px">
+          <div>
+            <div style="font-size:14px;font-weight:700">
+              Preventivo n. ${esc(String(p.numero))}
+            </div>
+
+            <div style="font-size:12px;color:var(--m);margin-top:3px">
+              ${esc(cliente)} · ${esc(p.tipo || 'Preventivo')}
+            </div>
+          </div>
+
+          <span class="bx bblue">${esc(stato)}</span>
+        </div>
+
+        <div style="font-size:13px;margin-top:10px">
+          Totale imponibile attuale: <b>${esc(totale)}</b>
+        </div>
+
+        ${p.data_scadenza ? `
+          <div style="font-size:12px;color:var(--m);margin-top:4px">
+            Valido fino al ${esc(
+              new Date(p.data_scadenza + 'T00:00:00').toLocaleDateString('it-IT')
+            )}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+async function apriNuovoPreventivo(progettoId) {
+  const { data: progetto, error } = await db
+    .from('progetti_tecnici')
+    .select(`
+      id,
+      titolo,
+      tipologia,
+      cliente_id,
+      rappresentante_id,
+      clienti(ragione_sociale)
+    `)
+    .eq('id', progettoId)
+    .single();
+
+  if (error || !progetto) {
+    toast(
+      'Errore apertura progetto: ' +
+      (error?.message || 'progetto non trovato'),
+      'err'
+    );
+    return;
+  }
+
+  const dataScadenza = new Date();
+  dataScadenza.setDate(dataScadenza.getDate() + 30);
+
+  ge('pv-progetto-id').value = progetto.id;
+  ge('pv-cliente-id').value = progetto.cliente_id;
+  ge('pv-rappresentante-id').value = progetto.rappresentante_id || '';
+  ge('pv-tipo').value = 'fornitura_e_posa';
+  ge('pv-scadenza').value = dataScadenza.toISOString().slice(0, 10);
+  ge('pv-sconto').value = '0';
+  ge('pv-iva').value = '22';
+  ge('pv-note').value = '';
+
+  ge('pv-riepilogo').innerHTML = `
+    <b>${esc(progetto.titolo)}</b><br>
+    ${esc(progetto.clienti?.ragione_sociale || 'Cliente non disponibile')}
+    · ${esc(progetto.tipologia || 'Tipologia non indicata')}
+  `;
+
+  openM('m-nuovo-preventivo');
+}
+
+async function salvaNuovoPreventivo() {
+  const progettoId = v('pv-progetto-id');
+  const clienteId = v('pv-cliente-id');
+  const rappresentanteId = v('pv-rappresentante-id') || null;
+  const tipo = v('pv-tipo');
+  const dataScadenza = v('pv-scadenza');
+  const sconto = Number(v('pv-sconto') || 0);
+  const iva = Number(v('pv-iva') || 22);
+  const note = v('pv-note').trim() || null;
+
+  if (!progettoId || !clienteId || !dataScadenza) {
+    toast('Mancano progetto, cliente o data di validità', 'err');
+    return;
+  }
+
+  if (sconto < 0 || sconto > 100 || iva < 0 || iva > 100) {
+    toast('Sconto e IVA devono essere compresi tra 0 e 100', 'err');
+    return;
+  }
+
+  const { data: esistenti, error: erroreControllo } = await db
+    .from('preventivi')
+    .select('id, numero')
+    .eq('progetto_tecnico_id', progettoId)
+    .limit(1);
+
+  if (erroreControllo) {
+    toast('Errore controllo preventivo: ' + erroreControllo.message, 'err');
+    return;
+  }
+
+  if (esistenti && esistenti.length) {
+    toast(
+      'Esiste già il preventivo n. ' + esistenti[0].numero + ' per questo progetto',
+      'err'
+    );
+    return;
+  }
+
+  const { data, error } = await db
+    .from('preventivi')
+    .insert({
+      cliente_id: clienteId,
+      commerciale_id: ME.id,
+      rappresentante_id: rappresentanteId,
+      progetto_tecnico_id: progettoId,
+      tipo: tipo,
+      origine: 'progetto_tecnico',
+      data_scadenza: dataScadenza,
+      totale_imponibile: 0,
+      sconto_perc: sconto,
+      iva_perc: iva,
+      stato: 'bozza',
+      note: note
+    })
+    .select('id, numero')
+    .single();
+
+  if (error) {
+    toast('Errore creazione preventivo: ' + error.message, 'err');
+    return;
+  }
+
+  closeM('m-nuovo-preventivo');
+  toast('Bozza preventivo n. ' + data.numero + ' creata', 'ok');
+  await loadPreventivi();
+}
+
+let currentFornitoreId = null;
+
+async function openFornitoreDetail(fornitoreId) {
+  const { data: fornitore, error } = await db
+    .from('fornitori')
+    .select('*, fornitore_tipologie(*)')
+    .eq('id', fornitoreId)
+    .single();
+
+  if (error || !fornitore) {
+    toast(
+      'Errore apertura fornitore: ' +
+      (error?.message || 'fornitore non trovato'),
+      'err'
+    );
+    return;
+  }
+
+  currentFornitoreId = fornitore.id;
+
+  ge('fd-nome').textContent = fornitore.ragione_sociale || 'Fornitore';
+  ge('fd-btn-modifica').style.display =
+    ROLE === 'commerciale' || ROLE === 'titolare' ? '' : 'none';
+
+  gotoPage('fornitore-detail');
+
+  const pagina = ge('pg-fornitore-detail');
+
+  pagina.querySelectorAll('.tab').forEach(function(tab, indice) {
+    tab.classList.toggle('on', indice === 0);
+  });
+
+  pagina.querySelectorAll('.tc').forEach(function(tab, indice) {
+    tab.classList.toggle('on', indice === 0);
+  });
+
+  ge('fd-anagrafica-content').innerHTML = `
+    <div class="g2" style="margin-bottom:16px">
+      ${ir('Ragione sociale', fornitore.ragione_sociale)}
+      ${ir('Referente', fornitore.referente)}
+      ${ir('Telefono', fornitore.telefono)}
+      ${ir('Email', fornitore.email)}
+      ${ir('Indirizzo', fornitore.indirizzo)}
+      ${ir('Stato', fornitore.attivo === false ? 'Non attivo' : 'Attivo')}
+    </div>
+  `;
+
+  const tipologie = fornitore.fornitore_tipologie || [];
+
+  ge('fd-tipologie-content').innerHTML = !tipologie.length
+    ? '<div class="empty">Nessuna tipologia o valutazione inserita.</div>'
+    : `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px">
+        ${tipologie.map(function(t) {
+          return `
+            <div class="pc">
+              <div style="font-size:14px;font-weight:700;margin-bottom:10px">
+                ${esc(t.tipologia || 'Tipologia')}
+              </div>
+
+              <div style="font-size:12px;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;justify-content:space-between;gap:8px">
+                  <span style="color:var(--m)">Pronta consegna</span>
+                  <span>${esc(t.pronta_consegna || '—')}</span>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;gap:8px">
+                  <span style="color:var(--m)">Tempi consegna</span>
+                  <span>${esc(t.tempi_consegna || '—')}</span>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;gap:8px">
+                  <span style="color:var(--m)">Gestione ordine</span>
+                  <span>${esc(t.gestione_ordine || '—')}</span>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;gap:8px">
+                  <span style="color:var(--m)">Varietà catalogo</span>
+                  <span>${esc(t.varieta_catalogo || '—')}</span>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;gap:8px">
+                  <span style="color:var(--m)">Risposta preventivi</span>
+                  <span>${esc(t.tempi_preventivo || '—')}</span>
+                </div>
+              </div>
+
+              ${t.note ? `
+                <div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:var(--rs);font-size:12px">
+                  ${esc(t.note)}
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+  ge('fd-note-content').innerHTML = fornitore.note
+    ? `
+      <div class="card" style="white-space:pre-wrap">
+        ${esc(fornitore.note)}
+      </div>
+    `
+    : '<div class="empty">Nessuna nota generale sul fornitore.</div>';
+}
+
+function modificaFornitoreDaScheda() {
+  if (!currentFornitoreId) return;
+  apriFornitore(currentFornitoreId, true);
+}
+
+let fornitoriDati = [];
+
+
+
+async function loadFornitori() {
+  const box = ge('fornitori-lista');
+  const btnNuovo = ge('btn-nuovo-fornitore');
+
+  if (!box) return;
+
+  if (btnNuovo) {
+    btnNuovo.style.display =
+      ROLE === 'commerciale' || ROLE === 'titolare' ? '' : 'none';
+  }
+
+  box.innerHTML = '<div class="load">Caricamento fornitori...</div>';
+
+  const { data, error } = await db
+    .from('fornitori')
+    .select('*, fornitore_tipologie(*)')
+    .order('ragione_sociale', { ascending: true });
+
+  if (error) {
+    box.innerHTML =
+      '<div class="al2 e">Errore nel caricamento: ' +
+      esc(error.message) +
+      '</div>';
+    return;
+  }
+
+  fornitoriDati = data || [];
+  renderFornitori(fornitoriDati);
+}
+
+function filtraFornitori(testo) {
+  const ricerca = (testo || '').trim().toLowerCase();
+
+  if (!ricerca) {
+    renderFornitori(fornitoriDati);
+    return;
+  }
+
+  const filtrati = fornitoriDati.filter(function(f) {
+    const testata = [
+      f.ragione_sociale,
+      f.referente,
+      f.telefono,
+      f.email
+    ].join(' ').toLowerCase();
+
+    const tipologie = (f.fornitore_tipologie || [])
+      .map(function(t) {
+        return [
+          t.tipologia,
+          t.pronta_consegna,
+          t.tempi_consegna,
+          t.gestione_ordine,
+          t.varieta_catalogo,
+          t.tempi_preventivo
+        ].join(' ');
+      })
+      .join(' ')
+      .toLowerCase();
+
+    return testata.includes(ricerca) || tipologie.includes(ricerca);
+  });
+
+  renderFornitori(filtrati);
+}
+
+function renderFornitori(lista) {
+  const box = ge('fornitori-lista');
+  if (!box) return;
+
+  if (!lista.length) {
+    box.innerHTML =
+      '<div class="empty">Nessun fornitore inserito.</div>';
+    return;
+  }
+
+  box.innerHTML = lista.map(function(f) {
+    const tipologie = (f.fornitore_tipologie || [])
+      .filter(function(t) { return t.attivo !== false; });
+
+    const tagTipologie = tipologie.length
+      ? tipologie.map(function(t) {
+          return '<span class="bx bblue">' +
+            esc(t.tipologia || 'Tipologia') +
+            '</span>';
+        }).join(' ')
+      : '<span style="font-size:12px;color:var(--m)">Nessuna tipologia inserita</span>';
+
+    const recap = tipologie.length
+      ? tipologie.map(function(t) {
+          const parti = [];
+
+          if (t.pronta_consegna) {
+            parti.push('Pronta consegna: ' + t.pronta_consegna);
+          }
+
+          if (t.tempi_consegna) {
+            parti.push('Consegna: ' + t.tempi_consegna);
+          }
+
+          if (t.tempi_preventivo) {
+            parti.push('Preventivi: ' + t.tempi_preventivo);
+          }
+
+          return parti.join(' · ');
+        }).filter(Boolean).join('<br>')
+      : '';
+
+    return `
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+          <div>
+            <div style="font-size:15px;font-weight:700">
+              ${esc(f.ragione_sociale)}
+            </div>
+
+            <div style="font-size:12px;color:var(--m);margin-top:4px">
+              ${f.referente ? esc(f.referente) : 'Referente non indicato'}
+              ${f.telefono ? ' · ' + esc(f.telefono) : ''}
+              ${f.email ? ' · ' + esc(f.email) : ''}
+            </div>
+          </div>
+
+          <span class="bx ${f.attivo === false ? 'bred' : 'bgreen'}">
+            ${f.attivo === false ? 'Non attivo' : 'Attivo'}
+          </span>
+        </div>
+
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+          ${tagTipologie}
+        </div>
+
+        ${recap ? `
+          <div style="font-size:12px;color:var(--m);margin-top:10px">
+            ${recap}
+          </div>
+        ` : ''}
+
+       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+  <button
+    class="btn sm"
+    onclick="openFornitoreDetail('${f.id}')"
+  >
+    Scheda
+  </button>
+
+  ${(ROLE === 'commerciale' || ROLE === 'titolare') ? `
+    <button
+      class="btn sm info"
+      onclick="apriFornitore('${f.id}', true)"
+    >
+      Modifica
+    </button>
+  ` : ''}
+</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openNuovoFornitore() {
+  if (ROLE !== 'commerciale' && ROLE !== 'titolare') {
+    toast('Non hai i permessi per aggiungere fornitori', 'err');
+    return;
+  }
+
+  ge('mf-titolo').textContent = 'Nuovo fornitore';
+  ge('mf-id').value = '';
+  ge('mft-id').value = '';
+
+  ge('mf-ragione-sociale').value = '';
+  ge('mf-referente').value = '';
+  ge('mf-telefono').value = '';
+  ge('mf-email').value = '';
+  ge('mf-indirizzo').value = '';
+  ge('mf-note').value = '';
+
+  ge('mft-tipologia').value = '';
+  ge('mft-pronta-consegna').value = '';
+  ge('mft-tempi-consegna').value = '';
+  ge('mft-gestione-ordine').value = '';
+  ge('mft-varieta-catalogo').value = '';
+  ge('mft-tempi-preventivo').value = '';
+  ge('mft-note').value = '';
+
+  abilitaModificaFornitore(true);
+
+  ge('mf-azioni').innerHTML = `
+    <button class="btn" onclick="closeM('m-fornitore')">Annulla</button>
+    <button class="btn p" onclick="salvaFornitore()">Salva fornitore</button>
+  `;
+
+  openM('m-fornitore');
+}
+
+async function apriFornitore(fornitoreId, modalitaModifica) {
+  const { data: fornitore, error } = await db
+    .from('fornitori')
+    .select('*, fornitore_tipologie(*)')
+    .eq('id', fornitoreId)
+    .single();
+
+  if (error || !fornitore) {
+    toast(
+      'Errore apertura fornitore: ' +
+      (error?.message || 'fornitore non trovato'),
+      'err'
+    );
+    return;
+  }
+
+  const tipo = (fornitore.fornitore_tipologie || [])[0] || {};
+
+  ge('mf-titolo').textContent = fornitore.ragione_sociale;
+  ge('mf-id').value = fornitore.id;
+  ge('mft-id').value = tipo.id || '';
+
+  ge('mf-ragione-sociale').value = fornitore.ragione_sociale || '';
+  ge('mf-referente').value = fornitore.referente || '';
+  ge('mf-telefono').value = fornitore.telefono || '';
+  ge('mf-email').value = fornitore.email || '';
+  ge('mf-indirizzo').value = fornitore.indirizzo || '';
+  ge('mf-note').value = fornitore.note || '';
+
+  ge('mft-tipologia').value = tipo.tipologia || '';
+  ge('mft-pronta-consegna').value = tipo.pronta_consegna || '';
+  ge('mft-tempi-consegna').value = tipo.tempi_consegna || '';
+  ge('mft-gestione-ordine').value = tipo.gestione_ordine || '';
+  ge('mft-varieta-catalogo').value = tipo.varieta_catalogo || '';
+  ge('mft-tempi-preventivo').value = tipo.tempi_preventivo || '';
+  ge('mft-note').value = tipo.note || '';
+
+  const puoModificare =
+  modalitaModifica === true &&
+  (ROLE === 'commerciale' || ROLE === 'titolare');
+  abilitaModificaFornitore(puoModificare);
+
+  ge('mf-azioni').innerHTML = puoModificare
+    ? `
+      <button class="btn" onclick="closeM('m-fornitore')">Annulla</button>
+      <button class="btn p" onclick="salvaFornitore()">Salva modifiche</button>
+    `
+    : `
+      <button class="btn" onclick="closeM('m-fornitore')">Chiudi</button>
+    `;
+
+  openM('m-fornitore');
+}
+
+function abilitaModificaFornitore(abilitato) {
+  [
+    'mf-ragione-sociale',
+    'mf-referente',
+    'mf-telefono',
+    'mf-email',
+    'mf-indirizzo',
+    'mf-note',
+    'mft-tipologia',
+    'mft-pronta-consegna',
+    'mft-tempi-consegna',
+    'mft-gestione-ordine',
+    'mft-varieta-catalogo',
+    'mft-tempi-preventivo',
+    'mft-note'
+  ].forEach(function(id) {
+    const campo = ge(id);
+    if (campo) campo.disabled = !abilitato;
+  });
+}
+
+async function salvaFornitore() {
+  const fornitoreId = v('mf-id');
+  const tipoId = v('mft-id');
+
+  const ragioneSociale = v('mf-ragione-sociale').trim();
+  const tipologia = v('mft-tipologia').trim();
+
+  if (!ragioneSociale || !tipologia) {
+    toast('Ragione sociale e tipologia sono obbligatorie', 'err');
+    return;
+  }
+
+  const datiFornitore = {
+    ragione_sociale: ragioneSociale,
+    referente: v('mf-referente').trim() || null,
+    telefono: v('mf-telefono').trim() || null,
+    email: v('mf-email').trim() || null,
+    indirizzo: v('mf-indirizzo').trim() || null,
+    note: v('mf-note').trim() || null,
+    aggiornato_il: new Date().toISOString()
+  };
+
+  let idFinale = fornitoreId;
+
+  if (fornitoreId) {
+    const { error } = await db
+      .from('fornitori')
+      .update(datiFornitore)
+      .eq('id', fornitoreId);
+
+    if (error) {
+      toast('Errore salvataggio fornitore: ' + error.message, 'err');
+      return;
+    }
+  } else {
+    datiFornitore.creato_da = ME.id;
+
+    const { data, error } = await db
+      .from('fornitori')
+      .insert(datiFornitore)
+      .select('id')
+      .single();
+
+    if (error) {
+      toast('Errore creazione fornitore: ' + error.message, 'err');
+      return;
+    }
+
+    idFinale = data.id;
+  }
+
+  const datiTipologia = {
+    fornitore_id: idFinale,
+    tipologia: tipologia,
+    pronta_consegna: v('mft-pronta-consegna') || null,
+    tempi_consegna: v('mft-tempi-consegna') || null,
+    gestione_ordine: v('mft-gestione-ordine') || null,
+    varieta_catalogo: v('mft-varieta-catalogo') || null,
+    tempi_preventivo: v('mft-tempi-preventivo') || null,
+    note: v('mft-note').trim() || null,
+    aggiornato_il: new Date().toISOString()
+  };
+
+  const rispostaTipologia = tipoId
+    ? await db
+        .from('fornitore_tipologie')
+        .update(datiTipologia)
+        .eq('id', tipoId)
+    : await db
+        .from('fornitore_tipologie')
+        .insert(datiTipologia);
+
+  if (rispostaTipologia.error) {
+    toast(
+      'Fornitore salvato, ma errore nella tipologia: ' +
+      rispostaTipologia.error.message,
+      'err'
+    );
+    return;
+  }
+
+  closeM('m-fornitore');
+  toast('Fornitore salvato', 'ok');
+  await loadFornitori();
+}
+
 
 async function apriProgettoDaElenco(id) {
   const { data: progetto, error } = await db
