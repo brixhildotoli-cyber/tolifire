@@ -5188,10 +5188,18 @@ async function loadDashRappresentante() {
   var convertitiMese = sopralluoghi.filter(function(s){
     return s.odl_creato_id && s.creato_il && s.creato_il >= primoDelMese;
   });
-  // Clienti distinti del rappresentante
-  var cliIds = {};
-  sopralluoghi.forEach(function(s){ if(s.cliente_id) cliIds[s.cliente_id] = true; });
-  var cliIdsArr = Object.keys(cliIds);
+  // Clienti assegnati direttamente al rappresentante.
+const { data: clientiRappresentante, error: erroreClientiRappresentante } = await db
+  .from('clienti')
+  .select('id')
+  .eq('rappresentante_id', ME.id)
+  .is('eliminato_il', null);
+
+var cliIdsArr = erroreClientiRappresentante
+  ? []
+  : (clientiRappresentante || []).map(function(cliente) {
+      return cliente.id;
+    });
 
   // KPI 4: presidi scaduti dei tuoi clienti
   var presidiScaduti = 0;
