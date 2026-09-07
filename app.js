@@ -627,8 +627,8 @@ const PAGINE_RUOLO = {
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
   commerciale:    ['dashboard','progetti-da-preventivare', 'fornitori', 'fornitore-detail', 'preventivazione', 'clienti','documenti','fatture','catalogo','cliente-detail', 'info'],
-  rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','sopralluogo','trattative','cliente-detail','info'],
-  ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti','cliente-detail','info'],
+  rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','sopralluogo','trattative','cliente-detail','progetto-detail','info'],
+  ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti', 'progetto-detail','cliente-detail','info'],
 };
 
 function canAccessPage(id) {
@@ -6971,9 +6971,14 @@ async function loadVerificheTecniche() {
         </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
   <button
+    class="btn sm"
+    onclick="openProgettoDetail('${progetto.id}')">
+    Apri progetto
+  </button>
+
+  <button
     class="btn sm p"
-    onclick="apriVerificaTecnica('${progetto.id}')"
-  >
+    onclick="apriVerificaTecnica('${progetto.id}')">
     🔧 Gestisci verifica
   </button>
 </div>
@@ -7134,9 +7139,13 @@ async function loadProgettiCliente(clienteId) {
         esc(p.descrizione_tecnica) +
       '</div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
-  '<button class="btn sm" onclick="modificaProgetto(\'' + p.id + '\')">' +
-    '✏️ Modifica' +
-  '</button>' +
+ '<button class="btn sm" onclick="openProgettoDetail(\'' + p.id + '\')">' +
+  'Apri' +
+'</button>' +
+
+'<button class="btn sm info" onclick="modificaProgetto(\'' + p.id + '\')">' +
+  'Modifica' +
+'</button>' +
 
   (p.stato === 'bozza'
     ? '<button class="btn sm info" onclick="inviaProgettoAlCommerciale(\'' + p.id + '\')">' +
@@ -7532,12 +7541,17 @@ async function loadPaginaProgetti() {
 ` : ''}
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-          <button
-            class="btn sm"
-            onclick="apriProgettoDaElenco('${p.id}')"
-          >
-            Apri / modifica
-          </button>
+         <button
+  class="btn sm"
+  onclick="openProgettoDetail('${p.id}')">
+  Apri
+</button>
+
+<button
+  class="btn sm info"
+  onclick="apriProgettoDaElenco('${p.id}')">
+  Modifica
+</button>
 
           ${puoRichiedereVerifica ? `
             <button
@@ -8799,6 +8813,274 @@ async function salvaFornitore() {
   await loadFornitori();
 }
 
+
+let currentProgettoTecnicoId = null;
+
+function dimensioneFileProgetto(bytes) {
+  if (!bytes) return 'Dimensione non disponibile';
+
+  if (bytes < 1024 * 1024) {
+    return Math.round(bytes / 1024) + ' KB';
+  }
+
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+async function openProgettoDetail(progettoId) {
+  const { data: progetto, error } = await db
+    .from('progetti_tecnici')
+    .select('*, clienti(ragione_sociale)')
+    .eq('id', progettoId)
+    .single();
+
+  if (error || !progetto) {
+    toast(
+      'Errore apertura progetto: ' +
+      (error?.message || 'progetto non trovato'),
+      'err'
+    );
+    return;
+  }
+
+  currentProgettoTecnicoId = progetto.id;
+
+  const stato = {
+    bozza: 'Bozza',
+    in_verifica_tecnica: 'In verifica tecnica',
+    da_integrare: 'Integrazione richiesta',
+    pronto_per_preventivo: 'Pronto per preventivo',
+    inviato_a_commerciale: 'Inviato al commerciale',
+    in_preventivazione: 'In preventivazione'
+  }[progetto.stato] || progetto.stato || '—';
+
+  ge('pd-nome').textContent = progetto.titolo || 'Progetto tecnico';
+  const btnModifica = ge('pd-btn-modifica');
+
+if (btnModifica) {
+  btnModifica.style.display =
+    ROLE === 'rappresentante' ? '' : 'none';
+}
+
+  gotoPage('progetto-detail');
+
+  const pagina = ge('pg-progetto-detail');
+
+  pagina.querySelectorAll('.tab').forEach(function(tab, indice) {
+    tab.classList.toggle('on', indice === 0);
+  });
+
+  pagina.querySelectorAll('.tc').forEach(function(tab, indice) {
+    tab.classList.toggle('on', indice === 0);
+  });
+
+  ge('pd-info-content').innerHTML = `
+    <div class="g2" style="margin-bottom:16px">
+      ${ir('Cliente', progetto.clienti?.ragione_sociale)}
+      ${ir('Tipologia', progetto.tipologia)}
+      ${ir('Stato', stato)}
+      ${ir(
+        'Creato il',
+        progetto.creato_il
+          ? new Date(progetto.creato_il).toLocaleDateString('it-IT')
+          : null
+      )}
+    </div>
+
+    <div style="font-size:13px;font-weight:600;margin:16px 0 8px">
+      Descrizione / studio tecnico
+    </div>
+
+    <div class="card" style="white-space:pre-wrap">
+      ${esc(progetto.descrizione_tecnica || 'Nessuna descrizione inserita.')}
+    </div>
+
+    ${progetto.materiali_note ? `
+      <div style="font-size:13px;font-weight:600;margin:16px 0 8px">
+        Materiali necessari
+      </div>
+
+      <div class="card" style="white-space:pre-wrap">
+        ${esc(progetto.materiali_note)}
+      </div>
+    ` : ''}
+  `;
+
+  const { data: allegati, error: erroreAllegati } = await db
+    .from('progetti_tecnici_allegati')
+    .select('id,nome_file,storage_path,mime_type,dimensione,caricato_il')
+    .eq('progetto_id', progetto.id)
+    .order('caricato_il', { ascending: false });
+
+  if (erroreAllegati) {
+    ge('pd-file-content').innerHTML =
+      '<div class="al2 e">Errore caricamento file: ' +
+      esc(erroreAllegati.message) +
+      '</div>';
+  } else if (!allegati || !allegati.length) {
+    ge('pd-file-content').innerHTML =
+      '<div class="empty">Nessun allegato disponibile.</div>';
+  } else {
+    const fileConLink = await Promise.all(
+      allegati.map(async function(allegato) {
+        const { data } = await db.storage
+          .from('progetti-tecnici')
+          .createSignedUrl(allegato.storage_path, 3600);
+
+        return {
+          ...allegato,
+          url: data?.signedUrl || null
+        };
+      })
+    );
+
+    ge('pd-file-content').innerHTML = fileConLink.map(function(file) {
+      return `
+        <div class="card" style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+            <div style="min-width:0">
+              <div style="font-size:13px;font-weight:700;overflow-wrap:anywhere">
+                📎 ${esc(file.nome_file)}
+              </div>
+
+              <div style="font-size:12px;color:var(--m);margin-top:4px">
+                ${esc(file.mime_type || 'File')}
+                · ${esc(dimensioneFileProgetto(file.dimensione))}
+              </div>
+            </div>
+
+            ${file.url ? `
+              <a
+                class="btn sm p"
+                href="${file.url}"
+                target="_blank"
+                rel="noopener"
+              >
+                Apri file
+              </a>
+            ` : `
+              <span style="font-size:12px;color:var(--r)">
+                File non disponibile
+              </span>
+            `}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+    const { data: cronologia, error: erroreCronologia } = await db
+    .from('progetti_tecnici_storico')
+    .select(`
+      id,
+      tipo_evento,
+      descrizione,
+      stato_precedente,
+      stato_successivo,
+      creato_il,
+      utenti!progetti_tecnici_storico_eseguito_da_fkey(
+        nome,
+        cognome,
+        ruolo
+      )
+    `)
+    .eq('progetto_id', progetto.id)
+    .order('creato_il', { ascending: false });
+
+  if (erroreCronologia) {
+    ge('pd-cronologia-content').innerHTML =
+      '<div class="al2 e">Errore cronologia: ' +
+      esc(erroreCronologia.message) +
+      '</div>';
+  } else if (!cronologia || !cronologia.length) {
+    ge('pd-cronologia-content').innerHTML =
+      '<div class="empty">Nessuna attività registrata per ora.</div>';
+  } else {
+    ge('pd-cronologia-content').innerHTML = cronologia.map(function(evento) {
+      const utente = evento.utenti;
+      const autore = utente
+        ? [utente.nome, utente.cognome].filter(Boolean).join(' ')
+        : 'Utente non disponibile';
+
+      const dataOra = evento.creato_il
+        ? new Date(evento.creato_il).toLocaleString('it-IT', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        : '—';
+
+      const icona = {
+        progetto_creato: '✨',
+        progetto_modificato: '✏️',
+        stato_modificato: '📤',
+        allegato_aggiunto: '📎'
+      }[evento.tipo_evento] || '•';
+
+      return `
+        <div
+          style="
+            display:flex;
+            gap:10px;
+            padding:12px 0;
+            border-bottom:1px solid var(--br)
+          "
+        >
+          <div style="font-size:18px">${icona}</div>
+
+          <div style="min-width:0">
+            <div style="font-size:13px;font-weight:600">
+              ${esc(evento.descrizione)}
+            </div>
+
+            <div style="font-size:12px;color:var(--m);margin-top:3px">
+              ${esc(dataOra)}
+              · ${esc(autore)}
+              ${utente?.ruolo ? ' · ' + esc(utente.ruolo) : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  const nota = progetto.nota_integrazione || progetto.nota_verifica_tecnica;
+  const autore = progetto.integrazione_richiesta_da === 'commerciale'
+    ? 'Nota del commerciale'
+    : progetto.nota_verifica_tecnica
+      ? 'Nota dell’ingegnere'
+      : 'Note';
+
+  ge('pd-verifica-content').innerHTML = nota
+    ? `
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px">
+          🔧 ${esc(autore)}
+        </div>
+
+        <div style="white-space:pre-wrap">
+          ${esc(nota)}
+        </div>
+      </div>
+    `
+    : '<div class="empty">Nessuna nota di verifica o integrazione.</div>';
+}
+
+function tornaDaSchedaProgetto() {
+  if (ROLE === 'ingegnere') {
+    gotoPage('verifiche-tecniche');
+    return;
+  }
+
+  gotoPage('progetti');
+}
+
+
+
+function modificaProgettoDaScheda() {
+  if (!currentProgettoTecnicoId) return;
+  apriProgettoDaElenco(currentProgettoTecnicoId);
+}
 
 async function apriProgettoDaElenco(id) {
   const { data: progetto, error } = await db

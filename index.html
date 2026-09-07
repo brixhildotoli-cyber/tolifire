@@ -848,6 +848,73 @@
 </section>
 
 
+<!-- SCHEDA PROGETTO TECNICO -->
+<div class="page" id="pg-progetto-detail">
+  <div class="sh">
+    <div>
+      <button
+        class="btn sm"
+        onclick="tornaDaSchedaProgetto()"
+        style="margin-bottom:8px"
+      >
+        ← Progetti tecnici
+      </button>
+
+      <div class="st" id="pd-nome"></div>
+    </div>
+
+    <button
+      class="btn p"
+      id="pd-btn-modifica"
+      onclick="modificaProgettoDaScheda()"
+    >
+      Modifica
+    </button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" onclick="stab(this,'pd-info')">
+      Progetto
+    </button>
+
+    <button class="tab" onclick="stab(this,'pd-file')">
+      📎 File
+    </button>
+
+    <button class="tab" onclick="stab(this,'pd-cronologia')">
+  🕘 Cronologia
+</button>
+
+    <button class="tab" onclick="stab(this,'pd-verifica')">
+      Verifica e note
+    </button>
+  </div>
+
+  <div class="tc on" id="pd-info">
+    <div id="pd-info-content">
+      <div class="load">Caricamento...</div>
+    </div>
+  </div>
+
+  <div class="tc" id="pd-file">
+    <div id="pd-file-content">
+      <div class="load">Caricamento allegati...</div>
+    </div>
+  </div>
+
+  <div class="tc" id="pd-cronologia">
+  <div id="pd-cronologia-content">
+    <div class="load">Caricamento cronologia...</div>
+  </div>
+</div>
+
+  <div class="tc" id="pd-verifica">
+    <div id="pd-verifica-content">
+      <div class="load">Caricamento...</div>
+    </div>
+  </div>
+</div>
+
 <!-- PROGETTI RICEVUTI DAL COMMERCIALE -->
 <section class="page" id="pg-progetti-da-preventivare">
   <div class="ph">
