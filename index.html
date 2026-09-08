@@ -408,6 +408,112 @@
     </div>
   </div>
 
+<!-- DASHBOARD COMMERCIALE -->
+<div id="dash-commerciale-pg" style="display:none">
+  <div class="rap-wrap">
+
+    <div class="ing-greet">
+      <div>
+        <h1 id="com-greet-nome">Buongiorno</h1>
+        <p id="com-greet-data"></p>
+      </div>
+
+      <button class="btn sm" onclick="gotoPage('info')">ⓘ Info</button>
+    </div>
+
+    <button class="rap-primary" onclick="gotoPage('progetti-da-preventivare')">
+      <span class="ico">📐</span>
+      <span class="body">
+        <span class="title">Da preventivare</span>
+        <span class="sub">Controlla i progetti ricevuti e avvia la preventivazione</span>
+      </span>
+      <span class="chev">›</span>
+    </button>
+
+    <div class="rap-secondary-row">
+      <button class="rap-secondary-btn" onclick="gotoPage('preventivazione')">
+        <span class="ico">📋</span> Preventivazione
+      </button>
+
+      <button class="rap-secondary-btn" onclick="gotoPage('fornitori')">
+        <span class="ico">🏭</span> Fornitori
+      </button>
+    </div>
+
+    <div class="rap-section">📊 A colpo d'occhio</div>
+
+    <div class="kpi-grid ing-kpi-grid">
+      <div class="kpi-card attention clickable" onclick="gotoPage('progetti-da-preventivare')">
+        <div class="kpi-icon">📐</div>
+        <div class="kpi-num" id="com-k-da-preventivare">—</div>
+        <div class="kpi-label">Da preventivare</div>
+      </div>
+
+      <div class="kpi-card success clickable" onclick="gotoPage('preventivazione')">
+        <div class="kpi-icon">📋</div>
+        <div class="kpi-num" id="com-k-in-lavorazione">—</div>
+        <div class="kpi-label">In preventivazione</div>
+      </div>
+
+      <div class="kpi-card info clickable" onclick="gotoPage('fornitori')">
+        <div class="kpi-icon">🏭</div>
+        <div class="kpi-num" id="com-k-fornitori">—</div>
+        <div class="kpi-label">Fornitori attivi</div>
+      </div>
+
+      <div class="kpi-card neutral clickable" onclick="gotoPage('clienti')">
+        <div class="kpi-icon">👥</div>
+        <div class="kpi-num" id="com-k-clienti">—</div>
+        <div class="kpi-label">Clienti attivi</div>
+      </div>
+    </div>
+
+    <div class="rap-section">📬 Progetti ricevuti</div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px">
+        <div>
+          <div style="font-size:14px;font-weight:600">📐 Progetti da preventivare</div>
+          <div style="font-size:12px;color:var(--m);margin-top:2px">
+            Inviati dal rappresentante o dopo verifica tecnica
+          </div>
+        </div>
+
+        <button class="btn sm" onclick="gotoPage('progetti-da-preventivare')">
+          Apri tutti →
+        </button>
+      </div>
+
+      <div id="com-progetti-ricevuti">
+        <div class="load">Caricamento...</div>
+      </div>
+    </div>
+
+  </div>
+<div class="rap-section">📋 Preventivazioni in lavorazione</div>
+
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px">
+    <div>
+      <div style="font-size:14px;font-weight:600">Preventivi in preparazione</div>
+      <div style="font-size:12px;color:var(--m);margin-top:2px">
+        Progetti per cui sono stati scelti o contattati i fornitori
+      </div>
+    </div>
+
+    <button class="btn sm" onclick="gotoPage('preventivazione')">
+      Vai alla preventivazione →
+    </button>
+  </div>
+
+  <div id="com-progetti-lavorazione">
+    <div class="load">Caricamento...</div>
+  </div>
+</div>
+
+</div>
+
+
   <!-- DASHBOARD STANDARD (altri ruoli) -->
   <div id="dash-standard">
   <div class="sh">

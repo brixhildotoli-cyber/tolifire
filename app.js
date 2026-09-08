@@ -694,6 +694,125 @@ function gotoPage(id){
   window.scrollTo(0,0);
 }
 
+async function loadDashCommerciale() {
+  const ora = new Date().getHours();
+  const saluto = ora < 12 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
+
+  ge('com-greet-nome').textContent = saluto + ', ' + (ME.nome || '');
+  ge('com-greet-data').textContent = new Date().toLocaleDateString('it-IT', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  const [
+    progettiRicevutiRes,
+    progettiLavorazioneRes,
+    fornitoriRes,
+    clientiRes
+  ] = await Promise.all([
+    db
+      .from('progetti_tecnici')
+      .select('id,titolo,tipologia,creato_il,clienti(ragione_sociale)')
+      .eq('stato', 'inviato_a_commerciale')
+      .order('creato_il', { ascending: false }),
+
+    db
+      .from('progetti_tecnici')
+      .select('id,titolo,tipologia,aggiornato_il,clienti(ragione_sociale)')
+      .eq('stato', 'in_preventivazione')
+      .order('aggiornato_il', { ascending: false }),
+
+    db
+      .from('fornitori')
+      .select('id', { count: 'exact', head: true })
+      .eq('attivo', true),
+
+    db
+      .from('clienti')
+      .select('id', { count: 'exact', head: true })
+      .eq('stato', 'attivo')
+      .is('eliminato_il', null)
+  ]);
+
+  const progetti = progettiRicevutiRes.data || [];
+
+  ge('com-k-da-preventivare').textContent = progetti.length;
+  const progettiInLavorazione = progettiLavorazioneRes.data || [];
+  ge('com-k-in-lavorazione').textContent = progettiInLavorazione.length;
+  ge('com-k-fornitori').textContent = fornitoriRes.count || 0;
+  ge('com-k-clienti').textContent = clientiRes.count || 0;
+
+  const lista = ge('com-progetti-ricevuti');
+
+  if (!progetti.length) {
+    lista.innerHTML = `
+      <div class="empty">
+        ✅ Nessun progetto in attesa di preventivo.
+      </div>
+    `;
+    return;
+  }
+
+  lista.innerHTML = progetti.slice(0, 5).map(function(progetto) {
+    const data = progetto.creato_il
+      ? new Date(progetto.creato_il).toLocaleString('it-IT', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      : '—';
+
+    return `
+      <div style="padding:11px 0;border-bottom:1px solid var(--bo);display:flex;justify-content:space-between;gap:10px;align-items:center">
+        <div>
+          <div style="font-size:13px;font-weight:600">${esc(progetto.titolo || 'Progetto tecnico')}</div>
+          <div style="font-size:12px;color:var(--m);margin-top:3px">
+            ${esc(progetto.clienti?.ragione_sociale || 'Cliente non indicato')}
+            · ${esc(progetto.tipologia || 'Tipologia non indicata')}
+            · ricevuto il ${data}
+          </div>
+        </div>
+
+        <button class="btn sm info" onclick="gotoPage('progetti-da-preventivare')">
+          Gestisci
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  const listaLavorazione = ge('com-progetti-lavorazione');
+
+if (!progettiInLavorazione.length) {
+  listaLavorazione.innerHTML = `
+    <div class="empty">
+      Nessuna preventivazione attualmente in corso.
+    </div>
+  `;
+} else {
+  listaLavorazione.innerHTML = progettiInLavorazione.slice(0, 5).map(function(progetto) {
+    return `
+      <div style="padding:11px 0;border-bottom:1px solid var(--bo);display:flex;justify-content:space-between;gap:10px;align-items:center">
+        <div>
+          <div style="font-size:13px;font-weight:600">${esc(progetto.titolo || 'Progetto tecnico')}</div>
+          <div style="font-size:12px;color:var(--m);margin-top:3px">
+            ${esc(progetto.clienti?.ragione_sociale || 'Cliente non indicato')}
+            · ${esc(progetto.tipologia || 'Tipologia non indicata')}
+          </div>
+        </div>
+
+        <button class="btn sm info" onclick="gotoPage('preventivazione')">
+          Continua
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+}
+
 // ── DASHBOARD ─────────────────────────────────────────────────
 async function loadDash(){
   // Smistamento per ruolo: tecnico, titolare, segreteria, capo_tecnico hanno dashboard dedicate.
@@ -702,6 +821,7 @@ async function loadDash(){
   var sgSec = ge('dash-segreteria-pg');
   var ctSec = ge('dash-capo-tecnico-pg');
   var ingSec = ge('dash-ingegnere-pg');
+  var comSec = ge('dash-commerciale-pg');
   var dsSec = ge('dash-standard');
 
   function showOnly(sec) {
@@ -710,6 +830,7 @@ async function loadDash(){
     if (sgSec) sgSec.style.display = sec === 'segreteria' ? 'block' : 'none';
     if (ctSec) ctSec.style.display = sec === 'capo_tecnico' ? 'block' : 'none';
     if (ingSec) ingSec.style.display = sec === 'ingegnere' ? 'block' : 'none';
+    if (comSec) comSec.style.display = sec === 'commerciale' ? 'block' : 'none';
     if (dsSec) dsSec.style.display = sec === 'standard' ? 'block' : 'none';
   }
 
@@ -736,7 +857,11 @@ async function loadDash(){
     await loadDashCapoTecnicoPg();
     return;
   }
-
+  if (ROLE === 'commerciale') {
+   showOnly('commerciale');
+   await loadDashCommerciale();
+   return;
+}
   if (ROLE === 'ingegnere') {
     showOnly('ingegnere');
     await loadDashIngegnere();
