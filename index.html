@@ -474,6 +474,7 @@
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px">
         <div>
           <div style="font-size:14px;font-weight:600">📐 Progetti da preventivare</div>
+
           <div style="font-size:12px;color:var(--m);margin-top:2px">
             Inviati dal rappresentante o dopo verifica tecnica
           </div>
@@ -491,6 +492,30 @@
 
   </div>
 <div class="rap-section">📋 Preventivazioni in lavorazione</div>
+
+<div class="rap-section">📅 Il mio calendario</div>
+
+<div class="card">
+  <div class="cal-nav">
+    <button class="cal-nav-btn" onclick="calCommercialePrev()">← Prec.</button>
+
+    <div id="com-cal-title" style="font-size:15px;font-weight:700;text-transform:capitalize"></div>
+
+    <button class="cal-nav-btn" onclick="calCommercialeNext()">Succ. →</button>
+  </div>
+
+  <div class="cal-grid" id="com-mini-calendario">
+    <div class="load">Caricamento calendario...</div>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;margin-top:12px">
+    <button class="btn sm p" onclick="apriNuovaAttivitaCommerciale()">
+      + Nuova attività
+    </button>
+  </div>
+</div>
+</div>
+
 
 <div class="card">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px">

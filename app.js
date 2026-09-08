@@ -811,6 +811,176 @@ if (!progettiInLavorazione.length) {
     `;
   }).join('');
 }
+await renderCalendarioCommerciale();
+
+if (erroreCalendario) {
+  miniCalendario.innerHTML = `
+    <div style="grid-column:1/-1;padding:12px;color:var(--r)">
+      Errore calendario: ${esc(erroreCalendario.message)}
+    </div>
+  `;
+} else {
+  calIngDati = attivitaCalendario || [];
+
+  const attivitaPerData = {};
+
+  calIngDati.forEach(function(attivita) {
+    if (!attivitaPerData[attivita.data]) {
+      attivitaPerData[attivita.data] = [];
+    }
+
+    attivitaPerData[attivita.data].push(attivita);
+  });
+
+  let htmlCalendario = '';
+
+  for (let i = 0; i < 35; i++) {
+    const giorno = new Date(inizioCalendario);
+    giorno.setDate(inizioCalendario.getDate() + i);
+
+    const data = dataLocaleIng(giorno);
+    const attivita = attivitaPerData[data] || [];
+    const livello = attivita.length === 0 ? 0 : attivita.length <= 2 ? 1 : attivita.length <= 4 ? 2 : 3;
+    const oggiClasse = data === dataLocaleIng(new Date()) ? ' today' : '';
+
+    htmlCalendario += `
+      <div class="rap-heatmap-day l${livello}${oggiClasse}"
+        title="${giorno.toLocaleDateString('it-IT', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long'
+        })}: ${attivita.length} attività"
+        onclick="apriNuovaAttivitaCommerciale('${data}')">
+
+        <span class="n">${giorno.getDate()}</span>
+      </div>
+    `;
+  }
+
+  miniCalendario.innerHTML = htmlCalendario;
+}
+}
+var comCalAnno = new Date().getFullYear();
+var comCalMese = new Date().getMonth();
+
+function calCommercialePrev() {
+  comCalMese--;
+
+  if (comCalMese < 0) {
+    comCalMese = 11;
+    comCalAnno--;
+  }
+
+  renderCalendarioCommerciale();
+}
+
+function calCommercialeNext() {
+  comCalMese++;
+
+  if (comCalMese > 11) {
+    comCalMese = 0;
+    comCalAnno++;
+  }
+
+  renderCalendarioCommerciale();
+}
+
+async function renderCalendarioCommerciale() {
+  const box = ge('com-mini-calendario');
+  const titolo = ge('com-cal-title');
+
+  if (!box) return;
+
+  const mesi = [
+    'Gennaio', 'Febbraio', 'Marzo', 'Aprile',
+    'Maggio', 'Giugno', 'Luglio', 'Agosto',
+    'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+  ];
+
+  titolo.textContent = mesi[comCalMese] + ' ' + comCalAnno;
+  box.innerHTML = '<div class="load">Caricamento calendario...</div>';
+
+  const inizio = dataLocaleIng(new Date(comCalAnno, comCalMese, 1));
+  const fine = dataLocaleIng(new Date(comCalAnno, comCalMese + 1, 0));
+
+  const { data, error } = await db
+    .from('calendario_personale')
+    .select('id,titolo,data,ora_inizio,ora_fine,tipo,descrizione')
+    .eq('utente_id', ME.id)
+    .gte('data', inizio)
+    .lte('data', fine)
+    .order('data')
+    .order('ora_inizio');
+
+  if (error) {
+    box.innerHTML = `
+      <div style="grid-column:1/-1;padding:12px;color:var(--r)">
+        Errore calendario: ${esc(error.message)}
+      </div>
+    `;
+    return;
+  }
+
+  calIngDati = data || [];
+
+  const perData = {};
+
+  calIngDati.forEach(function(attivita) {
+    if (!perData[attivita.data]) {
+      perData[attivita.data] = [];
+    }
+
+    perData[attivita.data].push(attivita);
+  });
+
+  const giorniSettimana = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+
+  let html = giorniSettimana.map(function(giorno) {
+    return `<div class="cal-head">${giorno}</div>`;
+  }).join('');
+
+  const primoGiorno = new Date(comCalAnno, comCalMese, 1);
+  const spaziIniziali = (primoGiorno.getDay() + 6) % 7;
+  const giorniDelMese = new Date(comCalAnno, comCalMese + 1, 0).getDate();
+  const oggi = dataLocaleIng(new Date());
+
+  for (let i = 0; i < spaziIniziali; i++) {
+    html += '<div class="cal-day other-month"></div>';
+  }
+
+  for (let giorno = 1; giorno <= giorniDelMese; giorno++) {
+    const dataCorrente = dataLocaleIng(new Date(comCalAnno, comCalMese, giorno));
+    const attivitaGiorno = perData[dataCorrente] || [];
+
+    const anteprima = attivitaGiorno.slice(0, 2).map(function(attivita) {
+      const ora = attivita.ora_inizio
+        ? attivita.ora_inizio.slice(0, 5) + ' '
+        : '';
+
+      return `
+        <div class="cal-ev ord"
+          onclick="event.stopPropagation();modificaAttivitaIngegnere('${attivita.id}')">
+          ${ora}${esc(attivita.titolo)}
+        </div>
+      `;
+    }).join('');
+
+    const altre = attivitaGiorno.length > 2
+      ? `<div class="cal-ev ord">+${attivitaGiorno.length - 2} altre</div>`
+      : '';
+
+    html += `
+      <div class="cal-day ${dataCorrente === oggi ? 'today' : ''}"
+        onclick="apriNuovaAttivitaCommerciale('${dataCorrente}')">
+
+        <div class="cal-day-n">${giorno}</div>
+        ${anteprima}
+        ${altre}
+      </div>
+    `;
+  }
+
+  box.innerHTML = html;
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────
@@ -1107,6 +1277,10 @@ async function loadDashIngegnere() {
   }
 
   ge('ing-mini-calendario').innerHTML = celle.join('');
+}
+
+function apriNuovaAttivitaCommerciale(dataSelezionata = null) {
+  apriNuovaAttivitaIngegnere(dataSelezionata);
 }
 
 // ── DASHBOARD TECNICO (iOS-like) ─────────────────────────────
@@ -2801,7 +2975,11 @@ async function eliminaAttivitaIngegnere(id) {
   }
 
   toast('Attività eliminata', 'ok');
+  if (ROLE === 'commerciale') {
+  await loadDashCommerciale();
+} else {
   await loadCalendarioIngegnere();
+}
 }
 
 // ── CALENDARIO TECNICO ───────────────────────────────────────
