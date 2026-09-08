@@ -189,7 +189,19 @@ async function boot(ud){
   ge('tc3').value=today;ge('mo3').value=today;
   ge('tc4').value=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   await Promise.all([loadCS(),loadUS(),loadImp(),loadTeam()]);
-  if(ROLE==='rappresentante'){gotoPage('dashboard-rapp');}else{loadDash();}
+if (ROLE === 'rappresentante') {
+  const dashboardGenerale = ge('pg-dashboard');
+
+  // Il rappresentante usa solo la propria dashboard dedicata.
+  if (dashboardGenerale) {
+    dashboardGenerale.classList.remove('on');
+    dashboardGenerale.style.display = 'none';
+  }
+
+  gotoPage('dashboard-rapp');
+} else {
+  loadDash();
+}
 }
 
 // Check portale cliente (URL ?portale=cliId — accesso pubblico senza login)
