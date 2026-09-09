@@ -4276,10 +4276,29 @@ async function editCliById(id){
 }
 
 // ── CLIENTI ───────────────────────────────────────────────────
-async function loadCli(){
-  const {data,error}=await db.from('clienti').select('*').is('eliminato_il',null).order('ragione_sociale');
-  if(error){ge('ctbody').innerHTML=`<tr><td colspan="5"><div class="al2 e">Errore: ${error.message}</div></td></tr>`;return;}
-  CLIS=data||[];ge('cli-count').textContent=`(${CLIS.length} totali)`;renderC(CLIS);
+async function loadCli() {
+  let query = db
+    .from('clienti')
+    .select('*')
+    .is('eliminato_il', null)
+    .order('ragione_sociale');
+
+  // Ogni rappresentante vede solo i clienti assegnati a lui.
+  if (ROLE === 'rappresentante') {
+    query = query.eq('rappresentante_id', ME.id);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    ge('ctbody').innerHTML =
+      `<tr><td colspan="5"><div class="al2 e">Errore: ${error.message}</div></td></tr>`;
+    return;
+  }
+
+  CLIS = data || [];
+  ge('cli-count').textContent = `(${CLIS.length} totali)`;
+  renderC(CLIS);
 }
 function renderC(data){
   const tb=ge('ctbody');
@@ -4482,7 +4501,17 @@ async function loadDocs(){
 
 // ── SELECTS ───────────────────────────────────────────────────
 async function loadCS(){
-  const {data,error}=await db.from('clienti').select('id,ragione_sociale').is('eliminato_il',null).order('ragione_sociale');
+let query = db
+  .from('clienti')
+  .select('id,ragione_sociale')
+  .is('eliminato_il', null)
+  .order('ragione_sociale');
+
+if (ROLE === 'rappresentante') {
+  query = query.eq('rappresentante_id', ME.id);
+}
+
+const { data, error } = await query;
   if(error){console.warn('loadCS:',error.message);return;}
   CLIS=data||[];
   ['tc1','mo1','mpcl'].forEach(id=>{const el=ge(id);if(!el)return;const cur=el.value;el.innerHTML='<option value="">Seleziona cliente...</option>'+(data||[]).map(c=>`<option value="${c.id}">${esc(c.ragione_sociale)}</option>`).join('');if(cur)el.value=cur;});
