@@ -189,19 +189,7 @@ async function boot(ud){
   ge('tc3').value=today;ge('mo3').value=today;
   ge('tc4').value=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   await Promise.all([loadCS(),loadUS(),loadImp(),loadTeam()]);
-if (ROLE === 'rappresentante') {
-  const dashboardGenerale = ge('pg-dashboard');
-
-  // Il rappresentante usa solo la propria dashboard dedicata.
-  if (dashboardGenerale) {
-    dashboardGenerale.classList.remove('on');
-    dashboardGenerale.style.display = 'none';
-  }
-
-  gotoPage('dashboard-rapp');
-} else {
-  loadDash();
-}
+  if(ROLE==='rappresentante'){gotoPage('dashboard-rapp');}else{loadDash();}
 }
 
 // Check portale cliente (URL ?portale=cliId — accesso pubblico senza login)
@@ -7569,17 +7557,36 @@ async function salvaProgetto() {
 
   let progettoId = id;
 
-  if (id) {
-    const { error } = await db
-      .from('progetti_tecnici')
-      .update(payload)
-      .eq('id', id);
+ if (id) {
+  // Legge lo stato attuale: se il commerciale lo ha rimandato
+  // al rappresentante, dopo le modifiche torna una bozza.
+  const { data: progettoAttuale, error: erroreLettura } = await db
+    .from('progetti_tecnici')
+    .select('stato')
+    .eq('id', id)
+    .single();
 
-    if (error) {
-      toast('Errore: ' + error.message, 'err');
-      return;
-    }
-  } else {
+  if (erroreLettura || !progettoAttuale) {
+    toast('Impossibile leggere il progetto: ' + (erroreLettura?.message || ''), 'err');
+    return;
+  }
+
+  if (progettoAttuale.stato === 'da_integrare') {
+    payload.stato = 'bozza';
+  }
+
+  const { data: progettoSalvato, error } = await db
+    .from('progetti_tecnici')
+    .update(payload)
+    .eq('id', id)
+    .select('id')
+    .single();
+
+  if (error || !progettoSalvato) {
+    toast('Errore salvataggio: ' + (error?.message || 'progetto non aggiornato'), 'err');
+    return;
+  }
+} else {
     payload.cliente_id = currentCliId;
     payload.rappresentante_id = ME.id;
     payload.stato = 'bozza';
@@ -7655,9 +7662,13 @@ async function salvaProgetto() {
   }
 
   closeM('m-progetto');
-  toast('Progetto tecnico salvato con allegato', 'ok');
+  toast(
+  id ? 'Modifiche salvate: il progetto è di nuovo in bozza' : 'Progetto tecnico salvato',
+  'ok'
+);
 
-  loadProgettiCliente(currentCliId);
+await loadProgettiCliente(currentCliId);
+await loadPaginaProgetti();
 }
 
 async function eliminaProgetto(progettoId) {
