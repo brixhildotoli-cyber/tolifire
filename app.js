@@ -5433,6 +5433,202 @@ function nascondiCampoTecnico() {
 // ── RAPPRESENTANTE ───────────────────────────────────────────
 var _allProspect = [];
 
+var rapCalAnno = new Date().getFullYear();
+var rapCalMese = new Date().getMonth();
+
+function rapCalendarioPrev() {
+  rapCalMese--;
+
+  if (rapCalMese < 0) {
+    rapCalMese = 11;
+    rapCalAnno--;
+  }
+
+  loadCalendarioDisponibilitaRappresentante();
+}
+
+function rapCalendarioNext() {
+  rapCalMese++;
+
+  if (rapCalMese > 11) {
+    rapCalMese = 0;
+    rapCalAnno++;
+  }
+
+  loadCalendarioDisponibilitaRappresentante();
+}
+
+function rapDataIso(anno, mese, giorno) {
+  return anno + '-' +
+    String(mese + 1).padStart(2, '0') + '-' +
+    String(giorno).padStart(2, '0');
+}
+
+async function loadCalendarioDisponibilitaRappresentante() {
+  const calendario = ge('rap-calendario-team');
+  const titolo = ge('rap-cal-mese');
+  const lista = ge('rap-impegni-team-lista');
+
+  if (!calendario || !titolo || !lista) return;
+
+  calendario.innerHTML = '<div class="load">Caricamento calendario...</div>';
+  lista.innerHTML = '<div class="load">Caricamento impegni...</div>';
+
+  const primoGiorno = rapDataIso(rapCalAnno, rapCalMese, 1);
+  const ultimoGiorno = rapDataIso(
+    rapCalAnno,
+    rapCalMese,
+    new Date(rapCalAnno, rapCalMese + 1, 0).getDate()
+  );
+
+  const nomeMese = new Date(rapCalAnno, rapCalMese, 1)
+    .toLocaleDateString('it-IT', {
+      month: 'long',
+      year: 'numeric'
+    });
+
+  titolo.textContent = nomeMese.charAt(0).toUpperCase() + nomeMese.slice(1);
+
+  const { data, error } = await db
+    .from('ordini_lavoro')
+    .select(`
+      id,
+      data_pianificata,
+      fascia_oraria,
+      stato,
+      tecnico_id,
+      utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)
+    `)
+    .is('eliminato_il', null)
+    .not('tecnico_id', 'is', null)
+    .gte('data_pianificata', primoGiorno)
+    .lte('data_pianificata', ultimoGiorno)
+    .neq('stato', 'annullato')
+    .order('data_pianificata')
+    .order('fascia_oraria');
+
+  if (error) {
+    calendario.innerHTML =
+      '<div class="al2 e">Errore calendario: ' + esc(error.message) + '</div>';
+
+    lista.innerHTML =
+      '<div class="al2 e">Impossibile caricare gli impegni.</div>';
+
+    return;
+  }
+
+  const impegni = data || [];
+  const perData = {};
+
+  impegni.forEach(function(impegno) {
+    if (!perData[impegno.data_pianificata]) {
+      perData[impegno.data_pianificata] = [];
+    }
+
+    perData[impegno.data_pianificata].push(impegno);
+  });
+
+  const primo = new Date(rapCalAnno, rapCalMese, 1);
+  const ultimoNumero = new Date(rapCalAnno, rapCalMese + 1, 0).getDate();
+
+  // Converte domenica da 0 a 6, così la settimana parte da lunedì.
+  const giornoInizio = (primo.getDay() + 6) % 7;
+
+  let html = '';
+
+  for (let vuoto = 0; vuoto < giornoInizio; vuoto++) {
+    html += '<div class="rap-month-day empty"></div>';
+  }
+
+  const oggi = new Date();
+  oggi.setHours(0, 0, 0, 0);
+
+  for (let giorno = 1; giorno <= ultimoNumero; giorno++) {
+    const dataIso = rapDataIso(rapCalAnno, rapCalMese, giorno);
+    const impegniDelGiorno = perData[dataIso] || [];
+
+    const dataCorrente = new Date(rapCalAnno, rapCalMese, giorno);
+    const isOggi = dataCorrente.getTime() === oggi.getTime();
+
+    const tecnici = [...new Set(
+      impegniDelGiorno.map(function(impegno) {
+        const utente = impegno.utenti;
+        return utente
+          ? ((utente.nome || '') + ' ' + (utente.cognome || '')).trim()
+          : 'Tecnico assegnato';
+      })
+    )];
+
+    const nomiTecnici = tecnici.slice(0, 2).map(function(nome) {
+      return '<div class="rap-cal-tech">👷 ' + esc(nome) + '</div>';
+    }).join('');
+
+    const altriTecnici = tecnici.length > 2
+      ? '<div class="rap-cal-more">+' + (tecnici.length - 2) + ' tecnici</div>'
+      : '';
+
+    html += `
+      <div class="rap-month-day ${impegniDelGiorno.length ? 'busy' : ''} ${isOggi ? 'today' : ''}">
+        <div class="rap-cal-day-number">${giorno}</div>
+
+        ${impegniDelGiorno.length ? `
+          <div class="rap-cal-count">
+            ${impegniDelGiorno.length} intervent${impegniDelGiorno.length === 1 ? 'o' : 'i'}
+          </div>
+          ${nomiTecnici}
+          ${altriTecnici}
+        ` : `
+          <div class="rap-cal-free">Libero</div>
+        `}
+      </div>
+    `;
+  }
+
+  calendario.innerHTML = html;
+
+  if (!impegni.length) {
+    lista.innerHTML =
+      '<div class="empty">✅ Nessun tecnico impegnato in ' +
+      esc(nomeMese) +
+      '.</div>';
+
+    return;
+  }
+
+  lista.innerHTML = Object.keys(perData).map(function(dataIso) {
+    const dataFormattata = new Date(dataIso + 'T12:00:00')
+      .toLocaleDateString('it-IT', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long'
+      });
+
+    return `
+      <div class="rap-team-day">
+        <div class="rap-team-date">
+          ${esc(dataFormattata)}
+          <span>${perData[dataIso].length} intervent${perData[dataIso].length === 1 ? 'o' : 'i'}</span>
+        </div>
+
+        ${perData[dataIso].map(function(impegno) {
+          const utente = impegno.utenti;
+          const tecnico = utente
+            ? ((utente.nome || '') + ' ' + (utente.cognome || '')).trim()
+            : 'Tecnico assegnato';
+
+          return `
+            <div class="rap-team-row">
+              <span>👷 ${esc(tecnico)}</span>
+              <span class="bx bblue">${esc(impegno.fascia_oraria || 'Orario da definire')}</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }).join('');
+}
+
+
 async function loadImpegniTeamAnonimi() {
   const box = ge('rap-impegni-team-lista');
 
@@ -5648,38 +5844,7 @@ var cliIdsArr = erroreClientiRappresentante
     }
   }
 
-  // Heatmap calendario: prossime 5 settimane (35 giorni) dal lunedì corrente
-  var startMon = new Date(oggi);
-  var dow = startMon.getDay();
-  startMon.setDate(startMon.getDate() + ((dow === 0) ? -6 : 1 - dow));
-  var endHM = new Date(startMon); endHM.setDate(endHM.getDate() + 35);
-  var rOdl = await db.from('ordini_lavoro')
-    .select('data_pianificata,stato')
-    .is('eliminato_il', null)
-    .gte('data_pianificata', startMon.toISOString().split('T')[0])
-    .lt('data_pianificata', endHM.toISOString().split('T')[0])
-    .neq('stato','annullato');
-  var perDay = {};
-  (rOdl.data || []).forEach(function(o){
-    if(!o.data_pianificata) return;
-    perDay[o.data_pianificata] = (perDay[o.data_pianificata] || 0) + 1;
-  });
-  var elH = ge('rap-heatmap-grid');
-  if(elH){
-    var cells = [];
-    for(var i=0; i<35; i++){
-      var d = new Date(startMon); d.setDate(d.getDate()+i);
-      var ds = d.toISOString().split('T')[0];
-      var n = perDay[ds] || 0;
-      var lvl = n === 0 ? 0 : n <= 2 ? 1 : n <= 5 ? 2 : 3;
-      var past = d < oggi ? ' past' : '';
-      var today = (d.getTime() === oggi.getTime()) ? ' today' : '';
-      var tip = d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'}) + ': ' + n + ' interventi';
-      cells.push('<div class="rap-heatmap-day l'+lvl+past+today+'" title="'+esc(tip)+'"><span class="n">'+d.getDate()+'</span></div>');
-    }
-    elH.innerHTML = cells.join('');
-  }
-  await loadImpegniTeamAnonimi();
+  await loadCalendarioDisponibilitaRappresentante();
   // Presidi in scadenza dei tuoi clienti (lista, 30gg)
   var elS = ge('rap-scadenze-lista');
   if(elS){

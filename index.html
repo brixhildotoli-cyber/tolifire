@@ -904,19 +904,46 @@
     <div id="rap-miei-odl-lista"><div class="rap-list-card"><div class="tit-empty">⏳ Caricamento...</div></div></div>
 
     <!-- Heatmap calendario -->
-    <div class="rap-section">📅 Disponibilità prossime 5 settimane</div>
-    <div class="rap-heatmap">
-      <div class="rap-heatmap-head"><span>Lun</span><span>Mar</span><span>Mer</span><span>Gio</span><span>Ven</span><span>Sab</span><span>Dom</span></div>
-      <div class="rap-heatmap-grid" id="rap-heatmap-grid"></div>
-      <div class="rap-heatmap-legend">
-        <span>Meno carico</span>
-        <span class="sw l0"></span>
-        <span class="sw l1"></span>
-        <span class="sw l2"></span>
-        <span class="sw l3"></span>
-        <span>Più carico</span>
-      </div>
-    </div>  
+ <div class="rap-section">📅 Disponibilità team tecnico</div>
+
+<div class="rap-cal-card">
+  <div class="rap-cal-nav">
+    <button class="btn sm" onclick="rapCalendarioPrev()">← Prec.</button>
+
+    <div>
+      <div id="rap-cal-mese" class="rap-cal-title">—</div>
+      <div class="rap-cal-sub">Tecnici già impegnati nel mese</div>
+    </div>
+
+    <button class="btn sm" onclick="rapCalendarioNext()">Succ. →</button>
+  </div>
+
+  <div class="rap-cal-head">
+    <span>Lun</span><span>Mar</span><span>Mer</span><span>Gio</span>
+    <span>Ven</span><span>Sab</span><span>Dom</span>
+  </div>
+
+  <div class="rap-month-grid" id="rap-calendario-team">
+    <div class="load">Caricamento calendario...</div>
+  </div>
+
+  <div class="rap-cal-legend">
+    <span><i class="rap-dot busy"></i> Tecnico impegnato</span>
+    <span><i class="rap-dot free"></i> Nessun impegno tecnico</span>
+  </div>
+</div>
+
+<div class="rap-section">👷 Tecnici impegnati nel mese</div>
+
+<div class="card">
+  <div style="font-size:12px;color:var(--m);margin-bottom:12px">
+    Qui trovi il dettaglio degli interventi già assegnati: data, tecnico e fascia oraria.
+  </div>
+
+  <div id="rap-impegni-team-lista">
+    <div class="load">Caricamento...</div>
+  </div>
+</div> 
 <!--calendario comune-->
 <div class="rap-section">👷 Impegni del team tecnico</div>
 

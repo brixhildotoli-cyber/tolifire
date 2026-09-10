@@ -965,3 +965,172 @@ pre {
     padding-right: 16px;
   }
 }
+
+.rap-cal-card{
+  background:var(--w);
+  border-radius:14px;
+  padding:14px;
+  margin:0 4px;
+  border:0.5px solid var(--bo);
+  box-shadow:0 1px 3px rgba(0,0,0,.04);
+}
+
+.rap-cal-nav{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  text-align:center;
+  margin-bottom:14px;
+}
+
+.rap-cal-title{
+  font-size:16px;
+  font-weight:700;
+  text-transform:capitalize;
+}
+
+.rap-cal-sub{
+  font-size:11px;
+  color:var(--m);
+  margin-top:2px;
+}
+
+.rap-cal-head,
+.rap-month-grid{
+  display:grid;
+  grid-template-columns:repeat(7, minmax(0, 1fr));
+  gap:5px;
+}
+
+.rap-cal-head{
+  margin-bottom:5px;
+}
+
+.rap-cal-head span{
+  text-align:center;
+  font-size:10px;
+  font-weight:700;
+  color:var(--m);
+  text-transform:uppercase;
+}
+
+.rap-month-day{
+  min-height:92px;
+  padding:7px;
+  border-radius:9px;
+  background:var(--bg);
+  border:1px solid transparent;
+  overflow:hidden;
+}
+
+.rap-month-day.empty{
+  background:transparent;
+}
+
+.rap-month-day.busy{
+  background:var(--gl);
+  border-color:#9bd8c5;
+}
+
+.rap-month-day.today{
+  border:2px solid var(--g);
+  padding:6px;
+}
+
+.rap-cal-day-number{
+  font-size:12px;
+  font-weight:700;
+  color:var(--t);
+  margin-bottom:5px;
+}
+
+.rap-cal-count{
+  color:var(--g);
+  font-size:10px;
+  font-weight:700;
+  margin-bottom:4px;
+}
+
+.rap-cal-tech{
+  font-size:10px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:var(--t);
+  line-height:1.35;
+}
+
+.rap-cal-more,
+.rap-cal-free{
+  font-size:10px;
+  color:var(--m);
+  margin-top:3px;
+}
+
+.rap-cal-legend{
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-top:12px;
+  font-size:11px;
+  color:var(--m);
+}
+
+.rap-dot{
+  display:inline-block;
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  margin-right:4px;
+}
+
+.rap-dot.busy{background:var(--g)}
+.rap-dot.free{background:var(--bg);border:1px solid var(--bo)}
+
+.rap-team-day{
+  padding:10px 0;
+  border-bottom:0.5px solid var(--bo);
+}
+
+.rap-team-date{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  text-transform:capitalize;
+  font-size:12px;
+  font-weight:700;
+  margin-bottom:5px;
+}
+
+.rap-team-date span{
+  font-size:11px;
+  color:var(--m);
+  font-weight:500;
+}
+
+.rap-team-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  padding:7px 0;
+  font-size:13px;
+}
+
+@media(max-width:520px){
+  .rap-month-day{
+    min-height:68px;
+    padding:5px;
+  }
+
+  .rap-cal-tech{
+    font-size:9px;
+  }
+
+  .rap-cal-count,
+  .rap-cal-free,
+  .rap-cal-more{
+    font-size:9px;
+  }
+}
