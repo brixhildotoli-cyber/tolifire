@@ -28,7 +28,7 @@ const NAV={
   contabile:[{id:'dashboard',l:'📊 Dashboard'},{id:'workflow',l:'📅 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
   tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
   commerciale:[{id:'dashboard',l:'📊 Dashboard'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'fornitori',l:'🏭 Fornitori'},{id:'preventivazione',l:'📋 Preventivazione'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}, {id: 'info', l: 'ℹ️ Info'}],
-  rappresentante:[{id:'dashboard-rapp',l:'📊 Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead e trattative'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'progetti', l:'📐 Progetti'},{id:'sopralluogo',l:'📋 Sopralluogo'}, {id:'catalogo',l:'📦 Catalogo'}, {id:'info',l:'ⓘ Info'}],
+  rappresentante:[{id:'dashboard-rapp',l:'📊 Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead e trattative'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'progetti', l:'📐 Progetti'}, {id:'catalogo',l:'📦 Catalogo'}, {id:'info',l:'ⓘ Info'}],
   ingegnere: [{id: 'dashboard', l: '📊 Dashboard'},{id: 'calendario-ingegnere', l: '📅 Calendario'},{id: 'verifiche-tecniche', l: '🔧 Verifiche'},{id: 'documenti', l: '📄 Documenti'},{id: 'info', l: 'ℹ️ Info'}],
 };
 
@@ -627,7 +627,7 @@ const PAGINE_RUOLO = {
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
   commerciale:    ['dashboard','progetti-da-preventivare', 'fornitori', 'fornitore-detail', 'preventivazione', 'clienti','documenti','fatture','catalogo','cliente-detail', 'info'],
-  rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','sopralluogo','trattative','cliente-detail','progetto-detail','catalogo', 'info'],
+  rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','trattative','cliente-detail','progetto-detail','catalogo', 'info'],
   ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti', 'progetto-detail','cliente-detail','info'],
 };
 
@@ -4313,7 +4313,10 @@ function renderC(data){
     <td>
       <button class="btn sm p" onclick="openClienteDetail('${c.id}')">📋 Scheda</button>
       ${(ROLE==='titolare'||ROLE==='segreteria')?`<button class="btn sm" onclick="openEditCli('${c.id}')">✏️</button>`:''}
-      ${ROLE==='titolare'?`<button class="btn sm" style="color:var(--r)" onclick="eliminaCliente('${c.id}')">🗑️</button>`:''}
+      ${['titolare', 'rappresentante'].includes(ROLE)
+  ? `<button class="btn sm" style="color:var(--r)" onclick="eliminaCliente('${c.id}')">🗑️ Elimina</button>`
+  : ''
+}
       <button class="btn sm" onclick="editCliById('${c.id}')">Modifica</button>
     </td>
   </tr>`).join('');
@@ -4453,6 +4456,10 @@ async function saveCli(){
     codice_sdi:v('mf6')||null,pec:v('mf7')||null,modalita_pagamento:v('mf8')||null,
     giorni_pagamento:parseInt(v('mf9'))||30,iban:v('mf10')||null,note_fatturazione:v('mf11')||null,
   };
+  // Il cliente creato dal rappresentante viene assegnato a lui.
+if (!eid && ROLE === 'rappresentante') {
+  payload.rappresentante_id = ME.id;
+}
   let cliId=eid;
   let error;
   if(eid){({error}=await db.from('clienti').update(payload).eq('id',eid));}
@@ -6792,7 +6799,10 @@ async function openEditOdl(id) {
 }
 
 async function eliminaCliente(id) {
-  if(ROLE !== 'titolare') { toast('Solo il titolare può eliminare i clienti', 'err'); return; }
+  if (!['titolare', 'rappresentante'].includes(ROLE)) {
+  toast('Non hai i permessi per eliminare clienti', 'err');
+  return;
+}
   if(!confirm('Eliminare questo cliente? (Soft-delete: il record resta nel DB e può essere ripristinato)')) return;
   var r = await softDel('clienti').eq('id', id);
   if(r.error) { toast('Errore: ' + r.error.message, 'err'); return; }
