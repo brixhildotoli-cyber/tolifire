@@ -626,7 +626,7 @@ const PAGINE_RUOLO = {
   segreteria:     ['dashboard','calendario','workflow','presidi','interventi','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail'],
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
-  commerciale:    ['dashboard','progetti-da-preventivare', 'preventivi', 'fornitori', 'fornitore-detail','clienti','documenti','progetto-detail','fatture','catalogo','cliente-detail', 'info'],
+  commerciale:    ['dashboard','progetti-da-preventivare', 'preventivi', 'fornitori', 'fornitore-detail','preventivo-detail','clienti','documenti','progetto-detail','fatture','catalogo','cliente-detail', 'info'],
   rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','trattative','cliente-detail','progetto-detail','catalogo', 'info'],
   ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti', 'progetto-detail','cliente-detail','info'],
 };
@@ -8263,11 +8263,8 @@ async function inviaIntegrazioneCommerciale() {
 }
 
 async function avviaPreventivo(progettoId) {
-  if (!confirm(
-    'Avviare il preventivo? Il progetto uscirà da “Da preventivare” e passerà nei Preventivi in lavorazione.'
-  )) {
-    return;
-  }
+   if (!confirm('Aprire la creazione del preventivo?')) return;
+  await apriNuovoPreventivo(progettoId);
 
   const { data, error } = await db
     .from('progetti_tecnici')
@@ -8384,14 +8381,13 @@ async function loadPreventivi() {
           <div style="font-size:12px;color:var(--m);margin-top:3px">
             ${esc(cliente)} · ${esc(p.tipologia || 'Tipologia non indicata')}
           </div>
-
-          <button
-            class="btn sm p"
-            style="margin-top:12px"
-            onclick="apriNuovoPreventivo('${p.id}')"
-          >
-            🧾 Crea preventivo
-          </button>
+<button
+  class="btn sm p"
+  style="margin-top:12px"
+  onclick="apriNuovoPreventivo('${p.id}')"
+>
+  🧾 Crea preventivo
+</button>
         </div>
       `;
     }).join('');
@@ -8445,6 +8441,13 @@ async function loadPreventivi() {
             )}
           </div>
         ` : ''}
+        <button
+  class="btn sm p"
+  style="margin-top:12px"
+  onclick="openPreventivoDetail('${p.id}')"
+>
+  Apri preventivo
+</button>
       </div>
     `;
   }).join('');
@@ -8832,11 +8835,7 @@ async function caricaFornitoriSelezionabili() {
       );
     });
 
-    const numeroStessaTipologia = selezioniFornitoriDati.filter(function(s) {
-      return s.tipologia.toLowerCase() === t.tipologia.toLowerCase();
-    }).length;
-
-    const limiteRaggiunto = numeroStessaTipologia >= 2;
+  const limiteRaggiunto = selezioniFornitoriDati.length >= 2;
 
     return `
       <div class="card" style="margin-bottom:8px;padding:12px">
@@ -9875,6 +9874,946 @@ function togglePasswordLogin() {
   const nascosta = input.type === 'password';
   input.type = nascosta ? 'text' : 'password';
   button.textContent = nascosta ? 'Nascondi' : 'Mostra';
+}
+
+let currentPreventivoId = null;
+let currentPreventivoProgettoId = null;
+
+
+
+async function openPreventivoDetail(preventivoId) {
+  const { data: preventivo, error } = await db
+    .from('preventivi')
+    .select(`
+      *,
+      clienti(ragione_sociale),
+      progetti_tecnici(
+        id,
+        titolo,
+        tipologia,
+        descrizione_tecnica,
+        materiali_note,
+        stato
+      )
+    `)
+    .eq('id', preventivoId)
+    .single();
+
+  if (error || !preventivo) {
+    toast(
+      'Errore apertura preventivo: ' +
+      (error?.message || 'preventivo non trovato'),
+      'err'
+    );
+    return;
+  }
+
+  currentPreventivoId = preventivo.id;
+  currentPreventivoProgettoId = preventivo.progetto_tecnico_id;
+
+  const progetto = preventivo.progetti_tecnici;
+  const cliente = preventivo.clienti?.ragione_sociale || 'Cliente non disponibile';
+
+  ge('pvd-titolo').textContent = 'Preventivo n. ' + preventivo.numero;
+  ge('pvd-sottotitolo').textContent =
+    cliente + ' · ' + (preventivo.tipo || 'Preventivo');
+
+  ge('pvd-stato').textContent = {
+    bozza: 'Bozza',
+    inviato: 'Inviato',
+    accettato: 'Accettato',
+    rifiutato: 'Rifiutato',
+    scaduto: 'Scaduto'
+  }[preventivo.stato] || preventivo.stato || 'Bozza';
+
+  ge('pvd-riepilogo-content').innerHTML = `
+    <div class="g2">
+      ${ir('Cliente', cliente)}
+      ${ir('Tipologia', preventivo.tipo || '—')}
+      ${ir('Validità', preventivo.data_scadenza
+        ? new Date(preventivo.data_scadenza + 'T00:00:00').toLocaleDateString('it-IT')
+        : '—'
+      )}
+      ${ir('IVA', (preventivo.iva_perc ?? 22) + '%')}
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div style="font-size:14px;font-weight:700">
+        📐 Progetto tecnico collegato
+      </div>
+
+      <div style="font-size:13px;margin-top:8px">
+        ${esc(progetto?.titolo || 'Progetto non disponibile')}
+      </div>
+
+      <div style="font-size:12px;color:var(--m);margin-top:4px">
+        ${esc(progetto?.tipologia || 'Tipologia non indicata')}
+      </div>
+    </div>
+
+    ${preventivo.note ? `
+      <div style="font-size:13px;font-weight:600;margin:18px 0 8px">
+        Note commerciali
+      </div>
+      <div class="card" style="white-space:pre-wrap">
+        ${esc(preventivo.note)}
+      </div>
+    ` : ''}
+  `;
+
+  ge('pvd-progetto-content').innerHTML = `
+    <div class="g2" style="margin-bottom:16px">
+      ${ir('Titolo', progetto?.titolo)}
+      ${ir('Tipologia', progetto?.tipologia)}
+      ${ir('Stato progetto', progetto?.stato)}
+      ${ir('Cliente', cliente)}
+    </div>
+
+    <div style="font-size:13px;font-weight:600;margin-bottom:8px">
+      Descrizione / studio tecnico
+    </div>
+
+    <div class="card" style="white-space:pre-wrap">
+      ${esc(progetto?.descrizione_tecnica || 'Nessuna descrizione disponibile.')}
+    </div>
+
+    ${progetto?.materiali_note ? `
+      <div style="font-size:13px;font-weight:600;margin:18px 0 8px">
+        Materiali o note ricevute
+      </div>
+
+      <div class="card" style="white-space:pre-wrap">
+        ${esc(progetto.materiali_note)}
+      </div>
+    ` : ''}
+  `;
+
+  await renderSchedePreventivo();
+  await renderFornitoriPreventivo();
+  gotoPage('preventivo-detail');
+  
+}
+
+function campoPreventivo(label, id, valore = '', tipo = 'text', placeholder = '') {
+  return `
+    <div class="f">
+      <label>${label}</label>
+      <input
+        type="${tipo}"
+        id="${id}"
+        value="${esc(String(valore || ''))}"
+        placeholder="${esc(placeholder)}"
+      >
+    </div>
+  `;
+}
+
+function areaPreventivo(label, id, valore = '', placeholder = '') {
+  return `
+    <div class="f">
+      <label>${label}</label>
+      <textarea
+        id="${id}"
+        rows="3"
+        placeholder="${esc(placeholder)}"
+      >${esc(String(valore || ''))}</textarea>
+    </div>
+  `;
+}
+
+function selectPreventivo(label, id, valore, opzioni) {
+  return `
+    <div class="f">
+      <label>${label}</label>
+      <select id="${id}">
+        ${opzioni.map(function(opzione) {
+          return `
+            <option
+              value="${esc(opzione.value)}"
+              ${valore === opzione.value ? 'selected' : ''}
+            >
+              ${esc(opzione.label)}
+            </option>
+          `;
+        }).join('')}
+      </select>
+    </div>
+  `;
+}
+
+async function renderSchedePreventivo() {
+  const box = ge('pvd-schede-content');
+
+  if (!box || !currentPreventivoId) return;
+
+  const { data, error } = await db
+    .from('preventivi_schede_tecniche')
+    .select('id, famiglia, dati, aggiornato_il')
+    .eq('preventivo_id', currentPreventivoId)
+    .eq('famiglia', 'rilevazione_incendi')
+    .maybeSingle();
+
+  if (error) {
+    box.innerHTML =
+      '<div class="al2 e">Errore caricamento schede: ' +
+      esc(error.message) +
+      '</div>';
+    return;
+  }
+
+  const salvata = data?.dati;
+
+  box.innerHTML = `
+    <div class="card">
+      <div style="font-size:15px;font-weight:700">
+        🚨 Impianti di rilevazione incendi
+      </div>
+
+      <div style="font-size:12px;color:var(--m);margin-top:5px">
+        Centrale, rivelatori, ambiente, cablaggio, posa, collaudo e manutenzione.
+      </div>
+
+      ${salvata ? `
+        <div class="al2 s" style="margin-top:12px">
+          Scheda compilata${data.aggiornato_il
+            ? ' · aggiornata il ' +
+              new Date(data.aggiornato_il).toLocaleDateString('it-IT')
+            : ''
+          }
+        </div>
+      ` : `
+        <div class="al2 i" style="margin-top:12px">
+          Non ancora compilata.
+        </div>
+      `}
+
+      <button
+        class="btn sm p"
+        style="margin-top:14px"
+        onclick="apriSchedaRilevazioneIncendi()"
+      >
+        ${salvata ? 'Modifica scheda' : 'Compila scheda'}
+      </button>
+    </div>
+
+    <div class="empty" style="margin-top:12px">
+      Le prossime famiglie di impianto compariranno qui.
+    </div>
+  `;
+}
+
+async function apriSchedaRilevazioneIncendi() {
+  const box = ge('pvd-schede-content');
+
+  const { data, error } = await db
+    .from('preventivi_schede_tecniche')
+    .select('dati')
+    .eq('preventivo_id', currentPreventivoId)
+    .eq('famiglia', 'rilevazione_incendi')
+    .maybeSingle();
+
+  if (error) {
+    toast('Errore apertura scheda: ' + error.message, 'err');
+    return;
+  }
+
+  const d = data?.dati || {};
+
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-size:16px;font-weight:700">
+          🚨 Rilevazione incendi
+        </div>
+        <div style="font-size:12px;color:var(--m);margin-top:3px">
+          Compila solo ciò che serve per questo impianto.
+        </div>
+      </div>
+
+      <button class="btn sm" onclick="renderSchedePreventivo()">
+        ← Schede
+      </button>
+    </div>
+
+    <div class="rap-section">1. Tipo di intervento</div>
+    <div class="card">
+      <div class="fr">
+        ${selectPreventivo('Tipo di intervento *', 'ri-tipo-intervento', d.tipo_intervento || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'nuovo_impianto', label: 'Nuovo impianto' },
+          { value: 'ampliamento', label: 'Ampliamento' },
+          { value: 'adeguamento', label: 'Adeguamento' },
+          { value: 'sostituzione_centrale', label: 'Sostituzione centrale' },
+          { value: 'manutenzione', label: 'Manutenzione' }
+        ])}
+
+        ${selectPreventivo('Progetto esistente fornito dal cliente?', 'ri-progetto-esistente', d.progetto_esistente || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'si', label: 'Sì' },
+          { value: 'no', label: 'No — includere progettazione UNI 9795' }
+        ])}
+      </div>
+
+      <div class="fr">
+        ${selectPreventivo('Livello di sorveglianza', 'ri-sorveglianza', d.sorveglianza || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'totale', label: 'Totale' },
+          { value: 'parziale', label: 'Parziale' },
+          { value: 'locale', label: 'Locale' }
+        ])}
+
+        ${campoPreventivo('Marca richiesta / impianto esistente', 'ri-marca', d.marca, 'text', 'Es. Notifier, Inim, Bosch...')}
+      </div>
+    </div>
+
+    <div class="rap-section">2. Centrale e architettura</div>
+    <div class="card">
+      <div class="fr">
+        ${selectPreventivo('Tipo di centrale', 'ri-centrale-tipo', d.centrale_tipo || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'convenzionale', label: 'Convenzionale' },
+          { value: 'analogica_indirizzata', label: 'Analogica indirizzata' },
+          { value: 'wireless', label: 'Wireless' },
+          { value: 'ibrida', label: 'Ibrida' }
+        ])}
+
+        ${campoPreventivo('Numero loop', 'ri-loop', d.loop, 'number')}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo('Indirizzi per loop', 'ri-indirizzi-loop', d.indirizzi_loop, 'number')}
+        ${campoPreventivo('Margine espansione (%)', 'ri-margine-espansione', d.margine_espansione, 'number', 'Es. 25')}
+      </div>
+
+      ${areaPreventivo(
+        'Ripetitori, batterie, alimentatori, combinatore GSM, quadro sinottico o collegamenti esterni',
+        'ri-accessori-centrale',
+        d.accessori_centrale,
+        'Indica quantità, autonomia 24h/72h, collegamento vigilanza/VVF...'
+      )}
+
+      ${areaPreventivo(
+        'Comandi a terzi / moduli I-O',
+        'ri-comandi-terzi',
+        d.comandi_terzi,
+        'Serrande, elettromagneti, EVAC, ascensori, gruppi elettrogeni, sgancio...'
+      )}
+
+      ${areaPreventivo(
+        'Interfacce con impianti esistenti',
+        'ri-interfacce',
+        d.interfacce,
+        'BMS, spegnimento, diffusione sonora, centrale esistente...'
+      )}
+    </div>
+
+    <div class="rap-section">3. Campo — dispositivi e quantità</div>
+    <div class="card">
+      <div class="fr">
+        ${campoPreventivo('Rivelatori ottici di fumo', 'ri-rivelatori-ottici', d.rivelatori_ottici, 'number')}
+        ${campoPreventivo('Rivelatori termici / termovelocimetrici', 'ri-rivelatori-termici', d.rivelatori_termici, 'number')}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo('Multicriterio / gas / fiamma UV-IR', 'ri-rivelatori-speciali', d.rivelatori_speciali, 'number')}
+        ${campoPreventivo('Barriere lineari ottiche', 'ri-barriere', d.barriere, 'number')}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo('Portata barriere (metri)', 'ri-barriere-portata', d.barriere_portata, 'number')}
+        ${campoPreventivo('Unità ASD / VESDA', 'ri-vesda-unita', d.vesda_unita, 'number')}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo('Tubazione ASD / VESDA (ml)', 'ri-vesda-tubazione', d.vesda_tubazione, 'number')}
+        ${campoPreventivo('Fori ASD / VESDA', 'ri-vesda-fori', d.vesda_fori, 'number')}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo('Cavo termosensibile (ml)', 'ri-cavo-termosensibile', d.cavo_termosensibile, 'number')}
+        ${campoPreventivo('Pulsanti manuali', 'ri-pulsanti-manuali', d.pulsanti_manuali, 'number')}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo('Pannelli ottico-acustici / sirene', 'ri-sirene', d.sirene, 'number')}
+        ${campoPreventivo('Targhe e cartellonistica', 'ri-cartellonistica', d.cartellonistica, 'number')}
+      </div>
+    </div>
+
+    <div class="rap-section">4. Ambiente e vincoli</div>
+    <div class="card">
+      <div class="fr">
+        ${campoPreventivo('Altezza soffitto / note per ambiente', 'ri-altezza', d.altezza, 'text', 'Es. magazzino 8 m, uffici 3 m')}
+        ${selectPreventivo('Presenza ATEX?', 'ri-atex', d.atex || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'no', label: 'No' },
+          { value: 'si', label: 'Sì' }
+        ])}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo('Superficie totale (mq)', 'ri-superficie', d.superficie, 'number')}
+        ${campoPreventivo('N. locali / compartimenti', 'ri-locali', d.locali, 'number')}
+      </div>
+
+      ${areaPreventivo(
+        'Travi, controsoffitti, pavimenti flottanti o sorveglianza sopra/sotto',
+        'ri-struttura',
+        d.struttura
+      )}
+
+      ${areaPreventivo(
+        'Ambienti gravosi e grado IP richiesto',
+        'ri-ambienti-gravosi',
+        d.ambienti_gravosi,
+        'Polveri, vapori, cucine, box auto, celle frigo, esterni, tettoie...'
+      )}
+    </div>
+
+    <div class="rap-section">5. Cablaggio e posa</div>
+    <div class="card">
+      <div class="fr">
+        ${campoPreventivo('Cavo schermato twistato (ml)', 'ri-cavo-schermato', d.cavo_schermato, 'number')}
+        ${campoPreventivo('Cavo resistente al fuoco FTG18M / PH30-PH120 (ml)', 'ri-cavo-resistente', d.cavo_resistente, 'number')}
+      </div>
+
+      <div class="fr">
+        ${selectPreventivo('Tipo di posa', 'ri-posa', d.posa || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'canalina_esistente', label: 'Canalina esistente' },
+          { value: 'nuova_canalina', label: 'Nuova canalina' },
+          { value: 'tubo_rigido', label: 'Tubo rigido' },
+          { value: 'corrugato', label: 'Tubo corrugato' },
+          { value: 'battiscopa', label: 'Battiscopa' },
+          { value: 'vista', label: 'A vista' }
+        ])}
+
+        ${selectPreventivo('Canalizzazioni fornite e posate da', 'ri-canalizzazioni-da', d.canalizzazioni_da || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'noi', label: 'Noi' },
+          { value: 'elettricista_cliente', label: 'Elettricista del cliente' }
+        ])}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo('Sigillature compartimenti (n.)', 'ri-sigillature', d.sigillature, 'number')}
+        ${selectPreventivo('Altezza di lavoro', 'ri-altezza-lavoro', d.altezza_lavoro || '', [
+          { value: '', label: 'Normale' },
+          { value: 'trabattello', label: 'Trabattello' },
+          { value: 'ple', label: 'PLE' }
+        ])}
+      </div>
+
+      ${areaPreventivo(
+        'Forature, ripristini estetici, pitturazione e altre note di posa',
+        'ri-note-posa',
+        d.note_posa
+      )}
+    </div>
+
+    <div class="rap-section">6. Collaudo e manutenzione</div>
+    <div class="card">
+      ${areaPreventivo(
+        'Collaudo, programmazione, prove fumo, comandi asserviti, documentazione e formazione',
+        'ri-collaudo',
+        d.collaudo,
+        'Indica attività incluse e particolarità.'
+      )}
+
+      ${areaPreventivo(
+        'Se manutenzione: consistenza impianto esistente, batterie, periodicità, reperibilità e durata contratto',
+        'ri-manutenzione',
+        d.manutenzione,
+        'Centrali, loop, punti, marca/modello, batterie, sedi, ricambi obsoleti...'
+      )}
+
+      ${areaPreventivo(
+        'Note interne per il calcolo',
+        'ri-note-calcolo',
+        d.note_calcolo,
+        'Tempi stimati, numero squadre, giornate, margine suggerito...'
+      )}
+    </div>
+
+    <div class="ma" style="margin:18px 0 40px">
+      <button class="btn" onclick="renderSchedePreventivo()">
+        Annulla
+      </button>
+
+      <button class="btn p" onclick="salvaSchedaRilevazioneIncendi()">
+        Salva scheda rilevazione
+      </button>
+    </div>
+  `;
+}
+
+async function salvaSchedaRilevazioneIncendi() {
+  if (!currentPreventivoId) {
+    toast('Preventivo non selezionato', 'err');
+    return;
+  }
+
+  const dati = {
+    tipo_intervento: v('ri-tipo-intervento'),
+    progetto_esistente: v('ri-progetto-esistente'),
+    sorveglianza: v('ri-sorveglianza'),
+    marca: v('ri-marca'),
+    centrale_tipo: v('ri-centrale-tipo'),
+    loop: v('ri-loop'),
+    indirizzi_loop: v('ri-indirizzi-loop'),
+    margine_espansione: v('ri-margine-espansione'),
+    accessori_centrale: v('ri-accessori-centrale'),
+    comandi_terzi: v('ri-comandi-terzi'),
+    interfacce: v('ri-interfacce'),
+    rivelatori_ottici: v('ri-rivelatori-ottici'),
+    rivelatori_termici: v('ri-rivelatori-termici'),
+    rivelatori_speciali: v('ri-rivelatori-speciali'),
+    barriere: v('ri-barriere'),
+    barriere_portata: v('ri-barriere-portata'),
+    vesda_unita: v('ri-vesda-unita'),
+    vesda_tubazione: v('ri-vesda-tubazione'),
+    vesda_fori: v('ri-vesda-fori'),
+    cavo_termosensibile: v('ri-cavo-termosensibile'),
+    pulsanti_manuali: v('ri-pulsanti-manuali'),
+    sirene: v('ri-sirene'),
+    cartellonistica: v('ri-cartellonistica'),
+    altezza: v('ri-altezza'),
+    atex: v('ri-atex'),
+    superficie: v('ri-superficie'),
+    locali: v('ri-locali'),
+    struttura: v('ri-struttura'),
+    ambienti_gravosi: v('ri-ambienti-gravosi'),
+    cavo_schermato: v('ri-cavo-schermato'),
+    cavo_resistente: v('ri-cavo-resistente'),
+    posa: v('ri-posa'),
+    canalizzazioni_da: v('ri-canalizzazioni-da'),
+    sigillature: v('ri-sigillature'),
+    altezza_lavoro: v('ri-altezza-lavoro'),
+    note_posa: v('ri-note-posa'),
+    collaudo: v('ri-collaudo'),
+    manutenzione: v('ri-manutenzione'),
+    note_calcolo: v('ri-note-calcolo')
+  };
+
+  if (!dati.tipo_intervento) {
+    toast('Seleziona almeno il tipo di intervento', 'err');
+    return;
+  }
+
+  const { error } = await db
+    .from('preventivi_schede_tecniche')
+    .upsert(
+      {
+        preventivo_id: currentPreventivoId,
+        famiglia: 'rilevazione_incendi',
+        dati: dati,
+        aggiornato_il: new Date().toISOString()
+      },
+      {
+        onConflict: 'preventivo_id,famiglia'
+      }
+    );
+
+  if (error) {
+    toast('Errore salvataggio scheda: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Scheda rilevazione incendi salvata', 'ok');
+  await renderSchedePreventivo();
+}
+
+async function renderFornitoriPreventivo() {
+  const box = ge('pvd-fornitori-content');
+
+  if (!box || !currentPreventivoId) return;
+
+  box.innerHTML = '<div class="load">Caricamento fornitori...</div>';
+
+  const { data, error } = await db
+    .from('preventivi_fornitori')
+    .select(`
+      id,
+      tipologia,
+      stato,
+      prezzo_offerto,
+      tempi_consegna_proposti,
+      note,
+      fornitori(
+        ragione_sociale,
+        telefono,
+        email
+      ),
+      fornitore_tipologie(
+        pronta_consegna,
+        tempi_consegna,
+        gestione_ordine,
+        varieta_catalogo,
+        tempi_preventivo
+      )
+    `)
+    .eq('preventivo_id', currentPreventivoId)
+    .neq('stato', 'scartato')
+    .order('creato_il');
+
+  if (error) {
+    box.innerHTML =
+      '<div class="al2 e">Errore caricamento fornitori: ' +
+      esc(error.message) +
+      '</div>';
+    return;
+  }
+
+  const fornitori = data || [];
+
+  box.innerHTML = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+        <div>
+          <div style="font-size:15px;font-weight:700">
+            🏭 Fornitori del preventivo
+          </div>
+
+          <div style="font-size:12px;color:var(--m);margin-top:4px">
+            Scegli e confronta fino a due fornitori.
+          </div>
+        </div>
+
+        <span class="bx bblue">${fornitori.length} / 2</span>
+      </div>
+
+      <button
+        class="btn sm p"
+        style="margin-top:14px"
+        ${fornitori.length >= 2 ? 'disabled' : ''}
+        onclick="apriSelettoreFornitoriPreventivo()"
+      >
+        🏭 ${fornitori.length ? 'Aggiungi fornitore' : 'Seleziona fornitori'}
+      </button>
+    </div>
+
+    ${!fornitori.length ? `
+      <div class="empty" style="margin-top:12px">
+        Nessun fornitore selezionato per questo preventivo.
+      </div>
+    ` : fornitori.map(function(s) {
+      const f = s.fornitori || {};
+      const t = s.fornitore_tipologie || {};
+
+      return `
+        <div class="card" style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+            <div>
+              <div style="font-size:15px;font-weight:700">
+                ${esc(f.ragione_sociale || 'Fornitore')}
+              </div>
+
+              <div style="font-size:12px;color:var(--m);margin-top:4px">
+                ${esc(s.tipologia || 'Tipologia non indicata')}
+              </div>
+            </div>
+
+            <button
+              class="btn sm"
+              style="color:var(--r)"
+              onclick="rimuoviFornitorePreventivo('${s.id}')"
+            >
+              Rimuovi
+            </button>
+          </div>
+
+          <div class="g2" style="margin-top:14px">
+            ${ir('Pronta consegna', t.pronta_consegna || '—')}
+            ${ir('Tempi abituali', t.tempi_consegna || '—')}
+            ${ir('Gestione ordine', t.gestione_ordine || '—')}
+            ${ir('Risposta preventivi', t.tempi_preventivo || '—')}
+          </div>
+
+          <div class="fr" style="margin-top:14px">
+            <div class="f">
+              <label>Stato</label>
+              <select id="pvf-stato-${s.id}">
+                <option value="da_contattare" ${s.stato === 'da_contattare' ? 'selected' : ''}>Da contattare</option>
+                <option value="richiesta_inviata" ${s.stato === 'richiesta_inviata' ? 'selected' : ''}>Richiesta inviata</option>
+                <option value="risposta_ricevuta" ${s.stato === 'risposta_ricevuta' ? 'selected' : ''}>Risposta ricevuta</option>
+                <option value="selezionato" ${s.stato === 'selezionato' ? 'selected' : ''}>Scelto per il preventivo</option>
+              </select>
+            </div>
+
+            <div class="f">
+              <label>Prezzo offerto (€)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                id="pvf-prezzo-${s.id}"
+                value="${s.prezzo_offerto ?? ''}"
+              >
+            </div>
+          </div>
+
+          <div class="fr">
+            <div class="f">
+              <label>Tempi proposti</label>
+              <input
+                type="text"
+                id="pvf-consegna-${s.id}"
+                value="${esc(s.tempi_consegna_proposti || '')}"
+                placeholder="Es. 10 giorni lavorativi"
+              >
+            </div>
+
+            <div class="f">
+              <label>Note</label>
+              <input
+                type="text"
+                id="pvf-note-${s.id}"
+                value="${esc(s.note || '')}"
+                placeholder="Condizioni, varianti, osservazioni..."
+              >
+            </div>
+          </div>
+
+          <button
+            class="btn sm p"
+            onclick="salvaDettagliFornitorePreventivo('${s.id}')"
+          >
+            Salva dati fornitore
+          </button>
+
+          ${(f.telefono || f.email) ? `
+            <div style="font-size:12px;color:var(--m);margin-top:12px">
+              ${f.telefono ? '☎ ' + esc(f.telefono) : ''}
+              ${f.telefono && f.email ? ' · ' : ''}
+              ${f.email ? '✉ ' + esc(f.email) : ''}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('')}
+  `;
+}
+
+async function apriSelettoreFornitoriPreventivo() {
+  const box = ge('pvd-fornitori-content');
+
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:14px">
+      <div>
+        <div style="font-size:16px;font-weight:700">🏭 Seleziona fornitori</div>
+        <div style="font-size:12px;color:var(--m);margin-top:3px">
+          Massimo due fornitori per questo preventivo.
+        </div>
+      </div>
+
+      <button class="btn sm" onclick="renderFornitoriPreventivo()">
+        ← Indietro
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="f">
+        <label>Cerca per tipologia</label>
+        <input
+          id="pvf-ricerca"
+          type="text"
+          placeholder="Es. porte, estintori, rilevazione incendi..."
+          oninput="caricaFornitoriCandidatiPreventivo()"
+        >
+      </div>
+    </div>
+
+    <div id="pvf-candidati" style="margin-top:12px">
+      <div class="load">Caricamento fornitori...</div>
+    </div>
+  `;
+
+  await caricaFornitoriCandidatiPreventivo();
+}
+
+async function caricaFornitoriCandidatiPreventivo() {
+  const box = ge('pvf-candidati');
+  const ricerca = (v('pvf-ricerca') || '').trim();
+
+  if (!box) return;
+
+  const risultati = await Promise.all([
+    db
+      .from('preventivi_fornitori')
+      .select('fornitore_id')
+      .eq('preventivo_id', currentPreventivoId)
+      .neq('stato', 'scartato'),
+
+    ricerca
+      ? db
+          .from('fornitore_tipologie')
+          .select('*, fornitori(*)')
+          .eq('attivo', true)
+          .ilike('tipologia', '%' + ricerca + '%')
+          .order('tipologia')
+      : db
+          .from('fornitore_tipologie')
+          .select('*, fornitori(*)')
+          .eq('attivo', true)
+          .order('tipologia')
+          .limit(30)
+  ]);
+
+  const selezionatiRes = risultati[0];
+  const candidatiRes = risultati[1];
+
+  if (selezionatiRes.error || candidatiRes.error) {
+    box.innerHTML =
+      '<div class="al2 e">Errore caricamento: ' +
+      esc(selezionatiRes.error?.message || candidatiRes.error?.message) +
+      '</div>';
+    return;
+  }
+
+  const giaSelezionati = selezionatiRes.data || [];
+  const candidati = (candidatiRes.data || []).filter(function(t) {
+    return t.fornitori && t.fornitori.attivo !== false;
+  });
+
+  if (!candidati.length) {
+    box.innerHTML = `
+      <div class="empty">
+        ${ricerca
+          ? 'Nessun fornitore trovato per questa tipologia.'
+          : 'Inserisci una tipologia per restringere la ricerca.'
+        }
+      </div>
+    `;
+    return;
+  }
+
+  box.innerHTML = candidati.map(function(t) {
+    const giaScelto = giaSelezionati.some(function(s) {
+      return s.fornitore_id === t.fornitore_id;
+    });
+
+    const limiteRaggiunto = giaSelezionati.length >= 2;
+
+    return `
+      <div class="card" style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+          <div>
+            <div style="font-size:15px;font-weight:700">
+              ${esc(t.fornitori.ragione_sociale)}
+            </div>
+
+            <div style="font-size:12px;color:var(--m);margin-top:4px">
+              ${esc(t.tipologia)}
+              ${t.pronta_consegna ? ' · pronta consegna: ' + esc(t.pronta_consegna) : ''}
+              ${t.tempi_consegna ? ' · consegna: ' + esc(t.tempi_consegna) : ''}
+            </div>
+          </div>
+
+          <button
+            class="btn sm p"
+            ${giaScelto || limiteRaggiunto ? 'disabled' : ''}
+            onclick="selezionaFornitorePreventivo('${t.fornitore_id}','${t.id}')"
+          >
+            ${giaScelto
+              ? 'Già selezionato'
+              : limiteRaggiunto
+                ? 'Limite raggiunto'
+                : 'Seleziona'
+            }
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function selezionaFornitorePreventivo(fornitoreId, tipologiaId) {
+  const { data: selezionati, error: erroreControllo } = await db
+    .from('preventivi_fornitori')
+    .select('id')
+    .eq('preventivo_id', currentPreventivoId)
+    .neq('stato', 'scartato');
+
+  if (erroreControllo) {
+    toast('Errore controllo fornitori: ' + erroreControllo.message, 'err');
+    return;
+  }
+
+  if ((selezionati || []).length >= 2) {
+    toast('Puoi selezionare al massimo due fornitori', 'err');
+    return;
+  }
+
+  const { data: tipologia, error: erroreTipologia } = await db
+    .from('fornitore_tipologie')
+    .select('tipologia')
+    .eq('id', tipologiaId)
+    .single();
+
+  if (erroreTipologia || !tipologia) {
+    toast('Tipologia fornitore non trovata', 'err');
+    return;
+  }
+
+  const { error } = await db
+    .from('preventivi_fornitori')
+    .insert({
+      preventivo_id: currentPreventivoId,
+      fornitore_id: fornitoreId,
+      fornitore_tipologia_id: tipologiaId,
+      tipologia: tipologia.tipologia,
+      stato: 'da_contattare'
+    });
+
+  if (error) {
+    toast('Errore selezione fornitore: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Fornitore aggiunto al preventivo', 'ok');
+  await apriSelettoreFornitoriPreventivo();
+}
+
+async function salvaDettagliFornitorePreventivo(selezioneId) {
+  const prezzo = v('pvf-prezzo-' + selezioneId);
+
+  const { error } = await db
+    .from('preventivi_fornitori')
+    .update({
+      stato: v('pvf-stato-' + selezioneId),
+      prezzo_offerto: prezzo === '' ? null : Number(prezzo),
+      tempi_consegna_proposti: v('pvf-consegna-' + selezioneId).trim() || null,
+      note: v('pvf-note-' + selezioneId).trim() || null,
+      aggiornato_il: new Date().toISOString()
+    })
+    .eq('id', selezioneId)
+    .eq('preventivo_id', currentPreventivoId);
+
+  if (error) {
+    toast('Errore salvataggio fornitore: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Dati fornitore salvati', 'ok');
+  await renderFornitoriPreventivo();
+}
+
+async function rimuoviFornitorePreventivo(selezioneId) {
+  if (!confirm('Rimuovere questo fornitore dal preventivo?')) return;
+
+  const { error } = await db
+    .from('preventivi_fornitori')
+    .delete()
+    .eq('id', selezioneId)
+    .eq('preventivo_id', currentPreventivoId);
+
+  if (error) {
+    toast('Errore rimozione fornitore: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Fornitore rimosso dal preventivo', 'ok');
+  await renderFornitoriPreventivo();
 }
 
 // ── INIT ──────────────────────────────────────────────────────

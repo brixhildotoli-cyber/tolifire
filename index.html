@@ -1102,6 +1102,74 @@
   <div class="rap-section" style="margin-top:22px">Le mie bozze e preventivi</div>
   <div id="preventivi-lista">
     <div class="load">Caricamento...</div>
+    
+  </div>
+</section>
+
+<!-- SCHEDA PREVENTIVO -->
+<section class="page" id="pg-preventivo-detail">
+  <div class="sh">
+    <div>
+      <button class="btn sm" onclick="gotoPage('preventivi')" style="margin-bottom:8px">
+        ← Preventivi
+      </button>
+      <div class="st" id="pvd-titolo">Preventivo</div>
+      <div id="pvd-sottotitolo" style="font-size:12px;color:var(--m);margin-top:3px"></div>
+    </div>
+
+    <span class="bx bblue" id="pvd-stato">Bozza</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" onclick="stab(this,'pvd-riepilogo')">
+      Riepilogo
+    </button>
+
+    <button class="tab" onclick="stab(this,'pvd-progetto')">
+      📐 Progetto tecnico
+    </button>
+
+    <button class="tab" onclick="stab(this,'pvd-schede')">
+      📝 Schede tecniche
+    </button>
+
+    <button class="tab" onclick="stab(this,'pvd-fornitori')">
+      🏭 Fornitori
+    </button>
+
+    <button class="tab" onclick="stab(this,'pvd-costi')">
+      💶 Costi e margine
+    </button>
+  </div>
+
+  <div class="tc on" id="pvd-riepilogo">
+    <div id="pvd-riepilogo-content">
+      <div class="load">Caricamento...</div>
+    </div>
+  </div>
+
+  <div class="tc" id="pvd-progetto">
+    <div id="pvd-progetto-content">
+      <div class="load">Caricamento progetto...</div>
+    </div>
+  </div>
+
+  <div class="tc" id="pvd-schede">
+    <div id="pvd-schede-content">
+      <div class="load">Caricamento schede...</div>
+    </div>
+  </div>
+
+ <div class="tc" id="pvd-fornitori">
+  <div id="pvd-fornitori-content">
+    <div class="load">Caricamento fornitori...</div>
+  </div>
+</div>
+
+  <div class="tc" id="pvd-costi">
+    <div class="empty">
+      Qui costruiremo materiali, manodopera, margine e totale finale.
+    </div>
   </div>
 </section>
 
