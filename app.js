@@ -8263,33 +8263,83 @@ async function inviaIntegrazioneCommerciale() {
 }
 
 async function avviaPreventivo(progettoId) {
-   if (!confirm('Aprire la creazione del preventivo?')) return;
-  await apriNuovoPreventivo(progettoId);
-
-  const { data, error } = await db
-    .from('progetti_tecnici')
-    .update({
-      stato: 'in_preventivazione'
-    })
-    .eq('id', progettoId)
-    .eq('stato', 'inviato_a_commerciale')
+  const { data: esistente, error: erroreEsistente } = await db
+    .from('preventivi')
     .select('id')
+    .eq('progetto_tecnico_id', progettoId)
+    .eq('commerciale_id', ME.id)
+    .maybeSingle();
+
+  if (erroreEsistente) {
+    toast('Errore controllo preventivo: ' + erroreEsistente.message, 'err');
+    return;
+  }
+
+  // Se esiste già una bozza, riapre direttamente quella.
+  if (esistente) {
+    await openPreventivoDetail(esistente.id);
+    return;
+  }
+
+  const { data: progetto, error: erroreProgetto } = await db
+    .from('progetti_tecnici')
+    .select('id,cliente_id,rappresentante_id')
+    .eq('id', progettoId)
     .single();
 
-  if (error || !data) {
+  if (erroreProgetto || !progetto) {
     toast(
-      'Errore avvio preventivo: ' +
-      (error?.message || 'progetto non aggiornato'),
+      'Errore apertura progetto: ' +
+      (erroreProgetto?.message || 'progetto non trovato'),
       'err'
     );
     return;
   }
 
-  // Aggiorna la posta in arrivo: il progetto non deve più comparire qui.
-  await loadProgettiDaPreventivare();
+  const scadenza = new Date();
+  scadenza.setDate(scadenza.getDate() + 30);
 
-  // Apre il popup che crea la bozza del preventivo.
-  await apriNuovoPreventivo(progettoId);
+  const { data: preventivo, error: erroreCreazione } = await db
+    .from('preventivi')
+    .insert({
+      cliente_id: progetto.cliente_id,
+      commerciale_id: ME.id,
+      rappresentante_id: progetto.rappresentante_id || null,
+      progetto_tecnico_id: progetto.id,
+      tipo: 'fornitura_e_posa',
+      origine: 'progetto_tecnico',
+      data_scadenza: scadenza.toISOString().slice(0, 10),
+      totale_imponibile: 0,
+      sconto_perc: 0,
+      iva_perc: 22,
+      stato: 'bozza'
+    })
+    .select('id, numero')
+    .single();
+
+  if (erroreCreazione || !preventivo) {
+    toast(
+      'Errore creazione bozza: ' +
+      (erroreCreazione?.message || 'preventivo non creato'),
+      'err'
+    );
+    return;
+  }
+
+  const { error: erroreStato } = await db
+    .from('progetti_tecnici')
+    .update({ stato: 'in_preventivazione' })
+    .eq('id', progettoId)
+    .eq('stato', 'inviato_a_commerciale');
+
+  if (erroreStato) {
+    toast('Bozza creata, ma errore stato progetto: ' + erroreStato.message, 'err');
+    return;
+  }
+
+  toast('Bozza preventivo n. ' + preventivo.numero + ' creata', 'ok');
+
+  await openPreventivoDetail(preventivo.id);
 }
 
 async function loadPreventivi() {
