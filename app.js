@@ -27,7 +27,7 @@ const NAV={
   segreteria:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'workflow',l:'📋 Da gestire'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'Clienti'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
   contabile:[{id:'dashboard',l:'📊 Dashboard'},{id:'workflow',l:'📅 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
   tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
-  commerciale:[{id:'dashboard',l:'📊 Dashboard'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'fornitori',l:'🏭 Fornitori'},{id:'preventivazione',l:'📋 Preventivazione'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}, {id: 'info', l: 'ℹ️ Info'}],
+  commerciale:[{id:'dashboard',l:'📊 Dashboard'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'preventivi',l:'🧾 Preventivi'},{id:'fornitori',l:'🏭 Fornitori'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}, {id: 'info', l: 'ℹ️ Info'}],
   rappresentante:[{id:'dashboard-rapp',l:'📊 Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead e trattative'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'progetti', l:'📐 Progetti'}, {id:'catalogo',l:'📦 Catalogo'}, {id:'info',l:'ⓘ Info'}],
   ingegnere: [{id: 'dashboard', l: '📊 Dashboard'},{id: 'calendario-ingegnere', l: '📅 Calendario'},{id: 'verifiche-tecniche', l: '🔧 Verifiche'},{id: 'documenti', l: '📄 Documenti'},{id: 'info', l: 'ℹ️ Info'}],
 };
@@ -626,7 +626,7 @@ const PAGINE_RUOLO = {
   segreteria:     ['dashboard','calendario','workflow','presidi','interventi','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail'],
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
-  commerciale:    ['dashboard','progetti-da-preventivare', 'fornitori', 'fornitore-detail', 'preventivazione', 'clienti','documenti','fatture','catalogo','cliente-detail', 'info'],
+  commerciale:    ['dashboard','progetti-da-preventivare', 'preventivi', 'fornitori', 'fornitore-detail','clienti','documenti','progetto-detail','fatture','catalogo','cliente-detail', 'info'],
   rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','trattative','cliente-detail','progetto-detail','catalogo', 'info'],
   ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti', 'progetto-detail','cliente-detail','info'],
 };
@@ -7809,14 +7809,23 @@ async function salvaProgetto() {
     progettoId = data.id;
   }
 
+  const { data: authData, error: authError } = await db.auth.getUser();
+
+if (authError || !authData.user) {
+  toast('Sessione utente non valida', 'err');
+  return;
+}
+
+const utenteStorageId = authData.user.id;
+
   for (const file of files) {
     const nomeSicuro = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
 
-    const path =
-      ME.id + '/' +
-      progettoId + '/' +
-      Date.now() + '_' +
-      nomeSicuro;
+   const path =
+  utenteStorageId + '/' +
+  progettoId + '/' +
+  Date.now() + '_' +
+  nomeSicuro;
 
     const { error: erroreUpload } = await db.storage
       .from('progetti-tecnici')
@@ -8187,7 +8196,14 @@ async function loadProgettiDaPreventivare() {
           Ricevuto il ${esc(dataInvio)}
         </div>
 
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+  <button
+    class="btn sm"
+    onclick="openProgettoDetail('${p.id}')"
+  >
+    📂 Apri progetto
+  </button>
+
   <button
     class="btn sm"
     style="color:#b45309"
@@ -8198,10 +8214,11 @@ async function loadProgettiDaPreventivare() {
 
   <button
     class="btn sm p"
-    onclick="passaAPreventivazione('${p.id}')"
+    onclick="avviaPreventivo('${p.id}')"
   >
-    ✅ Passa a preventivazione
+    🧾 Avvia preventivo
   </button>
+</div>
 </div>
     `;
   }).join('');
@@ -8245,28 +8262,37 @@ async function inviaIntegrazioneCommerciale() {
   await loadProgettiDaPreventivare();
 }
 
-async function passaAPreventivazione(progettoId) {
-  if (!confirm('Passare questo progetto alla fase di preventivazione?')) {
+async function avviaPreventivo(progettoId) {
+  if (!confirm(
+    'Avviare il preventivo? Il progetto uscirà da “Da preventivare” e passerà nei Preventivi in lavorazione.'
+  )) {
     return;
   }
 
   const { data, error } = await db
     .from('progetti_tecnici')
-    .update({ stato: 'in_preventivazione' })
+    .update({
+      stato: 'in_preventivazione'
+    })
     .eq('id', progettoId)
     .eq('stato', 'inviato_a_commerciale')
-    .select('id');
+    .select('id')
+    .single();
 
-  if (error || !data?.length) {
+  if (error || !data) {
     toast(
-      'Errore: ' + (error?.message || 'progetto non aggiornato'),
+      'Errore avvio preventivo: ' +
+      (error?.message || 'progetto non aggiornato'),
       'err'
     );
     return;
   }
 
-  toast('Progetto passato a preventivazione', 'ok');
+  // Aggiorna la posta in arrivo: il progetto non deve più comparire qui.
   await loadProgettiDaPreventivare();
+
+  // Apre il popup che crea la bozza del preventivo.
+  await apriNuovoPreventivo(progettoId);
 }
 
 async function loadPreventivi() {
@@ -8530,6 +8556,28 @@ async function salvaNuovoPreventivo() {
     toast('Errore creazione preventivo: ' + error.message, 'err');
     return;
   }
+  const { error: erroreStatoProgetto } = await db
+  .from('progetti_tecnici')
+  .update({
+    stato: 'in_preventivazione'
+  })
+  .eq('id', progettoId)
+  .eq('stato', 'inviato_a_commerciale');
+
+if (erroreStatoProgetto) {
+  // La bozza era stata creata, ma non deve restare senza progetto associato.
+  await db
+    .from('preventivi')
+    .delete()
+    .eq('id', data.id);
+
+  toast(
+    'Errore nel passaggio del progetto ai preventivi: ' +
+    erroreStatoProgetto.message,
+    'err'
+  );
+  return;
+}
 
   closeM('m-nuovo-preventivo');
   toast('Bozza preventivo n. ' + data.numero + ' creata', 'ok');
@@ -9597,6 +9645,11 @@ if (btnModifica) {
 }
 
 function tornaDaSchedaProgetto() {
+  if (ROLE === 'commerciale') {
+    gotoPage('progetti-da-preventivare');
+    return;
+  }
+
   if (ROLE === 'ingegnere') {
     gotoPage('verifiche-tecniche');
     return;
