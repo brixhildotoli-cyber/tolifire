@@ -6031,7 +6031,7 @@ function apriNuovoLead() {
   ge('lead-attivita').value = '';
   ge('lead-fonte').value = '';
   ge('lead-prossima-azione').value = 'chiamata';
-  ge('lead-probabilita').value = '10';
+ ge('lead-servizio').value = '';
   ge('lead-errore').innerHTML = '';
 
   openM('m-lead');
@@ -6072,10 +6072,6 @@ async function salvaLead() {
 
     if (erroreCliente) throw erroreCliente;
 
-    const probabilita = Math.min(
-      100,
-      Math.max(0, parseInt(v('lead-probabilita')) || 0)
-    );
 
     const { error: errorePipeline } = await db
       .from('pipeline_crm')
@@ -6088,7 +6084,7 @@ async function salvaLead() {
         valore_stimato: parseFloat(v('lead-valore')) || null,
         data_prossimo_contatto: v('lead-prossimo-contatto') || null,
         tipo_prossima_azione: v('lead-prossima-azione') || null,
-        probabilita_chiusura: probabilita,
+        servizio_richiesto: v('lead-servizio') || null,
         note_trattativa: v('lead-note').trim() || null
       });
 
@@ -7504,6 +7500,64 @@ async function loadVerificheTecniche() {
 // ── PROGETTI TECNICI CLIENTE ─────────────────────────────────
 
 let allegatiProgettoDati = [];
+let salvataggioProgettoInCorso = false;
+let urlAnteprimaProgetto = [];
+
+function anteprimaFileProgetto() {
+  const box = ge('mp-file-selezionati');
+  if (!box) return;
+
+  urlAnteprimaProgetto.forEach(function(url) {
+    URL.revokeObjectURL(url);
+  });
+  urlAnteprimaProgetto = [];
+
+  const obbligatori = Array.from(ge('mp-file').files || []);
+  const extra = Array.from(ge('mp-file-extra').files || []);
+  const files = [...obbligatori, ...extra];
+
+  if (!files.length) {
+    box.innerHTML = '';
+    return;
+  }
+
+  box.innerHTML = `
+    <div style="font-size:12px;font-weight:700;margin-bottom:6px">
+      File pronti da caricare (${files.length})
+    </div>
+    ${files.map(function(file) {
+      const immagine = file.type.startsWith('image/');
+      const url = URL.createObjectURL(file);
+      urlAnteprimaProgetto.push(url);
+
+      return `
+        <div style="display:flex;align-items:center;gap:9px;padding:8px 10px;margin-top:6px;background:var(--bg);border-radius:var(--rs)">
+          ${
+            immagine
+              ? `<a href="${url}" target="_blank" rel="noopener">
+                   <img src="${url}" alt="" style="width:42px;height:42px;object-fit:cover;border-radius:6px">
+                 </a>`
+              : '<span style="font-size:22px">📄</span>'
+          }
+
+          <div style="min-width:0;flex:1">
+            <div style="font-size:12px;font-weight:600;overflow-wrap:anywhere">
+              ${esc(file.name)}
+            </div>
+            <div style="font-size:11px;color:var(--m)">
+              ${(file.size / 1024 / 1024).toFixed(2)} MB
+            </div>
+          </div>
+
+          <a class="btn sm" href="${url}" target="_blank" rel="noopener">
+            Apri
+          </a>
+        </div>
+      `;
+    }).join('')}
+  `;
+}
+
 
 function fileProgettoValido(file) {
   if (!file) return false;
@@ -7688,6 +7742,7 @@ async function apriNuovoProgetto() {
   ge('mp-materiali').value = '';
   ge('mp-file').value = '';
   ge('mp-file-extra').value = '';
+  anteprimaFileProgetto();
 
   await caricaAllegatiProgetto(null);
 
@@ -7712,6 +7767,7 @@ async function modificaProgetto(id) {
   ge('mp-materiali').value = progetto.materiali_note || '';
   ge('mp-file').value = '';
   ge('mp-file-extra').value = '';
+  anteprimaFileProgetto();
 
   await caricaAllegatiProgetto(id);
 
@@ -7719,175 +7775,176 @@ async function modificaProgetto(id) {
 }
 
 async function salvaProgetto() {
-  const id = v('mp-id');
-  const titolo = v('mp-titolo').trim();
-  const tipologia = v('mp-tipologia');
-  const descrizione = v('mp-descrizione').trim();
-
-  const fileObbligatorio = ge('mp-file').files[0] || null;
-  const filesExtra = Array.from(ge('mp-file-extra').files || []);
-
-  const files = fileObbligatorio
-    ? [fileObbligatorio, ...filesExtra]
-    : filesExtra;
-
-  if (!titolo || !tipologia || !descrizione) {
-    toast('Titolo, tipologia e descrizione sono obbligatori', 'err');
+  if (salvataggioProgettoInCorso) {
+    toast('Salvataggio già in corso…', 'info');
     return;
   }
 
-  if (files.some(file => !fileProgettoValido(file))) {
-    toast('Formato non valido: carica solo PDF, JPG/JPEG o PNG', 'err');
-    return;
+  salvataggioProgettoInCorso = true;
+
+  const btn = ge('mp-salva');
+  const testoOriginale = btn ? btn.textContent : 'Salva bozza';
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Salvataggio…';
   }
 
-  if (files.some(file => file.size > 10 * 1024 * 1024)) {
-    toast('Un file supera il limite di 10 MB', 'err');
-    return;
-  }
+  try {
+    const id = v('mp-id');
+    const titolo = v('mp-titolo').trim();
+    const tipologia = v('mp-tipologia');
+    const descrizione = v('mp-descrizione').trim();
 
-  // Per un progetto nuovo il primo allegato è obbligatorio.
-  if (!id && !fileObbligatorio) {
-    toast('Devi caricare l’allegato tecnico obbligatorio', 'err');
-    return;
-  }
+    const filesObbligatori = Array.from(ge('mp-file').files || []);
+    const filesExtra = Array.from(ge('mp-file-extra').files || []);
+    const files = [...filesObbligatori, ...filesExtra];
 
-  // In modifica, se non aggiungi file, deve essercene già almeno uno.
-  if (id && files.length === 0 && allegatiProgettoDati.length === 0) {
-    toast('Devi allegare almeno un PDF, JPG/JPEG o PNG', 'err');
-    return;
-  } 
-
-  const payload = {
-    titolo: titolo,
-    tipologia: tipologia,
-    descrizione_tecnica: descrizione,
-    materiali_note: v('mp-materiali').trim() || null
-  };
-
-  let progettoId = id;
-
- if (id) {
-  // Legge lo stato attuale: se il commerciale lo ha rimandato
-  // al rappresentante, dopo le modifiche torna una bozza.
-  const { data: progettoAttuale, error: erroreLettura } = await db
-    .from('progetti_tecnici')
-    .select('stato')
-    .eq('id', id)
-    .single();
-
-  if (erroreLettura || !progettoAttuale) {
-    toast('Impossibile leggere il progetto: ' + (erroreLettura?.message || ''), 'err');
-    return;
-  }
-
-  if (progettoAttuale.stato === 'da_integrare') {
-    payload.stato = 'bozza';
-  }
-
-  const { data: progettoSalvato, error } = await db
-    .from('progetti_tecnici')
-    .update(payload)
-    .eq('id', id)
-    .select('id')
-    .single();
-
-  if (error || !progettoSalvato) {
-    toast('Errore salvataggio: ' + (error?.message || 'progetto non aggiornato'), 'err');
-    return;
-  }
-} else {
-    payload.cliente_id = currentCliId;
-    payload.rappresentante_id = ME.id;
-    payload.stato = 'bozza';
-
-    const { data, error } = await db
-      .from('progetti_tecnici')
-      .insert(payload)
-      .select('id')
-      .single();
-
-    if (error) {
-      toast('Errore: ' + error.message, 'err');
+    if (!titolo || !tipologia || !descrizione) {
+      toast('Titolo, tipologia e descrizione sono obbligatori', 'err');
       return;
     }
 
-    progettoId = data.id;
-  }
+    if (!id && filesObbligatori.length < 1) {
+      toast('Devi selezionare almeno un allegato tecnico', 'err');
+      return;
+    }
 
-  const { data: authData, error: authError } = await db.auth.getUser();
+    if (id && files.length === 0 && allegatiProgettoDati.length === 0) {
+      toast('Devi allegare almeno un PDF, JPG/JPEG o PNG', 'err');
+      return;
+    }
 
-if (authError || !authData.user) {
-  toast('Sessione utente non valida', 'err');
-  return;
-}
+    if (files.some(function(file) { return !fileProgettoValido(file); })) {
+      toast('Formato non valido: carica solo PDF, JPG/JPEG o PNG', 'err');
+      return;
+    }
 
-const utenteStorageId = authData.user.id;
+    if (files.some(function(file) { return file.size > 10 * 1024 * 1024; })) {
+      toast('Un file supera il limite di 10 MB', 'err');
+      return;
+    }
 
-  for (const file of files) {
-    const nomeSicuro = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const payload = {
+      titolo: titolo,
+      tipologia: tipologia,
+      descrizione_tecnica: descrizione,
+      materiali_note: v('mp-materiali').trim() || null
+    };
 
-   const path =
-  utenteStorageId + '/' +
-  progettoId + '/' +
-  Date.now() + '_' +
-  nomeSicuro;
+    let progettoId = id;
 
-    const { error: erroreUpload } = await db.storage
-      .from('progetti-tecnici')
-      .upload(path, file, {
-        contentType: file.type,
-        upsert: false
-      });
+    if (id) {
+      const { data: progettoAttuale, error: erroreLettura } = await db
+        .from('progetti_tecnici')
+        .select('stato')
+        .eq('id', id)
+        .single();
 
-    if (erroreUpload) {
-      if (!id) {
-        await db
-          .from('progetti_tecnici')
-          .delete()
-          .eq('id', progettoId);
+      if (erroreLettura || !progettoAttuale) {
+        toast('Impossibile leggere il progetto: ' + (erroreLettura?.message || ''), 'err');
+        return;
       }
 
-      toast('Caricamento file non riuscito: ' + erroreUpload.message, 'err');
+      if (progettoAttuale.stato === 'da_integrare') {
+        payload.stato = 'bozza';
+      }
+
+      const { error } = await db
+        .from('progetti_tecnici')
+        .update(payload)
+        .eq('id', id);
+
+      if (error) {
+        toast('Errore salvataggio: ' + error.message, 'err');
+        return;
+      }
+    } else {
+      payload.cliente_id = currentCliId;
+      payload.rappresentante_id = ME.id;
+      payload.stato = 'bozza';
+
+      const { data, error } = await db
+        .from('progetti_tecnici')
+        .insert(payload)
+        .select('id')
+        .single();
+
+      if (error || !data) {
+        toast('Errore creazione progetto: ' + (error?.message || ''), 'err');
+        return;
+      }
+
+      progettoId = data.id;
+    }
+
+    const { data: authData, error: authError } = await db.auth.getUser();
+
+    if (authError || !authData.user) {
+      toast('Sessione utente non valida', 'err');
       return;
     }
 
-    const { error: erroreAllegato } = await db
-      .from('progetti_tecnici_allegati')
-      .insert({
-        progetto_id: progettoId,
-        nome_file: file.name,
-        storage_path: path,
-        mime_type: file.type,
-        dimensione: file.size,
-        caricato_da: ME.id
-      });
+    const utenteStorageId = authData.user.id;
 
-    if (erroreAllegato) {
-      await db.storage
+    for (const file of files) {
+      const nomeSicuro = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path =
+        utenteStorageId + '/' +
+        progettoId + '/' +
+        Date.now() + '_' +
+        nomeSicuro;
+
+      const { error: erroreUpload } = await db.storage
         .from('progetti-tecnici')
-        .remove([path]);
+        .upload(path, file, {
+          contentType: file.type,
+          upsert: false
+        });
 
-      if (!id) {
-        await db
-          .from('progetti_tecnici')
-          .delete()
-          .eq('id', progettoId);
+      if (erroreUpload) {
+        toast('Caricamento file non riuscito: ' + erroreUpload.message, 'err');
+        return;
       }
 
-      toast('Errore salvataggio allegato: ' + erroreAllegato.message, 'err');
-      return;
+      const { error: erroreAllegato } = await db
+        .from('progetti_tecnici_allegati')
+        .insert({
+          progetto_id: progettoId,
+          nome_file: file.name,
+          storage_path: path,
+          mime_type: file.type,
+          dimensione: file.size,
+          caricato_da: ME.id
+        });
+
+      if (erroreAllegato) {
+        await db.storage.from('progetti-tecnici').remove([path]);
+        toast('Errore salvataggio allegato: ' + erroreAllegato.message, 'err');
+        return;
+      }
+    }
+
+    closeM('m-progetto');
+
+    toast(
+      id
+        ? 'Modifiche e allegati salvati correttamente'
+        : 'Progetto tecnico salvato correttamente',
+      'ok'
+    );
+
+    await loadProgettiCliente(currentCliId);
+    await loadPaginaProgetti();
+
+  } finally {
+    salvataggioProgettoInCorso = false;
+
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = testoOriginale;
     }
   }
-
-  closeM('m-progetto');
-  toast(
-  id ? 'Modifiche salvate: il progetto è di nuovo in bozza' : 'Progetto tecnico salvato',
-  'ok'
-);
-
-await loadProgettiCliente(currentCliId);
-await loadPaginaProgetti();
 }
 
 async function eliminaProgetto(progettoId) {

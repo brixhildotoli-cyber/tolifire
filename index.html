@@ -2201,7 +2201,7 @@
     <div class="al2 i" id="mvt-riepilogo"></div>
 
 <div class="card" style="margin-top:16px">
-  
+
   <div style="font-size:14px;font-weight:700">
     📝 Schede di rilievo tecnico
   </div>
@@ -2846,17 +2846,22 @@
         placeholder="Es. 4 porte REI 120, maniglioni antipanico, chiudiporta...">
       </textarea>
     </div>
-    <div class="f">
-  <label for="mp-file">Allegato tecnico obbligatorio *</label>
+  <div class="f">
+  <label for="mp-file">Allegati tecnici obbligatori *</label>
 
   <input
     type="file"
     id="mp-file"
+    multiple
+    onchange="anteprimaFileProgetto()"
     accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
 
   <div style="font-size:12px;color:var(--m);margin-top:5px">
-    Carica un PDF, JPG/JPEG o PNG. Massimo 10 MB.
+    Seleziona almeno un file. Puoi scegliere foto, PDF e planimetrie insieme.
+    Massimo 10 MB per file.
   </div>
+
+  <div id="mp-file-selezionati" style="margin-top:10px"></div>
 
   <div style="margin-top:14px">
     <label for="mp-file-extra">
@@ -2868,19 +2873,20 @@
       type="file"
       id="mp-file-extra"
       multiple
+      onchange="anteprimaFileProgetto()"
       accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
 
     <div style="font-size:12px;color:var(--m);margin-top:5px">
-      Puoi aggiungere documenti, foto e planimetrie aggiuntive.
+      Puoi aggiungere altri documenti anche dopo la prima selezione.
     </div>
   </div>
 
-  <div id="mp-allegati" style="margin-top:10px"></div>
+  <div id="mp-allegati" style="margin-top:14px"></div>
 </div>
 
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn" onclick="closeM('m-progetto')">Annulla</button>
-      <button class="btn p" onclick="salvaProgetto()">Salva bozza</button>
+      <button class="btn p" id="mp-salva" onclick="salvaProgetto()">Salva bozza</button>
     </div>
   </div>
 </div>
@@ -3050,12 +3056,22 @@
         <label>Valore stimato (€)</label>
         <input type="number" min="0" step="0.01" id="lead-valore">
       </div>
-
-      <div class="f">
-        <label>Probabilità chiusura (%)</label>
-        <input type="number" min="0" max="100" value="10" id="lead-probabilita">
-      </div>
-    </div>
+<div class="f">
+  <label>Servizio richiesto</label>
+  <select id="lead-servizio">
+    <option value="">Seleziona...</option>
+    <option value="porte_rei">Porte e portoni REI</option>
+    <option value="manutenzione_presidi">Manutenzione presidi</option>
+    <option value="estintori">Estintori</option>
+    <option value="compartimentazione">Compartimentazione</option>
+    <option value="vernice_intumescente">Vernice intumescente</option>
+    <option value="impianti_spegnimento">Impianti di spegnimento</option>
+    <option value="rilevazione_incendi">Rilevazione incendi</option>
+    <option value="progettazione">Progettazione</option>
+    <option value="formazione">Formazione</option>
+    <option value="altro">Altro</option>
+  </select>
+</div>
 
     <div class="f">
       <label>Note iniziali</label>
