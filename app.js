@@ -8519,13 +8519,15 @@ async function loadPreventivi() {
       currency: 'EUR'
     });
 
-    const stato = {
-      bozza: 'Bozza',
-      inviato: 'Inviato',
-      accettato: 'Accettato',
-      rifiutato: 'Rifiutato',
-      scaduto: 'Scaduto'
-    }[p.stato] || p.stato;
+   const stato = {
+  bozza: 'Bozza',
+  in_attesa_approvazione: 'In attesa del titolare',
+  approvato: 'Approvato dal titolare',
+  inviato: 'Inviato al cliente',
+  accettato: 'Accettato',
+  rifiutato: 'Rifiutato',
+  scaduto: 'Scaduto'
+}[p.stato] || p.stato;
 
     return `
       <div class="card" style="margin-bottom:10px">
@@ -8554,13 +8556,31 @@ async function loadPreventivi() {
             )}
           </div>
         ` : ''}
-        <button
-  class="btn sm p"
-  style="margin-top:12px"
-  onclick="openPreventivoDetail('${p.id}')"
->
-  Apri preventivo
-</button>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+  <button
+    class="btn sm p"
+    onclick="openPreventivoDetail('${p.id}')"
+  >
+    ${p.stato === 'bozza' ? '✏️ Modifica bozza' : 'Apri preventivo'}
+  </button>
+
+  ${p.stato === 'bozza' ? `
+    <button
+      class="btn sm warn"
+      onclick="inviaPreventivoPerApprovazione('${p.id}')"
+    >
+      📤 Invia per approvazione
+    </button>
+
+    <button
+      class="btn sm"
+      style="color:var(--r)"
+      onclick="eliminaPreventivo('${p.id}')"
+    >
+      🗑️ Elimina
+    </button>
+  ` : ''}
+</div>
       </div>
     `;
   }).join('');
@@ -10142,6 +10162,7 @@ async function openPreventivoDetail(preventivoId) {
 
   await renderSchedePreventivo();
   await renderFornitoriPreventivo();
+  await renderCostiPreventivo();
   gotoPage('preventivo-detail');
   
 }
@@ -10193,64 +10214,184 @@ function selectPreventivo(label, id, valore, opzioni) {
   `;
 }
 
+function etichettaFamigliaTecnica(famiglia) {
+  const etichette = {
+    comune: 'Blocco comune',
+    porte_rei: 'Porte e portoni REI',
+    manutenzione_porte_rei: 'Manutenzione porte REI / presidi',
+    estintori: 'Estintori',
+    compartimentazione: 'Compartimentazione',
+    vernice_intumescente: 'Vernice intumescente',
+    impianti_spegnimento: 'Impianti di spegnimento',
+    progettazione: 'Progettazione',
+    formazione: 'Formazione',
+    rilevazione_incendi: 'Impianti di rilevazione incendi'
+  };
+
+  return etichette[famiglia] ||
+    String(famiglia || 'Scheda tecnica')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, function(lettera) {
+        return lettera.toUpperCase();
+      });
+}
+
+function etichettaCampoTecnico(campo) {
+  const etichette = {
+    tipo_intervento: 'Tipo di intervento',
+    progetto_esistente: 'Progetto esistente fornito dal cliente',
+    sorveglianza: 'Livello di sorveglianza',
+    marca: 'Marca richiesta / impianto esistente',
+    centrale_tipo: 'Tipo di centrale',
+    loop: 'Numero loop',
+    indirizzi_loop: 'Indirizzi per loop',
+    margine_espansione: 'Margine di espansione',
+    accessori_centrale: 'Accessori centrale',
+    comandi_terzi: 'Comandi a terzi / moduli I-O',
+    interfacce: 'Interfacce con impianti esistenti',
+    rivelatori_ottici: 'Rivelatori ottici di fumo',
+    rivelatori_termici: 'Rivelatori termici',
+    rivelatori_speciali: 'Rivelatori speciali',
+    barriere: 'Barriere lineari ottiche',
+    barriere_portata: 'Portata barriere',
+    vesda_unita: 'Unità ASD / VESDA',
+    vesda_tubazione: 'Tubazione ASD / VESDA',
+    vesda_fori: 'Fori ASD / VESDA',
+    cavo_termosensibile: 'Cavo termosensibile',
+    pulsanti_manuali: 'Pulsanti manuali',
+    sirene: 'Pannelli ottico-acustici / sirene',
+    cartellonistica: 'Targhe e cartellonistica',
+    altezza: 'Altezza soffitto / note ambiente',
+    atex: 'Presenza ATEX',
+    superficie: 'Superficie',
+    locali: 'Locali / compartimenti',
+    struttura: 'Travi, controsoffitti e struttura',
+    ambienti_gravosi: 'Ambienti gravosi / grado IP',
+    cavo_schermato: 'Cavo schermato twistato',
+    cavo_resistente: 'Cavo resistente al fuoco',
+    posa: 'Tipo di posa',
+    canalizzazioni_da: 'Canalizzazioni fornite da',
+    sigillature: 'Sigillature compartimenti',
+    altezza_lavoro: 'Altezza di lavoro',
+    note_posa: 'Forature, ripristini e note posa',
+    collaudo: 'Collaudo e chiusura',
+    manutenzione: 'Dati manutenzione',
+    note_calcolo: 'Note interne per il calcolo'
+  };
+
+  return etichette[campo] ||
+    String(campo)
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, function(lettera) {
+        return lettera.toUpperCase();
+      });
+}
+
+function valoreSchedaTecnica(valore) {
+  if (valore === null || valore === undefined || valore === '') {
+    return '—';
+  }
+
+  if (valore === 'si') return 'Sì';
+  if (valore === 'no') return 'No';
+
+  if (typeof valore === 'object') {
+    return JSON.stringify(valore);
+  }
+
+  return String(valore)
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, function(lettera) {
+      return lettera.toUpperCase();
+    });
+}
+
 async function renderSchedePreventivo() {
   const box = ge('pvd-schede-content');
 
-  if (!box || !currentPreventivoId) return;
+  if (!box || !currentPreventivoProgettoId) return;
+
+  box.innerHTML = '<div class="load">Caricamento rilievi dell’ingegnere...</div>';
 
   const { data, error } = await db
-    .from('preventivi_schede_tecniche')
-    .select('id, famiglia, dati, aggiornato_il')
-    .eq('preventivo_id', currentPreventivoId)
-    .eq('famiglia', 'rilevazione_incendi')
-    .maybeSingle();
+    .from('progetti_tecnici_schede')
+    .select('id,famiglia,dati,stato,aggiornato_il')
+    .eq('progetto_tecnico_id', currentPreventivoProgettoId)
+    .order('aggiornato_il', { ascending: false });
 
   if (error) {
-    box.innerHTML =
-      '<div class="al2 e">Errore caricamento schede: ' +
-      esc(error.message) +
-      '</div>';
+    box.innerHTML = `
+      <div class="al2 e">
+        Errore caricamento schede tecniche: ${esc(error.message)}
+      </div>
+    `;
     return;
   }
 
-  const salvata = data?.dati;
+  if (!data || !data.length) {
+    box.innerHTML = `
+      <div class="empty">
+        L’ingegnere non ha ancora compilato alcun rilievo tecnico.
+      </div>
+    `;
+    return;
+  }
 
   box.innerHTML = `
-    <div class="card">
-      <div style="font-size:15px;font-weight:700">
-        🚨 Impianti di rilevazione incendi
-      </div>
+    <div class="al2 i" style="margin-bottom:14px">
+      🔒 Queste informazioni sono compilate dall’ingegnere e sono in sola lettura.
+      Se manca qualcosa, usa “Richiedi integrazione” nel progetto.
+    </div>
 
-      <div style="font-size:12px;color:var(--m);margin-top:5px">
-        Centrale, rivelatori, ambiente, cablaggio, posa, collaudo e manutenzione.
-      </div>
+    ${data.map(function(scheda) {
+      const campi = Object.entries(scheda.dati || {})
+        .filter(function(entry) {
+          const valore = entry[1];
+          return valore !== null && valore !== undefined && valore !== '';
+        });
 
-      ${salvata ? `
-        <div class="al2 s" style="margin-top:12px">
-          Scheda compilata${data.aggiornato_il
-            ? ' · aggiornata il ' +
-              new Date(data.aggiornato_il).toLocaleDateString('it-IT')
-            : ''
+      return `
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px">
+            <div>
+              <div style="font-size:15px;font-weight:700">
+                📝 ${esc(etichettaFamigliaTecnica(scheda.famiglia))}
+              </div>
+
+              <div style="font-size:12px;color:var(--m);margin-top:4px">
+                ${
+                  scheda.aggiornato_il
+                    ? 'Aggiornata il ' +
+                      new Date(scheda.aggiornato_il).toLocaleString('it-IT')
+                    : 'Data aggiornamento non disponibile'
+                }
+              </div>
+            </div>
+
+            <span class="bx bok">Solo lettura</span>
+          </div>
+
+          ${
+            campi.length
+              ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px">
+                  ${campi.map(function(entry) {
+                    return `
+                      <div style="padding:9px;background:var(--bg);border-radius:var(--rs)">
+                        <div style="font-size:11px;color:var(--m);margin-bottom:3px">
+                          ${esc(etichettaCampoTecnico(entry[0]))}
+                        </div>
+                        <div style="font-size:13px;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere">
+                          ${esc(valoreSchedaTecnica(entry[1]))}
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>`
+              : '<div class="empty">La scheda non contiene ancora dati.</div>'
           }
         </div>
-      ` : `
-        <div class="al2 i" style="margin-top:12px">
-          Non ancora compilata.
-        </div>
-      `}
-
-      <button
-        class="btn sm p"
-        style="margin-top:14px"
-        onclick="apriSchedaRilevazioneIncendi()"
-      >
-        ${salvata ? 'Modifica scheda' : 'Compila scheda'}
-      </button>
-    </div>
-
-    <div class="empty" style="margin-top:12px">
-      Le prossime famiglie di impianto compariranno qui.
-    </div>
+      `;
+    }).join('')}
   `;
 }
 
@@ -11041,6 +11182,547 @@ async function rimuoviFornitorePreventivo(selezioneId) {
 
   toast('Fornitore rimosso dal preventivo', 'ok');
   await renderFornitoriPreventivo();
+}
+
+
+let vociPreventivoDati = [];
+
+function numeroPreventivo(valore) {
+  const numero = Number(valore);
+  return Number.isFinite(numero) ? numero : 0;
+}
+
+function euroPreventivo(valore) {
+  return numeroPreventivo(valore).toLocaleString('it-IT', {
+    style: 'currency',
+    currency: 'EUR'
+  });
+}
+
+function irHtmlPreventivo(etichetta, contenuto) {
+  return `
+    <div style="padding:8px;background:var(--bg);border-radius:var(--rs)">
+      <div style="font-size:11px;color:var(--m);margin-bottom:2px">
+        ${esc(etichetta)}
+      </div>
+      <div style="font-size:13px;font-weight:500">
+        ${contenuto}
+      </div>
+    </div>
+  `;
+}
+
+function totaleVocePreventivo(voce, tipo) {
+  const quantita = numeroPreventivo(voce.quantita);
+
+  if (tipo === 'costo') {
+    return quantita * numeroPreventivo(voce.costo_unitario);
+  }
+
+  return quantita * numeroPreventivo(voce.prezzo_unitario);
+}
+
+function aggiornaRiepilogoVociPreventivo() {
+  const costo = vociPreventivoDati.reduce(function(totale, voce) {
+    return totale + totaleVocePreventivo(voce, 'costo');
+  }, 0);
+
+  const vendita = vociPreventivoDati.reduce(function(totale, voce) {
+    return totale + totaleVocePreventivo(voce, 'vendita');
+  }, 0);
+
+  const margine = vendita - costo;
+  const marginePerc = vendita > 0 ? (margine / vendita) * 100 : 0;
+
+  const costoEl = ge('pvv-totale-costo');
+  const venditaEl = ge('pvv-totale-vendita');
+  const margineEl = ge('pvv-totale-margine');
+  const marginePercEl = ge('pvv-totale-margine-perc');
+
+  if (costoEl) costoEl.textContent = euroPreventivo(costo);
+  if (venditaEl) venditaEl.textContent = euroPreventivo(vendita);
+  if (margineEl) margineEl.textContent = euroPreventivo(margine);
+  if (marginePercEl) marginePercEl.textContent = marginePerc.toFixed(1) + '%';
+}
+
+function aggiornaCampoVocePreventivo(indice, campo, valore) {
+  if (!vociPreventivoDati[indice]) return;
+
+  const campiNumerici = [
+    'quantita',
+    'costo_unitario',
+    'prezzo_unitario'
+  ];
+
+  vociPreventivoDati[indice][campo] =
+    campiNumerici.includes(campo)
+      ? numeroPreventivo(valore)
+      : valore;
+
+  const voce = vociPreventivoDati[indice];
+
+  const costoRiga = ge('pvv-costo-riga-' + indice);
+  const venditaRiga = ge('pvv-vendita-riga-' + indice);
+  const margineRiga = ge('pvv-margine-riga-' + indice);
+
+  const costo = totaleVocePreventivo(voce, 'costo');
+  const vendita = totaleVocePreventivo(voce, 'vendita');
+  const margine = vendita - costo;
+
+  if (costoRiga) costoRiga.textContent = euroPreventivo(costo);
+  if (venditaRiga) venditaRiga.textContent = euroPreventivo(vendita);
+  if (margineRiga) margineRiga.textContent = euroPreventivo(margine);
+
+  aggiornaRiepilogoVociPreventivo();
+}
+
+function disegnaVociPreventivo() {
+  const box = ge('pvd-costi-content');
+  if (!box) return;
+
+  const costo = vociPreventivoDati.reduce(function(totale, voce) {
+    return totale + totaleVocePreventivo(voce, 'costo');
+  }, 0);
+
+  const vendita = vociPreventivoDati.reduce(function(totale, voce) {
+    return totale + totaleVocePreventivo(voce, 'vendita');
+  }, 0);
+
+  const margine = vendita - costo;
+  const marginePerc = vendita > 0 ? (margine / vendita) * 100 : 0;
+
+  box.innerHTML = `
+    <div class="al2 i" style="margin-bottom:14px">
+      Inserisci materiali, lavorazioni e servizi. I costi sono interni;
+      il prezzo cliente determina imponibile e margine preliminare.
+    </div>
+
+    <div class="g2" style="margin-bottom:16px">
+      ${ir('Costo totale interno', euroPreventivo(costo))}
+      ${ir('Imponibile cliente', euroPreventivo(vendita))}
+      ${ir('Margine preliminare', euroPreventivo(margine))}
+      ${ir('Margine percentuale', marginePerc.toFixed(1) + '%')}
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn sm p" onclick="aggiungiVocePreventivo()">
+        + Aggiungi voce
+      </button>
+
+      <button
+        class="btn sm"
+        ${vociPreventivoDati.length ? '' : 'disabled'}
+        onclick="salvaVociPreventivo()"
+      >
+        💾 Salva voci e totale
+      </button>
+    </div>
+
+    ${
+      !vociPreventivoDati.length
+        ? `<div class="empty">
+            Nessuna voce inserita. Aggiungi materiale, manodopera o un servizio.
+          </div>`
+        : vociPreventivoDati.map(function(voce, indice) {
+            const costoRiga = totaleVocePreventivo(voce, 'costo');
+            const venditaRiga = totaleVocePreventivo(voce, 'vendita');
+            const margineRiga = venditaRiga - costoRiga;
+
+            return `
+              <div class="card" style="margin-bottom:12px">
+                <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px">
+                  <div style="font-size:14px;font-weight:700">
+                    Voce ${indice + 1}
+                  </div>
+
+                  ${
+                    voce.id
+                      ? `<button class="btn sm" style="color:var(--r)" onclick="eliminaVocePreventivo('${voce.id}')">Elimina</button>`
+                      : `<button class="btn sm" style="color:var(--r)" onclick="rimuoviNuovaVocePreventivo(${indice})">Elimina</button>`
+                  }
+                </div>
+
+                <div class="fr">
+                  <div class="f">
+                    <label>Categoria</label>
+                    <select onchange="aggiornaCampoVocePreventivo(${indice}, 'categoria', this.value)">
+                      <option value="materiale" ${voce.categoria === 'materiale' ? 'selected' : ''}>Materiale</option>
+                      <option value="manodopera" ${voce.categoria === 'manodopera' ? 'selected' : ''}>Manodopera</option>
+                      <option value="nolo" ${voce.categoria === 'nolo' ? 'selected' : ''}>Nolo</option>
+                      <option value="trasporto" ${voce.categoria === 'trasporto' ? 'selected' : ''}>Trasporto</option>
+                      <option value="servizio" ${voce.categoria === 'servizio' ? 'selected' : ''}>Servizio</option>
+                      <option value="altro" ${voce.categoria === 'altro' ? 'selected' : ''}>Altro</option>
+                    </select>
+                  </div>
+
+                  <div class="f">
+                    <label>Unità di misura</label>
+                    <input
+                      type="text"
+                      value="${esc(voce.unita_misura || 'pz')}"
+                      placeholder="pz, ora, ml..."
+                      oninput="aggiornaCampoVocePreventivo(${indice}, 'unita_misura', this.value)"
+                    >
+                  </div>
+                </div>
+
+                <div class="f">
+                  <label>Descrizione *</label>
+                  <input
+                    type="text"
+                    value="${esc(voce.descrizione || '')}"
+                    placeholder="Es. Fornitura porta REI 120 completa di posa"
+                    oninput="aggiornaCampoVocePreventivo(${indice}, 'descrizione', this.value)"
+                  >
+                </div>
+
+                <div class="fr">
+                  <div class="f">
+                    <label>Quantità</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value="${numeroPreventivo(voce.quantita)}"
+                      oninput="aggiornaCampoVocePreventivo(${indice}, 'quantita', this.value)"
+                    >
+                  </div>
+
+                  <div class="f">
+                    <label>Costo unitario interno (€)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value="${numeroPreventivo(voce.costo_unitario)}"
+                      oninput="aggiornaCampoVocePreventivo(${indice}, 'costo_unitario', this.value)"
+                    >
+                  </div>
+                </div>
+
+                <div class="f">
+                  <label>Prezzo unitario cliente (€)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value="${numeroPreventivo(voce.prezzo_unitario)}"
+                    oninput="aggiornaCampoVocePreventivo(${indice}, 'prezzo_unitario', this.value)"
+                  >
+                </div>
+
+                <div class="g2">
+                  ${irHtmlPreventivo('Costo riga', `<span id="pvv-costo-riga-${indice}">${euroPreventivo(costoRiga)}</span>`)}
+                  ${irHtmlPreventivo('Totale cliente', `<span id="pvv-vendita-riga-${indice}">${euroPreventivo(venditaRiga)}</span>`)}
+                  ${irHtmlPreventivo('Margine riga', `<span id="pvv-margine-riga-${indice}">${euroPreventivo(margineRiga)}</span>`)}
+                  ${irHtmlPreventivo('Margine %', venditaRiga > 0 ? ((margineRiga / venditaRiga) * 100).toFixed(1) + '%' : '—')}
+                </div>
+              </div>
+            `;
+          }).join('')
+    }
+
+    <div class="card" style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
+        <div>
+          <div style="font-size:15px;font-weight:700">Totali provvisori</div>
+          <div style="font-size:12px;color:var(--m);margin-top:4px">
+            Il titolare potrà applicare sconti e validare l’offerta in seguito.
+          </div>
+        </div>
+
+        <div style="text-align:right">
+          <div style="font-size:12px;color:var(--m)">Imponibile cliente</div>
+          <div id="pvv-totale-vendita" style="font-size:20px;font-weight:700">
+            ${euroPreventivo(vendita)}
+          </div>
+        </div>
+      </div>
+
+      <div class="g2" style="margin-top:14px">
+        ${irHtmlPreventivo('Costo totale interno', `<span id="pvv-totale-costo">${euroPreventivo(costo)}</span>`)}
+        ${irHtmlPreventivo('Margine preliminare', `<span id="pvv-totale-margine">${euroPreventivo(margine)}</span>`)}
+        ${irHtmlPreventivo('Margine percentuale', `<span id="pvv-totale-margine-perc">${marginePerc.toFixed(1)}%</span>`)}
+      </div>
+
+      <button
+        class="btn p"
+        style="margin-top:14px"
+        ${vociPreventivoDati.length ? '' : 'disabled'}
+        onclick="salvaVociPreventivo()"
+      >
+        💾 Salva voci e totale
+      </button>
+    </div>
+  `;
+}
+
+async function renderCostiPreventivo() {
+  const box = ge('pvd-costi-content');
+
+  if (!box || !currentPreventivoId) return;
+
+  box.innerHTML = '<div class="load">Caricamento voci...</div>';
+
+  const { data, error } = await db
+    .from('preventivi_voci')
+    .select('*')
+    .eq('preventivo_id', currentPreventivoId)
+    .order('ordinamento')
+    .order('creato_il');
+
+  if (error) {
+    box.innerHTML = `
+      <div class="al2 e">
+        Errore caricamento voci: ${esc(error.message)}
+      </div>
+    `;
+    return;
+  }
+
+  vociPreventivoDati = data || [];
+  disegnaVociPreventivo();
+}
+
+function aggiungiVocePreventivo() {
+  vociPreventivoDati.push({
+    id: null,
+    categoria: 'materiale',
+    descrizione: '',
+    unita_misura: 'pz',
+    quantita: 1,
+    costo_unitario: 0,
+    prezzo_unitario: 0
+  });
+
+  disegnaVociPreventivo();
+}
+
+function rimuoviNuovaVocePreventivo(indice) {
+  vociPreventivoDati.splice(indice, 1);
+  disegnaVociPreventivo();
+}
+
+async function eliminaVocePreventivo(voceId) {
+  if (!confirm('Eliminare questa voce dal preventivo?')) return;
+
+  const { error } = await db
+    .from('preventivi_voci')
+    .delete()
+    .eq('id', voceId)
+    .eq('preventivo_id', currentPreventivoId);
+
+  if (error) {
+    toast('Errore eliminazione voce: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Voce eliminata', 'ok');
+  await renderCostiPreventivo();
+}
+
+async function salvaVociPreventivo() {
+  const vociNonValide = vociPreventivoDati.some(function(voce) {
+    return !String(voce.descrizione || '').trim();
+  });
+
+  if (vociNonValide) {
+    toast('Inserisci una descrizione per ogni voce', 'err');
+    return;
+  }
+
+  const vociEsistenti = vociPreventivoDati.filter(function(voce) {
+    return voce.id;
+  });
+
+  const vociNuove = vociPreventivoDati.filter(function(voce) {
+    return !voce.id;
+  });
+
+  for (let indice = 0; indice < vociEsistenti.length; indice++) {
+    const voce = vociEsistenti[indice];
+
+    const { error } = await db
+      .from('preventivi_voci')
+      .update({
+        categoria: voce.categoria,
+        descrizione: String(voce.descrizione).trim(),
+        unita_misura: voce.unita_misura || 'pz',
+        quantita: numeroPreventivo(voce.quantita),
+        costo_unitario: numeroPreventivo(voce.costo_unitario),
+        prezzo_unitario: numeroPreventivo(voce.prezzo_unitario),
+        ordinamento: indice,
+        aggiornato_il: new Date().toISOString()
+      })
+      .eq('id', voce.id)
+      .eq('preventivo_id', currentPreventivoId);
+
+    if (error) {
+      toast('Errore salvataggio voce: ' + error.message, 'err');
+      return;
+    }
+  }
+
+  if (vociNuove.length) {
+    const righe = vociNuove.map(function(voce, indice) {
+      return {
+        preventivo_id: currentPreventivoId,
+        categoria: voce.categoria,
+        descrizione: String(voce.descrizione).trim(),
+        unita_misura: voce.unita_misura || 'pz',
+        quantita: numeroPreventivo(voce.quantita),
+        costo_unitario: numeroPreventivo(voce.costo_unitario),
+        prezzo_unitario: numeroPreventivo(voce.prezzo_unitario),
+        ordinamento: vociEsistenti.length + indice
+      };
+    });
+
+    const { error } = await db
+      .from('preventivi_voci')
+      .insert(righe);
+
+    if (error) {
+      toast('Errore inserimento voci: ' + error.message, 'err');
+      return;
+    }
+  }
+
+  const totaleImponibile = vociPreventivoDati.reduce(function(totale, voce) {
+    return totale + totaleVocePreventivo(voce, 'vendita');
+  }, 0);
+
+  const { error: erroreTotale } = await db
+    .from('preventivi')
+    .update({
+      totale_imponibile: totaleImponibile
+    })
+    .eq('id', currentPreventivoId);
+
+  if (erroreTotale) {
+    toast('Voci salvate, ma totale non aggiornato: ' + erroreTotale.message, 'err');
+    return;
+  }
+
+  toast('Voci e totale preventivo salvati', 'ok');
+  await renderCostiPreventivo();
+}
+
+
+async function inviaPreventivoPerApprovazione(preventivoId) {
+  if (!confirm(
+    'Inviare il preventivo al titolare per approvazione? Dopo l’invio non potrai più modificarlo.'
+  )) {
+    return;
+  }
+
+  const { data: preventivo, error: errorePreventivo } = await db
+    .from('preventivi')
+    .select('id,stato,totale_imponibile')
+    .eq('id', preventivoId)
+    .eq('commerciale_id', ME.id)
+    .single();
+
+  if (errorePreventivo || !preventivo) {
+    toast('Preventivo non trovato o non modificabile', 'err');
+    return;
+  }
+
+  if (preventivo.stato !== 'bozza') {
+    toast('Puoi inviare per approvazione solo una bozza', 'err');
+    return;
+  }
+
+  const { count, error: erroreVoci } = await db
+    .from('preventivi_voci')
+    .select('id', { count: 'exact', head: true })
+    .eq('preventivo_id', preventivoId);
+
+  if (erroreVoci) {
+    toast('Errore controllo voci: ' + erroreVoci.message, 'err');
+    return;
+  }
+
+  if (!count || Number(preventivo.totale_imponibile || 0) <= 0) {
+    toast('Inserisci e salva almeno una voce con un prezzo prima dell’invio', 'err');
+    return;
+  }
+
+  const { error } = await db
+    .from('preventivi')
+    .update({
+      stato: 'in_attesa_approvazione'
+    })
+    .eq('id', preventivoId)
+    .eq('commerciale_id', ME.id);
+
+  if (error) {
+    toast('Errore invio per approvazione: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Preventivo inviato al titolare per approvazione', 'ok');
+
+  if (currentPreventivoId === preventivoId) {
+    await openPreventivoDetail(preventivoId);
+  }
+
+  await loadPreventivi();
+}
+
+async function eliminaPreventivo(preventivoId) {
+  if (!confirm(
+    'Eliminare definitivamente questa bozza? Verranno eliminate anche le voci e i fornitori collegati.'
+  )) {
+    return;
+  }
+
+  const { data: preventivo, error: erroreLettura } = await db
+    .from('preventivi')
+    .select('id,stato,progetto_tecnico_id')
+    .eq('id', preventivoId)
+    .eq('commerciale_id', ME.id)
+    .single();
+
+  if (erroreLettura || !preventivo) {
+    toast('Preventivo non trovato', 'err');
+    return;
+  }
+
+  if (preventivo.stato !== 'bozza') {
+    toast('Puoi eliminare solo un preventivo in bozza', 'err');
+    return;
+  }
+
+  const { error } = await db
+    .from('preventivi')
+    .delete()
+    .eq('id', preventivoId)
+    .eq('commerciale_id', ME.id);
+
+  if (error) {
+    toast('Errore eliminazione preventivo: ' + error.message, 'err');
+    return;
+  }
+
+  if (preventivo.progetto_tecnico_id) {
+    await db
+      .from('progetti_tecnici')
+      .update({
+        stato: 'inviato_a_commerciale'
+      })
+      .eq('id', preventivo.progetto_tecnico_id)
+      .eq('stato', 'in_preventivazione');
+  }
+
+  toast('Bozza preventivo eliminata', 'ok');
+
+  if (currentPreventivoId === preventivoId) {
+    currentPreventivoId = null;
+    currentPreventivoProgettoId = null;
+    gotoPage('preventivi');
+  }
+
+  await loadPreventivi();
 }
 
 // ── INIT ──────────────────────────────────────────────────────

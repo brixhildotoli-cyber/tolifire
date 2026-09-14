@@ -1129,17 +1129,17 @@
       📐 Progetto tecnico
     </button>
 
-    <button class="tab" onclick="stab(this,'pvd-schede')">
-      📝 Schede tecniche
-    </button>
+   <button class="tab" onclick="stab(this,'pvd-schede')">
+  📝 Rilievi dell’ingegnere
+</button>
 
     <button class="tab" onclick="stab(this,'pvd-fornitori')">
       🏭 Fornitori
     </button>
 
-    <button class="tab" onclick="stab(this,'pvd-costi')">
-      💶 Costi e margine
-    </button>
+  <button class="tab" onclick="stab(this,'pvd-costi')">
+  💶 Voci e margine
+</button>
   </div>
 
   <div class="tc on" id="pvd-riepilogo">
@@ -1167,10 +1167,10 @@
 </div>
 
   <div class="tc" id="pvd-costi">
-    <div class="empty">
-      Qui costruiremo materiali, manodopera, margine e totale finale.
-    </div>
+  <div id="pvd-costi-content">
+    <div class="load">Caricamento voci...</div>
   </div>
+</div>
 </section>
 
 <!-- FORNITORI -->
@@ -1936,8 +1936,32 @@
       </p>
 
       <hr class="sep">
+    <hr class="sep">
 
-<h4>6. Da nuovo cliente a progetto tecnico</h4>
+<h4>6. Quando un prospect diventa cliente attivo</h4>
+
+<p>
+  Quando il contatto è diventato un cliente effettivo, vai in
+  <b>Clienti</b>, trova la sua scheda e premi <b>Modifica</b>.
+</p>
+
+<p>
+  Nella tab <b>Anagrafica</b>, cambia il campo <b>Stato</b> da
+  <b>Prospect</b> a <b>Attivo</b>, poi premi <b>Salva cliente</b>.
+</p>
+
+<div class="info-esempio">
+  <b>Esempio</b><br>
+  <code>Lead acquisito → Cliente: Prospect</code><br>
+  <code>Cliente confermato → Stato: Attivo</code>
+</div>
+
+<div class="al2 i">
+  I clienti attivi compaiono nei conteggi della dashboard e possono essere
+  gestiti nei flussi operativi, tecnici e amministrativi.
+</div>
+
+<h4>7. Da nuovo cliente a progetto tecnico</h4>
 
 <p>
   Quando un lead diventa concreto, crea o completa il <b>cliente/prospect</b>
