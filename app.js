@@ -7654,11 +7654,17 @@ async function loadProgettiCliente(clienteId) {
   'Modifica' +
 '</button>' +
 
-  (p.stato === 'bozza'
-    ? '<button class="btn sm info" onclick="inviaProgettoAlCommerciale(\'' + p.id + '\')">' +
-        '📤 Invia al commerciale' +
-      '</button>'
-    : '') +
+(richiediVerifica
+  ? '<button class="btn sm info" onclick="inviaProgettoAUfficioTecnico(\'' + p.id + '\')">' +
+      '🔧 Invia a ufficio tecnico' +
+    '</button>'
+  : '') +
+
+(inviaCommerciale
+  ? '<button class="btn sm info" onclick="inviaProgettoAlCommerciale(\'' + p.id + '\')">' +
+      '📤 Invia al commerciale' +
+    '</button>'
+  : '') +
 
   '<button class="btn sm" style="color:var(--r)" onclick="eliminaProgetto(\'' + p.id + '\')">' +
     '🗑 Elimina' +
@@ -9826,6 +9832,44 @@ try {
   await loadVerificheTecniche();
   await loadDashIngegnere();
 }
+
+async function salvaBozzaVerifica() {
+  const progettoId = v('mvt-id');
+  const nota = v('mvt-note').trim() || null;
+
+  if (!progettoId) {
+    toast('Progetto tecnico non selezionato', 'err');
+    return;
+  }
+
+  try {
+    await caricaAllegatiDaVerifica(progettoId);
+  } catch (errore) {
+    toast('Errore caricamento allegati: ' + errore.message, 'err');
+    return;
+  }
+
+const { error } = await db.rpc('salva_bozza_verifica', {
+  p_progetto_id: progettoId,
+  p_nota: nota
+});
+
+  if (error) {
+    toast('Errore salvataggio bozza: ' + error.message, 'err');
+    return;
+  }
+
+  const inputFile = ge('mvt-file');
+
+  if (inputFile) {
+    inputFile.value = '';
+  }
+
+  await caricaAllegatiVerifica(progettoId);
+
+  toast('Bozza verifica salvata', 'ok');
+}
+
 async function caricaAllegatiVerifica(progettoId) {
   const box = ge('mvt-allegati');
 
@@ -9928,7 +9972,8 @@ function togglePasswordLogin() {
 
 let currentPreventivoId = null;
 let currentPreventivoProgettoId = null;
-
+let currentRilievoProgettoId = null;
+let contestoSchedaRilevazione = 'preventivo';
 
 
 async function openPreventivoDetail(preventivoId) {
@@ -10152,13 +10197,54 @@ async function renderSchedePreventivo() {
   `;
 }
 
+async function apriSchedaRilevazioneIngegnere() {
+  const progettoId = v('mvt-id');
+
+  if (!progettoId) {
+    toast('Progetto tecnico non selezionato', 'err');
+    return;
+  }
+
+  currentRilievoProgettoId = progettoId;
+  contestoSchedaRilevazione = 'progetto';
+
+  openM('m-rilievo-tecnico');
+  await apriSchedaRilevazioneIncendi();
+}
+
+function chiudiSchedaRilevazione() {
+  if (contestoSchedaRilevazione === 'progetto') {
+    closeM('m-rilievo-tecnico');
+    return;
+  }
+
+  renderSchedePreventivo();
+}
+
+
 async function apriSchedaRilevazioneIncendi() {
-  const box = ge('pvd-schede-content');
+  const usaProgetto = contestoSchedaRilevazione === 'progetto';
+
+  const box = usaProgetto
+    ? ge('mrt-content')
+    : ge('pvd-schede-content');
+
+  const tabella = usaProgetto
+    ? 'progetti_tecnici_schede'
+    : 'preventivi_schede_tecniche';
+
+  const colonnaId = usaProgetto
+    ? 'progetto_tecnico_id'
+    : 'preventivo_id';
+
+  const riferimentoId = usaProgetto
+    ? currentRilievoProgettoId
+    : currentPreventivoId;
 
   const { data, error } = await db
-    .from('preventivi_schede_tecniche')
+    .from(tabella)
     .select('dati')
-    .eq('preventivo_id', currentPreventivoId)
+    .eq(colonnaId, riferimentoId)
     .eq('famiglia', 'rilevazione_incendi')
     .maybeSingle();
 
@@ -10180,7 +10266,7 @@ async function apriSchedaRilevazioneIncendi() {
         </div>
       </div>
 
-      <button class="btn sm" onclick="renderSchedePreventivo()">
+      <button class="btn sm onclick="chiudiSchedaRilevazione()"">
         ← Schede
       </button>
     </div>
@@ -10386,7 +10472,7 @@ async function apriSchedaRilevazioneIncendi() {
     </div>
 
     <div class="ma" style="margin:18px 0 40px">
-      <button class="btn" onclick="renderSchedePreventivo()">
+      <button class="btn" onclick="chiudiSchedaRilevazione()"">
         Annulla
       </button>
 
@@ -10398,8 +10484,19 @@ async function apriSchedaRilevazioneIncendi() {
 }
 
 async function salvaSchedaRilevazioneIncendi() {
-  if (!currentPreventivoId) {
-    toast('Preventivo non selezionato', 'err');
+  const usaProgetto = contestoSchedaRilevazione === 'progetto';
+
+  const riferimentoId = usaProgetto
+    ? currentRilievoProgettoId
+    : currentPreventivoId;
+
+  if (!riferimentoId) {
+    toast(
+      usaProgetto
+        ? 'Progetto tecnico non selezionato'
+        : 'Preventivo non selezionato',
+      'err'
+    );
     return;
   }
 
@@ -10450,27 +10547,50 @@ async function salvaSchedaRilevazioneIncendi() {
     return;
   }
 
-  const { error } = await db
-    .from('preventivi_schede_tecniche')
-    .upsert(
-      {
-        preventivo_id: currentPreventivoId,
-        famiglia: 'rilevazione_incendi',
-        dati: dati,
-        aggiornato_il: new Date().toISOString()
-      },
-      {
-        onConflict: 'preventivo_id,famiglia'
-      }
-    );
+ const tabella = usaProgetto
+  ? 'progetti_tecnici_schede'
+  : 'preventivi_schede_tecniche';
+
+const riga = usaProgetto
+  ? {
+      progetto_tecnico_id: riferimentoId,
+      famiglia: 'rilevazione_incendi',
+      dati: dati,
+      stato: 'bozza',
+      compilato_da: ME.id,
+      aggiornato_il: new Date().toISOString()
+    }
+  : {
+      preventivo_id: riferimentoId,
+      famiglia: 'rilevazione_incendi',
+      dati: dati,
+      aggiornato_il: new Date().toISOString()
+    };
+
+const { error } = await db
+  .from(tabella)
+  .upsert(
+    riga,
+    {
+      onConflict: usaProgetto
+        ? 'progetto_tecnico_id,famiglia'
+        : 'preventivo_id,famiglia'
+    }
+  );
 
   if (error) {
     toast('Errore salvataggio scheda: ' + error.message, 'err');
     return;
   }
 
-  toast('Scheda rilevazione incendi salvata', 'ok');
-  await renderSchedePreventivo();
+ toast('Scheda rilevazione incendi salvata', 'ok');
+
+if (usaProgetto) {
+  closeM('m-rilievo-tecnico');
+  return;
+}
+
+await renderSchedePreventivo();
 }
 
 async function renderFornitoriPreventivo() {
