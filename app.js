@@ -696,15 +696,22 @@ function gotoPage(id){
 
 async function loadDashCommerciale() {
   const ora = new Date().getHours();
-  const saluto = ora < 12 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
+  const saluto = ora < 12
+    ? 'Buongiorno'
+    : ora < 18
+      ? 'Buon pomeriggio'
+      : 'Buonasera';
 
-  ge('com-greet-nome').textContent = saluto + ', ' + (ME.nome || '');
-  ge('com-greet-data').textContent = new Date().toLocaleDateString('it-IT', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
+  ge('com-greet-nome').textContent =
+    saluto + ', ' + (ME.nome || '');
+
+  ge('com-greet-data').textContent =
+    new Date().toLocaleDateString('it-IT', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
 
   const [
     progettiRicevutiRes,
@@ -737,9 +744,9 @@ async function loadDashCommerciale() {
   ]);
 
   const progetti = progettiRicevutiRes.data || [];
+  const progettiInLavorazione = progettiLavorazioneRes.data || [];
 
   ge('com-k-da-preventivare').textContent = progetti.length;
-  const progettiInLavorazione = progettiLavorazioneRes.data || [];
   ge('com-k-in-lavorazione').textContent = progettiInLavorazione.length;
   ge('com-k-fornitori').textContent = fornitoriRes.count || 0;
   ge('com-k-clienti').textContent = clientiRes.count || 0;
@@ -752,113 +759,79 @@ async function loadDashCommerciale() {
         ✅ Nessun progetto in attesa di preventivo.
       </div>
     `;
-    return;
-  }
+  } else {
+    lista.innerHTML = progetti.slice(0, 5).map(function(progetto) {
+      const data = progetto.creato_il
+        ? new Date(progetto.creato_il).toLocaleString('it-IT', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        : '—';
 
-  lista.innerHTML = progetti.slice(0, 5).map(function(progetto) {
-    const data = progetto.creato_il
-      ? new Date(progetto.creato_il).toLocaleString('it-IT', {
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-      : '—';
+      return `
+        <div style="padding:11px 0;border-bottom:1px solid var(--bo);display:flex;justify-content:space-between;gap:10px;align-items:center">
+          <div>
+            <div style="font-size:13px;font-weight:600">
+              ${esc(progetto.titolo || 'Progetto tecnico')}
+            </div>
 
-    return `
-      <div style="padding:11px 0;border-bottom:1px solid var(--bo);display:flex;justify-content:space-between;gap:10px;align-items:center">
-        <div>
-          <div style="font-size:13px;font-weight:600">${esc(progetto.titolo || 'Progetto tecnico')}</div>
-          <div style="font-size:12px;color:var(--m);margin-top:3px">
-            ${esc(progetto.clienti?.ragione_sociale || 'Cliente non indicato')}
-            · ${esc(progetto.tipologia || 'Tipologia non indicata')}
-            · ricevuto il ${data}
+            <div style="font-size:12px;color:var(--m);margin-top:3px">
+              ${esc(progetto.clienti?.ragione_sociale || 'Cliente non indicato')}
+              · ${esc(progetto.tipologia || 'Tipologia non indicata')}
+              · ricevuto il ${data}
+            </div>
           </div>
-        </div>
 
-        <button class="btn sm info" onclick="gotoPage('progetti-da-preventivare')">
-          Gestisci
-        </button>
-      </div>
-    `;
-  }).join('');
+          <button
+            class="btn sm info"
+            onclick="gotoPage('progetti-da-preventivare')"
+          >
+            Gestisci
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
 
   const listaLavorazione = ge('com-progetti-lavorazione');
 
-if (!progettiInLavorazione.length) {
-  listaLavorazione.innerHTML = `
-    <div class="empty">
-      Nessuna preventivazione attualmente in corso.
-    </div>
-  `;
-} else {
-  listaLavorazione.innerHTML = progettiInLavorazione.slice(0, 5).map(function(progetto) {
-    return `
-      <div style="padding:11px 0;border-bottom:1px solid var(--bo);display:flex;justify-content:space-between;gap:10px;align-items:center">
-        <div>
-          <div style="font-size:13px;font-weight:600">${esc(progetto.titolo || 'Progetto tecnico')}</div>
-          <div style="font-size:12px;color:var(--m);margin-top:3px">
-            ${esc(progetto.clienti?.ragione_sociale || 'Cliente non indicato')}
-            · ${esc(progetto.tipologia || 'Tipologia non indicata')}
+  if (!progettiInLavorazione.length) {
+    listaLavorazione.innerHTML = `
+      <div class="empty">
+        Nessuna preventivazione attualmente in corso.
+      </div>
+    `;
+  } else {
+    listaLavorazione.innerHTML =
+      progettiInLavorazione.slice(0, 5).map(function(progetto) {
+        return `
+          <div style="padding:11px 0;border-bottom:1px solid var(--bo);display:flex;justify-content:space-between;gap:10px;align-items:center">
+            <div>
+              <div style="font-size:13px;font-weight:600">
+                ${esc(progetto.titolo || 'Progetto tecnico')}
+              </div>
+
+              <div style="font-size:12px;color:var(--m);margin-top:3px">
+                ${esc(progetto.clienti?.ragione_sociale || 'Cliente non indicato')}
+                · ${esc(progetto.tipologia || 'Tipologia non indicata')}
+              </div>
+            </div>
+
+            <button
+              class="btn sm info"
+              onclick="gotoPage('preventivi')"
+            >
+              Continua
+            </button>
           </div>
-        </div>
-
-        <button class="btn sm info" onclick="gotoPage('preventivazione')">
-          Continua
-        </button>
-      </div>
-    `;
-  }).join('');
-}
-await renderCalendarioCommerciale();
-
-if (erroreCalendario) {
-  miniCalendario.innerHTML = `
-    <div style="grid-column:1/-1;padding:12px;color:var(--r)">
-      Errore calendario: ${esc(erroreCalendario.message)}
-    </div>
-  `;
-} else {
-  calIngDati = attivitaCalendario || [];
-
-  const attivitaPerData = {};
-
-  calIngDati.forEach(function(attivita) {
-    if (!attivitaPerData[attivita.data]) {
-      attivitaPerData[attivita.data] = [];
-    }
-
-    attivitaPerData[attivita.data].push(attivita);
-  });
-
-  let htmlCalendario = '';
-
-  for (let i = 0; i < 35; i++) {
-    const giorno = new Date(inizioCalendario);
-    giorno.setDate(inizioCalendario.getDate() + i);
-
-    const data = dataLocaleIng(giorno);
-    const attivita = attivitaPerData[data] || [];
-    const livello = attivita.length === 0 ? 0 : attivita.length <= 2 ? 1 : attivita.length <= 4 ? 2 : 3;
-    const oggiClasse = data === dataLocaleIng(new Date()) ? ' today' : '';
-
-    htmlCalendario += `
-      <div class="rap-heatmap-day l${livello}${oggiClasse}"
-        title="${giorno.toLocaleDateString('it-IT', {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long'
-        })}: ${attivita.length} attività"
-        onclick="apriNuovaAttivitaCommerciale('${data}')">
-
-        <span class="n">${giorno.getDate()}</span>
-      </div>
-    `;
+        `;
+      }).join('');
   }
 
-  miniCalendario.innerHTML = htmlCalendario;
-}
+  await renderCalendarioCommerciale();
 }
 var comCalAnno = new Date().getFullYear();
 var comCalMese = new Date().getMonth();
@@ -4209,62 +4182,323 @@ async function aggiornaOdlPiano(odlId, campo, valore) {
 }
 
 // ── SCHEDA CLIENTE ────────────────────────────────────────────
-async function openClienteDetail(id){
-  // Mostra/nascondi bottone nuovo presidio
-  var bp = ge('cli-det-add-presidio');
-  if(bp) bp.style.display = (ROLE==='titolare'||ROLE==='capo_tecnico'||ROLE==='segreteria') ? '' : 'none';
-  // Mostra/nascondi bottone carica file e link cliente
-  var bf = ge('btn-carica-file');
-  if(bf) bf.style.display = (ROLE==='titolare'||ROLE==='segreteria') ? '' : 'none';
-  var bl = ge('cli-det-link');
-  if(bl) bl.style.display = (ROLE==='titolare'||ROLE==='segreteria') ? '' : 'none';
-  currentCliId=id;
-  const cli=CLIS.find(c=>c.id===id);
-  ge('cd-nome').textContent=cli?.ragione_sociale||'Cliente';
-  ge('mpcl').value=id;
+async function openClienteDetail(id) {
+  const schedaSolaLettura = ROLE === 'commerciale';
+  const puoModificare = puoModificareClienti();
+
+  const btnNuovoPresidio = ge('cli-det-add-presidio');
+  const btnCaricaFile = ge('btn-carica-file');
+  const btnLinkCliente = ge('cli-det-link');
+  const btnNuovoProgetto = ge('btn-nuovo-progetto');
+
+  if (btnNuovoPresidio) {
+    btnNuovoPresidio.style.display =
+      schedaSolaLettura
+        ? 'none'
+        : (
+            ROLE === 'titolare' ||
+            ROLE === 'capo_tecnico' ||
+            ROLE === 'segreteria'
+          )
+          ? ''
+          : 'none';
+  }
+
+  if (btnCaricaFile) {
+    btnCaricaFile.style.display =
+      schedaSolaLettura
+        ? 'none'
+        : (
+            ROLE === 'titolare' ||
+            ROLE === 'segreteria'
+          )
+          ? ''
+          : 'none';
+  }
+
+  if (btnLinkCliente) {
+    btnLinkCliente.style.display =
+      schedaSolaLettura
+        ? 'none'
+        : (
+            ROLE === 'titolare' ||
+            ROLE === 'segreteria'
+          )
+          ? ''
+          : 'none';
+  }
+
+  if (btnNuovoProgetto) {
+    btnNuovoProgetto.style.display =
+      schedaSolaLettura ? 'none' : '';
+  }
+
+  currentCliId = id;
+
+  const cli = CLIS.find(function(c) {
+    return c.id === id;
+  });
+
+  ge('cd-nome').textContent =
+    cli?.ragione_sociale || 'Cliente';
+
+  ge('mpcl').value = id;
+
   gotoPage('cliente-detail');
-  document.querySelectorAll('.nb').forEach(n=>n.classList.remove('on'));
-  // Carica tab anagrafica
-  const sediHtml=await loadSediDetail(id);
-  ge('cd-info-content').innerHTML=`
-    <div class="g2" style="margin-bottom:16px">${ir('Ragione sociale',cli?.ragione_sociale)+ir('P.IVA',cli?.piva)+ir('Cod. fiscale',cli?.codice_fiscale)+ir('Referente',cli?.referente_nome)+ir('Telefono',cli?.referente_telefono)+ir('Email',cli?.referente_email)+ir('Città',cli?.citta)+ir('Tipo attività',cli?.tipo_attivita)+ir('Stato',cli?.stato)}</div>
-    ${cli?.note_commerciali?`<div style="padding:12px;background:var(--bg);border-radius:var(--rs);font-size:13px;margin-bottom:16px">${esc(cli.note_commerciali)}</div>`:''}
-    <div style="font-size:13px;font-weight:600;margin-bottom:10px">Sedi</div>
+
+  document.querySelectorAll('.nb').forEach(function(nav) {
+    nav.classList.remove('on');
+  });
+
+  const sediHtml = await loadSediDetail(id);
+
+  ge('cd-info-content').innerHTML = `
+    <div class="g2" style="margin-bottom:16px">
+      ${ir('Ragione sociale', cli?.ragione_sociale)}
+      ${ir('P.IVA', cli?.piva)}
+      ${ir('Cod. fiscale', cli?.codice_fiscale)}
+      ${ir('Referente', cli?.referente_nome)}
+      ${ir('Telefono', cli?.referente_telefono)}
+      ${ir('Email', cli?.referente_email)}
+      ${ir('Città', cli?.citta)}
+      ${ir('Tipo attività', cli?.tipo_attivita)}
+      ${ir('Stato', cli?.stato)}
+    </div>
+
+    ${
+      cli?.note_commerciali
+        ? `<div style="padding:12px;background:var(--bg);border-radius:var(--rs);font-size:13px;margin-bottom:16px">
+             ${esc(cli.note_commerciali)}
+           </div>`
+        : ''
+    }
+
+    <div style="font-size:13px;font-weight:600;margin-bottom:10px">
+      Sedi
+    </div>
+
     ${sediHtml}
-    <div style="font-size:13px;font-weight:600;margin:16px 0 10px">Dati fatturazione</div>
-    <div class="g2">${ir('Rag. soc. fattura',cli?.ragione_sociale_fattura||cli?.ragione_sociale)+ir('Indirizzo fattura',cli?.indirizzo_fattura)+ir('CAP / Città',cli?.cap_fattura?cli.cap_fattura+' '+cli.citta_fattura:cli?.citta_fattura)+ir('Codice SDI',cli?.codice_sdi)+ir('PEC',cli?.pec)+ir('Modalità pagamento',cli?.modalita_pagamento)+ir('Giorni pagamento',(cli?.giorni_pagamento||30)+'gg')+ir('IBAN',cli?.iban)}</div>
-    ${cli?.note_fatturazione?`<div style="padding:12px;background:var(--bg);border-radius:var(--rs);font-size:13px;margin-top:10px">${esc(cli.note_fatturazione)}</div>`:''}
-    <div style="margin-top:14px;display:flex;gap:8px"><button class="btn p sm" onclick="editCliById('${id}')">Modifica cliente</button></div>`;
-  // Carica presidi
-  const {data:pp}=await db.from('impianti').select('*,sedi_cliente(id,tipo,indirizzo,citta)').eq('cliente_id',id).order('tipo').order('matricola');
-  ge('cd-presidi-content').innerHTML=!pp?.length?'<div class="empty">Nessun presidio censito.<br><button class="btn p sm" style="margin-top:10px" onclick="openM(\'m-presidio\')">+ Aggiungi presidio</button></div>':
-    `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">${pp.map(p=>`<div class="pc"><div style="position:absolute;top:12px;right:12px">${si2(p.stato)}</div>
-    <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--m);margin-bottom:4px">${tpl(p.tipo)}</div>
-    <div style="font-size:14px;font-weight:600;margin-bottom:2px">${esc(p.matricola||'—')}</div>
-    ${p.sedi_cliente?`<div style="font-size:11px;color:var(--b);margin-bottom:4px">📍 ${p.sedi_cliente.tipo||''} ${esc(p.sedi_cliente.indirizzo||'')}</div>`:''}
-    <div style="font-size:12px;display:flex;flex-direction:column;gap:4px">
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ubicazione</span><span>${esc(p.ubicazione||'—')}</span></div>
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ultima verifica</span><span>${fd(p.data_ultimo_controllo)}</span></div>
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Prossima</span><span class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)}</span></div>
+
+    <div style="font-size:13px;font-weight:600;margin:16px 0 10px">
+      Dati fatturazione
     </div>
-    <div style="display:flex;gap:6px;margin-top:10px">
-      ${(ROLE==='titolare'||ROLE==='capo_tecnico'||ROLE==='segreteria')?`<button class="btn sm" onclick="editP('${p.id}')">✏️</button>`:''}
-      ${(ROLE==='titolare'||ROLE==='capo_tecnico')?`<button class="btn sm" style="color:var(--r)" onclick="eliminaPresidio('${p.id}')">🗑️</button>`:''}
+
+    <div class="g2">
+      ${ir('Rag. soc. fattura', cli?.ragione_sociale_fattura || cli?.ragione_sociale)}
+      ${ir('Indirizzo fattura', cli?.indirizzo_fattura)}
+      ${ir('CAP / Città', cli?.cap_fattura ? cli.cap_fattura + ' ' + cli.citta_fattura : cli?.citta_fattura)}
+      ${ir('Codice SDI', cli?.codice_sdi)}
+      ${ir('PEC', cli?.pec)}
+      ${ir('Modalità pagamento', cli?.modalita_pagamento)}
+      ${ir('Giorni pagamento', (cli?.giorni_pagamento || 30) + 'gg')}
+      ${ir('IBAN', cli?.iban)}
     </div>
-  </div>`).join('')}</div>`;
-  // Carica interventi
-  const {data:ii}=await db.from('ordini_lavoro').select('*,utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)').eq('cliente_id',id).order('data_pianificata',{ascending:false}).limit(20);
-  ge('cd-interventi-content').innerHTML=!ii?.length?'<div class="empty">Nessun intervento</div>':
-    `<div class="tw"><table><thead><tr><th>N°</th><th>Tipo</th><th>Tecnico</th><th>Data</th><th>Stato</th></tr></thead><tbody>${ii.map(o=>`<tr><td>#${o.numero||'—'}</td><td>${tl(o.tipo)}</td><td>${esc(o.utenti?o.utenti.nome+' '+o.utenti.cognome:'—')}</td><td>${fd(o.data_pianificata)}</td><td>${bs(o.stato)}</td></tr>`).join('')}</tbody></table></div>`;
-  // Carica documenti
-  const {data:ss}=await db.from('schede_lavoro').select('*,utenti!schede_lavoro_tecnico_id_fkey(nome,cognome)').eq('cliente_id',id).order('creato_il',{ascending:false}).limit(20);
-  ge('cd-documenti-content').innerHTML=!ss?.length?'<div class="empty">Nessun documento</div>':
-    `<div class="tw"><table><thead><tr><th>N°</th><th>Tecnico</th><th>Data</th><th>Esito</th><th>Stato</th><th></th></tr></thead><tbody>${ss.map(s=>`<tr><td>#${s.numero||'—'}</td><td>${esc(s.utenti?s.utenti.nome+' '+s.utenti.cognome:'—')}</td><td>${fd(s.data_intervento)}</td><td>${s.esito?be(s.esito):'—'}</td><td>${bs(s.stato)}</td><td><button class="btn sm" onclick="openScheda('${s.id}')">Vedi</button></td></tr>`).join('')}</tbody></table></div>`;
-  // Carica periodicità
+
+    ${
+      cli?.note_fatturazione
+        ? `<div style="padding:12px;background:var(--bg);border-radius:var(--rs);font-size:13px;margin-top:10px">
+             ${esc(cli.note_fatturazione)}
+           </div>`
+        : ''
+    }
+
+    ${
+      puoModificare
+        ? `<div style="margin-top:14px;display:flex;gap:8px">
+             <button class="btn p sm" onclick="editCliById('${id}')">
+               Modifica cliente
+             </button>
+           </div>`
+        : ''
+    }
+  `;
+
+  const { data: presidi } = await db
+    .from('impianti')
+    .select('*, sedi_cliente(id,tipo,indirizzo,citta)')
+    .eq('cliente_id', id)
+    .order('tipo')
+    .order('matricola');
+
+  ge('cd-presidi-content').innerHTML = !presidi?.length
+    ? `
+      <div class="empty">
+        Nessun presidio censito.
+        ${
+          schedaSolaLettura
+            ? ''
+            : `<br>
+               <button
+                 class="btn p sm"
+                 style="margin-top:10px"
+                 onclick="openM('m-presidio')"
+               >
+                 + Aggiungi presidio
+               </button>`
+        }
+      </div>
+    `
+    : `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">
+        ${presidi.map(function(p) {
+          return `
+            <div class="pc">
+              <div style="position:absolute;top:12px;right:12px">
+                ${si2(p.stato)}
+              </div>
+
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--m);margin-bottom:4px">
+                ${tpl(p.tipo)}
+              </div>
+
+              <div style="font-size:14px;font-weight:600;margin-bottom:2px">
+                ${esc(p.matricola || '—')}
+              </div>
+
+              ${
+                p.sedi_cliente
+                  ? `<div style="font-size:11px;color:var(--b);margin-bottom:4px">
+                       📍 ${p.sedi_cliente.tipo || ''} ${esc(p.sedi_cliente.indirizzo || '')}
+                     </div>`
+                  : ''
+              }
+
+              <div style="font-size:12px;display:flex;flex-direction:column;gap:4px">
+                <div style="display:flex;justify-content:space-between">
+                  <span style="color:var(--m)">Ubicazione</span>
+                  <span>${esc(p.ubicazione || '—')}</span>
+                </div>
+
+                <div style="display:flex;justify-content:space-between">
+                  <span style="color:var(--m)">Ultima verifica</span>
+                  <span>${fd(p.data_ultimo_controllo)}</span>
+                </div>
+
+                <div style="display:flex;justify-content:space-between">
+                  <span style="color:var(--m)">Prossima</span>
+                  <span class="${sc(p.data_prossimo_controllo)}">
+                    ${fd(p.data_prossimo_controllo)}
+                  </span>
+                </div>
+              </div>
+
+              ${
+                schedaSolaLettura
+                  ? ''
+                  : `<div style="display:flex;gap:6px;margin-top:10px">
+                       ${
+                         ROLE === 'titolare' ||
+                         ROLE === 'capo_tecnico' ||
+                         ROLE === 'segreteria'
+                           ? `<button class="btn sm" onclick="editP('${p.id}')">✏️</button>`
+                           : ''
+                       }
+
+                       ${
+                         ROLE === 'titolare' || ROLE === 'capo_tecnico'
+                           ? `<button class="btn sm" style="color:var(--r)" onclick="eliminaPresidio('${p.id}')">🗑️</button>`
+                           : ''
+                       }
+                     </div>`
+              }
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+  const { data: interventi } = await db
+    .from('ordini_lavoro')
+    .select('*, utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)')
+    .eq('cliente_id', id)
+    .order('data_pianificata', { ascending: false })
+    .limit(20);
+
+  ge('cd-interventi-content').innerHTML = !interventi?.length
+    ? '<div class="empty">Nessun intervento</div>'
+    : `
+      <div class="tw">
+        <table>
+          <thead>
+            <tr>
+              <th>N°</th>
+              <th>Tipo</th>
+              <th>Tecnico</th>
+              <th>Data</th>
+              <th>Stato</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${interventi.map(function(o) {
+              return `
+                <tr>
+                  <td>#${o.numero || '—'}</td>
+                  <td>${tl(o.tipo)}</td>
+                  <td>${esc(o.utenti ? o.utenti.nome + ' ' + o.utenti.cognome : '—')}</td>
+                  <td>${fd(o.data_pianificata)}</td>
+                  <td>${bs(o.stato)}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+  const { data: schede } = await db
+    .from('schede_lavoro')
+    .select('*, utenti!schede_lavoro_tecnico_id_fkey(nome,cognome)')
+    .eq('cliente_id', id)
+    .order('creato_il', { ascending: false })
+    .limit(20);
+
+  ge('cd-documenti-content').innerHTML = !schede?.length
+    ? '<div class="empty">Nessun documento</div>'
+    : `
+      <div class="tw">
+        <table>
+          <thead>
+            <tr>
+              <th>N°</th>
+              <th>Tecnico</th>
+              <th>Data</th>
+              <th>Esito</th>
+              <th>Stato</th>
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${schede.map(function(s) {
+              return `
+                <tr>
+                  <td>#${s.numero || '—'}</td>
+                  <td>${esc(s.utenti ? s.utenti.nome + ' ' + s.utenti.cognome : '—')}</td>
+                  <td>${fd(s.data_intervento)}</td>
+                  <td>${s.esito ? be(s.esito) : '—'}</td>
+                  <td>${bs(s.stato)}</td>
+                  <td>
+                    <button class="btn sm" onclick="openScheda('${s.id}')">
+                      Vedi
+                    </button>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
   loadPeriodicitaCliente(id);
 }
 
 async function editCliById(id){
+  if (!puoModificareClienti()) {
+  toast('I clienti sono in sola lettura per il tuo ruolo', 'err');
+  return;
+}
   // Cerca prima nel cache locale, poi nel DB
   let c = window._cliMap?.[id] || CLIS.find(x=>x.id===id);
   if(!c){
@@ -4276,7 +4510,17 @@ async function editCliById(id){
 }
 
 // ── CLIENTI ───────────────────────────────────────────────────
+
+function puoModificareClienti() {
+  return ['titolare', 'rappresentante', 'segreteria'].includes(ROLE);
+}
+
 async function loadCli() {
+  const btnNuovoCliente = ge('btn-nuovo-cliente');
+
+if (btnNuovoCliente) {
+  btnNuovoCliente.style.display = puoModificareClienti() ? '' : 'none';
+}
   let query = db
     .from('clienti')
     .select('*')
@@ -4300,27 +4544,80 @@ async function loadCli() {
   ge('cli-count').textContent = `(${CLIS.length} totali)`;
   renderC(CLIS);
 }
-function renderC(data){
-  const tb=ge('ctbody');
-  if(!data.length){tb.innerHTML='<tr><td colspan="5"><div class="empty">Nessun cliente.<br><button class="btn p sm" style="margin-top:10px" onclick="openNewCli()">+ Aggiungi il primo</button></div></td></tr>';return;}
-  // Salva mappa clienti per accesso rapido
-  window._cliMap = Object.fromEntries(data.map(c=>[c.id,c]));
-  tb.innerHTML=data.map(c=>`<tr>
-    <td><strong>${esc(c.ragione_sociale)}</strong>${esc(c.piva)?'<br><span style="font-size:11px;color:var(--m)">P.IVA: '+esc(c.piva)+'</span>':''}</td>
-    <td>${esc(c.referente_email)||esc(c.referente_telefono)?`<span style="font-size:12px">${esc(c.referente_email||'')}<br>${esc(c.referente_telefono||'')}</span>`:'—'}</td>
-    <td>${esc(c.citta||'—')}</td>
-    <td>${bc(c.stato)}</td>
-    <td>
-      <button class="btn sm p" onclick="openClienteDetail('${c.id}')">📋 Scheda</button>
-      ${(ROLE==='titolare'||ROLE==='segreteria')?`<button class="btn sm" onclick="openEditCli('${c.id}')">✏️</button>`:''}
-      ${['titolare', 'rappresentante'].includes(ROLE)
-  ? `<button class="btn sm" style="color:var(--r)" onclick="eliminaCliente('${c.id}')">🗑️ Elimina</button>`
-  : ''
+
+function renderC(data) {
+  const tb = ge('ctbody');
+  const puoModificare = puoModificareClienti();
+
+  if (!data.length) {
+    tb.innerHTML = `
+      <tr>
+        <td colspan="5">
+          <div class="empty">
+            Nessun cliente.
+            ${
+              puoModificare
+                ? '<br><button class="btn p sm" style="margin-top:10px" onclick="openNewCli()">+ Aggiungi il primo</button>'
+                : ''
+            }
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  window._cliMap = Object.fromEntries(data.map(function(c) {
+    return [c.id, c];
+  }));
+
+  tb.innerHTML = data.map(function(c) {
+    return `
+      <tr>
+        <td>
+          <strong>${esc(c.ragione_sociale)}</strong>
+          ${
+            esc(c.piva)
+              ? '<br><span style="font-size:11px;color:var(--m)">P.IVA: ' + esc(c.piva) + '</span>'
+              : ''
+          }
+        </td>
+
+        <td>
+          ${
+            esc(c.referente_email) || esc(c.referente_telefono)
+              ? `<span style="font-size:12px">
+                   ${esc(c.referente_email || '')}<br>
+                   ${esc(c.referente_telefono || '')}
+                 </span>`
+              : '—'
+          }
+        </td>
+
+        <td>${esc(c.citta || '—')}</td>
+        <td>${bc(c.stato)}</td>
+
+        <td style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn sm p" onclick="openClienteDetail('${c.id}')">
+            📋 Scheda
+          </button>
+
+          ${
+            puoModificare
+              ? `<button class="btn sm" onclick="editCliById('${c.id}')">
+                   Modifica
+                 </button>
+                 <button class="btn sm" style="color:var(--r)" onclick="eliminaCliente('${c.id}')">
+                   🗑️ Elimina
+                 </button>`
+              : ''
+          }
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
-      <button class="btn sm" onclick="editCliById('${c.id}')">Modifica</button>
-    </td>
-  </tr>`).join('');
-}
+
 function filterC(){const q=v('csearch').toLowerCase(),s=v('cfilt');renderC(CLIS.filter(c=>(!q||c.ragione_sociale.toLowerCase().includes(q)||(c.referente_email||'').toLowerCase().includes(q)||(c.piva||'').includes(q))&&(!s||c.stato===s)));}
 
 function openEditCli(id) {
@@ -4339,7 +4636,29 @@ function openEditCli(id) {
   openM('m-cli');
 }
 
-function openNewCli(){ge('mcli-title').textContent='Nuovo cliente';ge('mc-edit-id').value='';['mc1','mc2','mc2b','mc3','mc4','mc5','mc6','mc9','mf1','mf2','mf3','mf4','mf5','mf6','mf7','mf9','mf10','mf11'].forEach(id=>{const el=ge(id);if(el)el.value='';});ge('mc7').value='ufficio';ge('mc8').value='attivo';if(ge('mf9'))ge('mf9').value='30';pendingSedi=[];existingSediIds=[];renderSediList();openM('m-cli');}
+function openNewCli(){
+
+  if (!puoModificareClienti()) {
+  toast('I clienti sono in sola lettura per il tuo ruolo', 'err');
+  return;
+}
+
+  ge('mcli-title').textContent='Nuovo cliente';
+  ge('mc-edit-id').value='';
+  ['mc1','mc2','mc2b','mc3','mc4','mc5','mc6','mc9','mf1','mf2','mf3','mf4','mf5','mf6','mf7','mf9','mf10','mf11'].forEach(
+    id=>{
+    const el=ge(id);if(el)el.value='';
+  });
+  ge('mc7').value='ufficio';
+  ge('mc8').value='attivo';
+  if(ge('mf9'))ge('mf9').value='30';
+  pendingSedi=[];
+  existingSediIds=[];
+  renderSediList()
+  ;openM('m-cli');
+}
+
+
 async function editCli(c){
   if(typeof c==='string'){
     try{c=JSON.parse(atob(c));}catch(e){try{c=JSON.parse(c);}catch(e2){}}
@@ -4416,6 +4735,11 @@ async function loadSediForCliente(cliId){
 }
 
 async function saveCliSedi(cliId){
+
+  if (!puoModificareClienti()) {
+  toast('I clienti sono in sola lettura per il tuo ruolo', 'err');
+  return;
+}
   // Elimina tutte le sedi esistenti e reinserisci
   if(existingSediIds.length){
     await db.from('sedi_cliente').delete().in('id',existingSediIds);
@@ -9677,7 +10001,9 @@ if (btnModifica) {
       `;
     }).join('');
   }
-    const { data: cronologia, error: erroreCronologia } = await db
+
+  await renderSchedeProgettoCommerciale(progetto.id);
+  const { data: cronologia, error: erroreCronologia } = await db
     .from('progetti_tecnici_storico')
     .select(`
       id,
@@ -9790,6 +10116,166 @@ function tornaDaSchedaProgetto() {
   gotoPage('progetti');
 }
 
+
+async function renderSchedeProgettoCommerciale(progettoId) {
+  const box = ge('pd-schede-content');
+
+  if (!box) return;
+
+  box.innerHTML =
+    '<div class="load">Caricamento rilievi tecnici...</div>';
+
+  const { data, error } = await db
+    .from('progetti_tecnici_schede')
+    .select(`
+      id,
+      famiglia,
+      dati,
+      stato,
+      compilato_da,
+      aggiornato_il,
+      ultima_modifica_commerciale_il,
+      utenti!progetti_tecnici_schede_compilato_da_fkey(
+        nome,
+        cognome
+      )
+    `)
+    .eq('progetto_tecnico_id', progettoId)
+    .order('aggiornato_il', { ascending: false });
+
+  if (error) {
+    box.innerHTML = `
+      <div class="al2 e">
+        Errore caricamento rilievi: ${esc(error.message)}
+      </div>
+    `;
+    return;
+  }
+
+  if (!data || !data.length) {
+    box.innerHTML = `
+      <div class="empty">
+        L’ingegnere non ha ancora compilato rilievi tecnici.
+      </div>
+    `;
+    return;
+  }
+
+  box.innerHTML = data.map(function(scheda) {
+    const campi = Object.entries(scheda.dati || {}).filter(function(entry) {
+      const valore = entry[1];
+
+      return valore !== null &&
+        valore !== undefined &&
+        valore !== '';
+    });
+
+    const compilatore = scheda.utenti
+      ? [scheda.utenti.nome, scheda.utenti.cognome]
+          .filter(Boolean)
+          .join(' ')
+      : 'Ingegnere';
+
+    const puoModificare =
+      ROLE === 'commerciale' &&
+      scheda.famiglia === 'rilevazione_incendi';
+
+    return `
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px">
+          <div>
+            <div style="font-size:15px;font-weight:700">
+              📝 ${esc(etichettaFamigliaTecnica(scheda.famiglia))}
+            </div>
+
+            <div style="font-size:12px;color:var(--m);margin-top:4px">
+              Compilata da ${esc(compilatore)}
+              ${
+                scheda.aggiornato_il
+                  ? ' · aggiornata il ' +
+                    new Date(scheda.aggiornato_il).toLocaleString('it-IT')
+                  : ''
+              }
+            </div>
+
+            ${
+              scheda.ultima_modifica_commerciale_il
+                ? `
+                  <div style="font-size:12px;color:var(--o);margin-top:3px">
+                    ✏️ Ultima modifica commerciale: ${
+                      new Date(
+                        scheda.ultima_modifica_commerciale_il
+                      ).toLocaleString('it-IT')
+                    }
+                  </div>
+                `
+                : ''
+            }
+          </div>
+
+          ${
+            puoModificare
+              ? `
+                <button
+                  class="btn sm p"
+                  onclick="apriModificaRilievoCommerciale(
+                    '${progettoId}',
+                    '${scheda.famiglia}'
+                  )"
+                >
+                  ✏️ Modifica rilievo
+                </button>
+              `
+              : '<span class="bx bblue">Rilievo tecnico</span>'
+          }
+        </div>
+
+        ${
+          campi.length
+            ? `
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px">
+                ${campi.map(function(entry) {
+                  return `
+                    <div style="padding:9px;background:var(--bg);border-radius:var(--rs)">
+                      <div style="font-size:11px;color:var(--m);margin-bottom:3px">
+                        ${esc(etichettaCampoTecnico(entry[0]))}
+                      </div>
+
+                      <div style="font-size:13px;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere">
+                        ${esc(valoreSchedaTecnica(entry[1]))}
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            `
+            : '<div class="empty">La scheda non contiene dati.</div>'
+        }
+      </div>
+    `;
+  }).join('');
+}
+
+async function apriModificaRilievoCommerciale(progettoId, famiglia) {
+  if (ROLE !== 'commerciale') {
+    toast('Solo il commerciale può modificare questa scheda', 'err');
+    return;
+  }
+
+  if (famiglia !== 'rilevazione_incendi') {
+    toast(
+      'La compilazione per questa famiglia verrà aggiunta nella prossima fase',
+      'err'
+    );
+    return;
+  }
+
+  currentRilievoProgettoId = progettoId;
+  contestoSchedaRilevazione = 'progetto';
+
+  openM('m-rilievo-tecnico');
+  await apriSchedaRilevazioneIncendi();
+}
 
 
 function modificaProgettoDaScheda() {
@@ -10159,7 +10645,88 @@ async function openPreventivoDetail(preventivoId) {
       </div>
     ` : ''}
   `;
+  const { data: allegatiProgetto, error: erroreAllegatiProgetto } = await db
+    .from('progetti_tecnici_allegati')
+    .select('id,nome_file,storage_path,mime_type,dimensione,caricato_il')
+    .eq('progetto_id', preventivo.progetto_tecnico_id)
+    .order('caricato_il', { ascending: false });
 
+  if (erroreAllegatiProgetto) {
+    ge('pvd-progetto-content').innerHTML += `
+      <div class="al2 e" style="margin-top:16px">
+        Errore caricamento allegati progetto:
+        ${esc(erroreAllegatiProgetto.message)}
+      </div>
+    `;
+  } else if (!allegatiProgetto || !allegatiProgetto.length) {
+    ge('pvd-progetto-content').innerHTML += `
+      <div class="empty" style="margin-top:16px">
+        Nessun file allegato al progetto tecnico.
+      </div>
+    `;
+  } else {
+    const fileConLink = await Promise.all(
+      allegatiProgetto.map(async function(file) {
+        const { data } = await db.storage
+          .from('progetti-tecnici')
+          .createSignedUrl(file.storage_path, 3600);
+
+        return {
+          ...file,
+          url: data?.signedUrl || null
+        };
+      })
+    );
+
+    ge('pvd-progetto-content').innerHTML += `
+      <div style="font-size:13px;font-weight:700;margin:18px 0 8px">
+        📎 Allegati del progetto tecnico
+      </div>
+
+      ${fileConLink.map(function(file) {
+        const dataCaricamento = file.caricato_il
+          ? new Date(file.caricato_il).toLocaleString('it-IT')
+          : 'Data non disponibile';
+
+        return `
+          <div class="card" style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
+              <div style="min-width:0">
+                <div style="font-size:13px;font-weight:700;overflow-wrap:anywhere">
+                  📎 ${esc(file.nome_file)}
+                </div>
+
+                <div style="font-size:12px;color:var(--m);margin-top:4px">
+                  ${esc(file.mime_type || 'File')}
+                  · ${esc(dimensioneFileProgetto(file.dimensione))}
+                  · ${esc(dataCaricamento)}
+                </div>
+              </div>
+
+              ${
+                file.url
+                  ? `
+                    <a
+                      class="btn sm p"
+                      href="${file.url}"
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      Apri file
+                    </a>
+                  `
+                  : `
+                    <span style="font-size:12px;color:var(--r)">
+                      File non disponibile
+                    </span>
+                  `
+              }
+            </div>
+          </div>
+        `;
+      }).join('')}
+    `;
+  }
   await renderSchedePreventivo();
   await renderFornitoriPreventivo();
   await renderCostiPreventivo();
@@ -10754,8 +11321,6 @@ const riga = usaProgetto
       progetto_tecnico_id: riferimentoId,
       famiglia: 'rilevazione_incendi',
       dati: dati,
-      stato: 'bozza',
-      compilato_da: ME.id,
       aggiornato_il: new Date().toISOString()
     }
   : {
@@ -10764,6 +11329,17 @@ const riga = usaProgetto
       dati: dati,
       aggiornato_il: new Date().toISOString()
     };
+
+if (usaProgetto && ROLE === 'ingegnere') {
+  riga.stato = 'bozza';
+  riga.compilato_da = ME.id;
+}
+
+if (usaProgetto && ROLE === 'commerciale') {
+  riga.ultima_modifica_commerciale_da = ME.id;
+  riga.ultima_modifica_commerciale_il =
+    new Date().toISOString();
+}
 
 const { error } = await db
   .from(tabella)
@@ -10942,12 +11518,69 @@ async function renderFornitoriPreventivo() {
             </div>
           </div>
 
-          <button
-            class="btn sm p"
-            onclick="salvaDettagliFornitorePreventivo('${s.id}')"
-          >
-            Salva dati fornitore
-          </button>
+         <div
+  style="
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-top:4px
+  "
+>
+  <button
+    class="btn sm p"
+    onclick="salvaDettagliFornitorePreventivo('${s.id}')"
+  >
+    Salva dati fornitore
+  </button>
+
+  <button
+    class="btn sm info"
+    onclick="generaRichiestaQuotazionePDF('${s.id}')"
+  >
+    📄 ${
+      s.richiesta_versione > 0
+        ? 'Rigenera PDF richiesta'
+        : 'Genera PDF richiesta'
+    }
+  </button>
+
+  ${
+    s.richiesta_versione > 0 &&
+    s.stato !== 'richiesta_inviata'
+      ? `
+        <button
+          class="btn sm"
+          onclick="segnaRichiestaFornitoreInviata('${s.id}')"
+        >
+          📤 Segna come inviata
+        </button>
+      `
+      : ''
+  }
+</div>
+
+${
+  s.richiesta_versione > 0
+    ? `
+      <div style="font-size:12px;color:var(--m);margin-top:10px">
+        📄 Richiesta PDF v${s.richiesta_versione}
+        ${
+          s.richiesta_pdf_generato_il
+            ? ' · generata il ' +
+              new Date(s.richiesta_pdf_generato_il).toLocaleString('it-IT')
+            : ''
+        }
+        ${
+          s.richiesta_inviata_il
+            ? ' · inviata il ' +
+              new Date(s.richiesta_inviata_il).toLocaleString('it-IT')
+            : ''
+        }
+      </div>
+    `
+    : ''
+}
 
           ${(f.telefono || f.email) ? `
             <div style="font-size:12px;color:var(--m);margin-top:12px">
@@ -11723,6 +12356,306 @@ async function eliminaPreventivo(preventivoId) {
   }
 
   await loadPreventivi();
+}
+
+
+async function segnaRichiestaFornitoreInviata(selezioneId) {
+  const { error } = await db
+    .from('preventivi_fornitori')
+    .update({
+      stato: 'richiesta_inviata',
+      richiesta_inviata_il: new Date().toISOString(),
+      aggiornato_il: new Date().toISOString()
+    })
+    .eq('id', selezioneId)
+    .eq('preventivo_id', currentPreventivoId);
+
+  if (error) {
+    toast(
+      'Errore aggiornamento stato richiesta: ' + error.message,
+      'err'
+    );
+    return;
+  }
+
+  toast('Richiesta segnata come inviata', 'ok');
+  await renderFornitoriPreventivo();
+}
+
+async function generaRichiestaQuotazionePDF(selezioneId) {
+  if (!window.jspdf) {
+    toast('Libreria PDF non caricata, riprova tra qualche secondo', 'err');
+    return;
+  }
+
+  const [
+    selezioneRes,
+    preventivoRes
+  ] = await Promise.all([
+    db
+      .from('preventivi_fornitori')
+      .select(`
+        id,
+        tipologia,
+        richiesta_versione,
+        fornitori(
+          ragione_sociale,
+          email
+        )
+      `)
+      .eq('id', selezioneId)
+      .eq('preventivo_id', currentPreventivoId)
+      .single(),
+
+    db
+      .from('preventivi')
+      .select(`
+        id,
+        numero,
+        progetto_tecnico_id,
+        progetti_tecnici(
+          tipologia
+        )
+      `)
+      .eq('id', currentPreventivoId)
+      .single()
+  ]);
+
+  if (selezioneRes.error || preventivoRes.error) {
+    toast(
+      'Errore caricamento dati richiesta: ' +
+      (selezioneRes.error?.message || preventivoRes.error?.message),
+      'err'
+    );
+    return;
+  }
+
+  const selezione = selezioneRes.data;
+  const preventivo = preventivoRes.data;
+  const fornitore = selezione.fornitori || {};
+  const progetto = preventivo.progetti_tecnici || {};
+
+  const { data: schede, error: erroreSchede } = await db
+    .from('progetti_tecnici_schede')
+    .select('famiglia,dati,aggiornato_il')
+    .eq('progetto_tecnico_id', preventivo.progetto_tecnico_id)
+    .order('aggiornato_il', { ascending: false });
+
+  if (erroreSchede) {
+    toast(
+      'Errore caricamento rilievi tecnici: ' + erroreSchede.message,
+      'err'
+    );
+    return;
+  }
+
+  const versione = Number(selezione.richiesta_versione || 0) + 1;
+
+  const { jsPDF } = window.jspdf;
+
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  const larghezza = 210;
+  const margine = 16;
+  const larghezzaTesto = larghezza - (margine * 2);
+  let y = 18;
+
+  function nuovaPaginaSeServe(altezzaStimata) {
+    if (y + altezzaStimata <= 280) return;
+
+    doc.addPage();
+    y = 18;
+  }
+
+  function testo(testoDaStampare, dimensione = 10, colore = [30, 30, 30]) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(dimensione);
+    doc.setTextColor(...colore);
+
+    const righe = doc.splitTextToSize(
+      String(testoDaStampare || '—'),
+      larghezzaTesto
+    );
+
+    nuovaPaginaSeServe(righe.length * 5 + 4);
+
+    doc.text(righe, margine, y);
+    y += righe.length * 5 + 4;
+  }
+
+  function titolo(testoTitolo) {
+    nuovaPaginaSeServe(12);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(8, 80, 65);
+    doc.text(testoTitolo, margine, y);
+
+    y += 8;
+  }
+
+  // Intestazione
+  doc.setFillColor(8, 80, 65);
+  doc.rect(0, 0, larghezza, 34, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(255, 255, 255);
+  doc.text('TOLI FIRE', margine, 18);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text('Richiesta di quotazione tecnica', margine, 26);
+
+  y = 45;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.setTextColor(20, 20, 20);
+  doc.text('RICHIESTA QUOTAZIONE', margine, y);
+
+  y += 8;
+
+  testo(
+    'Riferimento richiesta: RQ-' +
+    preventivo.numero +
+    '-V' +
+    versione,
+    10
+  );
+
+  testo(
+    'Data richiesta: ' +
+    new Date().toLocaleDateString('it-IT'),
+    10
+  );
+
+  testo(
+    'Destinatario: ' +
+    (fornitore.ragione_sociale || 'Fornitore'),
+    10
+  );
+
+  if (fornitore.email) {
+    testo('Email destinatario: ' + fornitore.email, 10);
+  }
+
+  y += 4;
+
+  titolo('Oggetto della richiesta');
+
+  testo(
+    'Tipologia: ' +
+    (selezione.tipologia || progetto.tipologia || 'Da definire')
+  );
+
+  testo(
+    'Si richiede quotazione per fornitura, disponibilità, tempi di consegna e condizioni applicabili.'
+  );
+
+  titolo('Dati tecnici per la quotazione');
+
+  if (!schede || !schede.length) {
+    testo(
+      'Non sono presenti rilievi strutturati. Fare riferimento alla tipologia indicata e richiedere eventuali chiarimenti.'
+    );
+  } else {
+    schede.forEach(function(scheda) {
+      titolo(etichettaFamigliaTecnica(scheda.famiglia));
+
+      const campi = Object.entries(scheda.dati || {}).filter(function(entry) {
+        const valore = entry[1];
+
+        return valore !== null &&
+          valore !== undefined &&
+          valore !== '';
+      });
+
+      if (!campi.length) {
+        testo('Nessun dato tecnico compilato.');
+        return;
+      }
+
+      campi.forEach(function(entry) {
+        testo(
+          etichettaCampoTecnico(entry[0]) +
+          ': ' +
+          valoreSchedaTecnica(entry[1]),
+          9
+        );
+      });
+    });
+  }
+
+  titolo('Richiesta al fornitore');
+
+  testo(
+    'Indicare prezzo netto, disponibilità, tempi di consegna, eventuali minimi d’ordine, condizioni di pagamento e note tecniche.'
+  );
+
+  testo(
+    'Questa richiesta non costituisce ordine. Le informazioni contenute sono riservate alla sola formulazione della quotazione.',
+    8,
+    [100, 100, 100]
+  );
+
+  doc.setFontSize(7);
+  doc.setTextColor(120, 120, 120);
+
+  doc.text(
+    'Documento generato il ' +
+    new Date().toLocaleString('it-IT') +
+    ' — Toli Fire',
+    larghezza / 2,
+    290,
+    { align: 'center' }
+  );
+
+  const nomeFornitore = String(
+    fornitore.ragione_sociale || 'fornitore'
+  )
+    .replace(/[^a-z0-9]+/gi, '_')
+    .replace(/^_+|_+$/g, '');
+
+  doc.save(
+    'Richiesta_quotazione_RQ-' +
+    preventivo.numero +
+    '-V' +
+    versione +
+    '_' +
+    nomeFornitore +
+    '.pdf'
+  );
+
+  const { error: erroreAggiornamento } = await db
+    .from('preventivi_fornitori')
+    .update({
+      richiesta_versione: versione,
+      richiesta_pdf_generato_il: new Date().toISOString(),
+      aggiornato_il: new Date().toISOString()
+    })
+    .eq('id', selezioneId)
+    .eq('preventivo_id', currentPreventivoId);
+
+  if (erroreAggiornamento) {
+    toast(
+      'PDF scaricato, ma errore salvataggio versione: ' +
+      erroreAggiornamento.message,
+      'err'
+    );
+    return;
+  }
+
+  toast(
+    'PDF richiesta quotazione v' + versione + ' generato',
+    'ok'
+  );
+
+  await renderFornitoriPreventivo();
 }
 
 // ── INIT ──────────────────────────────────────────────────────

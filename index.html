@@ -523,9 +523,11 @@
         <button class="cal-nav-btn" onclick="calCommercialeNext()">Succ. →</button>
       </div>
 
-      <div class="cal-grid" id="com-mini-calendario">
-        <div class="load">Caricamento calendario...</div>
-      </div>
+     <div class="cal-grid" id="com-mini-calendario">
+  <div class="load" style="grid-column:1/-1">
+    Caricamento calendario...
+  </div>
+</div>
 
       <div style="display:flex;justify-content:flex-end;margin-top:12px">
         <button class="btn sm p" onclick="apriNuovaAttivitaCommerciale()">
@@ -1037,6 +1039,10 @@
       📎 File
     </button>
 
+    <button class="tab" onclick="stab(this,'pd-schede')">
+  📝 Rilievi tecnici
+</button>
+
     <button class="tab" onclick="stab(this,'pd-cronologia')">
   🕘 Cronologia
 </button>
@@ -1057,6 +1063,12 @@
       <div class="load">Caricamento allegati...</div>
     </div>
   </div>
+
+  <div class="tc" id="pd-schede">
+  <div id="pd-schede-content">
+    <div class="load">Caricamento rilievi tecnici...</div>
+  </div>
+</div>
 
   <div class="tc" id="pd-cronologia">
   <div id="pd-cronologia-content">
@@ -1502,7 +1514,25 @@
 
 <!-- CLIENTI -->
 <div class="page" id="pg-clienti">
-  <div class="sh"><div><div class="st">Clienti <span id="cli-count" style="font-size:14px;font-weight:400;color:var(--m)"></span></div></div><button class="btn p" onclick="openNewCli()">+ Nuovo cliente</button></div>
+ <div class="sh">
+  <div>
+    <div class="st">
+      Clienti
+      <span
+        id="cli-count"
+        style="font-size:14px;font-weight:400;color:var(--m)"
+      ></span>
+    </div>
+  </div>
+
+  <button
+    class="btn p"
+    id="btn-nuovo-cliente"
+    onclick="openNewCli()"
+  >
+    + Nuovo cliente
+  </button>
+</div>
   <div class="sb">
     <input type="text" id="csearch" placeholder="Cerca ragione sociale, città, P.IVA..." oninput="filterC()">
     <select id="cfilt" onchange="filterC()" style="width:auto"><option value="">Tutti</option><option value="attivo">Attivi</option><option value="prospect">Prospect</option></select>
@@ -1534,15 +1564,30 @@
   <div class="tc" id="cd-documenti"><div id="cd-documenti-content"><div class="load">Caricamento...</div></div></div>
 
 <div class="tc" id="cd-progetti">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+  <div
+    style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:14px
+    "
+  >
     <div>
-      <div style="font-size:14px;font-weight:600">Progetti tecnici</div>
+      <div style="font-size:14px;font-weight:600">
+        Progetti tecnici
+      </div>
+
       <div style="font-size:12px;color:var(--m);margin-top:2px">
         Studi tecnici e richieste da inviare al commerciale
       </div>
     </div>
 
-    <button class="btn p" onclick="apriNuovoProgetto()">
+    <button
+      class="btn p"
+      id="btn-nuovo-progetto"
+      onclick="apriNuovoProgetto()"
+    >
       + Nuovo progetto
     </button>
   </div>
@@ -1593,6 +1638,7 @@
   </div>
 
   <div class="tc" id="cd-periodicita">
+    
     <!-- CONTRATTO -->
     <div class="card" style="margin-bottom:14px">
       <div style="font-size:14px;font-weight:600;margin-bottom:12px">📄 Contratto di manutenzione</div>
@@ -1680,25 +1726,6 @@
   <div class="tc" id="tc-rd"><div class="tw"><table><thead><tr><th>N°</th><th>Cliente</th><th>Impianto</th><th>Data</th><th>Esito</th><th>Straord.</th><th></th></tr></thead><tbody id="rttbody"></tbody></table></div></div>
 </div>
 
-<!--PROGETTI TECNICI - SEZIONE CLIENTI-->
-<div class="tc" id="cd-progetti">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-    <div>
-      <div style="font-size:14px;font-weight:600">Progetti tecnici</div>
-      <div style="font-size:12px;color:var(--m);margin-top:2px">
-        Studi tecnici e richieste da inviare al commerciale
-      </div>
-    </div>
-
-    <button class="btn p" onclick="apriNuovoProgetto()">
-      + Nuovo progetto
-    </button>
-  </div>
-
-  <div id="cd-progetti-lista">
-    <div class="load">Caricamento...</div>
-  </div>
-</div>
 
 
 <!-- TECNICO -->
@@ -2335,30 +2362,50 @@
 </div>
 
 <div class="mbg" id="m-integrazione-commerciale">
-
   <div class="modal">
-    <button class="x" onclick="closeM('m-integrazione-commerciale')">×</button>
+    <button
+      class="x"
+      onclick="closeM('m-integrazione-commerciale')"
+    >
+      ×
+    </button>
 
-    <h3>↩ Richiedi integrazione</h3>
+    <h3>↩ Richiedi modifica</h3>
 
     <input type="hidden" id="mic-progetto-id">
 
     <div class="f">
-      <label>Modifiche richieste al rappresentante *</label>
+      <label>Invia a *</label>
+
+      <select id="mic-destinatario">
+        <option value="ingegnere">Ufficio tecnico / ingegnere</option>
+        <option value="rappresentante">Rappresentante</option>
+      </select>
+    </div>
+
+    <div class="f">
+      <label>Nota / modifiche richieste *</label>
+
       <textarea
         id="mic-nota"
         rows="6"
-        placeholder="Es.: manca la planimetria del piano terra; specificare quantità e modello delle porte..."
+        placeholder="Es.: verificare il numero di rivelatori, integrare le foto, chiarire i metri di cavo..."
       ></textarea>
     </div>
 
     <div class="ma">
-      <button class="btn" onclick="closeM('m-integrazione-commerciale')">
+      <button
+        class="btn"
+        onclick="closeM('m-integrazione-commerciale')"
+      >
         Annulla
       </button>
 
-      <button class="btn p" onclick="inviaIntegrazioneCommerciale()">
-        ↩ Rimanda al rappresentante
+      <button
+        class="btn p"
+        onclick="inviaIntegrazioneCommerciale()"
+      >
+        ↩ Invia richiesta
       </button>
     </div>
   </div>
@@ -2430,6 +2477,8 @@
     </div>
   </div>
 </div>
+
+
 <!-- FORNITORE -->
 <div class="mbg" id="m-fornitore">
   <div class="modal">
