@@ -6025,6 +6025,7 @@ async function loadImpegniTeamAnonimi() {
 
 
 async function loadDashRappresentante() {
+  caricaAvvisiLeadAssegnate();
   var ora = new Date().getHours();
   var saluto = ora < 14 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
   var el;
@@ -6201,6 +6202,8 @@ var cliIdsArr = erroreClientiRappresentante
   }
 }
 async function loadTrattative() {
+
+  montaLeadSitoTitolare();
   const [clientiRes, pipelineRes] = await Promise.all([
     db
       .from('clienti')
@@ -12671,6 +12674,498 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
 
   await renderFornitoriPreventivo();
 }
+
+let leadSitoCache = [];
+
+function leadSitoEsc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  }[char]));
+}
+
+function leadSitoData(value) {
+  if (!value) return "—";
+
+  return new Date(value).toLocaleString("it-IT", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
+function nomeUtenteLeadSito(id) {
+  if (!id) return "Non assegnata";
+
+  const utente = (UTENTI || []).find((u) => u.id === id);
+
+  return utente
+    ? (utente.nome || utente.email || "Utente")
+    : "Utente non disponibile";
+}
+
+function montaLeadSitoTitolare() {
+  if (ROLE !== "titolare") return;
+
+  const tabs = document.querySelector("#pg-trattative .tabs");
+
+  if (!tabs || document.getElementById("tab-lead-sito")) return;
+
+  tabs.insertAdjacentHTML(
+    "beforeend",
+    `
+      <button
+        class="tab"
+        id="tab-lead-sito"
+        onclick="stab(this,'tr-sito'); loadLeadSito()"
+      >
+        📥 Lead dal sito
+      </button>
+    `,
+  );
+
+  tabs.insertAdjacentHTML(
+    "afterend",
+    `
+      <div class="tc" id="tr-sito">
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:12px;
+            margin:12px 0;
+          "
+        >
+          <div>
+            <b>Richieste ricevute dal sito</b>
+            <div class="muted">
+              Google Ads, form delle pagine servizio, UTM e GCLID.
+            </div>
+          </div>
+
+          <button class="btn" onclick="loadLeadSito()">↻ Aggiorna</button>
+        </div>
+
+        <div id="lead-sito-lista">Apri questa tab per caricare le lead.</div>
+      </div>
+    `,
+  );
+}
+
+async function loadLeadSito() {
+  if (ROLE !== "titolare") return;
+
+  const contenitore = document.getElementById("lead-sito-lista");
+
+  if (!contenitore) return;
+
+  contenitore.innerHTML = "Caricamento lead dal sito...";
+
+  const { data, error } = await db
+    .from("lead_sito")
+    .select("*")
+    .order("creato_il", { ascending: false });
+
+  if (error) {
+    contenitore.innerHTML = `
+      <div class="alert err">
+        Errore caricamento lead sito: ${leadSitoEsc(error.message)}
+      </div>
+    `;
+    return;
+  }
+
+  leadSitoCache = data || [];
+
+  if (!leadSitoCache.length) {
+    contenitore.innerHTML = `
+      <div class="empty">
+        Nessuna lead ricevuta dal sito.
+      </div>
+    `;
+    return;
+  }
+
+  const assegnatari = [
+    ME,
+    ...(UTENTI || []).filter(
+      (u) => u.ruolo === "rappresentante" && u.id !== ME.id && u.attivo !== false,
+    ),
+  ];
+
+  contenitore.innerHTML = leadSitoCache.map((lead) => {
+    const assegnata = Boolean(lead.assegnato_a);
+    const convertita = lead.stato_commerciale === "convertito";
+    const nonQualificata = lead.stato_commerciale === "non_qualificato";
+
+    const opzioniAssegnatario = assegnatari.map((utente) => `
+      <option
+        value="${utente.id}"
+        ${lead.assegnato_a === utente.id ? "selected" : ""}
+      >
+        ${leadSitoEsc(
+          utente.id === ME.id
+            ? `${utente.nome || utente.email} (titolare)`
+            : utente.nome || utente.email,
+        )}
+      </option>
+    `).join("");
+
+    return `
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;gap:12px">
+          <div>
+            <b>${leadSitoEsc(lead.azienda || lead.nome || "Lead sito")}</b>
+            <div class="muted">
+              ${leadSitoEsc(lead.codice)} · ${leadSitoData(lead.creato_il)}
+            </div>
+          </div>
+
+          <span class="badge ${
+            convertita ? "ok" : nonQualificata ? "err" : "info"
+          }">
+            ${leadSitoEsc(lead.stato_commerciale || "da_qualificare")}
+          </span>
+        </div>
+
+        <div style="margin-top:10px">
+          <div><b>Referente:</b> ${leadSitoEsc(lead.nome || "—")}</div>
+          <div><b>Email:</b> ${leadSitoEsc(lead.email || "—")}</div>
+          <div><b>Telefono:</b> ${leadSitoEsc(lead.telefono || "—")}</div>
+          <div><b>Servizio:</b> ${leadSitoEsc(lead.servizio_richiesto || "—")}</div>
+          <div><b>Pagina:</b> ${leadSitoEsc(lead.pagina_provenienza || "—")}</div>
+          <div><b>Fonte rilevata:</b> ${leadSitoEsc(lead.fonte_rilevata || "sconosciuta")}</div>
+          <div><b>GCLID:</b> ${leadSitoEsc(lead.gclid || "non disponibile")}</div>
+          <div><b>Messaggio:</b> ${leadSitoEsc(lead.messaggio || "—")}</div>
+        </div>
+
+        <div style="margin-top:12px">
+          <label>Assegna a</label>
+          <select id="assegna-lead-${lead.id}" ${convertita || nonQualificata ? "disabled" : ""}>
+            <option value="">— scegli assegnatario —</option>
+            ${opzioniAssegnatario}
+          </select>
+        </div>
+
+        <div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap">
+          ${
+            !convertita && !nonQualificata
+              ? `
+              <button
+  class="btn p"
+  onclick="assegnaEInviaLeadSito('${lead.id}')"
+>
+  📨 Assegna e invia
+</button>
+
+                <button
+                  class="btn p"
+                  onclick="convertiLeadSito('${lead.id}')"
+                  ${assegnata ? "" : "disabled"}
+                >
+                  ✓ Converti in prospect
+                </button>
+
+                <button
+                  class="btn danger"
+                  onclick="nonQualificareLeadSito('${lead.id}')"
+                >
+                  ✕ Non qualificata
+                </button>
+              `
+              : ""
+          }
+        </div>
+
+        ${
+          assegnata
+            ? `
+              <div class="muted" style="margin-top:8px">
+                Assegnata a: ${leadSitoEsc(nomeUtenteLeadSito(lead.assegnato_a))}
+              </div>
+            `
+            : ""
+        }
+      </div>
+    `;
+  }).join("");
+}
+
+async function salvaAssegnazioneLeadSito(leadId) {
+  const select = document.getElementById(`assegna-lead-${leadId}`);
+  const assegnatoA = select?.value;
+
+  if (!assegnatoA) {
+    alert("Scegli prima il titolare o un rappresentante.");
+    return;
+  }
+
+  const { error } = await db
+    .from("lead_sito")
+    .update({
+      assegnato_a: assegnatoA,
+      assegnato_il: new Date().toISOString(),
+    })
+    .eq("id", leadId);
+
+  if (error) {
+    alert(`Errore assegnazione: ${error.message}`);
+    return;
+  }
+
+  await loadLeadSito();
+}
+
+async function convertiLeadSito(leadId) {
+  const lead = leadSitoCache.find((item) => item.id === leadId);
+
+  if (!lead) {
+    alert("Lead non trovata. Aggiorna la pagina.");
+    return;
+  }
+
+  if (!lead.assegnato_a) {
+    alert("Prima assegna la lead al titolare o a un rappresentante.");
+    return;
+  }
+
+  if (!confirm(
+    "Convertire questa lead in prospect? Verranno creati cliente e trattativa CRM.",
+  )) {
+    return;
+  }
+
+  const ragioneSociale = lead.azienda?.trim()
+    || lead.nome?.trim()
+    || `Lead sito ${lead.codice}`;
+
+  const nota = [
+    `Lead sito: ${lead.codice}`,
+    `Pagina: ${lead.pagina_provenienza || "—"}`,
+    `Fonte rilevata: ${lead.fonte_rilevata || "sconosciuta"}`,
+    `Fonte dichiarata: ${lead.fonte_dichiarata || "—"}`,
+    `GCLID: ${lead.gclid || "—"}`,
+    lead.messaggio ? `Messaggio: ${lead.messaggio}` : "",
+  ].filter(Boolean).join("\n");
+
+  const { data: cliente, error: erroreCliente } = await db
+    .from("clienti")
+    .insert({
+      ragione_sociale: ragioneSociale,
+      referente_nome: lead.nome || null,
+      referente_email: lead.email || null,
+      referente_telefono: lead.telefono || null,
+      stato: "prospect",
+      rappresentante_id: lead.assegnato_a,
+      note_commerciali: nota,
+    })
+    .select()
+    .single();
+
+  if (erroreCliente) {
+    alert(`Errore creazione prospect: ${erroreCliente.message}`);
+    return;
+  }
+
+  const { data: pipeline, error: errorePipeline } = await db
+    .from("pipeline_crm")
+    .insert({
+      cliente_id: cliente.id,
+      rappresentante_id: lead.assegnato_a,
+      fase: "primo_contatto",
+      fonte_lead: "sito_web",
+      dettaglio_fonte: `Lead sito ${lead.codice} · ${lead.pagina_provenienza || "pagina non disponibile"}`,
+      servizio_richiesto: lead.servizio_richiesto || null,
+      note_trattativa: nota,
+    })
+    .select()
+    .single();
+
+  if (errorePipeline) {
+    alert(
+      `Il prospect è stato creato, ma manca la trattativa: ${errorePipeline.message}`,
+    );
+    return;
+  }
+
+  const { error: erroreLead } = await db
+    .from("lead_sito")
+    .update({
+      stato_commerciale: "convertito",
+      cliente_id: cliente.id,
+      pipeline_id: pipeline.id,
+      qualificato_il: new Date().toISOString(),
+      qualificato_da: ME.id,
+    })
+    .eq("id", lead.id);
+
+  if (erroreLead) {
+    alert(
+      `Prospect e trattativa creati, ma stato lead non aggiornato: ${erroreLead.message}`,
+    );
+    return;
+  }
+
+  alert("Lead convertita in prospect e assegnata correttamente.");
+  await loadLeadSito();
+}
+
+async function nonQualificareLeadSito(leadId) {
+  if (!confirm("Segnare questa lead come non qualificata?")) return;
+
+  const { error } = await db
+    .from("lead_sito")
+    .update({
+      stato_commerciale: "non_qualificato",
+      qualificato_il: new Date().toISOString(),
+      qualificato_da: ME.id,
+    })
+    .eq("id", leadId);
+
+  if (error) {
+    alert(`Errore aggiornamento lead: ${error.message}`);
+    return;
+  }
+
+  await loadLeadSito();
+}
+
+async function caricaAvvisiLeadAssegnate() {
+  if (ROLE !== "rappresentante") return;
+
+  let box = ge("rap-lead-assegnate");
+
+  // Crea il punto sotto “Nuovo sopralluogo” se non esiste già.
+  if (!box) {
+    const pulsanteSopralluogo = document.querySelector(
+      "#pg-dashboard-rapp .rap-primary",
+    );
+
+    if (!pulsanteSopralluogo) return;
+
+    pulsanteSopralluogo.insertAdjacentHTML(
+      "afterend",
+      `<div id="rap-lead-assegnate"></div>`,
+    );
+
+    box = ge("rap-lead-assegnate");
+  }
+
+  const { data: lead, error } = await db
+    .from("pipeline_crm")
+    .select(`
+      id,
+      servizio_richiesto,
+      fase,
+      aggiornato_il,
+      clienti(ragione_sociale)
+    `)
+    .eq("rappresentante_id", ME.id)
+    .eq("fonte_lead", "sito_web")
+    .eq("fase", "primo_contatto")
+    .order("aggiornato_il", { ascending: false });
+
+  if (error || !lead?.length) {
+    box.innerHTML = "";
+    return;
+  }
+
+  const numero = lead.length;
+  const testo = numero === 1
+    ? "Hai 1 nuova lead da contattare"
+    : `Hai ${numero} nuove lead da contattare`;
+
+  box.innerHTML = `
+    <button
+      class="rap-primary"
+      style="background:#b91c1c;margin-top:14px"
+      onclick="gotoPage('trattative')"
+    >
+      <span class="ico">🔴</span>
+
+      <span class="body">
+        <span class="title">${testo}</span>
+        <span class="sub">
+          Lead assegnate dal titolare. Apri Lead e trattative per gestirle.
+        </span>
+      </span>
+
+      <span class="chev">›</span>
+    </button>
+  `;
+}
+
+function toggleLeadAssegnateRapp() {
+  const dettaglio = ge("rap-lead-assegnate-dettaglio");
+
+  if (!dettaglio) return;
+
+  dettaglio.style.display =
+    dettaglio.style.display === "none" ? "block" : "none";
+}
+
+function leadAvvisoEsc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  }[char]));
+}
+
+function leadAvvisoData(value) {
+  if (!value) return "—";
+
+  return new Date(value).toLocaleString("it-IT", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
+async function assegnaEInviaLeadSito(leadId) {
+  const select = document.getElementById(`assegna-lead-${leadId}`);
+  const assegnatoA = select?.value;
+
+  if (!assegnatoA) {
+    alert("Scegli prima il rappresentante a cui inviare la lead.");
+    return;
+  }
+
+  const lead = leadSitoCache.find((item) => item.id === leadId);
+
+  if (!lead) {
+    alert("Lead non trovata. Aggiorna la pagina.");
+    return;
+  }
+
+  if (!confirm(
+    "Assegnare la lead e crearla subito nelle Lead e trattative del rappresentante?",
+  )) {
+    return;
+  }
+
+  const { error } = await db
+    .from("lead_sito")
+    .update({
+      assegnato_a: assegnatoA,
+      assegnato_il: new Date().toISOString(),
+    })
+    .eq("id", leadId);
+
+  if (error) {
+    alert(`Errore assegnazione: ${error.message}`);
+    return;
+  }
+
+  lead.assegnato_a = assegnatoA;
+
+  await convertiLeadSito(leadId);
+}
+
 
 // ── INIT ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',async()=>{
