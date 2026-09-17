@@ -1441,6 +1441,7 @@ function setTitolarePeriodo(p){
 }
 
 async function loadDashTitolare(){
+  caricaAvvisoLeadSitoTitolare();
   var periodo = window._dashTitPeriodo || 'settimana';
   var range = getPeriodoRange(periodo);
   var oggi = new Date(); oggi.setHours(0,0,0,0);
@@ -9521,10 +9522,11 @@ async function loadFornitori() {
 
   box.innerHTML = '<div class="load">Caricamento fornitori...</div>';
 
-  const { data, error } = await db
-    .from('fornitori')
-    .select('*, fornitore_tipologie(*)')
-    .order('ragione_sociale', { ascending: true });
+const { data, error } = await db
+  .from('fornitori')
+  .select('*, fornitore_tipologie(*)')
+  .eq('attivo', true)
+  .order('ragione_sociale', { ascending: true });
 
   if (error) {
     box.innerHTML =
@@ -9662,6 +9664,15 @@ function renderFornitori(lista) {
       Modifica
     </button>
   ` : ''}
+
+  ${ROLE === 'commerciale' ? `
+  <button
+    class="btn sm danger"
+    onclick="eliminaFornitore('${f.id}')"
+  >
+    🗑 Elimina
+  </button>
+` : ''}
 </div>
       </div>
     `;
@@ -13166,6 +13177,107 @@ async function assegnaEInviaLeadSito(leadId) {
   await convertiLeadSito(leadId);
 }
 
+
+async function caricaAvvisoLeadSitoTitolare() {
+  if (ROLE !== "titolare") return;
+
+  let box = ge("tit-avviso-lead-sito");
+
+  if (!box) {
+    const saluto = document.querySelector("#dash-titolare .tit-greet");
+
+    if (!saluto) return;
+
+    saluto.insertAdjacentHTML(
+      "afterend",
+      `<div id="tit-avviso-lead-sito"></div>`,
+    );
+
+    box = ge("tit-avviso-lead-sito");
+  }
+
+  const { count, error } = await db
+    .from("lead_sito")
+    .select("id", { count: "exact", head: true })
+    .in("stato_commerciale", ["da_qualificare", "contattato"]);
+
+  if (error || !count) {
+    box.innerHTML = "";
+    return;
+  }
+
+  const testo = count === 1
+    ? "Hai 1 nuova lead dal sito"
+    : `Hai ${count} nuove lead dal sito`;
+
+  box.innerHTML = `
+    <button
+      class="rap-primary"
+      style="background:#b91c1c;margin:14px 0"
+      onclick="apriLeadSitoDaDashboardTitolare()"
+    >
+      <span class="ico">🔴</span>
+
+      <span class="body">
+        <span class="title">${testo}</span>
+        <span class="sub">
+          Richieste ricevute da moduli sito, Google Ads e pagine servizio.
+        </span>
+      </span>
+
+      <span class="chev">›</span>
+    </button>
+  `;
+}
+
+function apriLeadSitoDaDashboardTitolare() {
+  gotoPage("trattative");
+
+  setTimeout(function () {
+    montaLeadSitoTitolare();
+
+    const tab = ge("tab-lead-sito");
+
+    if (tab) {
+      stab(tab, "tr-sito");
+      loadLeadSito();
+    }
+  }, 150);
+}
+
+async function eliminaFornitore(fornitoreId) {
+  if (ROLE !== 'commerciale') {
+    toast('Non hai i permessi per eliminare fornitori', 'err');
+    return;
+  }
+
+  const fornitore = fornitoriDati.find(function(f) {
+    return f.id === fornitoreId;
+  });
+
+  const nome = fornitore?.ragione_sociale || 'questo fornitore';
+
+  const conferma = confirm(
+    `Vuoi davvero eliminare "${nome}"?\n\n` +
+    'Il fornitore non comparirà più nelle selezioni future. ' +
+    'I collegamenti ai preventivi già creati saranno mantenuti.'
+  );
+
+  if (!conferma) return;
+
+  const { error } = await db
+    .from('fornitori')
+    .update({ attivo: false })
+    .eq('id', fornitoreId);
+
+  if (error) {
+    toast(`Errore eliminazione fornitore: ${error.message}`, 'err');
+    return;
+  }
+
+  toast('Fornitore eliminato correttamente', 'ok');
+  await loadFornitori();
+}
 
 // ── INIT ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',async()=>{
