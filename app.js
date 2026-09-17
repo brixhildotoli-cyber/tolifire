@@ -22,7 +22,7 @@ const PERIO_OPT=['mensile','bimestrale','trimestrale','quadrimestrale','semestra
 const PERIO_MESI={mensile:1,bimestrale:2,trimestrale:3,quadrimestrale:4,semestrale:6,annuale:12,biennale:24};
 
 const NAV={
-  titolare:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'workflow',l:'📋 Da gestire'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'},{id:'impostazioni',l:'Impostazioni'}],
+  titolare:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'workflow',l:'📋 Da gestire'},{id:'interventi',l:'🔧 Interventi'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'},{id:'impostazioni',l:'Impostazioni'}],
   capo_tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'calendario-team',l:'👥 Calendari team'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'Documenti'}],
   segreteria:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'workflow',l:'📋 Da gestire'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'Clienti'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
   contabile:[{id:'dashboard',l:'📊 Dashboard'},{id:'workflow',l:'📅 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
@@ -621,7 +621,7 @@ function buildNav() {
 
 // Pagine accessibili per ruolo
 const PAGINE_RUOLO = {
-  titolare:       ['dashboard','calendario','piano-mensile','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','fornitore-detail', 'tecnico','sopralluogo'],
+  titolare:       ['dashboard','calendario','piano-mensile','trattative','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','fornitore-detail', 'tecnico','sopralluogo'],
   capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','clienti','documenti','cliente-detail'],
   segreteria:     ['dashboard','calendario','workflow','presidi','interventi','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail'],
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
@@ -6275,6 +6275,14 @@ function renderProspectListT(data) {
       ? '<a href="tel:' + esc(c.referente_telefono) + '" class="btn sm">Chiama</a>'
       : '';
 
+    const autore = (UTENTI || []).find(
+    u => u.id === c.rappresentante_id
+  );
+
+const inseritoDa = autore
+  ? `${autore.nome || ''} ${autore.cognome || ''}`.trim()
+  : 'Utente non disponibile';
+
     const fonte = p
       ? (etichetteFonte[p.fonte_lead] || p.fonte_lead || '—')
       : 'Da qualificare';
@@ -6312,6 +6320,12 @@ function renderProspectListT(data) {
       ${richiamo}
       ${valore}
     </div>
+    
+    ${ROLE === 'titolare' ? `
+  <div style="font-size:12px;color:var(--m);margin-top:5px">
+    👤 Inserito da: ${esc(inseritoDa)}
+  </div>
+` : ''}
 
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
       <button class="btn sm" onclick="openClienteDetail('${c.id}')">
