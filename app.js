@@ -11,6 +11,7 @@ let ME=null,ROLE=null,CLIS=[],UTENTI=[],ODLS=[],PA=[],PF=[];
 let _pianoAnno=new Date().getFullYear(),_pianoMese=new Date().getMonth()+1;
 let calCicli=[];
 let currentCliId=null;
+let richiestaProgettiCliente = 0;
 let progettiClienteDati = [];
 let appAnno = new Date().getFullYear();
 let appMese = new Date().getMonth();
@@ -7984,6 +7985,8 @@ async function loadProgettiCliente(clienteId) {
   const lista = ge('cd-progetti-lista');
 
   if (!clienteId || !lista) return;
+  const richiestaId = ++richiestaProgettiCliente;
+  const clienteRichiestoId = clienteId;
 
   lista.innerHTML = '<div class="load">Caricamento...</div>';
 
@@ -7992,6 +7995,14 @@ async function loadProgettiCliente(clienteId) {
     .select('*')
     .eq('cliente_id', clienteId)
     .order('creato_il', { ascending: false });
+
+    // Ignora la risposta se nel frattempo è stata aperta un'altra scheda cliente.
+if (
+  richiestaId !== richiestaProgettiCliente ||
+  currentCliId !== clienteRichiestoId
+) {
+  return;
+}
 
   if (error) {
     lista.innerHTML =
@@ -13196,10 +13207,11 @@ async function caricaAvvisoLeadSitoTitolare() {
     box = ge("tit-avviso-lead-sito");
   }
 
-  const { count, error } = await db
-    .from("lead_sito")
-    .select("id", { count: "exact", head: true })
-    .in("stato_commerciale", ["da_qualificare", "contattato"]);
+ const { count, error } = await db
+  .from("lead_sito")
+  .select("id", { count: "exact", head: true })
+  .in("stato_commerciale", ["da_qualificare", "contattato"])
+  .is("letto_titolare_il", null);
 
   if (error || !count) {
     box.innerHTML = "";
@@ -13230,7 +13242,25 @@ async function caricaAvvisoLeadSitoTitolare() {
   `;
 }
 
-function apriLeadSitoDaDashboardTitolare() {
+async function apriLeadSitoDaDashboardTitolare() {
+  const box = ge("tit-avviso-lead-sito");
+
+  // La nasconde subito graficamente.
+  if (box) box.innerHTML = "";
+
+  // Segna come lette tutte le lead sito ancora da lavorare.
+  const { error } = await db
+    .from("lead_sito")
+    .update({
+      letto_titolare_il: new Date().toISOString(),
+    })
+    .in("stato_commerciale", ["da_qualificare", "contattato"])
+    .is("letto_titolare_il", null);
+
+  if (error) {
+    console.error("Errore lettura notifiche lead sito:", error.message);
+  }
+
   gotoPage("trattative");
 
   setTimeout(function () {
