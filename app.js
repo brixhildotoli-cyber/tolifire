@@ -13198,6 +13198,7 @@ async function caricaAvvisiLeadAssegnate() {
     .eq("rappresentante_id", ME.id)
     .eq("fonte_lead", "sito_web")
     .eq("fase", "primo_contatto")
+    .is("letto_rappresentante_il", null)
     .order("aggiornato_il", { ascending: false });
 
   if (error || !lead?.length) {
@@ -13214,7 +13215,7 @@ async function caricaAvvisiLeadAssegnate() {
     <button
       class="rap-primary"
       style="background:#b91c1c;margin-top:14px"
-      onclick="gotoPage('trattative')"
+      onclick="apriLeadAssegnateDaDashboardRapp()"
     >
       <span class="ico">🔴</span>
 
@@ -13543,6 +13544,33 @@ function apriSopralluoghiDaDashboardTitolare() {
       loadSopralluoghiList();
     }
   }, 150);
+}
+
+async function apriLeadAssegnateDaDashboardRapp() {
+  const box = ge("rap-lead-assegnate");
+
+  // Sparisce subito dalla dashboard.
+  if (box) box.innerHTML = "";
+
+  // Segna come letti gli avvisi del solo rappresentante connesso.
+  const { error } = await db
+    .from("pipeline_crm")
+    .update({
+      letto_rappresentante_il: new Date().toISOString(),
+    })
+    .eq("rappresentante_id", ME.id)
+    .eq("fonte_lead", "sito_web")
+    .eq("fase", "primo_contatto")
+    .is("letto_rappresentante_il", null);
+
+  if (error) {
+    console.error(
+      "Errore lettura notifiche lead assegnate:",
+      error.message
+    );
+  }
+
+  gotoPage("trattative");
 }
 
 // ── INIT ──────────────────────────────────────────────────────
