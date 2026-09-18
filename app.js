@@ -11,6 +11,7 @@ let ME=null,ROLE=null,CLIS=[],UTENTI=[],ODLS=[],PA=[],PF=[];
 let _pianoAnno=new Date().getFullYear(),_pianoMese=new Date().getMonth()+1;
 let calCicli=[];
 let currentCliId=null;
+let paginaPrecedenteCliente = 'clienti';
 let richiestaProgettiCliente = 0;
 let progettiClienteDati = [];
 let appAnno = new Date().getFullYear();
@@ -622,7 +623,7 @@ function buildNav() {
 
 // Pagine accessibili per ruolo
 const PAGINE_RUOLO = {
-  titolare:       ['dashboard','calendario','piano-mensile','trattative','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','fornitore-detail', 'tecnico','sopralluogo'],
+  titolare:       ['dashboard','calendario','piano-mensile','trattative','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','progetto-detail','fornitore-detail', 'tecnico','sopralluogo'],
   capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','clienti','documenti','cliente-detail'],
   segreteria:     ['dashboard','calendario','workflow','presidi','interventi','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail'],
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
@@ -1442,6 +1443,7 @@ function setTitolarePeriodo(p){
 }
 
 async function loadDashTitolare(){
+  caricaCodaCommercialeTitolare();
   caricaAvvisoLeadSitoTitolare();
   var periodo = window._dashTitPeriodo || 'settimana';
   var range = getPeriodoRange(periodo);
@@ -4185,6 +4187,15 @@ async function aggiornaOdlPiano(odlId, campo, valore) {
 
 // ── SCHEDA CLIENTE ────────────────────────────────────────────
 async function openClienteDetail(id) {
+const paginaAttuale = document
+  .querySelector('.page.on')
+  ?.id
+  ?.replace('pg-', '');
+
+if (paginaAttuale && paginaAttuale !== 'cliente-detail') {
+  paginaPrecedenteCliente = paginaAttuale;
+}
+
   const schedaSolaLettura = ROLE === 'commerciale';
   const puoModificare = puoModificareClienti();
 
@@ -6206,19 +6217,36 @@ var cliIdsArr = erroreClientiRappresentante
 async function loadTrattative() {
 
   montaLeadSitoTitolare();
-  const [clientiRes, pipelineRes] = await Promise.all([
-    db
-      .from('clienti')
-      .select('*')
-      .eq('stato', 'prospect')
-      .is('eliminato_il', null)
-      .order('creato_il', { ascending: false }),
 
+ const richieste = [
+  db
+    .from('clienti')
+    .select('*')
+    .eq('stato', 'prospect')
+    .is('eliminato_il', null)
+    .order('creato_il', { ascending: false }),
+
+  db
+    .from('pipeline_crm')
+    .select('*')
+    .order('aggiornato_il', { ascending: false })
+];
+
+// Solo il titolare carica anche i progetti tecnici collegati alle lead.
+if (ROLE === 'titolare') {
+  richieste.push(
     db
-      .from('pipeline_crm')
-      .select('*')
-      .order('aggiornato_il', { ascending: false })
-  ]);
+      .from('progetti_tecnici')
+      .select('id,cliente_id,titolo,tipologia,stato,creato_il')
+      .order('creato_il', { ascending: false })
+  );
+}
+
+const risultati = await Promise.all(richieste);
+
+const clientiRes = risultati[0];
+const pipelineRes = risultati[1];
+const progettiRes = risultati[2];
 
   if (clientiRes.error) {
     toast('Errore caricamento lead: ' + clientiRes.error.message, 'err');
@@ -6233,14 +6261,33 @@ async function loadTrattative() {
     }
   });
 
-  _allProspect = (clientiRes.data || []).map(c => ({
-    ...c,
-    pipeline: pipelinePerCliente[c.id] || null
-  }));
+const progettiPerCliente = {};
+
+if (
+  ROLE === 'titolare' &&
+  progettiRes &&
+  !progettiRes.error
+) {
+  (progettiRes.data || []).forEach(function(progetto) {
+    if (!progettiPerCliente[progetto.cliente_id]) {
+      progettiPerCliente[progetto.cliente_id] = [];
+    }
+
+    progettiPerCliente[progetto.cliente_id].push(progetto);
+  });
+}
+
+ _allProspect = (clientiRes.data || []).map(c => ({
+  ...c,
+  pipeline: pipelinePerCliente[c.id] || null,
+  progettiTecnici: progettiPerCliente[c.id] || []
+}));
+
 _allProspect = _allProspect.filter(c =>
   !c.pipeline || c.pipeline.fase !== 'perso'
 );
-  renderProspectListT(_allProspect);
+
+renderProspectListT(_allProspect);
 }
 
 function renderProspectListT(data) {
@@ -6304,7 +6351,42 @@ const inseritoDa = autore
       ? ' · € ' + Number(p.valore_stimato).toLocaleString('it-IT')
       : '';
 
+
+      const progettiTecnici = c.progettiTecnici || [];
+
+const riepilogoProgetti = (
+  ROLE === 'titolare' &&
+  progettiTecnici.length
+) ? `
+  <div
+    style="
+      margin-top:12px;
+      padding:10px;
+      background:var(--bg);
+      border-radius:8px;
+    "
+  >
+    <div style="font-size:12px;font-weight:700;margin-bottom:7px">
+      📐 Progetti tecnici collegati (${progettiTecnici.length})
+    </div>
+
+    ${progettiTecnici.map(function(progetto) {
+      return `
+        <button
+          class="btn sm"
+          style="margin:0 6px 6px 0"
+          onclick="openProgettoDetail('${progetto.id}')"
+        >
+          📎 ${esc(progetto.titolo || 'Progetto tecnico')}
+          · ${esc(progetto.tipologia || 'Apri allegati')}
+        </button>
+      `;
+    }).join('')}
+  </div>
+` : '';
+
     return `
+
     <div class="card" style="margin-bottom:10px">
     <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
       <div>
@@ -6331,6 +6413,8 @@ const inseritoDa = autore
     👤 Inserito da: ${esc(inseritoDa)}
   </div>
 ` : ''}
+
+    ${riepilogoProgetti}
 
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
       <button class="btn sm" onclick="openClienteDetail('${c.id}')">
@@ -7673,6 +7757,18 @@ async function salvaAppuntamento() {
     toast('Titolo e data/ora di inizio sono obbligatori', 'err');
     return;
   }
+  const fine = v('ma-fine');
+
+if (
+  fine &&
+  new Date(fine).getTime() <= new Date(inizio).getTime()
+) {
+  toast(
+    "L'orario di fine deve essere successivo all'orario di inizio.",
+    'err'
+  );
+  return;
+}
 
   const payload = {
     cliente_id: v('ma-cliente') || null,
@@ -7700,10 +7796,21 @@ async function salvaAppuntamento() {
       .insert(payload);
   }
 
-  if (result.error) {
-    toast('Errore: ' + result.error.message, 'err');
-    return;
+if (result.error) {
+  if (
+    result.error.code === '23514' ||
+    result.error.message.includes('appuntamento_fine_valida')
+  ) {
+    toast(
+      "L'orario di fine deve essere successivo all'orario di inizio.",
+      'err'
+    );
+  } else {
+    toast('Errore salvataggio appuntamento: ' + result.error.message, 'err');
   }
+
+  return;
+}
 
   closeM('m-appuntamento');
   toast(id ? 'Appuntamento aggiornato' : 'Appuntamento creato', 'ok');
@@ -10151,7 +10258,10 @@ function tornaDaSchedaProgetto() {
     gotoPage('verifiche-tecniche');
     return;
   }
-
+if (ROLE === 'titolare') {
+  gotoPage('trattative');
+  return;
+}
   gotoPage('progetti');
 }
 
@@ -13307,6 +13417,132 @@ async function eliminaFornitore(fornitoreId) {
 
   toast('Fornitore eliminato correttamente', 'ok');
   await loadFornitori();
+}
+
+function tornaDaSchedaCliente() {
+  if (
+    paginaPrecedenteCliente &&
+    canAccessPage(paginaPrecedenteCliente)
+  ) {
+    gotoPage(paginaPrecedenteCliente);
+    return;
+  }
+
+  gotoPage('clienti');
+}
+
+async function caricaCodaCommercialeTitolare() {
+  if (ROLE !== 'titolare') return;
+
+  let sezione = ge('tit-coda-commerciale');
+
+  if (!sezione) {
+    const barraPeriodo = document.querySelector(
+      '#dash-titolare .tit-period-bar'
+    );
+
+    if (!barraPeriodo) return;
+
+    barraPeriodo.insertAdjacentHTML(
+      'afterend',
+      `<div id="tit-coda-commerciale"></div>`
+    );
+
+    sezione = ge('tit-coda-commerciale');
+  }
+
+  sezione.innerHTML = `
+    <div class="tit-section" style="margin-top:22px">
+      🎯 Lead e sviluppo commerciale
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card clickable info" onclick="gotoPage('trattative')">
+        <div class="kpi-icon">🎯</div>
+        <div class="kpi-num" id="tit-k-lead-nuovi">—</div>
+        <div class="kpi-label">Nuovi lead</div>
+      </div>
+
+      <div
+        class="kpi-card clickable attention"
+        onclick="apriLeadSitoDaDashboardTitolare()"
+      >
+        <div class="kpi-icon">📥</div>
+        <div class="kpi-num" id="tit-k-lead-sito">—</div>
+        <div class="kpi-label">Lead dal sito</div>
+      </div>
+
+      <div
+        class="kpi-card clickable warn"
+        onclick="apriSopralluoghiDaDashboardTitolare()"
+      >
+        <div class="kpi-icon">🔎</div>
+        <div class="kpi-num" id="tit-k-sopralluoghi">—</div>
+        <div class="kpi-label">Sopralluoghi aperti</div>
+      </div>
+
+      <div class="kpi-card clickable success" onclick="gotoPage('trattative')">
+        <div class="kpi-icon">👥</div>
+        <div class="kpi-num" id="tit-k-prospect">—</div>
+        <div class="kpi-label">Clienti prospect</div>
+      </div>
+    </div>
+  `;
+
+  const [
+    leadNuoviRes,
+    leadSitoRes,
+    sopralluoghiRes,
+    prospectRes
+  ] = await Promise.all([
+    db
+      .from('pipeline_crm')
+      .select('id', { count: 'exact', head: true })
+      .eq('fase', 'primo_contatto'),
+
+    db
+      .from('lead_sito')
+      .select('id', { count: 'exact', head: true })
+      .in('stato_commerciale', ['da_qualificare', 'contattato']),
+
+    db
+      .from('sopralluoghi')
+      .select('id', { count: 'exact', head: true })
+      .is('odl_creato_id', null),
+
+    db
+      .from('clienti')
+      .select('id', { count: 'exact', head: true })
+      .eq('stato', 'prospect')
+      .is('eliminato_il', null)
+  ]);
+
+  ge('tit-k-lead-nuovi').textContent =
+    leadNuoviRes.error ? '—' : (leadNuoviRes.count || 0);
+
+  ge('tit-k-lead-sito').textContent =
+    leadSitoRes.error ? '—' : (leadSitoRes.count || 0);
+
+  ge('tit-k-sopralluoghi').textContent =
+    sopralluoghiRes.error ? '—' : (sopralluoghiRes.count || 0);
+
+  ge('tit-k-prospect').textContent =
+    prospectRes.error ? '—' : (prospectRes.count || 0);
+}
+
+function apriSopralluoghiDaDashboardTitolare() {
+  gotoPage('trattative');
+
+  setTimeout(function() {
+    const tabSopralluoghi = document.querySelector(
+      '#pg-trattative .tabs .tab:nth-child(2)'
+    );
+
+    if (tabSopralluoghi) {
+      stab(tabSopralluoghi, 'tr-s');
+      loadSopralluoghiList();
+    }
+  }, 150);
 }
 
 // ── INIT ──────────────────────────────────────────────────────

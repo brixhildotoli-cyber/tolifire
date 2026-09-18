@@ -881,6 +881,8 @@
       </span>
       <span class="chev">›</span>
     </button>
+<div id="rap-lead-assegnate"></div>
+
     <div class="rap-secondary-row">
       <button class="rap-secondary-btn" onclick="openNewCli()"><span class="ico">👤</span>+ Prospect</button>
       <button class="rap-secondary-btn" onclick="openNuovoOdlVuoto()"><span class="ico">📋</span>+ Intervento da pianificare</button>
@@ -1543,7 +1545,13 @@
 <!-- SCHEDA CLIENTE -->
 <div class="page" id="pg-cliente-detail">
   <div class="sh">
-    <div><button class="btn sm" onclick="gotoPage('clienti')" style="margin-bottom:8px">← Clienti</button><div class="st" id="cd-nome"></div></div>
+  <button
+  class="btn sm"
+  onclick="tornaDaSchedaCliente()"
+  style="margin-bottom:8px"
+>
+  ← Indietro
+</button>
     <div style="display:flex;gap:8px">
       <button class="btn" id="cli-det-link" onclick="copiaLinkCliente(currentCliId)" style="display:none">🔗 Link cliente</button>
       <button class="btn p" id="cli-det-add-presidio" onclick="openM('m-presidio')">+ Nuovo presidio</button>
