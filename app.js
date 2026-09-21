@@ -141,9 +141,21 @@ document.querySelectorAll('.mbg').forEach(function(m){
   }
   ge('lp').style.display = 'flex';
 })();
-function stab(btn,tc){const pg=btn.closest('.page')||btn.closest('.modal')||document;pg.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));pg.querySelectorAll('.tc').forEach(t=>t.classList.remove('on'));btn.classList.add('on');const el=ge(tc);if(el)el.classList.add('on');}
-function sc(d){if(!d)return'';const days=Math.floor((new Date(d+'T00:00:00')-new Date())/86400000);return days<0?'se':days<=30?'se':days<=90?'sw':'si';}
-function dd2(d){if(!d)return'—';const diff=Math.floor((new Date(d+'T00:00:00')-new Date())/86400000);return diff<0?'Scaduto da '+Math.abs(diff)+'gg':diff+'gg';}
+function stab(btn,tc){
+  const pg=btn.closest('.page')||btn.closest('.modal')||document;pg.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  pg.querySelectorAll('.tc').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  const el=ge(tc);if(el)el.classList.add('on');
+}
+function sc(d){if(!d)
+  return'';
+  const days=Math.floor((new Date(d+'T00:00:00')-new Date())/86400000);
+  return days<0?'se':days<=30?'se':days<=90?'sw':'si';
+}
+function dd2(d){if(!d)return'—';
+  const diff=Math.floor((new Date(d+'T00:00:00')-new Date())/86400000);
+  return diff<0?'Scaduto da '+Math.abs(diff)+'gg':diff+'gg';
+}
 function tpl(t){return TIPI_LABEL[t]||t||'—';}
 function tl(t){return{ordinario_programmato:'Manutenzione ordinaria',ordinario_chiamata:'Su chiamata',straordinario:'Straordinario',corso:'Corso antincendio'}[t]||t||'—';}
 function al2(a){return{polvere_abc:'Polvere ABC',co2:'CO₂',schiuma:'Schiuma',idrico:'Idrico'}[a]||a||'—';}
