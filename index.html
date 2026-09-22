@@ -8,6 +8,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -2271,13 +2272,50 @@
     Compila le specifiche rilevate in cantiere.
   </div>
 
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
   <button
     class="btn sm p"
-    style="margin-top:12px"
     onclick="apriSchedaRilevazioneIngegnere()"
   >
     🚨 Compila rilevazione incendi
   </button>
+
+  <button
+    class="btn sm p"
+    onclick="apriSchedaPorteReiIngegnere()"
+  >
+    🚪 Compila porte REI
+  </button>
+  <button
+  class="btn sm p"
+  onclick="apriSchedaEstintoriIngegnere()"
+>
+  🧯 Compila estintori
+</button>
+
+<button
+  class="btn sm p"
+  onclick="apriSchedaCompartimentazioneIngegnere()"
+>
+  🧱 Compila compartimentazione
+</button>
+
+<button
+  class="btn sm p"
+  onclick="apriSchedaVerniceIntumescenteIngegnere()"
+>
+  🎨 Compila vernice intumescente
+</button>
+
+<button
+  class="btn sm p"
+  onclick="apriSchedaImpiantiSpegnimentoIngegnere()"
+>
+  💧 Compila impianti di spegnimento
+</button>
+
+
+</div>
 </div>
 
     <div class="f" style="margin-top:16px">
@@ -2340,19 +2378,6 @@
       >
         ✅ Pronto per preventivo
       </button>
-    </div>
-  </div>
-</div>
-
-<div class="mbg" id="m-rilievo-tecnico">
-  <div class="modal" style="max-width:900px">
-    <div class="mh">
-      <span>📝 Rilievo tecnico</span>
-      <button class="mx" onclick="closeM('m-rilievo-tecnico')">✕</button>
-    </div>
-
-    <div id="mrt-content">
-      <div class="load">Caricamento scheda...</div>
     </div>
   </div>
 </div>

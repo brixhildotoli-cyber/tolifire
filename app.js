@@ -736,7 +736,10 @@ async function loadDashCommerciale() {
     db
       .from('progetti_tecnici')
       .select('id,titolo,tipologia,creato_il,clienti(ragione_sociale)')
-      .eq('stato', 'inviato_a_commerciale')
+      .in('stato', [
+  'inviato_a_commerciale',
+  'pronto_per_preventivo'
+])
       .order('creato_il', { ascending: false }),
 
     db
@@ -8678,7 +8681,10 @@ async function loadProgettiDaPreventivare() {
       rappresentante_id,
       clienti(ragione_sociale)
     `)
-    .eq('stato', 'inviato_a_commerciale')
+    .in('stato', [
+  'inviato_a_commerciale',
+  'pronto_per_preventivo'
+])
     .order('creato_il', { ascending: false });
 
   if (error) {
@@ -8767,35 +8773,53 @@ function apriIntegrazioneCommerciale(progettoId) {
 async function inviaIntegrazioneCommerciale() {
   const progettoId = v('mic-progetto-id');
   const nota = v('mic-nota').trim();
+  const destinatario = v('mic-destinatario');
 
   if (!nota) {
-    toast('Scrivi le modifiche richieste al rappresentante', 'err');
+    toast('Scrivi le modifiche richieste', 'err');
     return;
   }
+
+  const nuovoStato =
+    destinatario === 'ingegnere'
+      ? 'in_verifica_tecnica'
+      : 'da_integrare';
 
   const { data, error } = await db
     .from('progetti_tecnici')
     .update({
-      stato: 'da_integrare',
+      stato: nuovoStato,
       nota_integrazione: nota,
       integrazione_richiesta_da: 'commerciale'
     })
     .eq('id', progettoId)
-    .eq('stato', 'inviato_a_commerciale')
+    .in('stato', [
+  'inviato_a_commerciale',
+  'pronto_per_preventivo'
+])
     .select('id');
 
   if (error || !data?.length) {
     toast(
-      'Errore nel rinvio: ' + (error?.message || 'progetto non aggiornato'),
+      'Errore nel rinvio: ' +
+      (error?.message || 'progetto non aggiornato'),
       'err'
     );
     return;
   }
 
   closeM('m-integrazione-commerciale');
-  toast('Progetto rimandato al rappresentante', 'ok');
+
+  toast(
+    destinatario === 'ingegnere'
+      ? 'Progetto rimandato all’ingegnere'
+      : 'Progetto rimandato al rappresentante',
+    'ok'
+  );
+
   await loadProgettiDaPreventivare();
 }
+
 
 async function avviaPreventivo(progettoId) {
   const { data: esistente, error: erroreEsistente } = await db
@@ -8861,17 +8885,23 @@ async function avviaPreventivo(progettoId) {
     return;
   }
 
-  const { error: erroreStato } = await db
-    .from('progetti_tecnici')
-    .update({ stato: 'in_preventivazione' })
-    .eq('id', progettoId)
-    .eq('stato', 'inviato_a_commerciale');
+const { data: progettoAggiornato, error: erroreStato } = await db
+  .from('progetti_tecnici')
+  .update({ stato: 'in_preventivazione' })
+  .eq('id', progettoId)
+  .in('stato', [
+    'inviato_a_commerciale',
+    'pronto_per_preventivo'
+  ])
+  .select('id');
 
-  if (erroreStato) {
-    toast('Bozza creata, ma errore stato progetto: ' + erroreStato.message, 'err');
-    return;
-  }
-
+if (erroreStato || !progettoAggiornato?.length) {
+  toast(
+    'Bozza creata, ma non è stato possibile aggiornare lo stato del progetto',
+    'err'
+  );
+  return;
+}
   toast('Bozza preventivo n. ' + preventivo.numero + ' creata', 'ok');
 
   await openPreventivoDetail(preventivo.id);
@@ -10278,6 +10308,23 @@ if (ROLE === 'titolare') {
 }
 
 
+function schedaHaDatiCommerciali(scheda) {
+  const dati = scheda?.dati_commerciali;
+
+  return !!dati &&
+    Object.keys(dati).some(function(chiave) {
+      return dati[chiave] !== null &&
+        dati[chiave] !== undefined &&
+        dati[chiave] !== '';
+    });
+}
+
+function datiSchedaDaMostrare(scheda) {
+  return schedaHaDatiCommerciali(scheda)
+    ? scheda.dati_commerciali
+    : (scheda.dati || {});
+}
+
 async function renderSchedeProgettoCommerciale(progettoId) {
   const box = ge('pd-schede-content');
 
@@ -10292,6 +10339,7 @@ async function renderSchedeProgettoCommerciale(progettoId) {
       id,
       famiglia,
       dati,
+      dati_commerciali,
       stato,
       compilato_da,
       aggiornato_il,
@@ -10323,7 +10371,10 @@ async function renderSchedeProgettoCommerciale(progettoId) {
   }
 
   box.innerHTML = data.map(function(scheda) {
-    const campi = Object.entries(scheda.dati || {}).filter(function(entry) {
+    const modificataCommerciale = schedaHaDatiCommerciali(scheda);
+    const datiVisualizzati = datiSchedaDaMostrare(scheda);
+
+    const campi = Object.entries(datiVisualizzati).filter(function(entry) {
       const valore = entry[1];
 
       return valore !== null &&
@@ -10336,10 +10387,6 @@ async function renderSchedeProgettoCommerciale(progettoId) {
           .filter(Boolean)
           .join(' ')
       : 'Ingegnere';
-
-    const puoModificare =
-      ROLE === 'commerciale' &&
-      scheda.famiglia === 'rilevazione_incendi';
 
     return `
       <div class="card" style="margin-bottom:12px">
@@ -10360,14 +10407,10 @@ async function renderSchedeProgettoCommerciale(progettoId) {
             </div>
 
             ${
-              scheda.ultima_modifica_commerciale_il
+              modificataCommerciale
                 ? `
-                  <div style="font-size:12px;color:var(--o);margin-top:3px">
-                    ✏️ Ultima modifica commerciale: ${
-                      new Date(
-                        scheda.ultima_modifica_commerciale_il
-                      ).toLocaleString('it-IT')
-                    }
+                  <div style="font-size:12px;color:var(--o);margin-top:4px">
+                    ✏️ Copia commerciale utilizzata per la richiesta fornitori
                   </div>
                 `
                 : ''
@@ -10375,16 +10418,16 @@ async function renderSchedeProgettoCommerciale(progettoId) {
           </div>
 
           ${
-            puoModificare
+            ROLE === 'commerciale'
               ? `
                 <button
                   class="btn sm p"
-                  onclick="apriModificaRilievoCommerciale(
+                  onclick="apriModificaSchedaCommerciale(
                     '${progettoId}',
                     '${scheda.famiglia}'
                   )"
                 >
-                  ✏️ Modifica rilievo
+                  ✏️ Modifica copia
                 </button>
               `
               : '<span class="bx bblue">Rilievo tecnico</span>'
@@ -10417,25 +10460,131 @@ async function renderSchedeProgettoCommerciale(progettoId) {
   }).join('');
 }
 
-async function apriModificaRilievoCommerciale(progettoId, famiglia) {
+async function apriModificaSchedaCommerciale(progettoId, famiglia) {
   if (ROLE !== 'commerciale') {
-    toast('Solo il commerciale può modificare questa scheda', 'err');
+    toast('Solo il commerciale può modificare la copia', 'err');
     return;
   }
 
-  if (famiglia !== 'rilevazione_incendi') {
+  const { data: scheda, error } = await db
+    .from('progetti_tecnici_schede')
+    .select('id,famiglia,dati,dati_commerciali')
+    .eq('progetto_tecnico_id', progettoId)
+    .eq('famiglia', famiglia)
+    .single();
+
+  if (error || !scheda) {
     toast(
-      'La compilazione per questa famiglia verrà aggiunta nella prossima fase',
+      'Errore apertura scheda: ' +
+      (error?.message || 'scheda non trovata'),
       'err'
     );
     return;
   }
 
-  currentRilievoProgettoId = progettoId;
-  contestoSchedaRilevazione = 'progetto';
+  const datiDaModificare = datiSchedaDaMostrare(scheda);
+  const campi = Object.entries(datiDaModificare);
+
+  const box = ge('mrt-content');
+
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-size:16px;font-weight:700">
+          ✏️ Copia commerciale — ${esc(etichettaFamigliaTecnica(famiglia))}
+        </div>
+
+        <div style="font-size:12px;color:var(--m);margin-top:3px">
+          L’originale compilato dall’ingegnere non verrà modificato.
+        </div>
+      </div>
+
+      <button class="btn sm" onclick="closeM('m-rilievo-tecnico')">
+        ← Indietro
+      </button>
+    </div>
+
+    <div class="al2 i">
+      Le modifiche qui salvate saranno quelle riportate nel PDF anonimo
+      destinato al fornitore.
+    </div>
+
+    <div class="card">
+      ${campi.map(function(entry, indice) {
+        const chiave = entry[0];
+        const valore = entry[1];
+
+        return `
+          <div class="f">
+            <label>${esc(etichettaCampoTecnico(chiave))}</label>
+            <textarea
+              id="msc-campo-${indice}"
+              rows="2"
+            >${esc(String(valore ?? ''))}</textarea>
+          </div>
+        `;
+      }).join('')}
+    </div>
+
+    <div class="ma" style="margin:18px 0 40px">
+      <button class="btn" onclick="closeM('m-rilievo-tecnico')">
+        Annulla
+      </button>
+
+      <button
+        class="btn p"
+        onclick="salvaCopiaSchedaCommerciale(
+          '${progettoId}',
+          '${scheda.id}'
+        )"
+      >
+        Salva copia commerciale
+      </button>
+    </div>
+  `;
+
+  window._campiCopiaCommerciale = campi.map(function(entry) {
+    return entry[0];
+  });
 
   openM('m-rilievo-tecnico');
-  await apriSchedaRilevazioneIncendi();
+}
+
+async function salvaCopiaSchedaCommerciale(progettoId, schedaId) {
+  const chiavi = window._campiCopiaCommerciale || {};
+
+  const datiCommerciali = {};
+
+  chiavi.forEach(function(chiave, indice) {
+    datiCommerciali[chiave] = v('msc-campo-' + indice).trim();
+  });
+
+  const { error } = await db
+    .from('progetti_tecnici_schede')
+    .update({
+      dati_commerciali: datiCommerciali,
+      ultima_modifica_commerciale_da: ME.id,
+      ultima_modifica_commerciale_il: new Date().toISOString()
+    })
+    .eq('id', schedaId)
+    .eq('progetto_tecnico_id', progettoId);
+
+  if (error) {
+    toast('Errore salvataggio copia: ' + error.message, 'err');
+    return;
+  }
+
+  closeM('m-rilievo-tecnico');
+  toast('Copia commerciale salvata', 'ok');
+
+  if (
+  currentPreventivoProgettoId === progettoId &&
+  ge('pg-preventivo-detail')?.classList.contains('on')
+) {
+  await renderSchedePreventivo();
+} else {
+  await renderSchedeProgettoCommerciale(progettoId);
+}
 }
 
 
@@ -10523,21 +10672,25 @@ async function salvaEsitoVerifica(nuovoStato) {
   const progettoId = v('mvt-id');
   const nota = v('mvt-note').trim();
 
-  if (!nota) {
-    toast('Scrivi prima l’esito della verifica tecnica', 'err');
+  if (!progettoId) {
+    toast('Progetto tecnico non selezionato', 'err');
     return;
   }
-try {
-  await caricaAllegatiDaVerifica(progettoId);
-} catch (errore) {
-  toast('Errore caricamento allegati: ' + errore.message, 'err');
-  return;
-}
+
+  try {
+    await caricaAllegatiDaVerifica(progettoId);
+  } catch (errore) {
+    toast('Errore caricamento allegati: ' + errore.message, 'err');
+    return;
+  }
+
+ const statoDaSalvare = nuovoStato;
+
   const { error } = await db.rpc('salva_esito_verifica', {
-  p_progetto_id: progettoId,
-  p_stato: nuovoStato,
-  p_nota: nota
-});
+    p_progetto_id: progettoId,
+    p_stato: statoDaSalvare,
+    p_nota: nota || null
+  });
 
   if (error) {
     toast('Errore salvataggio verifica: ' + error.message, 'err');
@@ -10549,7 +10702,7 @@ try {
   toast(
     nuovoStato === 'da_integrare'
       ? 'Integrazione richiesta al rappresentante'
-      : 'Progetto segnato come pronto per preventivo',
+      : 'Progetto inviato al commerciale',
     'ok'
   );
 
@@ -11039,11 +11192,12 @@ async function renderSchedePreventivo() {
 
   if (!box || !currentPreventivoProgettoId) return;
 
-  box.innerHTML = '<div class="load">Caricamento rilievi dell’ingegnere...</div>';
+  box.innerHTML =
+    '<div class="load">Caricamento rilievi dell’ingegnere...</div>';
 
   const { data, error } = await db
     .from('progetti_tecnici_schede')
-    .select('id,famiglia,dati,stato,aggiornato_il')
+    .select('id,famiglia,dati,dati_commerciali,stato,aggiornato_il')
     .eq('progetto_tecnico_id', currentPreventivoProgettoId)
     .order('aggiornato_il', { ascending: false });
 
@@ -11067,15 +11221,20 @@ async function renderSchedePreventivo() {
 
   box.innerHTML = `
     <div class="al2 i" style="margin-bottom:14px">
-      🔒 Queste informazioni sono compilate dall’ingegnere e sono in sola lettura.
-      Se manca qualcosa, usa “Richiedi integrazione” nel progetto.
+      📝 I rilievi originali dell’ingegnere restano invariati.
+      Il commerciale può modificare la copia destinata ai fornitori.
     </div>
 
     ${data.map(function(scheda) {
-      const campi = Object.entries(scheda.dati || {})
+      const modificataCommerciale = schedaHaDatiCommerciali(scheda);
+      const datiVisualizzati = datiSchedaDaMostrare(scheda);
+
+      const campi = Object.entries(datiVisualizzati)
         .filter(function(entry) {
           const valore = entry[1];
-          return valore !== null && valore !== undefined && valore !== '';
+          return valore !== null &&
+            valore !== undefined &&
+            valore !== '';
         });
 
       return `
@@ -11094,27 +11253,54 @@ async function renderSchedePreventivo() {
                     : 'Data aggiornamento non disponibile'
                 }
               </div>
+
+              ${
+                modificataCommerciale
+                  ? `
+                    <div style="font-size:12px;color:var(--o);margin-top:4px">
+                      ✏️ Copia commerciale attiva
+                    </div>
+                  `
+                  : ''
+              }
             </div>
 
-            <span class="bx bok">Solo lettura</span>
+            ${
+              ROLE === 'commerciale'
+                ? `
+                  <button
+                    class="btn sm p"
+                    onclick="apriModificaSchedaCommerciale(
+                      '${currentPreventivoProgettoId}',
+                      '${scheda.famiglia}'
+                    )"
+                  >
+                    ✏️ Modifica copia
+                  </button>
+                `
+                : '<span class="bx bok">Solo lettura</span>'
+            }
           </div>
 
           ${
             campi.length
-              ? `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px">
+              ? `
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px">
                   ${campi.map(function(entry) {
                     return `
                       <div style="padding:9px;background:var(--bg);border-radius:var(--rs)">
                         <div style="font-size:11px;color:var(--m);margin-bottom:3px">
                           ${esc(etichettaCampoTecnico(entry[0]))}
                         </div>
+
                         <div style="font-size:13px;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere">
                           ${esc(valoreSchedaTecnica(entry[1]))}
                         </div>
                       </div>
                     `;
                   }).join('')}
-                </div>`
+                </div>
+              `
               : '<div class="empty">La scheda non contiene ancora dati.</div>'
           }
         </div>
@@ -11147,6 +11333,519 @@ function chiudiSchedaRilevazione() {
   renderSchedePreventivo();
 }
 
+async function apriSchedaPorteReiIngegnere() {
+  const progettoId = v('mvt-id');
+
+  if (!progettoId) {
+    toast('Progetto tecnico non selezionato', 'err');
+    return;
+  }
+
+  currentRilievoProgettoId = progettoId;
+
+  openM('m-rilievo-tecnico');
+  await apriSchedaPorteRei();
+}
+
+function chiudiSchedaPorteRei() {
+  closeM('m-rilievo-tecnico');
+}
+
+async function apriSchedaPorteRei() {
+  const box = ge('mrt-content');
+
+  const { data, error } = await db
+    .from('progetti_tecnici_schede')
+    .select('dati')
+    .eq('progetto_tecnico_id', currentRilievoProgettoId)
+    .eq('famiglia', 'porte_rei')
+    .maybeSingle();
+
+  if (error) {
+    toast('Errore apertura scheda: ' + error.message, 'err');
+    return;
+  }
+
+  const d = data?.dati || {};
+
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-size:16px;font-weight:700">
+          🚪 Porte e portoni REI
+        </div>
+
+        <div style="font-size:12px;color:var(--m);margin-top:3px">
+          Fornitura e posa di porte tagliafuoco certificate.
+        </div>
+      </div>
+
+      <button class="btn sm" onclick="chiudiSchedaPorteRei()">
+        ← Indietro
+      </button>
+    </div>
+
+    <div class="rap-section">1. Intervento richiesto</div>
+
+    <div class="card">
+      <div class="fr">
+        ${selectPreventivo('Tipo di intervento *', 'pr-tipo-intervento', d.tipo_intervento || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'fornitura_e_posa', label: 'Fornitura e posa' },
+          { value: 'sostituzione', label: 'Sostituzione porta esistente' },
+          { value: 'adeguamento', label: 'Adeguamento' },
+          { value: 'manutenzione', label: 'Manutenzione' }
+        ])}
+
+        ${selectPreventivo('Resistenza al fuoco richiesta *', 'pr-rei', d.rei || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'rei_60', label: 'REI 60' },
+          { value: 'rei_90', label: 'REI 90' },
+          { value: 'rei_120', label: 'REI 120' },
+          { value: 'classe_superiore', label: 'Classe superiore / da definire' }
+        ])}
+      </div>
+    </div>
+
+    <div class="rap-section">2. Dati della porta</div>
+
+    <div class="card">
+      <div class="fr">
+        ${selectPreventivo('Tipologia *', 'pr-tipologia', d.tipologia || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'battente_singolo', label: 'Battente singolo' },
+          { value: 'battente_doppio', label: 'Battente doppio' },
+          { value: 'scorrevole', label: 'Scorrevole' },
+          { value: 'portone', label: 'Portone' },
+          { value: 'serranda', label: 'Serranda' },
+          { value: 'altro', label: 'Altro' }
+        ])}
+
+        ${campoPreventivo('Quantità *', 'pr-quantita', d.quantita, 'number')}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo('Larghezza (cm) *', 'pr-larghezza', d.larghezza, 'number', 'Es. 120')}
+        ${campoPreventivo('Altezza (cm) *', 'pr-altezza', d.altezza, 'number', 'Es. 210')}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo('Colore / finitura *', 'pr-colore', d.colore, 'text', 'Es. bianco RAL 9010')}
+
+        ${selectPreventivo('Maniglione antipanico', 'pr-maniglione', d.maniglione || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'si', label: 'Sì' },
+          { value: 'no', label: 'No' },
+          { value: 'da_definire', label: 'Da definire' }
+        ])}
+      </div>
+    </div>
+
+    <div class="rap-section">3. Vano e parete</div>
+
+    <div class="card">
+      <div class="fr">
+        ${selectPreventivo('Tipo di parete', 'pr-parete', d.parete || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'muratura', label: 'Muratura' },
+          { value: 'cemento_armato', label: 'Cemento armato' },
+          { value: 'cartongesso', label: 'Cartongesso' },
+          { value: 'altro', label: 'Altro / da verificare' }
+        ])}
+
+        ${campoPreventivo('Spessore parete (mm)', 'pr-spessore-parete', d.spessore_parete, 'number')}
+      </div>
+
+      <div class="fr">
+        ${selectPreventivo('Verso di apertura', 'pr-verso-apertura', d.verso_apertura || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'interno', label: 'Verso interno' },
+          { value: 'esterno', label: 'Verso esterno' },
+          { value: 'destra', label: 'Destra' },
+          { value: 'sinistra', label: 'Sinistra' },
+          { value: 'da_verificare', label: 'Da verificare' }
+        ])}
+
+        ${selectPreventivo('Stato vano', 'pr-stato-vano', d.stato_vano || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'pronto', label: 'Pronto per posa' },
+          { value: 'da_adeguare', label: 'Da adeguare' },
+          { value: 'da_verificare', label: 'Da verificare' }
+        ])}
+      </div>
+
+      ${areaPreventivo(
+        'Note su vano, muratura, misure o criticità',
+        'pr-note-vano',
+        d.note_vano,
+        'Indica eventuali difformità, opere murarie o verifiche necessarie.'
+      )}
+    </div>
+
+    <div class="rap-section">4. Posa e logistica</div>
+
+    <div class="card">
+      <div class="fr">
+        ${campoPreventivo('Piano / area di installazione', 'pr-piano', d.piano, 'text', 'Es. piano terra, magazzino')}
+        ${selectPreventivo('Smontaggio e smaltimento porta esistente', 'pr-smaltimento', d.smaltimento || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'si', label: 'Sì' },
+          { value: 'no', label: 'No' },
+          { value: 'da_definire', label: 'Da definire' }
+        ])}
+      </div>
+
+      ${areaPreventivo(
+        'Accesso, trasporto, opere murarie/elettriche e difficoltà di posa',
+        'pr-logistica',
+        d.logistica,
+        'Scale, ascensore, PLE, fasce orarie, ripristini, demolizioni...'
+      )}
+    </div>
+
+    <div class="rap-section">5. Note tecniche</div>
+
+    <div class="card">
+      ${areaPreventivo(
+        'Indicazioni per preventivo e posa',
+        'pr-note-tecniche',
+        d.note_tecniche,
+        'Lavorazioni incluse, esclusioni, tempi, criticità e note interne.'
+      )}
+    </div>
+
+    <div class="ma" style="margin:18px 0 40px">
+      <button class="btn" onclick="chiudiSchedaPorteRei()">
+        Annulla
+      </button>
+
+      <button class="btn p" onclick="salvaSchedaPorteRei()">
+        Salva scheda Porte REI
+      </button>
+    </div>
+  `;
+}
+
+async function salvaSchedaPorteRei() {
+  if (!currentRilievoProgettoId) {
+    toast('Progetto tecnico non selezionato', 'err');
+    return;
+  }
+
+  const dati = {
+    tipo_intervento: v('pr-tipo-intervento'),
+    rei: v('pr-rei'),
+    tipologia: v('pr-tipologia'),
+    quantita: v('pr-quantita'),
+    larghezza: v('pr-larghezza'),
+    altezza: v('pr-altezza'),
+    colore: v('pr-colore'),
+    maniglione: v('pr-maniglione'),
+    parete: v('pr-parete'),
+    spessore_parete: v('pr-spessore-parete'),
+    verso_apertura: v('pr-verso-apertura'),
+    stato_vano: v('pr-stato-vano'),
+    note_vano: v('pr-note-vano'),
+    piano: v('pr-piano'),
+    smaltimento: v('pr-smaltimento'),
+    logistica: v('pr-logistica'),
+    note_tecniche: v('pr-note-tecniche')
+  };
+
+  if (
+    !dati.tipo_intervento ||
+    !dati.rei ||
+    !dati.tipologia ||
+    !dati.quantita ||
+    !dati.larghezza ||
+    !dati.altezza ||
+    !dati.colore
+  ) {
+    toast(
+      'Compila tipo intervento, REI, tipologia, quantità, larghezza, altezza e colore',
+      'err'
+    );
+    return;
+  }
+
+  const riga = {
+    progetto_tecnico_id: currentRilievoProgettoId,
+    famiglia: 'porte_rei',
+    dati: dati,
+    stato: 'bozza',
+    compilato_da: ME.id,
+    aggiornato_il: new Date().toISOString()
+  };
+
+  const { error } = await db
+    .from('progetti_tecnici_schede')
+    .upsert(riga, {
+      onConflict: 'progetto_tecnico_id,famiglia'
+    });
+
+  if (error) {
+    toast('Errore salvataggio scheda: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Scheda Porte REI salvata', 'ok');
+  closeM('m-rilievo-tecnico');
+}
+
+
+async function apriSchedaEstintoriIngegnere() {
+  const progettoId = v('mvt-id');
+
+  if (!progettoId) {
+    toast('Progetto tecnico non selezionato', 'err');
+    return;
+  }
+
+  currentRilievoProgettoId = progettoId;
+
+  openM('m-rilievo-tecnico');
+  await apriSchedaEstintori();
+}
+
+function chiudiSchedaEstintori() {
+  closeM('m-rilievo-tecnico');
+}
+
+async function apriSchedaEstintori() {
+  const box = ge('mrt-content');
+
+  const { data, error } = await db
+    .from('progetti_tecnici_schede')
+    .select('dati')
+    .eq('progetto_tecnico_id', currentRilievoProgettoId)
+    .eq('famiglia', 'estintori')
+    .maybeSingle();
+
+  if (error) {
+    toast('Errore apertura scheda: ' + error.message, 'err');
+    return;
+  }
+
+  const d = data?.dati || {};
+
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-size:16px;font-weight:700">
+          🧯 Estintori
+        </div>
+
+        <div style="font-size:12px;color:var(--m);margin-top:3px">
+          Rilievo per fornitura, sostituzione, manutenzione o adeguamento.
+        </div>
+      </div>
+
+      <button class="btn sm" onclick="chiudiSchedaEstintori()">
+        ← Indietro
+      </button>
+    </div>
+
+    <div class="rap-section">1. Intervento</div>
+
+    <div class="card">
+      ${selectPreventivo('Tipo di intervento *', 'es-tipo-intervento', d.tipo_intervento || '', [
+        { value: '', label: 'Seleziona' },
+        { value: 'fornitura', label: 'Fornitura' },
+        { value: 'sostituzione', label: 'Sostituzione' },
+        { value: 'manutenzione', label: 'Manutenzione' },
+        { value: 'adeguamento', label: 'Adeguamento' }
+      ])}
+    </div>
+
+    <div class="rap-section">2. Estintori richiesti</div>
+
+    <div class="card">
+      <div class="fr">
+        ${campoPreventivo('Numero estintori esistenti *', 'es-numero-esistenti', d.numero_esistenti, 'number')}
+        ${campoPreventivo('Numero estintori da installare *', 'es-numero-installare', d.numero_installare, 'number')}
+      </div>
+
+      <div class="fr">
+        ${selectPreventivo('Tipologia *', 'es-tipologia', d.tipologia || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'polvere', label: 'Polvere' },
+          { value: 'co2', label: 'CO₂' },
+          { value: 'schiuma', label: 'Schiuma' },
+          { value: 'idrico', label: 'Idrico' },
+          { value: 'altro', label: 'Altro' }
+        ])}
+
+        ${selectPreventivo('Peso o capacità *', 'es-capacita', d.capacita || '', [
+          { value: '', label: 'Seleziona' },
+          { value: '2_kg', label: '2 kg' },
+          { value: '4_kg', label: '4 kg' },
+          { value: '6_kg', label: '6 kg' },
+          { value: '9_kg', label: '9 kg' },
+          { value: 'altro', label: 'Altro' }
+        ])}
+      </div>
+
+      ${campoPreventivo(
+        'Classe di spegnimento e capacità estinguente richiesta *',
+        'es-classe-spegnimento',
+        d.classe_spegnimento,
+        'text',
+        'Es. 34A 233B C'
+      )}
+    </div>
+
+    <div class="rap-section">3. Stato e posizionamento</div>
+
+    <div class="card">
+      <div class="fr">
+        ${selectPreventivo('Stato estintori esistenti', 'es-stato-esistenti', d.stato_esistenti || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'validi', label: 'Validi' },
+          { value: 'scaduti', label: 'Scaduti' },
+          { value: 'da_revisionare', label: 'Da revisionare' },
+          { value: 'da_sostituire', label: 'Da sostituire' }
+        ])}
+
+        ${selectPreventivo('Estintori carrellati necessari', 'es-carrellati', d.carrellati || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'si', label: 'Sì' },
+          { value: 'no', label: 'No' },
+          { value: 'da_definire', label: 'Da definire' }
+        ])}
+      </div>
+
+      ${areaPreventivo(
+        'Posizionamento, altezza, accessibilità, distanze di copertura e aree protette *',
+        'es-posizionamento',
+        d.posizionamento,
+        'Indica postazioni, distanze, ostacoli e criticità.'
+      )}
+    </div>
+
+    <div class="rap-section">4. Accessori e documentazione</div>
+
+    <div class="card">
+      <div class="fr">
+        ${selectPreventivo('Cartellonistica presente', 'es-cartellonistica', d.cartellonistica || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'si', label: 'Sì' },
+          { value: 'no', label: 'No' },
+          { value: 'da_integrare', label: 'Da integrare' }
+        ])}
+
+        ${selectPreventivo('Smaltimento estintori esistenti', 'es-smaltimento', d.smaltimento || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'si', label: 'Sì' },
+          { value: 'no', label: 'No' },
+          { value: 'da_definire', label: 'Da definire' }
+        ])}
+      </div>
+
+      ${areaPreventivo(
+        'Armadietti, piantane, cassette o supporti necessari',
+        'es-supporti',
+        d.supporti
+      )}
+
+      ${areaPreventivo(
+        'Registro antincendio e cartellini manutentivi',
+        'es-registro',
+        d.registro,
+        'Indica se presenti, da aggiornare o da predisporre.'
+      )}
+    </div>
+
+    <div class="rap-section">5. Foto e note</div>
+
+    <div class="card">
+      ${areaPreventivo(
+        'Foto postazioni caricate negli allegati',
+        'es-foto-postazioni',
+        d.foto_postazioni,
+        'Es. Foto ingresso, magazzino, piano primo...'
+      )}
+
+      ${areaPreventivo(
+        'Note tecniche per il preventivo',
+        'es-note-tecniche',
+        d.note_tecniche,
+        'Criticità, lavorazioni incluse, esclusioni e indicazioni.'
+      )}
+    </div>
+
+    <div class="ma" style="margin:18px 0 40px">
+      <button class="btn" onclick="chiudiSchedaEstintori()">
+        Annulla
+      </button>
+
+      <button class="btn p" onclick="salvaSchedaEstintori()">
+        Salva scheda estintori
+      </button>
+    </div>
+  `;
+}
+
+async function salvaSchedaEstintori() {
+  if (!currentRilievoProgettoId) {
+    toast('Progetto tecnico non selezionato', 'err');
+    return;
+  }
+
+  const dati = {
+    tipo_intervento: v('es-tipo-intervento'),
+    numero_esistenti: v('es-numero-esistenti'),
+    numero_installare: v('es-numero-installare'),
+    tipologia: v('es-tipologia'),
+    capacita: v('es-capacita'),
+    classe_spegnimento: v('es-classe-spegnimento'),
+    stato_esistenti: v('es-stato-esistenti'),
+    carrellati: v('es-carrellati'),
+    posizionamento: v('es-posizionamento'),
+    cartellonistica: v('es-cartellonistica'),
+    smaltimento: v('es-smaltimento'),
+    supporti: v('es-supporti'),
+    registro: v('es-registro'),
+    foto_postazioni: v('es-foto-postazioni'),
+    note_tecniche: v('es-note-tecniche')
+  };
+
+  if (
+    !dati.tipo_intervento ||
+    !dati.numero_esistenti ||
+    !dati.numero_installare ||
+    !dati.tipologia ||
+    !dati.capacita ||
+    !dati.classe_spegnimento ||
+    !dati.posizionamento
+  ) {
+    toast(
+      'Compila intervento, quantità, tipologia, capacità, classe di spegnimento e posizionamento',
+      'err'
+    );
+    return;
+  }
+
+  const { error } = await db
+    .from('progetti_tecnici_schede')
+    .upsert({
+      progetto_tecnico_id: currentRilievoProgettoId,
+      famiglia: 'estintori',
+      dati: dati,
+      stato: 'bozza',
+      compilato_da: ME.id,
+      aggiornato_il: new Date().toISOString()
+    }, {
+      onConflict: 'progetto_tecnico_id,famiglia'
+    });
+
+  if (error) {
+    toast('Errore salvataggio scheda: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Scheda estintori salvata', 'ok');
+  closeM('m-rilievo-tecnico');
+}
 
 async function apriSchedaRilevazioneIncendi() {
   const usaProgetto = contestoSchedaRilevazione === 'progetto';
@@ -11192,7 +11891,7 @@ async function apriSchedaRilevazioneIncendi() {
         </div>
       </div>
 
-      <button class="btn sm onclick="chiudiSchedaRilevazione()"">
+      <button class="btn sm" onclick="chiudiSchedaRilevazione()">
         ← Schede
       </button>
     </div>
@@ -11398,7 +12097,7 @@ async function apriSchedaRilevazioneIncendi() {
     </div>
 
     <div class="ma" style="margin:18px 0 40px">
-      <button class="btn" onclick="chiudiSchedaRilevazione()"">
+      <button class="btn" onclick="chiudiSchedaRilevazione()">
         Annulla
       </button>
 
@@ -11528,6 +12227,864 @@ if (usaProgetto) {
 await renderSchedePreventivo();
 }
 
+async function apriSchedaCompartimentazioneIngegnere() {
+  const progettoId = v('mvt-id');
+
+  if (!progettoId) {
+    toast('Progetto tecnico non selezionato', 'err');
+    return;
+  }
+
+  currentRilievoProgettoId = progettoId;
+
+  openM('m-rilievo-tecnico');
+  await apriSchedaCompartimentazione();
+}
+
+function chiudiSchedaCompartimentazione() {
+  closeM('m-rilievo-tecnico');
+}
+
+async function apriSchedaCompartimentazione() {
+  const box = ge('mrt-content');
+
+  const { data, error } = await db
+    .from('progetti_tecnici_schede')
+    .select('dati')
+    .eq('progetto_tecnico_id', currentRilievoProgettoId)
+    .eq('famiglia', 'compartimentazione')
+    .maybeSingle();
+
+  if (error) {
+    toast('Errore apertura scheda: ' + error.message, 'err');
+    return;
+  }
+
+  const d = data?.dati || {};
+
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-size:16px;font-weight:700">
+          🧱 Compartimentazione
+        </div>
+
+        <div style="font-size:12px;color:var(--m);margin-top:3px">
+          Rilievo di attraversamenti, sigillature e ripristini antincendio.
+        </div>
+      </div>
+
+      <button class="btn sm" onclick="chiudiSchedaCompartimentazione()">
+        ← Indietro
+      </button>
+    </div>
+
+    <div class="rap-section">1. Tipo di intervento</div>
+
+    <div class="card">
+      ${selectPreventivo('Intervento *', 'cp-tipo-intervento', d.tipo_intervento || '', [
+        { value: '', label: 'Seleziona' },
+        { value: 'sigillatura_attraversamenti', label: 'Sigillatura attraversamenti' },
+        { value: 'parete', label: 'Parete' },
+        { value: 'controsoffitto', label: 'Controsoffitto' },
+        { value: 'pavimento', label: 'Pavimento' },
+        { value: 'giunto', label: 'Giunto' }
+      ])}
+    </div>
+
+    <div class="rap-section">2. Resistenza al fuoco richiesta</div>
+
+    <div class="card">
+      <div class="fr">
+        ${selectPreventivo('Classe richiesta *', 'cp-classe', d.classe || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'ei', label: 'EI' },
+          { value: 'rei', label: 'REI' }
+        ])}
+
+        ${selectPreventivo('Minuti *', 'cp-minuti', d.minuti || '', [
+          { value: '', label: 'Seleziona' },
+          { value: '30', label: '30 minuti' },
+          { value: '60', label: '60 minuti' },
+          { value: '90', label: '90 minuti' },
+          { value: '120', label: '120 minuti' },
+          { value: 'superiore', label: 'Classe superiore / da definire' }
+        ])}
+      </div>
+    </div>
+
+    <div class="rap-section">3. Attraversamenti e supporto</div>
+
+    <div class="card">
+      <div class="fr">
+        ${campoPreventivo('Numero attraversamenti *', 'cp-numero-attraversamenti', d.numero_attraversamenti, 'number')}
+
+        ${selectPreventivo('Tipo attraversamento *', 'cp-tipo-attraversamento', d.tipo_attraversamento || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'cavi', label: 'Cavi' },
+          { value: 'tubazioni_metalliche', label: 'Tubazioni metalliche' },
+          { value: 'tubazioni_plastiche', label: 'Tubazioni plastiche' },
+          { value: 'canaline', label: 'Canaline' },
+          { value: 'misti', label: 'Misti' }
+        ])}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo('Dimensioni foro (mm) *', 'cp-dimensioni-foro', d.dimensioni_foro, 'text', 'Es. 300 × 200')}
+        ${campoPreventivo('Spessore parete o solaio (mm) *', 'cp-spessore-supporto', d.spessore_supporto, 'number')}
+      </div>
+
+      <div class="fr">
+        ${selectPreventivo('Materiale supporto', 'cp-materiale-supporto', d.materiale_supporto || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'laterizio', label: 'Laterizio' },
+          { value: 'cartongesso', label: 'Cartongesso' },
+          { value: 'calcestruzzo', label: 'Calcestruzzo' },
+          { value: 'altro', label: 'Altro' }
+        ])}
+
+        ${campoPreventivo(
+          'Posizione attraversamenti *',
+          'cp-posizione',
+          d.posizione,
+          'text',
+          'Es. piano primo, locale quadri, parete nord'
+        )}
+      </div>
+    </div>
+
+    <div class="rap-section">4. Sistema di sigillatura</div>
+
+    <div class="card">
+      ${areaPreventivo(
+        'Isolamento, collari, manicotti, sacchetti o cuscini intumescenti',
+        'cp-sistemi-presenti',
+        d.sistemi_presenti
+      )}
+
+      <div class="fr">
+        ${campoPreventivo(
+          'Fattore di riempimento cavi / spazio disponibile',
+          'cp-riempimento-cavi',
+          d.riempimento_cavi,
+          'text',
+          'Es. canalina piena al 60%, spazio libero...'
+        )}
+
+        ${selectPreventivo('Necessità ripristino parete o controsoffitto', 'cp-ripristino', d.ripristino || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'si', label: 'Sì' },
+          { value: 'no', label: 'No' },
+          { value: 'da_definire', label: 'Da definire' }
+        ])}
+      </div>
+
+      ${areaPreventivo(
+        'Certificazione richiesta e sistema scelto',
+        'cp-certificazione-sistema',
+        d.certificazione_sistema,
+        'Es. certificazione EI 120, sistema Hilti / Promat / altro.'
+      )}
+    </div>
+
+    <div class="rap-section">5. Accesso, foto e note</div>
+
+    <div class="card">
+      <div class="fr">
+        ${selectPreventivo('Altezza di lavoro', 'cp-altezza-lavoro', d.altezza_lavoro || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'normale', label: 'Normale' },
+          { value: 'trabattello', label: 'Trabattello' },
+          { value: 'ple', label: 'PLE' },
+          { value: 'da_verificare', label: 'Da verificare' }
+        ])}
+
+        ${campoPreventivo('Accessibilità', 'cp-accessibilita', d.accessibilita, 'text', 'Es. libera, limitata, locale occupato')}
+      </div>
+
+      ${areaPreventivo(
+        'Foto ravvicinate e foto di contesto *',
+        'cp-foto',
+        d.foto,
+        'Indica le foto caricate negli allegati tecnici.'
+      )}
+
+      ${areaPreventivo(
+        'Note tecniche per il preventivo',
+        'cp-note-tecniche',
+        d.note_tecniche
+      )}
+    </div>
+
+    <div class="ma" style="margin:18px 0 40px">
+      <button class="btn" onclick="chiudiSchedaCompartimentazione()">
+        Annulla
+      </button>
+
+      <button class="btn p" onclick="salvaSchedaCompartimentazione()">
+        Salva scheda compartimentazione
+      </button>
+    </div>
+  `;
+}
+
+async function salvaSchedaCompartimentazione() {
+  if (!currentRilievoProgettoId) {
+    toast('Progetto tecnico non selezionato', 'err');
+    return;
+  }
+
+  const dati = {
+    tipo_intervento: v('cp-tipo-intervento'),
+    classe: v('cp-classe'),
+    minuti: v('cp-minuti'),
+    numero_attraversamenti: v('cp-numero-attraversamenti'),
+    tipo_attraversamento: v('cp-tipo-attraversamento'),
+    dimensioni_foro: v('cp-dimensioni-foro'),
+    spessore_supporto: v('cp-spessore-supporto'),
+    materiale_supporto: v('cp-materiale-supporto'),
+    posizione: v('cp-posizione'),
+    sistemi_presenti: v('cp-sistemi-presenti'),
+    riempimento_cavi: v('cp-riempimento-cavi'),
+    ripristino: v('cp-ripristino'),
+    certificazione_sistema: v('cp-certificazione-sistema'),
+    altezza_lavoro: v('cp-altezza-lavoro'),
+    accessibilita: v('cp-accessibilita'),
+    foto: v('cp-foto'),
+    note_tecniche: v('cp-note-tecniche')
+  };
+
+  if (
+    !dati.tipo_intervento ||
+    !dati.classe ||
+    !dati.minuti ||
+    !dati.numero_attraversamenti ||
+    !dati.tipo_attraversamento ||
+    !dati.dimensioni_foro ||
+    !dati.spessore_supporto ||
+    !dati.posizione ||
+    !dati.foto
+  ) {
+    toast(
+      'Compila intervento, classe, minuti, attraversamenti, dimensioni, spessore, posizione e foto',
+      'err'
+    );
+    return;
+  }
+
+  const { error } = await db
+    .from('progetti_tecnici_schede')
+    .upsert({
+      progetto_tecnico_id: currentRilievoProgettoId,
+      famiglia: 'compartimentazione',
+      dati: dati,
+      stato: 'bozza',
+      compilato_da: ME.id,
+      aggiornato_il: new Date().toISOString()
+    }, {
+      onConflict: 'progetto_tecnico_id,famiglia'
+    });
+
+  if (error) {
+    toast('Errore salvataggio scheda: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Scheda compartimentazione salvata', 'ok');
+  closeM('m-rilievo-tecnico');
+}
+
+async function apriSchedaVerniceIntumescenteIngegnere() {
+  const progettoId = v('mvt-id');
+
+  if (!progettoId) {
+    toast('Progetto tecnico non selezionato', 'err');
+    return;
+  }
+
+  currentRilievoProgettoId = progettoId;
+
+  openM('m-rilievo-tecnico');
+  await apriSchedaVerniceIntumescente();
+}
+
+function chiudiSchedaVerniceIntumescente() {
+  closeM('m-rilievo-tecnico');
+}
+
+async function apriSchedaVerniceIntumescente() {
+  const box = ge('mrt-content');
+
+  const { data, error } = await db
+    .from('progetti_tecnici_schede')
+    .select('dati')
+    .eq('progetto_tecnico_id', currentRilievoProgettoId)
+    .eq('famiglia', 'vernice_intumescente')
+    .maybeSingle();
+
+  if (error) {
+    toast('Errore apertura scheda: ' + error.message, 'err');
+    return;
+  }
+
+  const d = data?.dati || {};
+
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-size:16px;font-weight:700">
+          🎨 Vernice intumescente
+        </div>
+
+        <div style="font-size:12px;color:var(--m);margin-top:3px">
+          Rilievo per protezione passiva di strutture metalliche.
+        </div>
+      </div>
+
+      <button class="btn sm" onclick="chiudiSchedaVerniceIntumescente()">
+        ← Indietro
+      </button>
+    </div>
+
+    <div class="rap-section">1. Elementi da proteggere</div>
+
+    <div class="card">
+      <div class="fr">
+        ${selectPreventivo('Elemento da proteggere *', 'vi-elemento', d.elemento || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'pilastro', label: 'Pilastro' },
+          { value: 'trave', label: 'Trave' },
+          { value: 'solaio', label: 'Solaio' },
+          { value: 'struttura_metallica', label: 'Struttura metallica' }
+        ])}
+
+        ${selectPreventivo('Classe R richiesta *', 'vi-classe-r', d.classe_r || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'r30', label: 'R30' },
+          { value: 'r60', label: 'R60' },
+          { value: 'r90', label: 'R90' },
+          { value: 'r120', label: 'R120' },
+          { value: 'altro', label: 'Altro / da definire' }
+        ])}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo(
+          'Tipo e dimensione profilo metallico *',
+          'vi-profilo',
+          d.profilo,
+          'text',
+          'Es. HEA 200, IPE 160, tubolare 100×100'
+        )}
+
+        ${campoPreventivo('Numero elementi *', 'vi-numero-elementi', d.numero_elementi, 'number')}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo(
+          'Sviluppo lineare (m)',
+          'vi-sviluppo-lineare',
+          d.sviluppo_lineare,
+          'number'
+        )}
+
+        ${campoPreventivo(
+          'Superficie da trattare (mq)',
+          'vi-superficie',
+          d.superficie,
+          'number'
+        )}
+      </div>
+
+      ${campoPreventivo(
+        'Fattore di sezione S/V o A/V',
+        'vi-fattore-sezione',
+        d.fattore_sezione,
+        'text',
+        'Se disponibile'
+      )}
+    </div>
+
+    <div class="rap-section">2. Stato e preparazione supporto</div>
+
+    <div class="card">
+      <div class="fr">
+        ${selectPreventivo('Stato del supporto', 'vi-stato-supporto', d.stato_supporto || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'zincato', label: 'Zincato' },
+          { value: 'verniciato', label: 'Verniciato' },
+          { value: 'ossidato', label: 'Ossidato' },
+          { value: 'da_preparare', label: 'Da preparare' }
+        ])}
+
+        ${selectPreventivo('Preparazione richiesta', 'vi-preparazione', d.preparazione || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'pulizia', label: 'Pulizia' },
+          { value: 'sabbiatura', label: 'Sabbiatura' },
+          { value: 'primer', label: 'Primer' },
+          { value: 'trattamento_ruggine', label: 'Trattamento ruggine' },
+          { value: 'da_definire', label: 'Da definire' }
+        ])}
+      </div>
+
+      ${areaPreventivo(
+        'Note su supporto, ossidazione, vecchie vernici o preparazioni particolari',
+        'vi-note-supporto',
+        d.note_supporto
+      )}
+    </div>
+
+    <div class="rap-section">3. Ambiente e posa</div>
+
+    <div class="card">
+      <div class="fr">
+        ${selectPreventivo('Condizioni ambientali', 'vi-ambiente', d.ambiente || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'interno', label: 'Interno' },
+          { value: 'esterno', label: 'Esterno' },
+          { value: 'umidita', label: 'Umidità elevata' },
+          { value: 'temperatura_critica', label: 'Temperatura critica' }
+        ])}
+
+        ${selectPreventivo('Altezza / mezzo di sollevamento', 'vi-altezza-lavoro', d.altezza_lavoro || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'normale', label: 'Normale' },
+          { value: 'trabattello', label: 'Trabattello' },
+          { value: 'ple', label: 'PLE' },
+          { value: 'ponteggio', label: 'Ponteggio' }
+        ])}
+      </div>
+
+      ${areaPreventivo(
+        'Accessibilità, ostacoli e vincoli di cantiere',
+        'vi-accessibilita',
+        d.accessibilita
+      )}
+    </div>
+
+    <div class="rap-section">4. Ciclo e finitura</div>
+
+    <div class="card">
+      ${areaPreventivo(
+        'Ciclo richiesto: primer, intumescente, finitura',
+        'vi-ciclo',
+        d.ciclo,
+        'Indica prodotti o ciclo richiesto, se già definito.'
+      )}
+
+      <div class="fr">
+        ${campoPreventivo(
+          'Colore finale / RAL',
+          'vi-colore',
+          d.colore,
+          'text',
+          'Es. RAL 9010'
+        )}
+
+        ${campoPreventivo(
+          'Requisito estetico',
+          'vi-requisito-estetico',
+          d.requisito_estetico,
+          'text',
+          'Es. finitura liscia, ambiente a vista'
+        )}
+      </div>
+    </div>
+
+    <div class="rap-section">5. Foto, certificazione e note</div>
+
+    <div class="card">
+      ${areaPreventivo(
+        'Foto, misure e dettagli dei profili *',
+        'vi-foto',
+        d.foto,
+        'Indica le foto caricate negli allegati tecnici.'
+      )}
+
+      ${areaPreventivo(
+        'Certificazione e dichiarazione di corretta posa',
+        'vi-certificazione',
+        d.certificazione
+      )}
+
+      ${areaPreventivo(
+        'Note tecniche per il preventivo',
+        'vi-note-tecniche',
+        d.note_tecniche
+      )}
+    </div>
+
+    <div class="ma" style="margin:18px 0 40px">
+      <button class="btn" onclick="chiudiSchedaVerniceIntumescente()">
+        Annulla
+      </button>
+
+      <button class="btn p" onclick="salvaSchedaVerniceIntumescente()">
+        Salva scheda vernice intumescente
+      </button>
+    </div>
+  `;
+}
+
+async function salvaSchedaVerniceIntumescente() {
+  if (!currentRilievoProgettoId) {
+    toast('Progetto tecnico non selezionato', 'err');
+    return;
+  }
+
+  const dati = {
+    elemento: v('vi-elemento'),
+    classe_r: v('vi-classe-r'),
+    profilo: v('vi-profilo'),
+    numero_elementi: v('vi-numero-elementi'),
+    sviluppo_lineare: v('vi-sviluppo-lineare'),
+    superficie: v('vi-superficie'),
+    fattore_sezione: v('vi-fattore-sezione'),
+    stato_supporto: v('vi-stato-supporto'),
+    preparazione: v('vi-preparazione'),
+    note_supporto: v('vi-note-supporto'),
+    ambiente: v('vi-ambiente'),
+    altezza_lavoro: v('vi-altezza-lavoro'),
+    accessibilita: v('vi-accessibilita'),
+    ciclo: v('vi-ciclo'),
+    colore: v('vi-colore'),
+    requisito_estetico: v('vi-requisito-estetico'),
+    foto: v('vi-foto'),
+    certificazione: v('vi-certificazione'),
+    note_tecniche: v('vi-note-tecniche')
+  };
+
+  if (
+    !dati.elemento ||
+    !dati.classe_r ||
+    !dati.profilo ||
+    !dati.numero_elementi ||
+    (!dati.sviluppo_lineare && !dati.superficie) ||
+    !dati.foto
+  ) {
+    toast(
+      'Compila elemento, classe R, profilo, quantità, sviluppo o superficie e foto',
+      'err'
+    );
+    return;
+  }
+
+  const { error } = await db
+    .from('progetti_tecnici_schede')
+    .upsert({
+      progetto_tecnico_id: currentRilievoProgettoId,
+      famiglia: 'vernice_intumescente',
+      dati: dati,
+      stato: 'bozza',
+      compilato_da: ME.id,
+      aggiornato_il: new Date().toISOString()
+    }, {
+      onConflict: 'progetto_tecnico_id,famiglia'
+    });
+
+  if (error) {
+    toast('Errore salvataggio scheda: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Scheda vernice intumescente salvata', 'ok');
+  closeM('m-rilievo-tecnico');
+}
+
+
+async function apriSchedaImpiantiSpegnimentoIngegnere() {
+  const progettoId = v('mvt-id');
+
+  if (!progettoId) {
+    toast('Progetto tecnico non selezionato', 'err');
+    return;
+  }
+
+  currentRilievoProgettoId = progettoId;
+
+  openM('m-rilievo-tecnico');
+  await apriSchedaImpiantiSpegnimento();
+}
+
+function chiudiSchedaImpiantiSpegnimento() {
+  closeM('m-rilievo-tecnico');
+}
+
+async function apriSchedaImpiantiSpegnimento() {
+  const box = ge('mrt-content');
+
+  const { data, error } = await db
+    .from('progetti_tecnici_schede')
+    .select('dati')
+    .eq('progetto_tecnico_id', currentRilievoProgettoId)
+    .eq('famiglia', 'impianti_spegnimento')
+    .maybeSingle();
+
+  if (error) {
+    toast('Errore apertura scheda: ' + error.message, 'err');
+    return;
+  }
+
+  const d = data?.dati || {};
+
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-size:16px;font-weight:700">
+          💧 Impianti di spegnimento
+        </div>
+
+        <div style="font-size:12px;color:var(--m);margin-top:3px">
+          Rilievo per impianti idrici e sistemi di spegnimento speciali.
+        </div>
+      </div>
+
+      <button class="btn sm" onclick="chiudiSchedaImpiantiSpegnimento()">
+        ← Indietro
+      </button>
+    </div>
+
+    <div class="rap-section">1. Impianto e intervento</div>
+
+    <div class="card">
+      <div class="fr">
+        ${selectPreventivo('Tipo impianto *', 'is-tipo-impianto', d.tipo_impianto || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'idranti', label: 'Idranti' },
+          { value: 'naspi', label: 'Naspi' },
+          { value: 'sprinkler', label: 'Sprinkler' },
+          { value: 'water_mist', label: 'Water mist' },
+          { value: 'gas', label: 'Gas' },
+          { value: 'schiuma', label: 'Schiuma' },
+          { value: 'altro', label: 'Altro' }
+        ])}
+
+        ${selectPreventivo('Tipo intervento *', 'is-tipo-intervento', d.tipo_intervento || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'nuovo', label: 'Nuovo impianto' },
+          { value: 'ampliamento', label: 'Ampliamento' },
+          { value: 'adeguamento', label: 'Adeguamento' },
+          { value: 'manutenzione', label: 'Manutenzione' }
+        ])}
+      </div>
+
+      ${campoPreventivo(
+        'Area o compartimento da proteggere *',
+        'is-area-protetta',
+        d.area_protetta,
+        'text',
+        'Es. magazzino 1.200 mq, locale tecnico, piano terra'
+      )}
+
+      ${campoPreventivo(
+        'Normativa o livello prestazionale richiesto',
+        'is-normativa',
+        d.normativa,
+        'text',
+        'Es. UNI 10779, UNI EN 12845, livello di pericolo...'
+      )}
+    </div>
+
+    <div class="rap-section">2. Impianto esistente e alimentazione</div>
+
+    <div class="card">
+      ${areaPreventivo(
+        'Impianto esistente: marca, modello, anno, stato e documentazione *',
+        'is-impianto-esistente',
+        d.impianto_esistente,
+        'Indica anche se assente o non documentato.'
+      )}
+
+      <div class="fr">
+        ${selectPreventivo('Alimentazione idrica disponibile', 'is-alimentazione', d.alimentazione || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'acquedotto', label: 'Acquedotto' },
+          { value: 'serbatoio', label: 'Serbatoio' },
+          { value: 'gruppo_pompe', label: 'Gruppo pompe' },
+          { value: 'altro', label: 'Altro / da verificare' }
+        ])}
+
+        ${campoPreventivo(
+          'Pressione disponibile *',
+          'is-pressione',
+          d.pressione,
+          'text',
+          'Es. 4 bar'
+        )}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo(
+          'Portata disponibile *',
+          'is-portata',
+          d.portata,
+          'text',
+          'Es. 300 l/min'
+        )}
+
+        ${campoPreventivo(
+          'Riserva idrica disponibile *',
+          'is-riserva',
+          d.riserva,
+          'text',
+          'Es. 20 mc'
+        )}
+      </div>
+    </div>
+
+    <div class="rap-section">3. Rete e componenti</div>
+
+    <div class="card">
+      ${areaPreventivo(
+        'Numero e tipo componenti',
+        'is-componenti',
+        d.componenti,
+        'Idranti, naspi, sprinkler, valvole, stazioni, attacchi VV.F...'
+      )}
+
+      <div class="fr">
+        ${campoPreventivo(
+          'Rete esistente e materiale tubazioni',
+          'is-rete-esistente',
+          d.rete_esistente,
+          'text',
+          'Es. acciaio zincato DN65, PEAD...'
+        )}
+
+        ${campoPreventivo(
+          'Percorsi, lunghezze e posa tubazioni',
+          'is-percorsi-tubazioni',
+          d.percorsi_tubazioni,
+          'text',
+          'Es. 120 ml a vista in quota'
+        )}
+      </div>
+
+      ${areaPreventivo(
+        'Attraversamenti e opere di compartimentazione correlate',
+        'is-compartimentazione',
+        d.compartimentazione
+      )}
+
+      ${areaPreventivo(
+        'Collegamenti a centrale incendio, allarmi o supervisione',
+        'is-collegamenti',
+        d.collegamenti
+      )}
+    </div>
+
+    <div class="rap-section">4. Manutenzione, prove e documenti</div>
+
+    <div class="card">
+      ${areaPreventivo(
+        'Accessibilità per manutenzione e prove',
+        'is-accessibilita',
+        d.accessibilita
+      )}
+
+      ${areaPreventivo(
+        'Collaudi richiesti: idraulico, funzionale, certificazioni',
+        'is-collaudi',
+        d.collaudi
+      )}
+    </div>
+
+    <div class="rap-section">5. Foto e note</div>
+
+    <div class="card">
+      ${areaPreventivo(
+        'Foto locale pompe, rete, terminali e criticità *',
+        'is-foto',
+        d.foto,
+        'Indica le foto caricate negli allegati tecnici.'
+      )}
+
+      ${areaPreventivo(
+        'Note tecniche per il preventivo',
+        'is-note-tecniche',
+        d.note_tecniche
+      )}
+    </div>
+
+    <div class="ma" style="margin:18px 0 40px">
+      <button class="btn" onclick="chiudiSchedaImpiantiSpegnimento()">
+        Annulla
+      </button>
+
+      <button class="btn p" onclick="salvaSchedaImpiantiSpegnimento()">
+        Salva scheda impianti di spegnimento
+      </button>
+    </div>
+  `;
+}
+
+async function salvaSchedaImpiantiSpegnimento() {
+  if (!currentRilievoProgettoId) {
+    toast('Progetto tecnico non selezionato', 'err');
+    return;
+  }
+
+  const dati = {
+    tipo_impianto: v('is-tipo-impianto'),
+    tipo_intervento: v('is-tipo-intervento'),
+    area_protetta: v('is-area-protetta'),
+    normativa: v('is-normativa'),
+    impianto_esistente: v('is-impianto-esistente'),
+    alimentazione: v('is-alimentazione'),
+    pressione: v('is-pressione'),
+    portata: v('is-portata'),
+    riserva: v('is-riserva'),
+    componenti: v('is-componenti'),
+    rete_esistente: v('is-rete-esistente'),
+    percorsi_tubazioni: v('is-percorsi-tubazioni'),
+    compartimentazione: v('is-compartimentazione'),
+    collegamenti: v('is-collegamenti'),
+    accessibilita: v('is-accessibilita'),
+    collaudi: v('is-collaudi'),
+    foto: v('is-foto'),
+    note_tecniche: v('is-note-tecniche')
+  };
+
+  if (
+    !dati.tipo_impianto ||
+    !dati.tipo_intervento ||
+    !dati.area_protetta ||
+    !dati.impianto_esistente ||
+    !dati.pressione ||
+    !dati.portata ||
+    !dati.riserva ||
+    !dati.foto
+  ) {
+    toast(
+      'Compila impianto, intervento, area, dati esistenti, pressione, portata, riserva e foto',
+      'err'
+    );
+    return;
+  }
+
+  const { error } = await db
+    .from('progetti_tecnici_schede')
+    .upsert({
+      progetto_tecnico_id: currentRilievoProgettoId,
+      famiglia: 'impianti_spegnimento',
+      dati: dati,
+      stato: 'bozza',
+      compilato_da: ME.id,
+      aggiornato_il: new Date().toISOString()
+    }, {
+      onConflict: 'progetto_tecnico_id,famiglia'
+    });
+
+  if (error) {
+    toast('Errore salvataggio scheda: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Scheda impianti di spegnimento salvata', 'ok');
+  closeM('m-rilievo-tecnico');
+}
+
+
 async function renderFornitoriPreventivo() {
   const box = ge('pvd-fornitori-content');
 
@@ -11544,6 +13101,7 @@ async function renderFornitoriPreventivo() {
       prezzo_offerto,
       tempi_consegna_proposti,
       note,
+      allegati_progetto_ids,
       fornitori(
         ragione_sociale,
         telefono,
@@ -11570,6 +13128,25 @@ async function renderFornitoriPreventivo() {
   }
 
   const fornitori = data || [];
+
+    const { data: preventivoAllegati } = await db
+    .from('preventivi')
+    .select('progetto_tecnico_id')
+    .eq('id', currentPreventivoId)
+    .single();
+
+  let allegatiProgetto = [];
+
+  if (preventivoAllegati?.progetto_tecnico_id) {
+    const { data: fileProgetto, error: erroreFile } = await db
+      .from('progetti_tecnici_allegati')
+      .select('id,nome_file,mime_type,dimensione')
+      .eq('progetto_id', preventivoAllegati.progetto_tecnico_id)
+      .order('caricato_il', { ascending: false });
+
+    if (!erroreFile) allegatiProgetto = fileProgetto || [];
+  }
+
 
   box.innerHTML = `
     <div class="card">
@@ -11603,7 +13180,59 @@ async function renderFornitoriPreventivo() {
       </div>
     ` : fornitori.map(function(s) {
       const f = s.fornitori || {};
-      const t = s.fornitore_tipologie || {};
+const t = s.fornitore_tipologie || {};
+
+const allegatiSelezionati = Array.isArray(s.allegati_progetto_ids)
+  ? s.allegati_progetto_ids
+  : [];
+
+const bloccoAllegati = !allegatiProgetto.length
+  ? `
+      <div style="font-size:12px;color:var(--m);margin-top:14px">
+        Nessun allegato presente nel progetto tecnico.
+      </div>
+    `
+  : `
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--b)">
+        <div style="font-size:13px;font-weight:700">
+          📎 Allegati da inserire nel PDF
+        </div>
+
+        <div style="font-size:12px;color:var(--m);margin:4px 0 10px">
+          Seleziona solo foto e documenti che possono essere inviati al fornitore.
+        </div>
+
+        ${allegatiProgetto.map(function(file) {
+          const selezionato = allegatiSelezionati.includes(file.id);
+
+          return `
+            <label style="display:flex;gap:8px;align-items:center;padding:7px 0;font-size:12px">
+              <input
+                type="checkbox"
+                data-allegato-richiesta="${s.id}"
+                value="${file.id}"
+                ${selezionato ? 'checked' : ''}
+              >
+              <span>
+                📎 ${esc(file.nome_file)}
+                <span style="color:var(--m)">
+                  · ${esc(file.mime_type || 'File')}
+                  · ${esc(dimensioneFileProgetto(file.dimensione))}
+                </span>
+              </span>
+            </label>
+          `;
+        }).join('')}
+
+        <button
+          class="btn sm p"
+          style="margin-top:8px"
+          onclick="salvaAllegatiRichiestaFornitore('${s.id}')"
+        >
+          Salva allegati selezionati
+        </button>
+      </div>
+    `;
 
       return `
         <div class="card" style="margin-top:12px">
@@ -11641,6 +13270,13 @@ async function renderFornitoriPreventivo() {
                 <option value="da_contattare" ${s.stato === 'da_contattare' ? 'selected' : ''}>Da contattare</option>
                 <option value="richiesta_inviata" ${s.stato === 'richiesta_inviata' ? 'selected' : ''}>Richiesta inviata</option>
                 <option value="risposta_ricevuta" ${s.stato === 'risposta_ricevuta' ? 'selected' : ''}>Risposta ricevuta</option>
+                <option value="da_rivedere" ${s.stato === 'da_rivedere' ? 'selected' : ''}>
+  Da rivedere
+</option>
+
+<option value="rifiutata" ${s.stato === 'rifiutata' ? 'selected' : ''}>
+  Quotazione rifiutata
+</option>
                 <option value="selezionato" ${s.stato === 'selezionato' ? 'selected' : ''}>Scelto per il preventivo</option>
               </select>
             </div>
@@ -11669,16 +13305,16 @@ async function renderFornitoriPreventivo() {
             </div>
 
             <div class="f">
-              <label>Note</label>
+              <label>Note della richiesta / modifiche commerciali</label>
               <input
                 type="text"
                 id="pvf-note-${s.id}"
                 value="${esc(s.note || '')}"
-                placeholder="Condizioni, varianti, osservazioni..."
+                placeholder="Indicazioni aggiuntive, varianti, quantità o richieste per il fornitore..."
               >
             </div>
           </div>
-
+${bloccoAllegati}
          <div
   style="
     display:flex;
@@ -12016,6 +13652,57 @@ function totaleVocePreventivo(voce, tipo) {
   return quantita * numeroPreventivo(voce.prezzo_unitario);
 }
 
+function ricaricoFornituraDaCosto(costoFornitura) {
+  const costo = numeroPreventivo(costoFornitura);
+
+  if (costo <= 3000) return 70;
+  if (costo <= 10000) return 50;
+  if (costo <= 20000) return 45;
+  if (costo <= 50000) return 35;
+  if (costo <= 100000) return 30;
+
+  return 25;
+}
+
+function costoTotaleFornituraPreventivo() {
+  return vociPreventivoDati
+    .filter(function(voce) {
+      return voce.categoria === 'materiale';
+    })
+    .reduce(function(totale, voce) {
+      return totale + totaleVocePreventivo(voce, 'costo');
+    }, 0);
+}
+
+function applicaRicaricoFornitura() {
+  const costoFornitura = costoTotaleFornituraPreventivo();
+
+  if (costoFornitura <= 0) {
+    toast('Inserisci prima il costo dei materiali forniti', 'err');
+    return;
+  }
+
+  const percentuale = ricaricoFornituraDaCosto(costoFornitura);
+  const moltiplicatore = 1 + (percentuale / 100);
+
+  vociPreventivoDati.forEach(function(voce) {
+    if (voce.categoria !== 'materiale') return;
+
+    voce.prezzo_unitario = Math.round(
+      numeroPreventivo(voce.costo_unitario) * moltiplicatore * 100
+    ) / 100;
+  });
+
+  disegnaVociPreventivo();
+
+  toast(
+    'Ricarico del ' + percentuale +
+    '% applicato alla fornitura di ' +
+    euroPreventivo(costoFornitura),
+    'ok'
+  );
+}
+
 function aggiornaRiepilogoVociPreventivo() {
   const costo = vociPreventivoDati.reduce(function(totale, voce) {
     return totale + totaleVocePreventivo(voce, 'costo');
@@ -12085,6 +13772,12 @@ function disegnaVociPreventivo() {
   const margine = vendita - costo;
   const marginePerc = vendita > 0 ? (margine / vendita) * 100 : 0;
 
+    const costoFornitura = costoTotaleFornituraPreventivo();
+  const ricaricoFornitura = costoFornitura > 0
+    ? ricaricoFornituraDaCosto(costoFornitura)
+    : null;
+
+
   box.innerHTML = `
     <div class="al2 i" style="margin-bottom:14px">
       Inserisci materiali, lavorazioni e servizi. I costi sono interni;
@@ -12102,6 +13795,15 @@ function disegnaVociPreventivo() {
       <button class="btn sm p" onclick="aggiungiVocePreventivo()">
         + Aggiungi voce
       </button>
+
+      <button
+  class="btn sm info"
+  ${costoFornitura > 0 ? '' : 'disabled'}
+  onclick="applicaRicaricoFornitura()"
+>
+  📈 Applica ricarico fornitura
+  ${ricaricoFornitura !== null ? '(' + ricaricoFornitura + '%)' : ''}
+</button>
 
       <button
         class="btn sm"
@@ -12520,6 +14222,34 @@ async function eliminaPreventivo(preventivoId) {
 }
 
 
+async function salvaAllegatiRichiestaFornitore(selezioneId) {
+  const allegatiProgettoIds = Array.from(
+    document.querySelectorAll(
+      '[data-allegato-richiesta="' + selezioneId + '"]:checked'
+    )
+  ).map(function(input) {
+    return input.value;
+  });
+
+  const { error } = await db
+    .from('preventivi_fornitori')
+    .update({
+      allegati_progetto_ids: allegatiProgettoIds,
+      aggiornato_il: new Date().toISOString()
+    })
+    .eq('id', selezioneId)
+    .eq('preventivo_id', currentPreventivoId);
+
+  if (error) {
+    toast('Errore salvataggio allegati: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Allegati della richiesta salvati', 'ok');
+  await renderFornitoriPreventivo();
+}
+
+
 async function segnaRichiestaFornitoreInviata(selezioneId) {
   const { error } = await db
     .from('preventivi_fornitori')
@@ -12559,6 +14289,8 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
         id,
         tipologia,
         richiesta_versione,
+        note,
+        allegati_progetto_ids,
         fornitori(
           ragione_sociale,
           email
@@ -12598,7 +14330,7 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
 
   const { data: schede, error: erroreSchede } = await db
     .from('progetti_tecnici_schede')
-    .select('famiglia,dati,aggiornato_il')
+    .select('famiglia,dati,dati_commerciali,aggiornato_il')
     .eq('progetto_tecnico_id', preventivo.progetto_tecnico_id)
     .order('aggiornato_il', { ascending: false });
 
@@ -12608,6 +14340,36 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
       'err'
     );
     return;
+  }
+
+    const idsAllegati = Array.isArray(selezione.allegati_progetto_ids)
+    ? selezione.allegati_progetto_ids
+    : [];
+
+  let fotoDaInserire = [];
+
+  if (idsAllegati.length) {
+    const { data: allegati, error: erroreAllegati } = await db
+      .from('progetti_tecnici_allegati')
+      .select('id,nome_file,storage_path,mime_type')
+      .eq('progetto_id', preventivo.progetto_tecnico_id)
+      .in('id', idsAllegati);
+
+    if (erroreAllegati) {
+      toast(
+        'Errore caricamento foto progetto: ' + erroreAllegati.message,
+        'err'
+      );
+      return;
+    }
+
+    fotoDaInserire = (allegati || []).filter(function(file) {
+      const tipo = String(file.mime_type || '').toLowerCase();
+      const nome = String(file.nome_file || '').toLowerCase();
+
+      return tipo.startsWith('image/') ||
+        /\.(jpg|jpeg|png)$/i.test(nome);
+    });
   }
 
   const versione = Number(selezione.richiesta_versione || 0) + 1;
@@ -12658,6 +14420,20 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
 
     y += 8;
   }
+
+    function blobInDataUrl(blob) {
+    return new Promise(function(resolve, reject) {
+      const lettore = new FileReader();
+
+      lettore.onload = function() {
+        resolve(lettore.result);
+      };
+
+      lettore.onerror = reject;
+      lettore.readAsDataURL(blob);
+    });
+  }
+
 
   // Intestazione
   doc.setFillColor(8, 80, 65);
@@ -12728,7 +14504,9 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
     schede.forEach(function(scheda) {
       titolo(etichettaFamigliaTecnica(scheda.famiglia));
 
-      const campi = Object.entries(scheda.dati || {}).filter(function(entry) {
+     const campi = Object.entries(
+  datiSchedaDaMostrare(scheda)
+).filter(function(entry) {
         const valore = entry[1];
 
         return valore !== null &&
@@ -12754,6 +14532,15 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
 
   titolo('Richiesta al fornitore');
 
+  if (selezione.note) {
+  titolo('Indicazioni aggiuntive');
+
+  testo(
+    selezione.note,
+    10
+  );
+}
+
   testo(
     'Indicare prezzo netto, disponibilità, tempi di consegna, eventuali minimi d’ordine, condizioni di pagamento e note tecniche.'
   );
@@ -12763,6 +14550,61 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
     8,
     [100, 100, 100]
   );
+
+  for (const foto of fotoDaInserire) {
+    try {
+      const { data: urlData, error: erroreUrl } = await db.storage
+        .from('progetti-tecnici')
+        .createSignedUrl(foto.storage_path, 3600);
+
+      if (erroreUrl || !urlData?.signedUrl) {
+        throw new Error('Foto non disponibile');
+      }
+
+      const risposta = await fetch(urlData.signedUrl);
+
+      if (!risposta.ok) {
+        throw new Error('Impossibile scaricare la foto');
+      }
+
+      const dataUrl = await blobInDataUrl(await risposta.blob());
+
+      const nome = String(foto.nome_file || '').toLowerCase();
+      const formato = (
+        String(foto.mime_type || '').includes('png') ||
+        nome.endsWith('.png')
+      ) ? 'PNG' : 'JPEG';
+
+      const proprieta = doc.getImageProperties(dataUrl);
+      const larghezzaMassima = 178;
+      const altezzaMassima = 238;
+
+      const scala = Math.min(
+        larghezzaMassima / proprieta.width,
+        altezzaMassima / proprieta.height
+      );
+
+      const larghezzaFoto = proprieta.width * scala;
+      const altezzaFoto = proprieta.height * scala;
+
+      doc.addPage();
+      y = 18;
+
+      titolo('Foto allegata al rilievo');
+      testo(foto.nome_file, 8, [90, 90, 90]);
+
+      doc.addImage(
+        dataUrl,
+        formato,
+        margine,
+        y,
+        larghezzaFoto,
+        altezzaFoto
+      );
+    } catch (erroreFoto) {
+      console.warn('Foto non inserita nel PDF:', foto.nome_file, erroreFoto);
+    }
+  }
 
   doc.setFontSize(7);
   doc.setTextColor(120, 120, 120);
