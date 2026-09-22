@@ -13129,6 +13129,30 @@ async function renderFornitoriPreventivo() {
 
   const fornitori = data || [];
 
+    const idsFornitori = fornitori.map(function(fornitore) {
+    return fornitore.id;
+  });
+
+  const allegatiPerFornitore = {};
+
+  if (idsFornitori.length) {
+    const { data: allegatiRicevuti, error: erroreAllegatiRicevuti } = await db
+      .from('preventivi_fornitori_allegati')
+      .select('id,preventivo_fornitore_id,nome_file,storage_path,mime_type,dimensione,caricato_il')
+      .in('preventivo_fornitore_id', idsFornitori)
+      .order('caricato_il', { ascending: false });
+
+    if (!erroreAllegatiRicevuti) {
+      (allegatiRicevuti || []).forEach(function(allegato) {
+        if (!allegatiPerFornitore[allegato.preventivo_fornitore_id]) {
+          allegatiPerFornitore[allegato.preventivo_fornitore_id] = [];
+        }
+
+        allegatiPerFornitore[allegato.preventivo_fornitore_id].push(allegato);
+      });
+    }
+  }
+
     const { data: preventivoAllegati } = await db
     .from('preventivi')
     .select('progetto_tecnico_id')
@@ -13181,6 +13205,60 @@ async function renderFornitoriPreventivo() {
     ` : fornitori.map(function(s) {
       const f = s.fornitori || {};
 const t = s.fornitore_tipologie || {};
+
+const preventiviRicevuti = allegatiPerFornitore[s.id] || [];
+
+const bloccoPreventivoRicevuto = `
+  <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--b)">
+    <div style="font-size:13px;font-weight:700">
+      📩 Preventivo ricevuto dal fornitore
+    </div>
+
+    <div style="font-size:12px;color:var(--m);margin:4px 0 10px">
+      Carica il PDF ricevuto via email e inserisci sopra importo e tempi proposti.
+    </div>
+
+    <input
+      id="pvf-file-ricevuto-${s.id}"
+      type="file"
+      accept="application/pdf,.pdf"
+      style="font-size:12px;max-width:100%"
+    >
+
+    <button
+      class="btn sm p"
+      style="margin:8px 0 4px"
+      onclick="caricaPreventivoRicevutoFornitore('${s.id}')"
+    >
+      📎 Carica PDF ricevuto
+    </button>
+
+    ${
+      !preventiviRicevuti.length
+        ? `
+          <div style="font-size:12px;color:var(--m);margin-top:6px">
+            Nessun preventivo del fornitore caricato.
+          </div>
+        `
+        : preventiviRicevuti.map(function(file) {
+            return `
+              <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:8px;font-size:12px">
+                <span style="overflow-wrap:anywhere">
+                  📄 ${esc(file.nome_file)}
+                </span>
+
+                <button
+                  class="btn sm"
+                  onclick="apriAllegatoPreventivoFornitore('${file.storage_path}')"
+                >
+                  Apri
+                </button>
+              </div>
+            `;
+          }).join('')
+    }
+  </div>
+`;
 
 const allegatiSelezionati = Array.isArray(s.allegati_progetto_ids)
   ? s.allegati_progetto_ids
@@ -13315,6 +13393,8 @@ const bloccoAllegati = !allegatiProgetto.length
             </div>
           </div>
 ${bloccoAllegati}
+${bloccoPreventivoRicevuto}
+
          <div
   style="
     display:flex;
@@ -13324,6 +13404,25 @@ ${bloccoAllegati}
     margin-top:4px
   "
 >
+${
+  (
+    s.stato === 'risposta_ricevuta' ||
+    s.stato === 'selezionato'
+  ) && Number(s.prezzo_offerto) > 0
+    ? `
+      <button
+        class="btn sm info"
+        onclick="usaQuotazioneFornitoreNelPreventivo('${s.id}')"
+      >
+        📥 Usa nel preventivo cliente
+      </button>
+    `
+    : `
+      <span style="font-size:12px;color:var(--m)">
+        Salva prima prezzo e stato “Risposta ricevuta”.
+      </span>
+    `
+}
   <button
     class="btn sm p"
     onclick="salvaDettagliFornitorePreventivo('${s.id}')"
@@ -13572,6 +13671,113 @@ async function selezionaFornitorePreventivo(fornitoreId, tipologiaId) {
   await apriSelettoreFornitoriPreventivo();
 }
 
+async function caricaPreventivoRicevutoFornitore(selezioneId) {
+  const input = ge('pvf-file-ricevuto-' + selezioneId);
+  const file = input?.files?.[0];
+
+  if (!file) {
+    toast('Seleziona il PDF ricevuto dal fornitore', 'err');
+    return;
+  }
+
+  const nome = String(file.name || '').toLowerCase();
+
+  if (
+    file.type !== 'application/pdf' &&
+    !nome.endsWith('.pdf')
+  ) {
+    toast('Puoi caricare solo file PDF', 'err');
+    return;
+  }
+
+  if (file.size > 15 * 1024 * 1024) {
+    toast('Il PDF supera il limite di 15 MB', 'err');
+    return;
+  }
+
+  const { data: authData, error: erroreAuth } = await db.auth.getUser();
+
+  if (erroreAuth || !authData?.user) {
+    toast('Sessione non valida', 'err');
+    return;
+  }
+
+  const nomeSicuro = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+
+  const storagePath =
+    currentPreventivoId +
+    '/fornitori/' +
+    selezioneId +
+    '/' +
+    Date.now() +
+    '_' +
+    nomeSicuro;
+
+  const { error: erroreUpload } = await db.storage
+    .from('preventivi-documenti')
+    .upload(storagePath, file, {
+      contentType: 'application/pdf',
+      upsert: false
+    });
+
+  if (erroreUpload) {
+    toast('Errore caricamento PDF: ' + erroreUpload.message, 'err');
+    return;
+  }
+
+  const { error: erroreInserimento } = await db
+    .from('preventivi_fornitori_allegati')
+    .insert({
+      preventivo_fornitore_id: selezioneId,
+      nome_file: file.name,
+      storage_path: storagePath,
+      mime_type: file.type || 'application/pdf',
+      dimensione: file.size,
+      caricato_da: authData.user.id
+    });
+
+  if (erroreInserimento) {
+    await db.storage
+      .from('preventivi-documenti')
+      .remove([storagePath]);
+
+    toast(
+      'PDF caricato ma non registrato: ' + erroreInserimento.message,
+      'err'
+    );
+    return;
+  }
+
+  await db
+    .from('preventivi_fornitori')
+    .update({
+      stato: 'risposta_ricevuta',
+      aggiornato_il: new Date().toISOString()
+    })
+    .eq('id', selezioneId)
+    .eq('preventivo_id', currentPreventivoId);
+
+  toast('Preventivo del fornitore caricato', 'ok');
+  await renderFornitoriPreventivo();
+}
+
+async function apriAllegatoPreventivoFornitore(storagePath) {
+  const { data, error } = await db.storage
+    .from('preventivi-documenti')
+    .createSignedUrl(storagePath, 3600);
+
+  if (error || !data?.signedUrl) {
+    toast(
+      'Impossibile aprire il PDF: ' +
+      (error?.message || 'file non disponibile'),
+      'err'
+    );
+    return;
+  }
+
+  window.open(data.signedUrl, '_blank', 'noopener');
+}
+
 async function salvaDettagliFornitorePreventivo(selezioneId) {
   const prezzo = v('pvf-prezzo-' + selezioneId);
 
@@ -13614,8 +13820,112 @@ async function rimuoviFornitorePreventivo(selezioneId) {
   await renderFornitoriPreventivo();
 }
 
+async function usaQuotazioneFornitoreNelPreventivo(selezioneId) {
+  const { data: selezione, error: erroreSelezione } = await db
+    .from('preventivi_fornitori')
+    .select(`
+      id,
+      prezzo_offerto,
+      tipologia,
+      fornitori(ragione_sociale)
+    `)
+    .eq('id', selezioneId)
+    .eq('preventivo_id', currentPreventivoId)
+    .single();
+
+  if (erroreSelezione || !selezione) {
+    toast('Quotazione fornitore non trovata', 'err');
+    return;
+  }
+
+  const costo = numeroPreventivo(selezione.prezzo_offerto);
+
+  if (costo <= 0) {
+    toast('Inserisci prima il prezzo ricevuto dal fornitore', 'err');
+    return;
+  }
+
+  const percentuale = ricaricoFornituraDaCosto(costo);
+  const prezzoCliente = Math.round(
+    costo * (1 + percentuale / 100) * 100
+  ) / 100;
+
+  const nomeFornitore =
+    selezione.fornitori?.ragione_sociale || 'Fornitore';
+
+  const descrizione =
+    'Fornitura ' +
+    (selezione.tipologia || 'tecnica') +
+    ' — ' +
+    nomeFornitore;
+
+  const { data: voceEsistente } = await db
+    .from('preventivi_voci')
+    .select('id')
+    .eq('preventivo_id', currentPreventivoId)
+    .eq('preventivo_fornitore_id', selezioneId)
+    .maybeSingle();
+
+  const datiVoce = {
+    categoria: 'materiale',
+    descrizione: descrizione,
+    unita_misura: 'corpo',
+    quantita: 1,
+    costo_unitario: costo,
+    prezzo_unitario: prezzoCliente,
+    fornitore_preventivo_id: selezioneId,
+    aggiornato_il: new Date().toISOString()
+  };
+
+  const risultato = voceEsistente
+    ? await db
+        .from('preventivi_voci')
+        .update(datiVoce)
+        .eq('id', voceEsistente.id)
+    : await db
+        .from('preventivi_voci')
+        .insert({
+          ...datiVoce,
+          preventivo_id: currentPreventivoId,
+          ordinamento: 0
+        });
+
+  if (risultato.error) {
+    toast(
+      'Errore inserimento costo fornitore: ' + risultato.error.message,
+      'err'
+    );
+    return;
+  }
+
+  await db
+    .from('preventivi_fornitori')
+    .update({
+      stato: 'selezionato',
+      aggiornato_il: new Date().toISOString()
+    })
+    .eq('id', selezioneId);
+
+  toast(
+    'Quotazione inserita: ricarico automatico ' +
+    percentuale +
+    '%',
+    'ok'
+  );
+
+  await renderCostiPreventivo();
+
+  const tab = document.querySelector(
+    '.tab[onclick*="pvd-costi"]'
+  );
+
+  if (tab) stab(tab, 'pvd-costi');
+}
+
 
 let vociPreventivoDati = [];
+let notePreventivoCliente = '';
+let condizioniPagamentoPreventivo = '';
 
 function numeroPreventivo(valore) {
   const numero = Number(valore);
@@ -13784,6 +14094,7 @@ function disegnaVociPreventivo() {
       il prezzo cliente determina imponibile e margine preliminare.
     </div>
 
+
     <div class="g2" style="margin-bottom:16px">
       ${ir('Costo totale interno', euroPreventivo(costo))}
       ${ir('Imponibile cliente', euroPreventivo(vendita))}
@@ -13798,20 +14109,12 @@ function disegnaVociPreventivo() {
 
       <button
   class="btn sm info"
-  ${costoFornitura > 0 ? '' : 'disabled'}
   onclick="applicaRicaricoFornitura()"
 >
   📈 Applica ricarico fornitura
   ${ricaricoFornitura !== null ? '(' + ricaricoFornitura + '%)' : ''}
 </button>
 
-      <button
-        class="btn sm"
-        ${vociPreventivoDati.length ? '' : 'disabled'}
-        onclick="salvaVociPreventivo()"
-      >
-        💾 Salva voci e totale
-      </button>
     </div>
 
     ${
@@ -13927,6 +14230,8 @@ function disegnaVociPreventivo() {
           </div>
         </div>
 
+</div>
+
         <div style="text-align:right">
           <div style="font-size:12px;color:var(--m)">Imponibile cliente</div>
           <div id="pvv-totale-vendita" style="font-size:20px;font-weight:700">
@@ -13941,14 +14246,65 @@ function disegnaVociPreventivo() {
         ${irHtmlPreventivo('Margine percentuale', `<span id="pvv-totale-margine-perc">${marginePerc.toFixed(1)}%</span>`)}
       </div>
 
-      <button
-        class="btn p"
-        style="margin-top:14px"
-        ${vociPreventivoDati.length ? '' : 'disabled'}
-        onclick="salvaVociPreventivo()"
-      >
-        💾 Salva voci e totale
-      </button>
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--b)">
+  <div style="font-size:14px;font-weight:700;margin-bottom:5px">
+    💳 Modalità di pagamento
+  </div>
+
+  <div style="font-size:12px;color:var(--m);margin-bottom:10px">
+    Facoltative. Verranno riportate nel preventivo cliente.
+  </div>
+
+  <textarea
+    id="pvv-condizioni-pagamento"
+    rows="2"
+    placeholder="Es. 50% all'ordine e saldo a fine lavori; bonifico bancario a 30 giorni..."
+    oninput="condizioniPagamentoPreventivo = this.value"
+  >${esc(condizioniPagamentoPreventivo)}</textarea>
+</div>
+
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--b)">
+  <div style="font-size:14px;font-weight:700;margin-bottom:5px">
+    📝 Note aggiuntive per il cliente
+  </div>
+
+  <div style="font-size:12px;color:var(--m);margin-bottom:10px">
+    Facoltative. Inserisci qui condizioni, precisazioni o attività aggiuntive.
+  </div>
+
+  <textarea
+    id="pvv-note-cliente"
+    rows="4"
+    placeholder="Es. Sono esclusi lavori edili, tempi soggetti a sopralluogo, condizioni di pagamento..."
+    oninput="notePreventivoCliente = this.value"
+  >${esc(notePreventivoCliente)}</textarea>
+</div>
+
+
+ <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid var(--b)">
+  <button
+    class="btn p"
+    ${vociPreventivoDati.length ? '' : 'disabled'}
+    onclick="salvaVociPreventivo()"
+  >
+    💾 Salva preventivo
+  </button>
+
+  <button
+    class="btn info"
+    ${vociPreventivoDati.length ? '' : 'disabled'}
+    onclick="generaPreventivoClientePDF()"
+  >
+    📄 Genera PDF cliente
+  </button>
+  <button
+  class="btn"
+  style="color:var(--r)"
+  onclick="eliminaPreventivo(currentPreventivoId)"
+>
+  🗑️ Elimina preventivo
+</button>
+
     </div>
   `;
 }
@@ -13975,6 +14331,17 @@ async function renderCostiPreventivo() {
     `;
     return;
   }
+
+    const { data: preventivo } = await db
+    .from('preventivi')
+    .select('note,condizioni_pagamento')
+    .eq('id', currentPreventivoId)
+    .single();
+
+  notePreventivoCliente = preventivo?.note || '';
+
+  condizioniPagamentoPreventivo =
+  preventivo?.condizioni_pagamento || '';
 
   vociPreventivoDati = data || [];
   disegnaVociPreventivo();
@@ -14048,6 +14415,7 @@ async function salvaVociPreventivo() {
         costo_unitario: numeroPreventivo(voce.costo_unitario),
         prezzo_unitario: numeroPreventivo(voce.prezzo_unitario),
         ordinamento: indice,
+        fornitore_preventivo_id: voce.fornitore_preventivo_id || null,
         aggiornato_il: new Date().toISOString()
       })
       .eq('id', voce.id)
@@ -14090,7 +14458,11 @@ async function salvaVociPreventivo() {
   const { error: erroreTotale } = await db
     .from('preventivi')
     .update({
-      totale_imponibile: totaleImponibile
+      totale_imponibile: totaleImponibile,
+      note: notePreventivoCliente.trim() || null,
+      condizioni_pagamento: condizioniPagamentoPreventivo.trim() || null,
+      aggiornato_il: new Date().toISOString()
+      
     })
     .eq('id', currentPreventivoId);
 
@@ -14102,6 +14474,327 @@ async function salvaVociPreventivo() {
   toast('Voci e totale preventivo salvati', 'ok');
   await renderCostiPreventivo();
 }
+
+async function generaPreventivoClientePDF() {
+  if (!window.jspdf) {
+    toast('Libreria PDF non caricata, riprova', 'err');
+    return;
+  }
+
+  const [
+    preventivoRes,
+    vociRes
+  ] = await Promise.all([
+    db
+      .from('preventivi')
+      .select(`
+        id,
+        numero,
+        tipo,
+        data_scadenza,
+        iva_perc,
+        totale_imponibile,
+        note,
+        condizioni_pagamento,
+        clienti(
+          ragione_sociale,
+          indirizzo,
+          citta
+        )
+      `)
+      .eq('id', currentPreventivoId)
+      .single(),
+
+    db
+      .from('preventivi_voci')
+      .select('descrizione,unita_misura,quantita,prezzo_unitario,ordinamento')
+      .eq('preventivo_id', currentPreventivoId)
+      .order('ordinamento')
+  ]);
+
+  if (preventivoRes.error || vociRes.error) {
+    toast(
+      'Errore caricamento preventivo: ' +
+      (preventivoRes.error?.message || vociRes.error?.message),
+      'err'
+    );
+    return;
+  }
+
+  const preventivo = preventivoRes.data;
+  const voci = vociRes.data || [];
+
+  if (!voci.length) {
+    toast('Salva almeno una voce prima di generare il PDF', 'err');
+    return;
+  }
+
+  const totaleImponibile = voci.reduce(function(totale, voce) {
+    return totale +
+      numeroPreventivo(voce.quantita) *
+      numeroPreventivo(voce.prezzo_unitario);
+  }, 0);
+
+  const ivaPerc = Number(preventivo.iva_perc ?? 22);
+  const totaleIva = totaleImponibile * (ivaPerc / 100);
+  const totaleDocumento = totaleImponibile + totaleIva;
+  const cliente = preventivo.clienti || {};
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  const margine = 16;
+  const larghezza = 210;
+  let y = 18;
+
+  doc.setFillColor(8, 80, 65);
+  doc.rect(0, 0, larghezza, 34, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(255, 255, 255);
+  doc.text('TOLI FIRE', margine, 18);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text('Preventivo commerciale', margine, 26);
+
+  y = 46;
+
+  doc.setTextColor(25, 25, 25);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('PREVENTIVO N. ' + preventivo.numero, margine, y);
+
+  y += 10;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+
+  doc.text(
+    'Data: ' + new Date().toLocaleDateString('it-IT'),
+    margine,
+    y
+  );
+
+  y += 6;
+
+  if (preventivo.data_scadenza) {
+    doc.text(
+      'Validità: ' +
+      new Date(
+        preventivo.data_scadenza + 'T00:00:00'
+      ).toLocaleDateString('it-IT'),
+      margine,
+      y
+    );
+
+    y += 6;
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.text('Cliente', margine, y);
+
+  y += 6;
+
+  doc.setFont('helvetica', 'normal');
+  doc.text(cliente.ragione_sociale || 'Cliente', margine, y);
+
+  y += 6;
+
+  const indirizzoCliente = [
+    cliente.indirizzo,
+    cliente.citta
+  ].filter(Boolean).join(' · ');
+
+  if (indirizzoCliente) {
+    doc.text(indirizzoCliente, margine, y);
+    y += 8;
+  }
+
+  doc.autoTable({
+    startY: y + 4,
+    head: [[
+      'Descrizione',
+      'Q.tà',
+      'U.M.',
+      'Prezzo unit.',
+      'Totale'
+    ]],
+    body: voci.map(function(voce) {
+      const quantita = numeroPreventivo(voce.quantita);
+      const prezzo = numeroPreventivo(voce.prezzo_unitario);
+
+      return [
+        voce.descrizione || '—',
+        String(quantita),
+        voce.unita_misura || 'pz',
+        euroPreventivo(prezzo),
+        euroPreventivo(quantita * prezzo)
+      ];
+    }),
+    theme: 'grid',
+    headStyles: {
+      fillColor: [8, 80, 65],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold'
+    },
+    styles: {
+      fontSize: 8,
+      cellPadding: 3
+    },
+    columnStyles: {
+      0: { cellWidth: 72 },
+      1: { halign: 'right', cellWidth: 18 },
+      2: { cellWidth: 18 },
+      3: { halign: 'right', cellWidth: 34 },
+      4: { halign: 'right', cellWidth: 34 }
+    }
+  });
+
+  y = doc.lastAutoTable.finalY + 12;
+
+  if (y > 245) {
+    doc.addPage();
+    y = 20;
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text(
+    'Imponibile: ' + euroPreventivo(totaleImponibile),
+    194,
+    y,
+    { align: 'right' }
+  );
+
+  y += 7;
+
+  doc.text(
+    'IVA ' + ivaPerc + '%: ' + euroPreventivo(totaleIva),
+    194,
+    y,
+    { align: 'right' }
+  );
+
+  y += 8;
+
+  doc.setFontSize(14);
+  doc.text(
+    'Totale preventivo: ' + euroPreventivo(totaleDocumento),
+    194,
+    y,
+    { align: 'right' }
+  );
+
+  y += 14;
+
+  function sezione(titolo, testo) {
+    if (!testo) return;
+
+    if (y > 255) {
+      doc.addPage();
+      y = 20;
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(8, 80, 65);
+    doc.text(titolo, margine, y);
+
+    y += 6;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(40, 40, 40);
+
+    const righe = doc.splitTextToSize(testo, 178);
+
+    if (y + righe.length * 5 > 280) {
+      doc.addPage();
+      y = 20;
+    }
+
+    doc.text(righe, margine, y);
+    y += righe.length * 5 + 10;
+  }
+
+  sezione(
+    'Modalità di pagamento',
+    preventivo.condizioni_pagamento
+  );
+
+  sezione(
+    'Note',
+    preventivo.note
+  );
+
+  doc.setFontSize(7);
+  doc.setTextColor(120, 120, 120);
+  doc.text(
+    'Documento generato il ' +
+    new Date().toLocaleString('it-IT') +
+    ' — Toli Fire',
+    larghezza / 2,
+    290,
+    { align: 'center' }
+  );
+
+  const nomeFile =
+    'Preventivo_' +
+    preventivo.numero +
+    '_Toli_Fire.pdf';
+
+  const pdfBlob = doc.output('blob');
+
+  const storagePath =
+    currentPreventivoId +
+    '/cliente/' +
+    nomeFile;
+
+  const { error: erroreUpload } = await db.storage
+    .from('preventivi-documenti')
+    .upload(storagePath, pdfBlob, {
+      contentType: 'application/pdf',
+      upsert: true
+    });
+
+  if (erroreUpload) {
+    toast(
+      'PDF creato ma non salvato: ' + erroreUpload.message,
+      'err'
+    );
+    return;
+  }
+
+  const { error: erroreAggiornamento } = await db
+    .from('preventivi')
+    .update({
+      totale_imponibile: totaleImponibile,
+      preventivo_cliente_pdf_path: storagePath,
+      preventivo_cliente_pdf_nome: nomeFile,
+      preventivo_cliente_pdf_generato_il: new Date().toISOString()
+    })
+    .eq('id', currentPreventivoId);
+
+  if (erroreAggiornamento) {
+    toast(
+      'PDF salvato, ma errore aggiornamento preventivo: ' +
+      erroreAggiornamento.message,
+      'err'
+    );
+    return;
+  }
+
+  doc.save(nomeFile);
+
+  toast('PDF cliente generato e salvato', 'ok');
+}
+
 
 
 async function inviaPreventivoPerApprovazione(preventivoId) {
