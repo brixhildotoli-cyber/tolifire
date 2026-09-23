@@ -24,7 +24,7 @@ const PERIO_OPT=['mensile','bimestrale','trimestrale','quadrimestrale','semestra
 const PERIO_MESI={mensile:1,bimestrale:2,trimestrale:3,quadrimestrale:4,semestrale:6,annuale:12,biennale:24};
 
 const NAV={
-  titolare:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'workflow',l:'📋 Da gestire'},{id:'interventi',l:'🔧 Interventi'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'},{id:'impostazioni',l:'Impostazioni'}],
+  titolare:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead'},{id:'preventivi-titolare',l:'🧾 Preventivi'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'workflow',l:'📋 Da gestire'},{id:'interventi',l:'🔧 Interventi'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'},{id:'impostazioni',l:'Impostazioni'}],
   capo_tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'calendario-team',l:'👥 Calendari team'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'Documenti'}],
   segreteria:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'workflow',l:'📋 Da gestire'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'Clienti'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
   contabile:[{id:'dashboard',l:'📊 Dashboard'},{id:'workflow',l:'📅 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
@@ -635,7 +635,7 @@ function buildNav() {
 
 // Pagine accessibili per ruolo
 const PAGINE_RUOLO = {
-  titolare:       ['dashboard','calendario','piano-mensile','trattative','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','progetto-detail','fornitore-detail', 'tecnico','sopralluogo'],
+  titolare:       ['dashboard','calendario','piano-mensile','trattative','preventivi-titolare','preventivo-detail','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','progetto-detail','fornitore-detail', 'tecnico','sopralluogo'],
   capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','clienti','documenti','cliente-detail'],
   segreteria:     ['dashboard','calendario','workflow','presidi','interventi','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail'],
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
@@ -698,6 +698,7 @@ function gotoPage(id){
   if(id==='progetti'){loadPaginaProgetti();}
   if(id==='progetti-da-preventivare') loadProgettiDaPreventivare();
   if(id==='preventivi') loadPreventivi();
+  if(id==='preventivi-titolare') loadPreventiviTitolare();
   if(id==='trattative')loadTrattative();
   if(id==='catalogo'){loadPaginaCatalogo();var _ba=ge('btn-add-prodotto');if(_ba)_ba.style.display=(ROLE==='titolare')?'':'none';var _bi=ge('btn-import-excel');if(_bi)_bi.style.display=(ROLE==='titolare')?'':'none';}
   if(id==='fatture'){loadFatture();}
@@ -1461,6 +1462,7 @@ function setTitolarePeriodo(p){
 async function loadDashTitolare(){
   caricaCodaCommercialeTitolare();
   caricaAvvisoLeadSitoTitolare();
+  caricaAvvisiPreventiviTitolare();
   var periodo = window._dashTitPeriodo || 'settimana';
   var range = getPeriodoRange(periodo);
   var oggi = new Date(); oggi.setHours(0,0,0,0);
@@ -6055,6 +6057,7 @@ async function loadImpegniTeamAnonimi() {
 
 async function loadDashRappresentante() {
   caricaAvvisiLeadAssegnate();
+  caricaAvvisiPreventiviRappresentante();
   var ora = new Date().getHours();
   var saluto = ora < 14 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
   var el;
@@ -6380,6 +6383,245 @@ async function apriPdfPreventivoRappresentante(preventivoId) {
 
   await loadPreventiviRappresentante();
 }
+
+async function caricaAvvisiPreventiviRappresentante() {
+  if (ROLE !== 'rappresentante') return;
+
+  const box = ge('rap-preventivi-ricevuti');
+  if (!box) return;
+
+  const chiaveLetti = `preventivi_notificati_letti_${ME.id}`;
+  const giaLetti = new Set(
+    JSON.parse(localStorage.getItem(chiaveLetti) || '[]')
+  );
+
+  const { data: preventivi, error } = await db
+    .from('preventivi')
+    .select(`
+      id,
+      clienti!inner(rappresentante_id)
+    `)
+    .eq('stato', 'inviato_a_rappresentante')
+    .eq('clienti.rappresentante_id', ME.id)
+    .is('letto_rappresentante_il', null)
+    .not('preventivo_cliente_pdf_path', 'is', null);
+
+  const nuoviPreventivi = (preventivi || []).filter(function(preventivo) {
+    return !giaLetti.has(preventivo.id);
+  });
+
+  if (error || !nuoviPreventivi.length) {
+    box.innerHTML = '';
+    return;
+  }
+
+  const testo = nuoviPreventivi.length === 1
+    ? 'Hai 1 nuovo preventivo da inviare'
+    : `Hai ${nuoviPreventivi.length} nuovi preventivi da inviare`;
+
+  box.innerHTML = `
+    <button
+      class="rap-primary"
+      style="background:#b91c1c;margin-top:14px"
+      onclick="apriPreventiviRappresentanteDaDashboard()"
+    >
+      <span class="ico">🔴</span>
+      <span class="body">
+        <span class="title">${testo}</span>
+        <span class="sub">
+          Il commerciale ha preparato il PDF per il tuo cliente.
+        </span>
+      </span>
+      <span class="chev">›</span>
+    </button>
+  `;
+}
+
+async function apriPreventiviRappresentanteDaDashboard() {
+  const box = ge('rap-preventivi-ricevuti');
+  if (box) box.innerHTML = '';
+
+  const chiaveLetti = `preventivi_notificati_letti_${ME.id}`;
+
+  const { data: preventivi } = await db
+    .from('preventivi')
+    .select(`
+      id,
+      clienti!inner(rappresentante_id)
+    `)
+    .eq('stato', 'inviato_a_rappresentante')
+    .eq('clienti.rappresentante_id', ME.id)
+    .is('letto_rappresentante_il', null)
+    .not('preventivo_cliente_pdf_path', 'is', null);
+
+  const giaLetti = new Set(
+    JSON.parse(localStorage.getItem(chiaveLetti) || '[]')
+  );
+
+  (preventivi || []).forEach(function(preventivo) {
+    giaLetti.add(preventivo.id);
+  });
+
+  localStorage.setItem(chiaveLetti, JSON.stringify([...giaLetti]));
+
+  gotoPage('preventivi-rapp');
+
+  // Prova comunque ad aggiornare anche Supabase.
+  await Promise.all(
+    (preventivi || []).map(function(preventivo) {
+      return db.rpc('marca_preventivo_letto_rappresentante', {
+        p_preventivo_id: preventivo.id
+      });
+    })
+  );
+}
+
+async function caricaAvvisiPreventiviTitolare() {
+  if (ROLE !== 'titolare') return;
+
+  const box = ge('tit-avviso-preventivi');
+  if (!box) return;
+
+  const { data: preventivi, error } = await db
+    .from('preventivi')
+    .select('id')
+    .not('inviato_a_titolare_il', 'is', null)
+    .is('letto_titolare_il', null)
+    .not('preventivo_cliente_pdf_path', 'is', null);
+
+  if (error || !preventivi?.length) {
+    box.innerHTML = '';
+    return;
+  }
+
+  const testo = preventivi.length === 1
+    ? 'Hai 1 preventivo da controllare'
+    : `Hai ${preventivi.length} preventivi da controllare`;
+
+  box.innerHTML = `
+    <button
+      class="rap-primary"
+      style="background:#b91c1c;margin:14px 0"
+      onclick="apriPreventiviTitolareDaDashboard()"
+    >
+      <span class="ico">🔴</span>
+      <span class="body">
+        <span class="title">${testo}</span>
+        <span class="sub">
+          Preventivi inviati dal commerciale: puoi controllarli e modificarli.
+        </span>
+      </span>
+      <span class="chev">›</span>
+    </button>
+  `;
+}
+
+async function apriPreventiviTitolareDaDashboard() {
+  const { data: preventivi } = await db
+    .from('preventivi')
+    .select('id')
+    .not('inviato_a_titolare_il', 'is', null)
+    .is('letto_titolare_il', null)
+    .not('preventivo_cliente_pdf_path', 'is', null);
+
+  for (const preventivo of preventivi || []) {
+    await db.rpc('marca_preventivo_letto_titolare', {
+      p_preventivo_id: preventivo.id
+    });
+  }
+
+  const box = ge('tit-avviso-preventivi');
+  if (box) box.innerHTML = '';
+
+  gotoPage('preventivi-titolare');
+}
+
+async function loadPreventiviTitolare() {
+  const box = ge('preventivi-titolare-lista');
+  if (!box) return;
+
+  box.innerHTML = '<div class="load">Caricamento preventivi...</div>';
+
+  const { data: preventivi, error } = await db
+    .from('preventivi')
+    .select(`
+      id,
+      numero,
+      stato,
+      totale_imponibile,
+      inviato_a_titolare_il,
+      preventivo_cliente_pdf_generato_il,
+      clienti(ragione_sociale)
+    `)
+    .not('inviato_a_titolare_il', 'is', null)
+    .order('inviato_a_titolare_il', { ascending: false });
+
+  if (error) {
+    box.innerHTML = `
+      <div class="al2 e">
+        Errore caricamento preventivi: ${esc(error.message)}
+      </div>
+    `;
+    return;
+  }
+
+  if (!preventivi?.length) {
+    box.innerHTML = '<div class="empty">Nessun preventivo ricevuto.</div>';
+    return;
+  }
+
+  box.innerHTML = preventivi.map(function(preventivo) {
+    const dataInvio = preventivo.inviato_a_titolare_il
+      ? new Date(preventivo.inviato_a_titolare_il).toLocaleString('it-IT')
+      : '—';
+
+    return `
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+          <div>
+            <div style="font-size:15px;font-weight:700">
+              Preventivo n. ${esc(String(preventivo.numero || '—'))}
+            </div>
+            <div style="font-size:13px;margin-top:4px">
+              ${esc(preventivo.clienti?.ragione_sociale || 'Cliente')}
+            </div>
+            <div style="font-size:12px;color:var(--m);margin-top:4px">
+              Inviato il ${esc(dataInvio)}
+            </div>
+          </div>
+
+          <span class="bx bblue">Da controllare</span>
+        </div>
+
+        <button
+          class="btn sm p"
+          style="margin-top:14px"
+          onclick="apriPreventivoTitolare('${preventivo.id}')"
+        >
+          ✏️ Apri e modifica
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function apriPreventivoTitolare(preventivoId) {
+  const { error } = await db.rpc(
+    'marca_preventivo_letto_titolare',
+    { p_preventivo_id: preventivoId }
+  );
+
+  if (error) {
+    toast('Errore apertura preventivo: ' + error.message, 'err');
+    return;
+  }
+
+  await openPreventivoDetail(preventivoId);
+}
+
+
+
+
 
 
 async function loadTrattative() {

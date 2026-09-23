@@ -239,7 +239,7 @@
         <button class="tit-period-btn on" id="tit-period-settimana" onclick="setTitolarePeriodo('settimana')">Settimana</button>
         <button class="tit-period-btn" id="tit-period-mese" onclick="setTitolarePeriodo('mese')">Mese</button>
       </div>
-
+<div id="tit-avviso-preventivi"></div>
       <div class="tit-section">💼 Lavoro</div>
       <div class="kpi-grid">
         <div class="kpi-card clickable success" onclick="gotoPage('interventi')"><div class="kpi-icon">✅</div><div class="kpi-num" id="tit-k-completati">—</div><div class="kpi-label">Completati nel periodo</div></div>
@@ -883,6 +883,7 @@
       <span class="chev">›</span>
     </button>
 <div id="rap-lead-assegnate"></div>
+<div id="rap-preventivi-ricevuti"></div>
 
     <div class="rap-secondary-row">
       <button class="rap-secondary-btn" onclick="openNewCli()"><span class="ico">👤</span>+ Prospect</button>
@@ -1119,6 +1120,19 @@
   </div>
 </section>
 
+<section class="page" id="pg-preventivi-titolare">
+  <div class="ph">
+    <div>
+      <h2>🧾 Preventivi da controllare</h2>
+      <p>Preventivi inviati dal commerciale: puoi modificarli e rigenerare il PDF.</p>
+    </div>
+  </div>
+
+  <div id="preventivi-titolare-lista">
+    <div class="load">Caricamento preventivi...</div>
+  </div>
+</section>
+
 <!-- PREVENTIVI — COMMERCIALE -->
 <section class="page" id="pg-preventivi">
   <div class="ph">
@@ -1144,9 +1158,9 @@
 <section class="page" id="pg-preventivo-detail">
   <div class="sh">
     <div>
-      <button class="btn sm" onclick="gotoPage('preventivi')" style="margin-bottom:8px">
-        ← Preventivi
-      </button>
+     <button class="btn sm" onclick="tornaDaPreventivo()" style="margin-bottom:8px">
+  ← Preventivi
+</button>
       <div class="st" id="pvd-titolo">Preventivo</div>
       <div id="pvd-sottotitolo" style="font-size:12px;color:var(--m);margin-top:3px"></div>
     </div>
