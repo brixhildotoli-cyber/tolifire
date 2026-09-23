@@ -30,7 +30,7 @@ const NAV={
   contabile:[{id:'dashboard',l:'📊 Dashboard'},{id:'workflow',l:'📅 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
   tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
   commerciale:[{id:'dashboard',l:'📊 Dashboard'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'preventivi',l:'🧾 Preventivi'},{id:'fornitori',l:'🏭 Fornitori'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}, {id: 'info', l: 'ℹ️ Info'}],
-  rappresentante:[{id:'dashboard-rapp',l:'📊 Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead e trattative'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'progetti', l:'📐 Progetti'}, {id:'catalogo',l:'📦 Catalogo'}, {id:'info',l:'ⓘ Info'}],
+  rappresentante:[{id:'dashboard-rapp',l:'📊 Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead e trattative'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'preventivi-rapp',l:'🧾 Preventivi'},{id:'progetti', l:'📐 Progetti'}, {id:'catalogo',l:'📦 Catalogo'}, {id:'info',l:'ⓘ Info'}],
   ingegnere: [{id: 'dashboard', l: '📊 Dashboard'},{id: 'calendario-ingegnere', l: '📅 Calendario'},{id: 'verifiche-tecniche', l: '🔧 Verifiche'},{id: 'documenti', l: '📄 Documenti'},{id: 'info', l: 'ℹ️ Info'}],
 };
 
@@ -641,7 +641,7 @@ const PAGINE_RUOLO = {
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
   commerciale:    ['dashboard','progetti-da-preventivare', 'preventivi', 'fornitori', 'fornitore-detail','preventivo-detail','clienti','documenti','progetto-detail','fatture','catalogo','cliente-detail', 'info'],
-  rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','trattative','cliente-detail','progetto-detail','catalogo', 'info'],
+  rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','trattative','preventivi-rapp','cliente-detail','progetto-detail','catalogo', 'info'],
   ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti', 'progetto-detail','cliente-detail','info'],
 };
 
@@ -692,6 +692,7 @@ function gotoPage(id){
   if(id==='calendario-team'){loadCalendarioTeam();}
   if(id==='piano-mensile'){var n=new Date();_pianoAnno=n.getFullYear();_pianoMese=n.getMonth()+1;aggiornaPianoLabel();loadPianificazioneMensile(_pianoAnno,_pianoMese);}
   if(id==='dashboard-rapp')loadDashRappresentante();
+  if(id==='preventivi-rapp')loadPreventiviRappresentante();
   if(id==='calendario-ingegnere')loadCalendarioIngegnere();
   if(id==='verifiche-tecniche')loadVerificheTecniche();
   if(id==='progetti'){loadPaginaProgetti();}
@@ -6229,6 +6230,158 @@ var cliIdsArr = erroreClientiRappresentante
     }
   }
 }
+
+
+async function loadPreventiviRappresentante() {
+  if (ROLE !== 'rappresentante') return;
+
+  const box = ge('preventivi-rapp-lista');
+  if (!box) return;
+
+  box.innerHTML = '<div class="load">Caricamento preventivi...</div>';
+
+  const { data: preventivi, error } = await db
+    .from('preventivi')
+    .select(`
+      id,
+      numero,
+      preventivo_cliente_pdf_path,
+      preventivo_cliente_pdf_nome,
+      preventivo_cliente_pdf_generato_il,
+      inviato_a_rappresentante_il,
+      clienti!inner(
+        ragione_sociale,
+        rappresentante_id
+      )
+    `)
+    .eq('stato', 'inviato_a_rappresentante')
+    .eq('clienti.rappresentante_id', ME.id)
+    .not('preventivo_cliente_pdf_path', 'is', null)
+    .order('inviato_a_rappresentante_il', { ascending: false });
+
+  if (error) {
+    box.innerHTML = `
+      <div class="al2 e">
+        Errore caricamento preventivi: ${esc(error.message)}
+      </div>
+    `;
+    return;
+  }
+
+  if (!preventivi?.length) {
+    box.innerHTML = `
+      <div class="empty">
+        Nessun preventivo ricevuto al momento.
+      </div>
+    `;
+    return;
+  }
+
+  box.innerHTML = preventivi.map(function(preventivo) {
+    const dataInvio = preventivo.inviato_a_rappresentante_il
+      ? new Date(preventivo.inviato_a_rappresentante_il)
+          .toLocaleString('it-IT', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+      : '—';
+
+    return `
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+          <div style="min-width:0">
+            <div style="font-size:15px;font-weight:700">
+              Preventivo n. ${esc(String(preventivo.numero || '—'))}
+            </div>
+
+            <div style="font-size:13px;margin-top:4px">
+              ${esc(preventivo.clienti?.ragione_sociale || 'Cliente')}
+            </div>
+
+            <div style="font-size:12px;color:var(--m);margin-top:4px">
+              Inviato dal commerciale il ${esc(dataInvio)}
+            </div>
+          </div>
+
+          <span class="bx bok">Pronto per il cliente</span>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+          <button
+            class="btn sm p"
+            onclick="apriPdfPreventivoRappresentante('${preventivo.id}')"
+          >
+            📄 Apri / scarica PDF
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function apriPdfPreventivoRappresentante(preventivoId) {
+  if (ROLE !== 'rappresentante') return;
+
+  const nuovaScheda = window.open('', '_blank');
+
+  const { data: preventivo, error } = await db
+    .from('preventivi')
+    .select(`
+      id,
+      preventivo_cliente_pdf_path,
+      clienti!inner(rappresentante_id)
+    `)
+    .eq('id', preventivoId)
+    .eq('stato', 'inviato_a_rappresentante')
+    .eq('clienti.rappresentante_id', ME.id)
+    .single();
+
+  if (error || !preventivo?.preventivo_cliente_pdf_path) {
+    if (nuovaScheda) nuovaScheda.close();
+
+    toast(
+      'PDF non disponibile: ' + (error?.message || ''),
+      'err'
+    );
+    return;
+  }
+
+  const { data: urlData, error: erroreUrl } = await db.storage
+    .from('preventivi-documenti')
+    .createSignedUrl(preventivo.preventivo_cliente_pdf_path, 3600);
+
+  if (erroreUrl || !urlData?.signedUrl) {
+    if (nuovaScheda) nuovaScheda.close();
+
+    toast(
+      'Errore apertura PDF: ' + (erroreUrl?.message || ''),
+      'err'
+    );
+    return;
+  }
+
+  const { error: erroreLettura } = await db.rpc(
+    'marca_preventivo_letto_rappresentante',
+    { p_preventivo_id: preventivoId }
+  );
+
+  if (erroreLettura) {
+    console.warn('Impossibile segnare il preventivo come letto:', erroreLettura.message);
+  }
+
+  if (nuovaScheda) {
+    nuovaScheda.location.href = urlData.signedUrl;
+  } else {
+    window.open(urlData.signedUrl, '_blank', 'noopener');
+  }
+
+  await loadPreventiviRappresentante();
+}
+
+
 async function loadTrattative() {
 
   montaLeadSitoTitolare();
@@ -9067,12 +9220,6 @@ async function loadPreventivi() {
   </button>
 
   ${p.stato === 'bozza' ? `
-    <button
-      class="btn sm warn"
-      onclick="inviaPreventivoPerApprovazione('${p.id}')"
-    >
-      📤 Invia per approvazione
-    </button>
 
     <button
       class="btn sm"
@@ -14301,6 +14448,14 @@ function disegnaVociPreventivo() {
   >
     📄 Genera PDF cliente
   </button>
+
+  <button
+  class="btn warn"
+  onclick="inviaPdfClienteATitolareERappresentante()"
+>
+  📤 Invia a titolare e rappresentante
+</button>
+
   <button
   class="btn"
   style="color:var(--r)"
@@ -14419,7 +14574,6 @@ async function salvaVociPreventivo() {
         costo_unitario: numeroPreventivo(voce.costo_unitario),
         prezzo_unitario: numeroPreventivo(voce.prezzo_unitario),
         ordinamento: indice,
-        fornitore_preventivo_id: voce.fornitore_preventivo_id || null,
         aggiornato_il: new Date().toISOString()
       })
       .eq('id', voce.id)
@@ -14748,10 +14902,7 @@ async function generaPreventivoClientePDF() {
     { align: 'center' }
   );
 
-  const nomeFile =
-    'Preventivo_' +
-    preventivo.numero +
-    '_Toli_Fire.pdf';
+ const nomeFile = `Preventivo_${preventivo.numero}_Toli_Fire_${Date.now()}.pdf`;
 
   const pdfBlob = doc.output('blob');
 
@@ -14764,7 +14915,7 @@ async function generaPreventivoClientePDF() {
     .from('preventivi-documenti')
     .upload(storagePath, pdfBlob, {
       contentType: 'application/pdf',
-      upsert: true
+      upsert: false
     });
 
   if (erroreUpload) {
@@ -14799,6 +14950,94 @@ async function generaPreventivoClientePDF() {
   toast('PDF cliente generato e salvato', 'ok');
 }
 
+async function inviaPdfClienteATitolareERappresentante() {
+
+  if (ROLE !== 'commerciale') {
+    toast('Solo il commerciale può inviare il preventivo', 'err');
+    return;
+  }
+
+const { data: preventivo, error: errorePreventivo } = await db
+  .from('preventivi')
+  .select(`
+  id,
+  numero,
+  cliente_id,
+  preventivo_cliente_pdf_path
+`)
+  .eq('id', currentPreventivoId)
+  .single();
+
+  if (errorePreventivo || !preventivo) {
+    toast(
+      'Errore caricamento preventivo: ' +
+      (errorePreventivo?.message || 'preventivo non trovato'),
+      'err'
+    );
+    return;
+  }
+
+if (!preventivo.preventivo_cliente_pdf_path) {
+  toast('Genera prima il PDF cliente e attendi la conferma di salvataggio', 'err');
+  return;
+}
+
+if (!preventivo.cliente_id) {
+  toast('Questo preventivo non è collegato a un cliente', 'err');
+  return;
+}
+
+const { data: cliente, error: erroreCliente } = await db
+  .from('clienti')
+  .select('rappresentante_id')
+  .eq('id', preventivo.cliente_id)
+  .single();
+
+if (erroreCliente) {
+  toast('Errore caricamento cliente: ' + erroreCliente.message, 'err');
+  return;
+}
+
+const rappresentanteId = cliente?.rappresentante_id || null;
+
+if (!rappresentanteId) {
+  toast(
+    'Il cliente non ha un rappresentante assegnato. Assegnalo prima dalla sua scheda.',
+    'err'
+  );
+  return;
+}
+
+
+  if (!confirm(
+    'Inviare il PDF del preventivo n. ' + preventivo.numero +
+    ' al titolare e al rappresentante? Il rappresentante potrà solo aprirlo e scaricarlo.'
+  )) {
+    return;
+  }
+
+  const ora = new Date().toISOString();
+
+  const { error } = await db
+    .from('preventivi')
+    .update({
+      stato: 'inviato_a_rappresentante',
+      inviato_a_rappresentante_il: ora,
+      inviato_a_rappresentante_da: ME.id,
+      letto_rappresentante_il: null,
+      inviato_a_titolare_il: ora,
+      letto_titolare_il: null,
+      aggiornato_il: ora
+    })
+    .eq('id', currentPreventivoId);
+
+  if (error) {
+    toast('Errore durante l’invio: ' + error.message, 'err');
+    return;
+  }
+
+  toast('PDF inviato al titolare e al rappresentante', 'ok');
+}
 
 
 async function inviaPreventivoPerApprovazione(preventivoId) {
