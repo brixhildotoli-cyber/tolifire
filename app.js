@@ -13257,6 +13257,15 @@ const bloccoPreventivoRicevuto = `
             `;
           }).join('')
     }
+
+    <button
+  class="btn sm p"
+  style="margin-top:12px"
+  onclick="salvaAllegatiRichiestaFornitore('${s.id}')"
+>
+  Salva allegati selezionati
+</button>
+
   </div>
 `;
 
@@ -13302,13 +13311,24 @@ const bloccoAllegati = !allegatiProgetto.length
           `;
         }).join('')}
 
-        <button
-          class="btn sm p"
-          style="margin-top:8px"
-          onclick="salvaAllegatiRichiestaFornitore('${s.id}')"
-        >
-          Salva allegati selezionati
-        </button>
+          <button
+    class="btn sm p"
+    onclick="salvaDettagliFornitorePreventivo('${s.id}')"
+  >
+    Salva dati fornitore
+  </button>
+
+  <button
+    class="btn sm info"
+    onclick="generaRichiestaQuotazionePDF('${s.id}')"
+  >
+    📄 ${
+      s.richiesta_versione > 0
+        ? 'Rigenera PDF richiesta'
+        : 'Genera PDF richiesta'
+    }
+  </button>
+
       </div>
     `;
 
@@ -13423,23 +13443,7 @@ ${
       </span>
     `
 }
-  <button
-    class="btn sm p"
-    onclick="salvaDettagliFornitorePreventivo('${s.id}')"
-  >
-    Salva dati fornitore
-  </button>
 
-  <button
-    class="btn sm info"
-    onclick="generaRichiestaQuotazionePDF('${s.id}')"
-  >
-    📄 ${
-      s.richiesta_versione > 0
-        ? 'Rigenera PDF richiesta'
-        : 'Genera PDF richiesta'
-    }
-  </button>
 
   ${
     s.richiesta_versione > 0 &&
