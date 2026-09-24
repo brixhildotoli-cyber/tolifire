@@ -4266,9 +4266,30 @@ if (paginaAttuale && paginaAttuale !== 'cliente-detail') {
 
   currentCliId = id;
 
-  const cli = CLIS.find(function(c) {
-    return c.id === id;
+let cli = CLIS.find(function(c) {
+  return c.id === id;
+});
+
+// Ricarica il cliente dal database: necessario dopo conversione di una lead.
+const { data: clienteAggiornato, error: erroreClienteAggiornato } = await db
+  .from('clienti')
+  .select('*')
+  .eq('id', id)
+  .single();
+
+if (!erroreClienteAggiornato && clienteAggiornato) {
+  cli = clienteAggiornato;
+
+  const indice = CLIS.findIndex(function(cliente) {
+    return cliente.id === id;
   });
+
+  if (indice >= 0) {
+    CLIS[indice] = clienteAggiornato;
+  } else {
+    CLIS.push(clienteAggiornato);
+  }
+}
 
   ge('cd-nome').textContent =
     cli?.ragione_sociale || 'Cliente';
