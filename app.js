@@ -4546,19 +4546,26 @@ if (!erroreClienteAggiornato && clienteAggiornato) {
   loadPeriodicitaCliente(id);
 }
 
-async function editCliById(id){
+async function editCliById(id, contestoLead = null) {
   if (!puoModificareClienti()) {
-  toast('I clienti sono in sola lettura per il tuo ruolo', 'err');
-  return;
-}
-  // Cerca prima nel cache locale, poi nel DB
-  let c = window._cliMap?.[id] || CLIS.find(x=>x.id===id);
-  if(!c){
-    const {data}=await db.from('clienti').select('*').eq('id',id).single();
-    c=data;
+    toast('I clienti sono in sola lettura per il tuo ruolo', 'err');
+    return;
   }
-  if(!c){toast('Cliente non trovato','err');return;}
-  await editCli(c);
+
+  contestoCompletamentoLead = contestoLead;
+
+  const { data: cliente, error } = await db
+    .from('clienti')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error || !cliente) {
+    toast('Cliente non trovato: ' + (error?.message || ''), 'err');
+    return;
+  }
+
+  await editCli(cliente);
 }
 
 // ── CLIENTI ───────────────────────────────────────────────────
@@ -4823,6 +4830,7 @@ async function loadSediDetail(cliId){
 async function saveCli(){
   const rag=v('mc1').trim();if(!rag){toast('Inserisci la ragione sociale','err');return;}
   const eid=v('mc-edit-id');
+    const completamentoLead = contestoCompletamentoLead;
   const payload={
     ragione_sociale:rag,piva:v('mc2')||null,codice_fiscale:v('mc2b')||null,
     citta:v('mc3')||null,referente_nome:v('mc4')||null,referente_telefono:v('mc5')||null,
@@ -4832,6 +4840,25 @@ async function saveCli(){
     codice_sdi:v('mf6')||null,pec:v('mf7')||null,modalita_pagamento:v('mf8')||null,
     giorni_pagamento:parseInt(v('mf9'))||30,iban:v('mf10')||null,note_fatturazione:v('mf11')||null,
   };
+
+    if (completamentoLead) {
+    const mancanti = [];
+
+    if (!payload.piva) mancanti.push('P.IVA');
+    if (!payload.referente_nome) mancanti.push('referente');
+    if (!payload.referente_telefono) mancanti.push('telefono');
+    if (!payload.indirizzo_fattura) mancanti.push('indirizzo');
+    if (!payload.cap_fattura) mancanti.push('CAP');
+    if (!payload.citta_fattura) mancanti.push('città');
+
+    if (mancanti.length) {
+      toast(
+        'Per confermare il contatto completa: ' + mancanti.join(', '),
+        'err'
+      );
+      return;
+    }
+  }
   // Il cliente creato dal rappresentante viene assegnato a lui.
 if (!eid && ROLE === 'rappresentante') {
   payload.rappresentante_id = ME.id;
@@ -4845,10 +4872,42 @@ if (!eid && ROLE === 'rappresentante') {
   }
   if(error){toast('Errore: '+error.message,'err');return;}
   if(cliId)await saveCliSedi(cliId);
-  closeM('m-cli');toast(eid?'Cliente aggiornato ✓':'Cliente creato ✓','ok');
+    if (completamentoLead) {
+    const { error: erroreFase } = await db
+      .from('pipeline_crm')
+      .update({
+        fase: 'qualificato',
+        aggiornato_il: new Date().toISOString()
+      })
+      .eq('id', completamentoLead.pipelineId)
+      .eq('rappresentante_id', ME.id);
+
+    if (erroreFase) {
+      toast(
+        'Anagrafica salvata, ma errore aggiornamento lead: ' +
+        erroreFase.message,
+        'err'
+      );
+      return;
+    }
+
+    contestoCompletamentoLead = null;
+  }
+closeM('m-cli');
+
+toast(
+  completamentoLead
+    ? 'Contatto confermato e anagrafica completata ✓'
+    : (eid ? 'Cliente aggiornato ✓' : 'Cliente creato ✓'),
+  'ok'
+);
   if(ROLE==='segreteria') { await loadCS(); await loadDashSegreteria(); }
   pendingSedi=[];existingSediIds=[];
   await loadCS();loadCli();loadDash();
+
+    if (completamentoLead) {
+    await loadTrattative();
+  }
 }
 
 // ── INTERVENTI ────────────────────────────────────────────────
@@ -5808,6 +5867,7 @@ function nascondiCampoTecnico() {
 
 // ── RAPPRESENTANTE ───────────────────────────────────────────
 var _allProspect = [];
+let contestoCompletamentoLead = null;
 
 var rapCalAnno = new Date().getFullYear();
 var rapCalMese = new Date().getMonth();
@@ -6858,6 +6918,15 @@ const riepilogoProgetti = (
         📅 Fissa appuntamento
       </button>
 
+            ${ROLE === 'rappresentante' && p?.fase === 'primo_contatto' ? `
+        <button
+          class="btn sm p"
+          onclick="completaAnagraficaDopoContatto('${c.id}')"
+        >
+          ✅ Contatto completato
+        </button>
+      ` : ''}
+
       <button
         class="btn sm"
         style="color:var(--r)"
@@ -6966,6 +7035,31 @@ async function salvaLead() {
     bottone.disabled = false;
     bottone.textContent = 'Crea lead';
   }
+}
+
+async function completaAnagraficaDopoContatto(clienteId) {
+  const lead = _allProspect.find(function(cliente) {
+    return cliente.id === clienteId;
+  });
+
+  if (!lead?.pipeline) {
+    toast('Trattativa non trovata', 'err');
+    return;
+  }
+
+  await editCliById(clienteId, {
+    pipelineId: lead.pipeline.id
+  });
+
+  const titolo = ge('mcli-title');
+  if (titolo) {
+    titolo.textContent = 'Completa anagrafica dopo il contatto';
+  }
+
+  toast(
+    'Per confermare il contatto compila P.IVA, referente, telefono, indirizzo, CAP e città.',
+    'ok'
+  );
 }
 
 function apriAppuntamentoDaLead(clienteId) {
@@ -11341,6 +11435,32 @@ async function openPreventivoDetail(preventivoId) {
         ${esc(preventivo.note)}
       </div>
     ` : ''}
+
+    ${ROLE === 'titolare' && preventivo.stato === 'inviato_a_rappresentante' ? `
+      <div class="card" style="margin-top:16px;border-left:4px solid #d97706">
+        <div style="font-size:14px;font-weight:700">
+          ↩ Rimanda al commerciale
+        </div>
+
+        <div style="font-size:12px;color:var(--m);margin:6px 0 10px">
+          La nota è facoltativa. Il commerciale potrà modificare il preventivo e rigenerare il PDF.
+        </div>
+
+        <textarea
+          id="pvd-nota-rinvio-titolare"
+          rows="3"
+          placeholder="Es. Verifica il prezzo della posa, aggiungi una voce o modifica le condizioni..."
+        ></textarea>
+
+        <button
+          class="btn warn"
+          style="margin-top:10px"
+          onclick="rimandaPreventivoAlCommerciale()"
+        >
+          ↩ Rimanda al commerciale
+        </button>
+      </div>
+    ` : ''}
   `;
 
   ge('pvd-progetto-content').innerHTML = `
@@ -11456,6 +11576,36 @@ async function openPreventivoDetail(preventivoId) {
   await renderCostiPreventivo();
   gotoPage('preventivo-detail');
   
+}
+
+async function rimandaPreventivoAlCommerciale() {
+  if (ROLE !== 'titolare') return;
+
+  const nota = (
+    ge('pvd-nota-rinvio-titolare')?.value || ''
+  ).trim();
+
+  if (!confirm(
+    'Rimandare questo preventivo al commerciale per la revisione?'
+  )) {
+    return;
+  }
+
+  const { error } = await db.rpc(
+    'rimanda_preventivo_al_commerciale',
+    {
+      p_preventivo_id: currentPreventivoId,
+      p_nota: nota || null
+    }
+  );
+
+  if (error) {
+    toast('Errore durante il rinvio: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Preventivo rimandato al commerciale', 'ok');
+  gotoPage('preventivi-titolare');
 }
 
 function campoPreventivo(label, id, valore = '', tipo = 'text', placeholder = '') {
