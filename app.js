@@ -24,7 +24,7 @@ const PERIO_OPT=['mensile','bimestrale','trimestrale','quadrimestrale','semestra
 const PERIO_MESI={mensile:1,bimestrale:2,trimestrale:3,quadrimestrale:4,semestrale:6,annuale:12,biennale:24};
 
 const NAV={
-  titolare:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead'},{id:'preventivi-titolare',l:'🧾 Preventivi'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'workflow',l:'📋 Da gestire'},{id:'interventi',l:'🔧 Interventi'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'},{id:'impostazioni',l:'Impostazioni'}],
+  titolare:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'preventivi-titolare',l:'🧾 Preventivi'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'workflow',l:'📋 Da gestire'},{id:'interventi',l:'🔧 Interventi'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'},{id:'impostazioni',l:'Impostazioni'}],
   capo_tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'calendario-team',l:'👥 Calendari team'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'Documenti'}],
   segreteria:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'workflow',l:'📋 Da gestire'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'Clienti'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
   contabile:[{id:'dashboard',l:'📊 Dashboard'},{id:'workflow',l:'📅 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
@@ -635,7 +635,7 @@ function buildNav() {
 
 // Pagine accessibili per ruolo
 const PAGINE_RUOLO = {
-  titolare:       ['dashboard','calendario','piano-mensile','trattative','preventivi-titolare','preventivo-detail','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','progetto-detail','fornitore-detail', 'tecnico','sopralluogo'],
+  titolare:       ['dashboard','calendario','piano-mensile','trattative','preventivi-titolare','preventivo-detail','progetti-da-preventivare','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','progetto-detail','fornitore-detail', 'tecnico','sopralluogo'],
   capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','clienti','documenti','cliente-detail'],
   segreteria:     ['dashboard','calendario','workflow','presidi','interventi','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail'],
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
@@ -9334,10 +9334,9 @@ async function inviaIntegrazioneCommerciale() {
 async function avviaPreventivo(progettoId) {
   const { data: esistente, error: erroreEsistente } = await db
     .from('preventivi')
-    .select('id')
-    .eq('progetto_tecnico_id', progettoId)
-    .eq('commerciale_id', ME.id)
-    .maybeSingle();
+   .select('id')
+  .eq('progetto_tecnico_id', progettoId)
+  .maybeSingle();
 
   if (erroreEsistente) {
     toast('Errore controllo preventivo: ' + erroreEsistente.message, 'err');
@@ -10922,7 +10921,7 @@ async function renderSchedeProgettoCommerciale(progettoId) {
           </div>
 
           ${
-            ROLE === 'commerciale'
+            ['commerciale', 'titolare'].includes(ROLE)
               ? `
                 <button
                   class="btn sm p"
@@ -10965,10 +10964,10 @@ async function renderSchedeProgettoCommerciale(progettoId) {
 }
 
 async function apriModificaSchedaCommerciale(progettoId, famiglia) {
-  if (ROLE !== 'commerciale') {
-    toast('Solo il commerciale può modificare la copia', 'err');
-    return;
-  }
+ if (!['commerciale', 'titolare'].includes(ROLE)) {
+  toast('Solo commerciale o titolare possono modificare la copia', 'err');
+  return;
+}
 
   const { data: scheda, error } = await db
     .from('progetti_tecnici_schede')
@@ -11826,7 +11825,7 @@ async function renderSchedePreventivo() {
             </div>
 
             ${
-              ROLE === 'commerciale'
+              ['commerciale', 'titolare'].includes(ROLE)
                 ? `
                   <button
                     class="btn sm p"
@@ -15365,10 +15364,10 @@ async function generaPreventivoClientePDF() {
 
 async function inviaPdfClienteATitolareERappresentante() {
 
-  if (ROLE !== 'commerciale') {
-    toast('Solo il commerciale può inviare il preventivo', 'err');
-    return;
-  }
+  if (!['commerciale', 'titolare'].includes(ROLE)) {
+  toast('Solo commerciale o titolare possono inviare il preventivo', 'err');
+  return;
+}
 
 const { data: preventivo, error: errorePreventivo } = await db
   .from('preventivi')
