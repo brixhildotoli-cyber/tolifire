@@ -6990,8 +6990,9 @@ async function salvaLead() {
         referente_telefono: v('lead-telefono').trim() || null,
         referente_email: v('lead-email').trim() || null,
         citta: v('lead-citta').trim() || null,
-        stato: 'prospect',
-        rappresentante_id: ME.id,
+      stato: 'prospect',
+ads_inserito_da_rappresentante: ['rappresentante', 'titolare'].includes(ROLE),
+rappresentante_id: ME.id,
         note_commerciali: v('lead-note').trim() || null
       })
       .select()
