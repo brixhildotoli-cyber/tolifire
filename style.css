@@ -74,7 +74,25 @@ tr:hover td{background:var(--bg)}
 .bok{background:var(--gl);color:var(--g)}.bwarn{background:var(--al);color:var(--a)}.berr{background:var(--rl);color:var(--r)}.bblue{background:var(--bl);color:var(--b)}.bgray{background:var(--gyl);color:var(--gy)}.bpur{background:var(--pl);color:var(--p)}
 .f{margin-bottom:14px}
 .f label{display:block;font-size:12px;font-weight:500;color:var(--m);margin-bottom:5px}
-input,select,textarea{width:100%;padding:9px 11px;border:0.5px solid var(--bo);border-radius:var(--rs);font-size:13px;font-family:inherit;color:var(--t);background:var(--w);transition:border-color .15s}
+input,select,textarea{
+  width:100%;
+  padding:9px 11px;
+  border:0.5px solid var(--bo);
+  border-radius:var(--rs);
+  font-size:13px;
+  font-family:inherit;
+  color:var(--t);
+  background:var(--w);
+  transition:border-color .15s
+  
+}
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+  padding: 0;
+  border: 0;
+  flex: 0 0 auto;
+}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--g)}
 textarea{resize:vertical;min-height:80px}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}

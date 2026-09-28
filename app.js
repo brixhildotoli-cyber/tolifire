@@ -6630,12 +6630,16 @@ async function loadPreventiviTitolare() {
       numero,
       stato,
       totale_imponibile,
+      commerciale_id,
       inviato_a_titolare_il,
+      aggiornato_il,
       preventivo_cliente_pdf_generato_il,
       clienti(ragione_sociale)
     `)
-    .not('inviato_a_titolare_il', 'is', null)
-    .order('inviato_a_titolare_il', { ascending: false });
+    .or(
+      'inviato_a_titolare_il.not.is.null,commerciale_id.eq.' + ME.id
+    )
+    .order('aggiornato_il', { ascending: false });
 
   if (error) {
     box.innerHTML = `
@@ -6647,13 +6651,15 @@ async function loadPreventiviTitolare() {
   }
 
   if (!preventivi?.length) {
-    box.innerHTML = '<div class="empty">Nessun preventivo ricevuto.</div>';
+    box.innerHTML = '<div class="empty">Nessun preventivo presente.</div>';
     return;
   }
 
   box.innerHTML = preventivi.map(function(preventivo) {
-    const dataInvio = preventivo.inviato_a_titolare_il
-      ? new Date(preventivo.inviato_a_titolare_il).toLocaleString('it-IT')
+    const ricevutoDalCommerciale = !!preventivo.inviato_a_titolare_il;
+
+    const dataAggiornamento = preventivo.aggiornato_il
+      ? new Date(preventivo.aggiornato_il).toLocaleString('it-IT')
       : '—';
 
     return `
@@ -6663,21 +6669,35 @@ async function loadPreventiviTitolare() {
             <div style="font-size:15px;font-weight:700">
               Preventivo n. ${esc(String(preventivo.numero || '—'))}
             </div>
+
             <div style="font-size:13px;margin-top:4px">
               ${esc(preventivo.clienti?.ragione_sociale || 'Cliente')}
             </div>
+
             <div style="font-size:12px;color:var(--m);margin-top:4px">
-              Inviato il ${esc(dataInvio)}
+              ${ricevutoDalCommerciale
+                ? 'Inviato dal commerciale il '
+                : 'Aggiornato il '
+              }
+              ${esc(dataAggiornamento)}
             </div>
           </div>
 
-          <span class="bx bblue">Da controllare</span>
+          <span class="bx ${ricevutoDalCommerciale ? 'bblue' : 'bok'}">
+            ${ricevutoDalCommerciale
+              ? 'Da controllare'
+              : 'In lavorazione'
+            }
+          </span>
         </div>
 
         <button
           class="btn sm p"
           style="margin-top:14px"
-          onclick="apriPreventivoTitolare('${preventivo.id}')"
+          onclick="apriPreventivoTitolare(
+            '${preventivo.id}',
+            ${ricevutoDalCommerciale}
+          )"
         >
           ✏️ Apri e modifica
         </button>
@@ -6686,15 +6706,20 @@ async function loadPreventiviTitolare() {
   }).join('');
 }
 
-async function apriPreventivoTitolare(preventivoId) {
-  const { error } = await db.rpc(
-    'marca_preventivo_letto_titolare',
-    { p_preventivo_id: preventivoId }
-  );
+async function apriPreventivoTitolare(
+  preventivoId,
+  ricevutoDalCommerciale = false
+) {
+  if (ricevutoDalCommerciale) {
+    const { error } = await db.rpc(
+      'marca_preventivo_letto_titolare',
+      { p_preventivo_id: preventivoId }
+    );
 
-  if (error) {
-    toast('Errore apertura preventivo: ' + error.message, 'err');
-    return;
+    if (error) {
+      toast('Errore apertura preventivo: ' + error.message, 'err');
+      return;
+    }
   }
 
   await openPreventivoDetail(preventivoId);
@@ -9192,9 +9217,10 @@ async function loadProgettiDaPreventivare() {
       rappresentante_id,
       clienti(ragione_sociale)
     `)
-    .in('stato', [
+.in('stato', [
   'inviato_a_commerciale',
-  'pronto_per_preventivo'
+  'pronto_per_preventivo',
+  'in_preventivazione'
 ])
     .order('creato_il', { ascending: false });
 
@@ -9214,6 +9240,7 @@ async function loadProgettiDaPreventivare() {
 
   box.innerHTML = data.map(function(p) {
     const cliente = p.clienti?.ragione_sociale || 'Cliente non disponibile';
+    const inLavorazione = p.stato === 'in_preventivazione';
     const dataInvio = p.creato_il
       ? new Date(p.creato_il).toLocaleDateString('it-IT')
       : '';
@@ -9230,7 +9257,9 @@ async function loadProgettiDaPreventivare() {
             </div>
           </div>
 
-          <span class="bx bblue">Da preventivare</span>
+          <span class="bx ${inLavorazione ? 'bok' : 'bblue'}">
+  ${inLavorazione ? 'Preventivo in lavorazione' : 'Da preventivare'}
+</span>
         </div>
 
         <div style="font-size:13px;white-space:pre-wrap;margin-top:10px">
@@ -9256,6 +9285,7 @@ async function loadProgettiDaPreventivare() {
     📂 Apri progetto
   </button>
 
+${!inLavorazione ? `
   <button
     class="btn sm"
     style="color:#b45309"
@@ -9263,13 +9293,14 @@ async function loadProgettiDaPreventivare() {
   >
     ↩ Richiedi integrazione
   </button>
+` : ''}
 
-  <button
-    class="btn sm p"
-    onclick="avviaPreventivo('${p.id}')"
-  >
-    🧾 Avvia preventivo
-  </button>
+<button
+  class="btn sm p"
+  onclick="avviaPreventivo('${p.id}')"
+>
+  ${inLavorazione ? '🧾 Apri preventivo' : '🧾 Avvia preventivo'}
+</button>
 </div>
 </div>
     `;
@@ -15623,6 +15654,32 @@ async function segnaRichiestaFornitoreInviata(selezioneId) {
 }
 
 async function generaRichiestaQuotazionePDF(selezioneId) {
+    const allegatiSelezionatiOra = Array.from(
+    document.querySelectorAll(
+      '[data-allegato-richiesta="' + selezioneId + '"]:checked'
+    )
+  ).map(function(input) {
+    return input.value;
+  });
+
+  const { error: erroreSalvataggioAllegati } = await db
+    .from('preventivi_fornitori')
+    .update({
+      allegati_progetto_ids: allegatiSelezionatiOra,
+      aggiornato_il: new Date().toISOString()
+    })
+    .eq('id', selezioneId)
+    .eq('preventivo_id', currentPreventivoId);
+
+  if (erroreSalvataggioAllegati) {
+    toast(
+      'Errore salvataggio immagini selezionate: ' +
+      erroreSalvataggioAllegati.message,
+      'err'
+    );
+    return;
+  }
+  
   if (!window.jspdf) {
     toast('Libreria PDF non caricata, riprova tra qualche secondo', 'err');
     return;
@@ -15656,7 +15713,9 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
         numero,
         progetto_tecnico_id,
         progetti_tecnici(
-          tipologia
+          tipologia,
+           descrizione_tecnica,
+  materiali_note
         )
       `)
       .eq('id', currentPreventivoId)
@@ -15843,14 +15902,20 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
     'Si richiede quotazione per fornitura, disponibilità, tempi di consegna e condizioni applicabili.'
   );
 
-  titolo('Dati tecnici per la quotazione');
+  if (progetto.descrizione_tecnica) {
+  titolo('Descrizione / studio tecnico');
+  testo(progetto.descrizione_tecnica);
+}
 
-  if (!schede || !schede.length) {
-    testo(
-      'Non sono presenti rilievi strutturati. Fare riferimento alla tipologia indicata e richiedere eventuali chiarimenti.'
-    );
-  } else {
-    schede.forEach(function(scheda) {
+if (progetto.materiali_note) {
+  titolo('Materiali e note del progetto');
+  testo(progetto.materiali_note);
+}
+
+  if (schede && schede.length) {
+  titolo('Rilievi tecnici dell’ingegnere');
+
+  schede.forEach(function(scheda) {
       titolo(etichettaFamigliaTecnica(scheda.famiglia));
 
      const campi = Object.entries(
