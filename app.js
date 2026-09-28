@@ -12,6 +12,7 @@ let _pianoAnno=new Date().getFullYear(),_pianoMese=new Date().getMonth()+1;
 let calCicli=[];
 let currentCliId=null;
 let paginaPrecedenteCliente = 'clienti';
+let paginaPrecedenteProgetto = 'progetti';
 let richiestaProgettiCliente = 0;
 let progettiClienteDati = [];
 let appAnno = new Date().getFullYear();
@@ -4266,6 +4267,17 @@ if (paginaAttuale && paginaAttuale !== 'cliente-detail') {
 
   currentCliId = id;
 
+/* Invalida qualsiasi caricamento progetti del cliente precedente. */
+richiestaProgettiCliente += 1;
+progettiClienteDati = [];
+
+const listaProgettiCliente = ge('cd-progetti-lista');
+
+if (listaProgettiCliente) {
+  listaProgettiCliente.innerHTML =
+    '<div class="load">Caricamento progetti...</div>';
+}
+
 let cli = CLIS.find(function(c) {
   return c.id === id;
 });
@@ -4297,6 +4309,7 @@ if (!erroreClienteAggiornato && clienteAggiornato) {
   ge('mpcl').value = id;
 
   gotoPage('cliente-detail');
+  loadProgettiCliente(id);
 
   document.querySelectorAll('.nb').forEach(function(nav) {
     nav.classList.remove('on');
@@ -6636,9 +6649,6 @@ async function loadPreventiviTitolare() {
       preventivo_cliente_pdf_generato_il,
       clienti(ragione_sociale)
     `)
-    .or(
-      'inviato_a_titolare_il.not.is.null,commerciale_id.eq.' + ME.id
-    )
     .order('aggiornato_il', { ascending: false });
 
   if (error) {
@@ -10584,6 +10594,14 @@ function dimensioneFileProgetto(bytes) {
 }
 
 async function openProgettoDetail(progettoId) {
+    const paginaAttuale = document
+    .querySelector('.page.on')
+    ?.id
+    ?.replace('pg-', '');
+
+  if (paginaAttuale && paginaAttuale !== 'progetto-detail') {
+    paginaPrecedenteProgetto = paginaAttuale;
+  }
   const { data: progetto, error } = await db
     .from('progetti_tecnici')
     .select('*, clienti(ragione_sociale)')
@@ -10826,7 +10844,18 @@ if (btnModifica) {
 }
 
 function tornaDaSchedaProgetto() {
-  if (ROLE === 'commerciale') {
+  const pagineConsentite = PAGINE_RUOLO[ROLE] || [];
+
+  if (
+    paginaPrecedenteProgetto &&
+    paginaPrecedenteProgetto !== 'progetto-detail' &&
+    pagineConsentite.includes(paginaPrecedenteProgetto)
+  ) {
+    gotoPage(paginaPrecedenteProgetto);
+    return;
+  }
+
+  if (ROLE === 'commerciale' || ROLE === 'titolare') {
     gotoPage('progetti-da-preventivare');
     return;
   }
@@ -10835,10 +10864,7 @@ function tornaDaSchedaProgetto() {
     gotoPage('verifiche-tecniche');
     return;
   }
-if (ROLE === 'titolare') {
-  gotoPage('trattative');
-  return;
-}
+
   gotoPage('progetti');
 }
 
@@ -11387,6 +11413,25 @@ let currentPreventivoProgettoId = null;
 let currentRilievoProgettoId = null;
 let contestoSchedaRilevazione = 'preventivo';
 
+
+function tornaDaPreventivo() {
+  if (ROLE === 'titolare') {
+    gotoPage('preventivi-titolare');
+    return;
+  }
+
+  if (ROLE === 'commerciale') {
+    gotoPage('preventivi');
+    return;
+  }
+
+  if (ROLE === 'rappresentante') {
+    gotoPage('preventivi-rapp');
+    return;
+  }
+
+  gotoPage('dashboard');
+}
 
 async function openPreventivoDetail(preventivoId) {
   const { data: preventivo, error } = await db
@@ -15679,7 +15724,7 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
     );
     return;
   }
-  
+
   if (!window.jspdf) {
     toast('Libreria PDF non caricata, riprova tra qualche secondo', 'err');
     return;
