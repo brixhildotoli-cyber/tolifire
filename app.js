@@ -27,7 +27,7 @@ const PERIO_MESI={mensile:1,bimestrale:2,trimestrale:3,quadrimestrale:4,semestra
 const NAV={
   titolare:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'preventivi-titolare',l:'🧾 Preventivi'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'workflow',l:'📋 Da gestire'},{id:'interventi',l:'🔧 Interventi'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'},{id:'impostazioni',l:'Impostazioni'}],
   capo_tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'calendario-team',l:'👥 Calendari team'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'Documenti'}],
-  segreteria:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'workflow',l:'📋 Da gestire'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:'Clienti'},{id:'documenti',l:'Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
+  segreteria:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'workflow',l:'📋 Da gestire'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'🔧 Interventi'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
   contabile:[{id:'dashboard',l:'📊 Dashboard'},{id:'workflow',l:'📅 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
   tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
   commerciale:[{id:'dashboard',l:'📊 Dashboard'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'preventivi',l:'🧾 Preventivi'},{id:'fornitori',l:'🏭 Fornitori'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}, {id: 'info', l: 'ℹ️ Info'}],
@@ -6482,6 +6482,8 @@ async function loadPreventiviRappresentante() {
       id,
       numero,
       preventivo_cliente_pdf_path,
+      pdf_esterno_titolare_path,
+pdf_esterno_titolare_nome,
       preventivo_cliente_pdf_nome,
       preventivo_cliente_pdf_generato_il,
       inviato_a_rappresentante_il,
@@ -6492,7 +6494,7 @@ async function loadPreventiviRappresentante() {
     `)
     .eq('stato', 'inviato_a_rappresentante')
     .eq('clienti.rappresentante_id', ME.id)
-    .not('preventivo_cliente_pdf_path', 'is', null)
+    .or('preventivo_cliente_pdf_path.not.is.null,pdf_esterno_titolare_path.not.is.null')
     .order('inviato_a_rappresentante_il', { ascending: false });
 
   if (error) {
@@ -6568,6 +6570,7 @@ async function apriPdfPreventivoRappresentante(preventivoId) {
     .select(`
       id,
       preventivo_cliente_pdf_path,
+      pdf_esterno_titolare_path,
       clienti!inner(rappresentante_id)
     `)
     .eq('id', preventivoId)
@@ -6575,7 +6578,11 @@ async function apriPdfPreventivoRappresentante(preventivoId) {
     .eq('clienti.rappresentante_id', ME.id)
     .single();
 
-  if (error || !preventivo?.preventivo_cliente_pdf_path) {
+  const percorsoPdf =
+    preventivo?.pdf_esterno_titolare_path ||
+    preventivo?.preventivo_cliente_pdf_path;
+
+  if (error || !percorsoPdf) {
     if (nuovaScheda) nuovaScheda.close();
 
     toast(
@@ -6587,7 +6594,7 @@ async function apriPdfPreventivoRappresentante(preventivoId) {
 
   const { data: urlData, error: erroreUrl } = await db.storage
     .from('preventivi-documenti')
-    .createSignedUrl(preventivo.preventivo_cliente_pdf_path, 3600);
+    .createSignedUrl(percorsoPdf, 3600);
 
   if (erroreUrl || !urlData?.signedUrl) {
     if (nuovaScheda) nuovaScheda.close();
@@ -6605,7 +6612,10 @@ async function apriPdfPreventivoRappresentante(preventivoId) {
   );
 
   if (erroreLettura) {
-    console.warn('Impossibile segnare il preventivo come letto:', erroreLettura.message);
+    console.warn(
+      'Impossibile segnare il preventivo come letto:',
+      erroreLettura.message
+    );
   }
 
   if (nuovaScheda) {
@@ -8903,25 +8913,94 @@ async function caricaAllegatiProgetto(progettoId) {
     return;
   }
 
-  box.innerHTML = allegatiProgettoDati.map(function(allegato) {
-    return `
-      <div style="
-        display:flex;
-        align-items:center;
-        gap:8px;
-        padding:8px 10px;
-        margin-top:6px;
-        background:var(--gl);
-        border-radius:var(--rs);
-        font-size:12px
-      ">
+ var puoEliminare = ROLE === 'rappresentante' || ROLE === 'titolare';
+
+box.innerHTML = allegatiProgettoDati.map(function(allegato) {
+  return `
+    <div style="
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      padding:8px 10px;
+      margin-top:6px;
+      background:var(--gl);
+      border-radius:var(--rs);
+      font-size:12px
+    ">
+      <div style="min-width:0;display:flex;align-items:center;gap:8px">
         <span>📎</span>
         <span style="font-weight:600;overflow-wrap:anywhere">
           ${esc(allegato.nome_file)}
         </span>
       </div>
-    `;
-  }).join('');
+
+      ${puoEliminare ? `
+        <button
+          class="btn sm"
+          style="color:var(--r);flex-shrink:0"
+          onclick="eliminaAllegatoProgetto('${allegato.id}')"
+        >
+          🗑️ Elimina
+        </button>
+      ` : ''}
+    </div>
+  `;
+}).join('');
+}
+
+async function eliminaAllegatoProgetto(allegatoId) {
+  if (ROLE !== 'rappresentante' && ROLE !== 'titolare') {
+    toast('Non hai i permessi per eliminare questo allegato', 'err');
+    return;
+  }
+
+  var allegato = allegatiProgettoDati.find(function(file) {
+    return file.id === allegatoId;
+  });
+
+  if (!allegato) {
+    toast('Allegato non trovato', 'err');
+    return;
+  }
+
+  if (allegatiProgettoDati.length <= 1) {
+    toast(
+      'Il progetto deve contenere almeno un allegato. Carica prima un nuovo file, poi elimina quello vecchio.',
+      'err'
+    );
+    return;
+  }
+
+  if (!confirm('Eliminare definitivamente "' + allegato.nome_file + '"?')) {
+    return;
+  }
+
+  const { error: erroreRecord } = await db
+    .from('progetti_tecnici_allegati')
+    .delete()
+    .eq('id', allegatoId);
+
+  if (erroreRecord) {
+    toast('Errore eliminazione allegato: ' + erroreRecord.message, 'err');
+    return;
+  }
+
+  if (allegato.storage_path) {
+    const { error: erroreFile } = await db.storage
+      .from('progetti-tecnici')
+      .remove([allegato.storage_path]);
+
+    if (erroreFile) {
+      console.warn(
+        'Allegato rimosso dal progetto, ma file rimasto nel bucket:',
+        erroreFile.message
+      );
+    }
+  }
+
+  toast('Foto/file eliminato dal progetto', 'ok');
+  await caricaAllegatiProgetto(allegato.progetto_id);
 }
 
 async function loadProgettiCliente(clienteId) {
@@ -11786,6 +11865,40 @@ async function openPreventivoDetail(preventivoId) {
         ${esc(preventivo.note)}
       </div>
     ` : ''}
+
+${ROLE === 'titolare' ? `
+  <div class="card" style="margin-top:16px;border-left:4px solid var(--g)">
+    <div style="font-size:14px;font-weight:700">
+      📎 PDF esterno per il rappresentante
+    </div>
+
+    <div style="font-size:12px;color:var(--m);margin:6px 0 12px">
+      Carica un PDF già ricevuto o creato esternamente. Il rappresentante vedrà solo questo file.
+    </div>
+
+    ${
+      preventivo.pdf_esterno_titolare_nome
+        ? `<div class="al2 ok" style="margin-bottom:12px">
+            PDF attualmente pronto: <b>${esc(preventivo.pdf_esterno_titolare_nome)}</b>
+          </div>`
+        : ''
+    }
+
+    <input
+      type="file"
+      id="pvd-pdf-esterno-titolare"
+      accept="application/pdf,.pdf"
+      style="margin-bottom:10px"
+    >
+
+    <button
+      class="btn p"
+      onclick="caricaEInviaPdfEsternoTitolare()"
+    >
+      📤 Carica e invia PDF al rappresentante
+    </button>
+  </div>
+` : ''}
 
     ${ROLE === 'titolare' && preventivo.stato === 'inviato_a_rappresentante' ? `
       <div class="card" style="margin-top:16px;border-left:4px solid #d97706">
@@ -15713,6 +15826,106 @@ async function generaPreventivoClientePDF() {
 
   toast('PDF cliente generato e salvato', 'ok');
 }
+
+async function caricaEInviaPdfEsternoTitolare() {
+  if (ROLE !== 'titolare') {
+    toast('Solo il titolare può caricare questo PDF', 'err');
+    return;
+  }
+
+  var input = ge('pvd-pdf-esterno-titolare');
+  var file = input?.files?.[0];
+
+  if (!file) {
+    toast('Seleziona prima un PDF dal computer', 'err');
+    return;
+  }
+
+  var ePdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+
+  if (!ePdf) {
+    toast('Puoi caricare solo file PDF', 'err');
+    return;
+  }
+
+  if (file.size > 15 * 1024 * 1024) {
+    toast('Il PDF supera il limite di 15 MB', 'err');
+    return;
+  }
+
+  const { data: preventivo, error: errorePreventivo } = await db
+    .from('preventivi')
+    .select('id,numero,cliente_id')
+    .eq('id', currentPreventivoId)
+    .single();
+
+  if (errorePreventivo || !preventivo) {
+    toast('Preventivo non trovato', 'err');
+    return;
+  }
+
+  const { data: cliente, error: erroreCliente } = await db
+    .from('clienti')
+    .select('rappresentante_id')
+    .eq('id', preventivo.cliente_id)
+    .single();
+
+  if (erroreCliente || !cliente?.rappresentante_id) {
+    toast('Il cliente non ha un rappresentante assegnato', 'err');
+    return;
+  }
+
+  if (!confirm(
+    'Caricare e inviare questo PDF al rappresentante? Vedrà solo il file selezionato.'
+  )) {
+    return;
+  }
+
+  var nomeSicuro = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  var percorso = currentPreventivoId +
+    '/titolare/' +
+    Date.now() +
+    '_' +
+    nomeSicuro;
+
+  const { error: erroreUpload } = await db.storage
+    .from('preventivi-documenti')
+    .upload(percorso, file, {
+      contentType: 'application/pdf',
+      upsert: false
+    });
+
+  if (erroreUpload) {
+    toast('Errore caricamento PDF: ' + erroreUpload.message, 'err');
+    return;
+  }
+
+  const ora = new Date().toISOString();
+
+  const { error: erroreSalvataggio } = await db
+    .from('preventivi')
+    .update({
+      pdf_esterno_titolare_path: percorso,
+      pdf_esterno_titolare_nome: file.name,
+      pdf_esterno_titolare_caricato_il: ora,
+      stato: 'inviato_a_rappresentante',
+      inviato_a_rappresentante_il: ora,
+      inviato_a_rappresentante_da: ME.id,
+      letto_rappresentante_il: null,
+      aggiornato_il: ora
+    })
+    .eq('id', currentPreventivoId);
+
+  if (erroreSalvataggio) {
+    await db.storage.from('preventivi-documenti').remove([percorso]);
+    toast('PDF caricato ma non collegato: ' + erroreSalvataggio.message, 'err');
+    return;
+  }
+
+  toast('PDF esterno inviato al rappresentante', 'ok');
+  await openPreventivoDetail(currentPreventivoId);
+}
+
 
 async function inviaPdfClienteATitolareERappresentante() {
 
