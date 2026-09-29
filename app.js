@@ -7777,8 +7777,8 @@ async function stampaDDT(ddtId) {
     doc.setFontSize(9);
     doc.setTextColor(100, 100, 100);
     doc.setFont('helvetica', 'normal');
-    doc.text('Via esempio, 1 — 00000 Città (XX)', 15, 26);
-    doc.text('P.IVA: 00000000000 — info@tolifire.it', 15, 30);
+    doc.text('Via Bellatalla 62, Ospedaletto — 56121 Pisa', 15, 26);
+doc.text('P.IVA: 02490980501 — amministrazione@toli-fire.com', 15, 30);
 
     // Titolo DDT
     doc.setFontSize(16);
