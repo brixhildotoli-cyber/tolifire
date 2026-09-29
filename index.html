@@ -422,6 +422,8 @@
       <button class="btn sm" onclick="gotoPage('info')">ⓘ Info</button>
     </div>
 
+    <div id="com-avviso-progetti"></div>
+
     <button class="rap-primary" onclick="gotoPage('progetti-da-preventivare')">
       <span class="ico">📐</span>
       <span class="body">
@@ -1762,11 +1764,51 @@
 
 <!-- DOCUMENTI -->
 <div class="page" id="pg-documenti">
-  <div class="sh"><div class="st">Documenti</div><button class="btn p" id="btn-nuovo-ddt" onclick="openM('m-ddt')">+ Nuovo DDT</button></div>
-  <div class="tabs"><button class="tab on" onclick="stab(this,'tc-sd')">Schede lavoro</button><button class="tab" onclick="stab(this,'tc-dd')">DDT</button><button class="tab" onclick="stab(this,'tc-rd')">Relazioni tecniche</button></div>
-  <div class="tc on" id="tc-sd"><div class="tw"><table><thead><tr><th>N°</th><th>Cliente</th><th>Tecnico</th><th>Data</th><th>Esito</th><th>Stato</th><th>Azioni</th></tr></thead><tbody id="stbody"><tr><td colspan="7"><div class="load">Caricamento...</div></td></tr></tbody></table></div></div>
-  <div class="tc" id="tc-dd"><div class="tw"><table><thead><tr><th>N°</th><th>Cliente</th><th>Data</th><th>Causale</th><th></th></tr></thead><tbody id="dtbody"></tbody></table></div></div>
-  <div class="tc" id="tc-rd"><div class="tw"><table><thead><tr><th>N°</th><th>Cliente</th><th>Impianto</th><th>Data</th><th>Esito</th><th>Straord.</th><th></th></tr></thead><tbody id="rttbody"></tbody></table></div></div>
+  <div class="sh">
+    <div class="st">Documenti</div>
+    <button class="btn p" id="btn-nuovo-ddt" onclick="apriNuovoDDT()">+ Nuovo DDT</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" onclick="stab(this,'tc-sd')">Schede lavoro</button>
+    <button class="tab" onclick="stab(this,'tc-dd')">DDT</button>
+    <button class="tab" onclick="stab(this,'tc-rd')">Relazioni tecniche</button>
+  </div>
+
+  <div class="tc on" id="tc-sd">
+    <div class="tw">
+      <table>
+        <thead>
+          <tr><th>N°</th><th>Cliente</th><th>Tecnico</th><th>Data</th><th>Esito</th><th>Stato</th><th>Azioni</th></tr>
+        </thead>
+        <tbody id="stbody">
+          <tr><td colspan="7"><div class="load">Caricamento...</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tc" id="tc-dd">
+    <div class="tw">
+      <table>
+        <thead>
+          <tr><th>N°</th><th>Cliente</th><th>Data</th><th>Causale</th><th></th></tr>
+        </thead>
+        <tbody id="dtbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tc" id="tc-rd">
+    <div class="tw">
+      <table>
+        <thead>
+          <tr><th>N°</th><th>Cliente</th><th>Impianto</th><th>Data</th><th>Esito</th><th>Straord.</th><th></th></tr>
+        </thead>
+        <tbody id="rttbody"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 
@@ -2101,6 +2143,137 @@
         <li>Se hai dubbi su un cliente, verifica prima con il responsabile.</li>
       </ul>
     </div>
+
+
+
+    <!-- GUIDA COMMERCIALE -->
+<div
+  class="card guida-ruolo"
+  id="guida-commerciale"
+  data-titolo="Guida pratica — Commerciale"
+  style="display:none"
+>
+  <h3>🧾 Come usare il gestionale — Commerciale</h3>
+
+  <p>
+    Il tuo ruolo è trasformare il progetto tecnico ricevuto in una richiesta
+    chiara ai fornitori e, dopo aver raccolto i costi, preparare il preventivo
+    da inviare al cliente.
+  </p>
+
+  <div class="al2 i">
+    <b>Flusso di lavoro:</b><br>
+    Progetto tecnico → richiesta ai fornitori → risposta del fornitore →
+    preventivo cliente → invio a titolare e rappresentante.
+  </div>
+
+  <hr class="sep">
+
+  <h4>1. Progetti da preventivare</h4>
+
+  <p>
+    Apri <b>📐 Da preventivare</b>. Qui trovi i progetti ricevuti dal
+    rappresentante, con eventuali rilievi e note dell’ingegnere.
+  </p>
+
+  <p>
+    Apri il progetto e controlla sempre descrizione, misure, fotografie,
+    file allegati e rilievi tecnici. Se manca un’informazione importante,
+    usa <b>↩ Richiedi integrazione</b>: non è obbligatorio coinvolgere
+    l’ingegnere se il rappresentante può recuperare direttamente il dato.
+  </p>
+
+  <p>
+    Quando il progetto è sufficientemente chiaro, premi
+    <b>🧾 Avvia preventivo</b>.
+  </p>
+
+  <hr class="sep">
+
+  <h4>2. Richiesta ai fornitori</h4>
+
+  <p>
+    Nel preventivo apri la tab <b>🏭 Fornitori</b> e seleziona fino a due
+    fornitori. Compila eventuali richieste o varianti nel campo note.
+  </p>
+
+  <p>
+    Seleziona le foto e i documenti utili da allegare, poi premi
+    <b>📄 Genera PDF richiesta</b>. Il PDF contiene lo studio tecnico,
+    i rilievi dell’ingegnere e le immagini selezionate.
+  </p>
+
+  <div class="al2 w">
+    <b>Attenzione:</b> nel PDF per il fornitore non devono comparire dati
+    personali non necessari del cliente.
+  </div>
+
+  <hr class="sep">
+
+  <h4>3. Quando risponde il fornitore</h4>
+
+  <p>
+    Carica il PDF ricevuto dal fornitore nella sua scheda. Inserisci
+    <b>prezzo offerto</b>, <b>tempi proposti</b> e imposta lo stato su
+    <b>Risposta ricevuta</b>.
+  </p>
+
+  <p>
+    Quando hai scelto la quotazione da usare, premi
+    <b>📥 Usa nel preventivo cliente</b>. Il costo verrà riportato nelle
+    voci del preventivo.
+  </p>
+
+  <hr class="sep">
+
+  <h4>4. Preventivo cliente</h4>
+
+  <p>
+    Apri la tab <b>💶 Preventivo Cliente</b>. Inserisci materiali,
+    lavorazioni e servizi; il sistema calcola imponibile e margine.
+  </p>
+
+  <p>
+    Completa, se necessario:
+  </p>
+
+  <ul>
+    <li>modalità di pagamento;</li>
+    <li>note aggiuntive per il cliente;</li>
+    <li>eventuali voci non comprese nella risposta del fornitore.</li>
+  </ul>
+
+  <p>
+    Premi <b>Salva preventivo</b>, poi <b>Genera PDF cliente</b>.
+    Controlla sempre il PDF prima di inoltrarlo.
+  </p>
+
+  <hr class="sep">
+
+  <h4>5. Invio interno</h4>
+
+  <p>
+    Quando il preventivo è pronto, usa
+    <b>📤 Invia a titolare e rappresentante</b>.
+  </p>
+
+  <ul>
+    <li>Il <b>rappresentante</b> lo riceve in sola lettura per inviarlo al cliente.</li>
+    <li>Il <b>titolare</b> può aprirlo, modificarlo e rigenerare il PDF.</li>
+  </ul>
+
+  <hr class="sep">
+
+  <h4>Checklist prima dell’invio</h4>
+
+  <ul>
+    <li>Ho letto progetto tecnico, rilievi e allegati?</li>
+    <li>Ho confrontato prezzi e tempi del fornitore?</li>
+    <li>Ho inserito tutte le voci del preventivo cliente?</li>
+    <li>Ho verificato condizioni di pagamento e note?</li>
+    <li>Ho generato e controllato il PDF cliente?</li>
+  </ul>
+</div>
 
     <!-- GUIDA TECNICO: da compilare in seguito -->
     <div
@@ -2745,7 +2918,12 @@
 
 
 <div class="mbg" id="m-ddt"><div class="modal" style="max-width:700px">
-  <div class="mh">Nuovo DDT <button class="mx" onclick="closeM('m-ddt')">✕</button></div>
+<div class="mh">
+  <span id="ddt-modal-title">Nuovo DDT</span>
+  <button class="mx" onclick="closeM('m-ddt')">✕</button>
+</div>
+
+<input type="hidden" id="ddt-id">
   <div class="fr"><div class="f"><label>Cliente *</label><select id="ddt-cli"><option value="">Seleziona...</option></select></div><div class="f"><label>Data emissione *</label><input type="date" id="ddt-data"></div></div>
   <div class="fr"><div class="f"><label>Causale</label><input type="text" id="ddt-causale" placeholder="Es: Fornitura estintori"></div><div class="f"><label>Intervento collegato</label><select id="ddt-odl"><option value="">Nessuno</option></select></div></div>
   <div class="f"><label>Luogo di consegna</label><select id="ddt-luogo"><option value="">Sede legale (default)</option></select></div>
@@ -2759,7 +2937,7 @@
   <div class="f"><label>Note</label><textarea id="ddt-note" style="min-height:55px"></textarea></div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
     <div style="font-size:14px;font-weight:600">Totale: € <span id="ddt-totale">0.00</span></div>
-    <div style="display:flex;gap:8px"><button class="btn" onclick="closeM('m-ddt')">Annulla</button><button class="btn p" onclick="saveDdt()">Crea DDT</button></div>
+    <div style="display:flex;gap:8px"><button class="btn p" id="ddt-save-btn" onclick="saveDdt()">Crea DDT</button></div>
   </div>
 </div></div>
 

@@ -711,6 +711,128 @@ function gotoPage(id){
   window.scrollTo(0,0);
 }
 
+async function caricaAvvisoProgettiDaPreventivareCommerciale() {
+  if (ROLE !== 'commerciale') return;
+
+  const box = ge('com-avviso-progetti');
+  if (!box) return;
+
+  const chiaveLetti = `progetti_da_preventivare_letti_${ME.id}`;
+
+  let idGiaLetti = [];
+
+  try {
+    const salvati = JSON.parse(
+      localStorage.getItem(chiaveLetti) || '[]'
+    );
+
+    idGiaLetti = Array.isArray(salvati) ? salvati : [];
+  } catch {
+    idGiaLetti = [];
+  }
+
+  const giaLetti = new Set(idGiaLetti);
+
+  const { data: progetti, error } = await db
+    .from('progetti_tecnici')
+    .select('id')
+    .in('stato', [
+      'inviato_a_commerciale',
+      'pronto_per_preventivo'
+    ]);
+
+  if (error) {
+    console.error(
+      'Errore lettura notifiche progetti:',
+      error.message
+    );
+    box.innerHTML = '';
+    return;
+  }
+
+  const nuovi = (progetti || []).filter(function(progetto) {
+    return !giaLetti.has(progetto.id);
+  });
+
+  if (!nuovi.length) {
+    box.innerHTML = '';
+    return;
+  }
+
+  const testo = nuovi.length === 1
+    ? 'Hai 1 nuovo progetto da preventivare'
+    : `Hai ${nuovi.length} nuovi progetti da preventivare`;
+
+  box.innerHTML = `
+    <button
+      class="rap-primary"
+      style="background:#b91c1c;margin:14px 0"
+      onclick="apriProgettiDaPreventivareDaDashboard()"
+    >
+      <span class="ico">📐</span>
+
+      <span class="body">
+        <span class="title">${testo}</span>
+        <span class="sub">
+          Il rappresentante ha inviato un progetto tecnico da controllare.
+        </span>
+      </span>
+
+      <span class="chev">›</span>
+    </button>
+  `;
+}
+
+async function apriProgettiDaPreventivareDaDashboard() {
+  if (ROLE !== 'commerciale') return;
+
+  const box = ge('com-avviso-progetti');
+
+  if (box) {
+    box.innerHTML = '';
+  }
+
+  const chiaveLetti = `progetti_da_preventivare_letti_${ME.id}`;
+
+  const { data: progetti, error } = await db
+    .from('progetti_tecnici')
+    .select('id')
+    .in('stato', [
+      'inviato_a_commerciale',
+      'pronto_per_preventivo'
+    ]);
+
+  if (!error) {
+    let idGiaLetti = [];
+
+    try {
+      const salvati = JSON.parse(
+        localStorage.getItem(chiaveLetti) || '[]'
+      );
+
+      idGiaLetti = Array.isArray(salvati) ? salvati : [];
+    } catch {
+      idGiaLetti = [];
+    }
+
+    const tuttiGliId = [
+      ...new Set([
+        ...idGiaLetti,
+        ...(progetti || []).map(function(progetto) {
+          return progetto.id;
+        })
+      ])
+    ];
+
+    localStorage.setItem(
+      chiaveLetti,
+      JSON.stringify(tuttiGliId)
+    );
+  }
+
+  gotoPage('progetti-da-preventivare');
+}
+
 async function loadDashCommerciale() {
   const ora = new Date().getHours();
   const saluto = ora < 12
@@ -852,6 +974,7 @@ async function loadDashCommerciale() {
   }
 
   await renderCalendarioCommerciale();
+  await caricaAvvisoProgettiDaPreventivareCommerciale();
 }
 var comCalAnno = new Date().getFullYear();
 var comCalMese = new Date().getMonth();
@@ -4950,7 +5073,23 @@ async function loadDocs(){
       <button class="btn sm" onclick="stampaRapportoIntervento('${s.id}')">📋 Rapporto</button>
       <button class="btn sm" onclick="stampaRelazionePorteREI('${s.id}')" title="Solo se ci sono porte REI">🚪 Porte</button>
       ${ROLE==='titolare'?`<button class="btn sm" style="color:var(--r)" onclick="eliminaScheda('${s.id}')">🗑️</button>`:''}</td></tr>`).join('');
-  const dt=dr.data||[];ge('dtbody').innerHTML=!dt.length?'<tr><td colspan="5"><div class="empty">Nessun DDT</div></td></tr>':dt.map(d=>`<tr><td>#${d.numero||'—'}</td><td>${esc(d.clienti?.ragione_sociale||'—')}</td><td>${fd(d.data_emissione)}</td><td>${esc(d.causale||'—')}</td><td style="display:flex;gap:6px"><button class="btn sm" onclick="stampaDDT('${d.id}')">🖨️ PDF</button>${ROLE==='titolare'?`<button class="btn sm" style="color:var(--r)" onclick="eliminaDDT('${d.id}')">🗑️</button>`:''}</td></tr>`).join('');
+ const dt = dr.data || [];
+ge('dtbody').innerHTML = !dt.length
+  ? '<tr><td colspan="5"><div class="empty">Nessun DDT</div></td></tr>'
+  : dt.map(function(d) {
+      var puoModificare = ROLE === 'segreteria' || ROLE === 'titolare';
+      return `<tr>
+        <td>#${d.numero || '—'}</td>
+        <td>${esc(d.clienti?.ragione_sociale || '—')}</td>
+        <td>${fd(d.data_emissione)}</td>
+        <td>${esc(d.causale || '—')}</td>
+        <td style="display:flex;gap:6px">
+          <button class="btn sm" onclick="stampaDDT('${d.id}')">🖨️ PDF</button>
+          ${puoModificare ? `<button class="btn sm" onclick="modificaDDT('${d.id}')">✏️ Modifica</button>` : ''}
+          ${ROLE === 'titolare' ? `<button class="btn sm" style="color:var(--r)" onclick="eliminaDDT('${d.id}')">🗑️</button>` : ''}
+        </td>
+      </tr>`;
+    }).join('');
   const rt=rr.data||[];ge('rttbody').innerHTML=!rt.length?'<tr><td colspan="7"><div class="empty">Nessuna relazione</div></td></tr>':rt.map(r=>`<tr><td>#${r.numero||'—'}</td><td>${esc(r.clienti?.ragione_sociale||'—')}</td><td>${esc((r.tipo_impianto||'').replace(/_/g,' '))}</td><td>${fd(r.data_sopralluogo)}</td><td>${be(r.esito)}</td><td>${r.intervento_straordinario?'<span class="bx berr">Sì</span>':'<span class="bx bok">No</span>'}</td><td><button class="btn sm">Vedi</button></td></tr>`).join('');
 }
 
@@ -7433,45 +7572,181 @@ function renderRigheDDT() {
   aggiornaTotaleDDT();
 }
 
+function apriNuovoDDT() {
+  ge('ddt-id').value = '';
+  ge('ddt-modal-title').textContent = 'Nuovo DDT';
+  ge('ddt-save-btn').textContent = 'Crea DDT';
+  ge('ddt-causale').value = '';
+  ge('ddt-note').value = '';
+  ge('ddt-luogo').value = '';
+  ge('ddt-search-prod').value = '';
+  openM('m-ddt');
+}
+
+async function modificaDDT(ddtId) {
+  if (ROLE !== 'segreteria' && ROLE !== 'titolare') {
+    toast('Non hai i permessi per modificare il DDT', 'err');
+    return;
+  }
+
+  var res = await db
+    .from('ddt')
+    .select('id, numero, cliente_id, data_emissione, causale, note, odl_id, luogo_consegna')
+    .eq('id', ddtId)
+    .single();
+
+  if (res.error) {
+    toast('Errore caricamento DDT: ' + res.error.message, 'err');
+    return;
+  }
+
+  var righeRes = await db
+    .from('ddt_righe')
+    .select('id, prodotto_id, codice, descrizione, um, quantita, prezzo_unitario')
+    .eq('ddt_id', ddtId)
+    .order('id');
+
+  if (righeRes.error) {
+    toast('Errore caricamento righe: ' + righeRes.error.message, 'err');
+    return;
+  }
+
+  var ddt = res.data;
+
+  await initDDTModal();
+
+  ge('ddt-id').value = ddt.id;
+  ge('ddt-modal-title').textContent = 'Modifica DDT n. ' + (ddt.numero || '—');
+  ge('ddt-save-btn').textContent = 'Salva modifiche';
+
+  ge('ddt-cli').value = ddt.cliente_id || '';
+  ge('ddt-data').value = ddt.data_emissione || '';
+  ge('ddt-causale').value = ddt.causale || '';
+  ge('ddt-note').value = ddt.note || '';
+  ge('ddt-odl').value = ddt.odl_id || '';
+
+  await caricaSediDDT(ddt.cliente_id);
+
+  if (ddt.luogo_consegna) {
+    var luogoEsiste = Array.from(ge('ddt-luogo').options)
+      .some(function(opzione) { return opzione.value === ddt.luogo_consegna; });
+
+    if (!luogoEsiste) {
+      var opzione = document.createElement('option');
+      opzione.value = ddt.luogo_consegna;
+      opzione.textContent = ddt.luogo_consegna;
+      ge('ddt-luogo').appendChild(opzione);
+    }
+
+    ge('ddt-luogo').value = ddt.luogo_consegna;
+  }
+
+  _ddtRighe = (righeRes.data || []).map(function(riga) {
+    return {
+      prodotto_id: riga.prodotto_id || null,
+      codice: riga.codice || '',
+      descrizione: riga.descrizione || '',
+      um: riga.um || '',
+      quantita: Number(riga.quantita) || 1,
+      prezzo_unitario: Number(riga.prezzo_unitario) || 0
+    };
+  });
+
+  renderRigheDDT();
+  _origOpenM('m-ddt');
+}
+
 async function saveDdt() {
   var cid = v('ddt-cli');
   var data = v('ddt-data');
-  if(!cid || !data) { toast('Cliente e data obbligatori', 'err'); return; }
-  if(!_ddtRighe.length) { toast('Aggiungi almeno una riga', 'err'); return; }
-  // Crea DDT
+  var ddtId = v('ddt-id');
+  var inModifica = !!ddtId;
+
+  if (!cid || !data) {
+    toast('Cliente e data obbligatori', 'err');
+    return;
+  }
+
+  if (!_ddtRighe.length) {
+    toast('Aggiungi almeno una riga', 'err');
+    return;
+  }
+
   var payload = {
     cliente_id: cid,
     data_emissione: data,
     causale: v('ddt-causale') || null,
     note: v('ddt-note') || null,
     odl_id: v('ddt-odl') || null,
-    luogo_consegna: v('ddt-luogo') || null,
-    tecnico_id: ME.id  // utente loggato
+    luogo_consegna: v('ddt-luogo') || null
   };
-  // Rimuovi campi null per evitare errori di constraint
-  Object.keys(payload).forEach(function(k) { if(payload[k]===null) delete payload[k]; });
-  var res = await db.from('ddt').insert(payload).select().single();
-  if(res.error) { toast('Errore DDT: ' + res.error.message, 'err'); return; }
-  var ddtId = res.data.id;
-  // Salva righe
+
+  Object.keys(payload).forEach(function(k) {
+    if (payload[k] === null) delete payload[k];
+  });
+
+  var res;
+
+  if (inModifica) {
+    res = await db
+      .from('ddt')
+      .update(payload)
+      .eq('id', ddtId)
+      .select()
+      .single();
+  } else {
+    payload.tecnico_id = ME.id;
+    res = await db
+      .from('ddt')
+      .insert(payload)
+      .select()
+      .single();
+  }
+
+  if (res.error) {
+    toast('Errore DDT: ' + res.error.message, 'err');
+    return;
+  }
+
+  ddtId = res.data.id;
+
+  if (inModifica) {
+    var eliminaRighe = await db
+      .from('ddt_righe')
+      .delete()
+      .eq('ddt_id', ddtId);
+
+    if (eliminaRighe.error) {
+      toast('Errore aggiornamento righe: ' + eliminaRighe.error.message, 'err');
+      return;
+    }
+  }
+
   var righePayload = _ddtRighe.map(function(r) {
     return {
       ddt_id: ddtId,
       prodotto_id: r.prodotto_id || null,
       codice: r.codice || null,
-      descrizione: esc(r.descrizione) || '—',
+      descrizione: r.descrizione || '—',
       um: r.um || null,
       quantita: r.quantita || 1,
       prezzo_unitario: canSeePrezzi() ? (r.prezzo_unitario || 0) : 0
     };
   });
-  var res2 = await db.from('ddt_righe').insert(righePayload);
-  if(res2.error) { toast('Errore righe: ' + res2.error.message, 'err'); return; }
+
+  var resRighe = await db.from('ddt_righe').insert(righePayload);
+
+  if (resRighe.error) {
+    toast('Errore righe: ' + resRighe.error.message, 'err');
+    return;
+  }
+
   closeM('m-ddt');
-  toast('DDT creato', 'ok');
-  if(ge('pg-documenti') && ge('pg-documenti').classList.contains('on')) loadDocs();
-  // Offri subito la stampa
-  if(confirm('DDT creato! Vuoi stampare/scaricare il PDF?')) {
+  await loadDocs();
+
+  toast(inModifica ? 'DDT aggiornato' : 'DDT creato', 'ok');
+
+  if (!inModifica && confirm('DDT creato! Vuoi stampare/scaricare il PDF?')) {
     await stampaDDT(ddtId);
   }
 }
@@ -15614,16 +15889,26 @@ async function eliminaPreventivo(preventivoId) {
     return;
   }
 
-  const { error } = await db
-    .from('preventivi')
-    .delete()
-    .eq('id', preventivoId)
-    .eq('commerciale_id', ME.id);
+const { data: eliminati, error } = await db
+  .from('preventivi')
+  .delete()
+  .eq('id', preventivoId)
+  .eq('commerciale_id', ME.id)
+  .eq('stato', 'bozza')
+  .select('id');
 
-  if (error) {
-    toast('Errore eliminazione preventivo: ' + error.message, 'err');
-    return;
-  }
+if (error) {
+  toast('Errore eliminazione preventivo: ' + error.message, 'err');
+  return;
+}
+
+if (!eliminati || !eliminati.length) {
+  toast(
+    'Cancellazione bloccata: non hai il permesso oppure il preventivo non è più una bozza.',
+    'err'
+  );
+  return;
+}
 
   if (preventivo.progetto_tecnico_id) {
     await db
