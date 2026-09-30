@@ -6814,7 +6814,7 @@ async function loadPreventiviTitolare() {
       preventivo_cliente_pdf_generato_il,
       clienti(ragione_sociale)
     `)
-    .order('aggiornato_il', { ascending: false });
+  .order('numero', { ascending: false });
 
   if (error) {
     box.innerHTML = `
@@ -6866,19 +6866,100 @@ async function loadPreventiviTitolare() {
           </span>
         </div>
 
-        <button
-          class="btn sm p"
-          style="margin-top:14px"
-          onclick="apriPreventivoTitolare(
-            '${preventivo.id}',
-            ${ricevutoDalCommerciale}
-          )"
-        >
-          ✏️ Apri e modifica
-        </button>
-      </div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+  <button
+    class="btn sm p"
+    onclick="apriPreventivoTitolare(
+      '${preventivo.id}',
+      ${ricevutoDalCommerciale}
+    )"
+  >
+    ✏️ Apri e modifica
+  </button>
+
+  <button
+    class="btn sm"
+    style="color:var(--r)"
+    onclick="eliminaPreventivoTitolare('${preventivo.id}')"
+  >
+    🗑️ Elimina
+  </button>
+</div>
+</div>
     `;
   }).join('');
+}
+
+
+async function eliminaPreventivoTitolare(preventivoId) {
+  if (ROLE !== 'titolare') {
+    toast('Solo il titolare può eliminare un preventivo', 'err');
+    return;
+  }
+
+  const { data: preventivo, error: erroreLettura } = await db
+    .from('preventivi')
+    .select(`
+      id,
+      numero,
+      progetto_tecnico_id,
+      preventivo_cliente_pdf_path,
+      pdf_esterno_titolare_path
+    `)
+    .eq('id', preventivoId)
+    .single();
+
+  if (erroreLettura || !preventivo) {
+    toast('Preventivo non trovato: ' + (erroreLettura?.message || ''), 'err');
+    return;
+  }
+
+  if (!confirm(
+    'Eliminare definitivamente il preventivo n. ' +
+    preventivo.numero +
+    '? Verranno eliminate anche voci e fornitori collegati.'
+  )) {
+    return;
+  }
+
+  const { error: erroreEliminazione } = await db
+    .from('preventivi')
+    .delete()
+    .eq('id', preventivoId);
+
+  if (erroreEliminazione) {
+    toast('Errore eliminazione preventivo: ' + erroreEliminazione.message, 'err');
+    return;
+  }
+
+  const percorsiPdf = [
+    preventivo.preventivo_cliente_pdf_path,
+    preventivo.pdf_esterno_titolare_path
+  ].filter(Boolean);
+
+  if (percorsiPdf.length) {
+    const { error: erroreFile } = await db.storage
+      .from('preventivi-documenti')
+      .remove(percorsiPdf);
+
+    if (erroreFile) {
+      console.warn(
+        'Preventivo eliminato, ma alcuni PDF sono rimasti nel bucket:',
+        erroreFile.message
+      );
+    }
+  }
+
+  if (preventivo.progetto_tecnico_id) {
+    await db
+      .from('progetti_tecnici')
+      .update({ stato: 'inviato_a_commerciale' })
+      .eq('id', preventivo.progetto_tecnico_id)
+      .eq('stato', 'in_preventivazione');
+  }
+
+  toast('Preventivo eliminato', 'ok');
+  await loadPreventiviTitolare();
 }
 
 async function apriPreventivoTitolare(
@@ -9339,7 +9420,32 @@ async function salvaProgetto() {
 }
 
 async function eliminaProgetto(progettoId) {
-  if (!confirm('Vuoi eliminare definitivamente questo progetto tecnico?')) {
+  if (ROLE !== 'titolare' && ROLE !== 'rappresentante') { 
+    toast('Non hai i permessi per eliminare questo progetto tecnico', 'err');
+    return;
+  }
+
+  const { count, error: errorePreventivi } = await db
+    .from('preventivi')
+    .select('id', { count: 'exact', head: true })
+    .eq('progetto_tecnico_id', progettoId);
+
+  if (errorePreventivi) {
+    toast('Errore controllo preventivi: ' + errorePreventivi.message, 'err');
+    return;
+  }
+
+  if (count > 0) {
+    toast(
+      'Questo progetto ha già un preventivo collegato. Elimina prima il preventivo.',
+      'err'
+    );
+    return;
+  }
+
+  if (!confirm(
+    'Eliminare definitivamente il progetto e tutti i suoi allegati?'
+  )) {
     return;
   }
 
@@ -9349,7 +9455,7 @@ async function eliminaProgetto(progettoId) {
     .eq('progetto_id', progettoId);
 
   if (erroreAllegati) {
-    toast('Errore: ' + erroreAllegati.message, 'err');
+    toast('Errore caricamento allegati: ' + erroreAllegati.message, 'err');
     return;
   }
 
@@ -9359,13 +9465,12 @@ async function eliminaProgetto(progettoId) {
     .eq('id', progettoId);
 
   if (erroreProgetto) {
-    toast('Errore eliminazione: ' + erroreProgetto.message, 'err');
+    toast('Errore eliminazione progetto: ' + erroreProgetto.message, 'err');
     return;
   }
 
-  // Prova a togliere anche i file dal bucket.
   const percorsi = (allegati || [])
-    .map(a => a.storage_path)
+    .map(function(allegato) { return allegato.storage_path; })
     .filter(Boolean);
 
   if (percorsi.length) {
@@ -9374,14 +9479,20 @@ async function eliminaProgetto(progettoId) {
       .remove(percorsi);
 
     if (erroreStorage) {
-      console.warn('Progetto eliminato, ma alcuni file sono rimasti nel bucket:', erroreStorage.message);
+      console.warn(
+        'Progetto eliminato, ma alcuni file sono rimasti nel bucket:',
+        erroreStorage.message
+      );
     }
   }
 
   toast('Progetto eliminato', 'ok');
 
-  await loadProgettiCliente(currentCliId);
-  await loadPaginaProgetti();
+  await loadProgettiDaPreventivare();
+
+  if (currentCliId) {
+    await loadProgettiCliente(currentCliId);
+  }
 }
 
 async function inviaProgettoAUfficioTecnico(progettoId) {
@@ -9681,6 +9792,15 @@ ${!inLavorazione ? `
 >
   ${inLavorazione ? '🧾 Apri preventivo' : '🧾 Avvia preventivo'}
 </button>
+${ROLE === 'titolare' ? `
+  <button
+    class="btn sm"
+    style="color:var(--r)"
+    onclick="eliminaProgetto('${p.id}')"
+  >
+    🗑️ Elimina progetto
+  </button>
+` : ''}
 </div>
 </div>
     `;
