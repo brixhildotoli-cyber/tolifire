@@ -171,12 +171,14 @@ function ir(l,v2){return `<div style="padding:8px;background:var(--bg);border-ra
 // ── AUTH ──────────────────────────────────────────────────────
 async function doLogin(){
   const email=v('lem').trim(),pwd=v('lpw');
-  if(!email||!pwd){toast('Inserisci email e password','err');return;}
-  const btn=ge('lbtn');btn.disabled=true;btn.textContent='Accesso in corso...';ge('lerr').innerHTML='';
+  if(!email||!pwd){
+    toast('Inserisci email e password','err');return;}
+  const btn=ge('lbtn');
+  btn.disabled=true;btn.textContent='Accesso in corso...';
+  ge('lerr').innerHTML='';
   try{
     const {data,error}=await db.auth.signInWithPassword({email,password:pwd});
     if(error){throw error;}
-    await new Promise(r=>setTimeout(r,800));
     let ud=null;
     const {data:u1}=await db.from('utenti').select('*').eq('id',data.user.id).maybeSingle();
     if(u1)ud=u1;
@@ -184,11 +186,13 @@ async function doLogin(){
       const {data:u2}=await db.from('utenti').select('*').eq('email',email).maybeSingle();
       if(u2)ud=u2;
     }
-    if(!ud){throw new Error('Utente non trovato nel sistema. Contatta Brixhildo.');}
+    if(!ud){
+      throw new Error('Utente non trovato nel sistema. Contatta Brixhildo.');}
     await boot(ud);
   }catch(e){
     ge('lerr').innerHTML=`<div class="al2 e">${e.message}</div>`;
-    btn.disabled=false;btn.textContent='Accedi';
+    btn.disabled=false;
+    btn.textContent='Accedi';
   }
 }
 
@@ -203,7 +207,19 @@ async function boot(ud){
   const today=new Date().toISOString().split('T')[0];const now=new Date();
   ge('tc3').value=today;ge('mo3').value=today;
   ge('tc4').value=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
-  await Promise.all([loadCS(),loadUS(),loadImp(),loadTeam()]);
+ const caricamentiBase = [loadCS(), loadImp()];
+
+// Carica utenti solo dove servono subito.
+if (['titolare', 'capo_tecnico', 'segreteria', 'commerciale'].includes(ROLE)) {
+  caricamentiBase.push(loadUS());
+}
+
+// La tabella completa del team serve solo al titolare.
+if (ROLE === 'titolare') {
+  caricamentiBase.push(loadTeam());
+}
+
+await Promise.all(caricamentiBase);
   if(ROLE==='rappresentante'){gotoPage('dashboard-rapp');}else{loadDash();}
 }
 
