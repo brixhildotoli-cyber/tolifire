@@ -6796,10 +6796,16 @@ async function apriPreventiviTitolareDaDashboard() {
 }
 
 async function loadPreventiviTitolare() {
-  const box = ge('preventivi-titolare-lista');
-  if (!box) return;
+  const boxDaControllare = ge('preventivi-titolare-da-controllare');
+  const boxInviati = ge('preventivi-titolare-inviati');
 
-  box.innerHTML = '<div class="load">Caricamento preventivi...</div>';
+  if (!boxDaControllare || !boxInviati) return;
+
+  boxDaControllare.innerHTML =
+    '<div class="load">Caricamento preventivi...</div>';
+
+  boxInviati.innerHTML =
+    '<div class="load">Caricamento preventivi...</div>';
 
   const { data: preventivi, error } = await db
     .from('preventivi')
@@ -6807,34 +6813,34 @@ async function loadPreventiviTitolare() {
       id,
       numero,
       stato,
-      totale_imponibile,
-      commerciale_id,
       inviato_a_titolare_il,
+      inviato_a_rappresentante_il,
       aggiornato_il,
-      preventivo_cliente_pdf_generato_il,
       clienti(ragione_sociale)
     `)
-  .order('numero', { ascending: false });
+    .order('numero', { ascending: true });
 
   if (error) {
-    box.innerHTML = `
+    const messaggio = `
       <div class="al2 e">
         Errore caricamento preventivi: ${esc(error.message)}
       </div>
     `;
+
+    boxDaControllare.innerHTML = messaggio;
+    boxInviati.innerHTML = '';
     return;
   }
 
-  if (!preventivi?.length) {
-    box.innerHTML = '<div class="empty">Nessun preventivo presente.</div>';
-    return;
-  }
-
-  box.innerHTML = preventivi.map(function(preventivo) {
+  const creaCard = function(preventivo, inviato) {
     const ricevutoDalCommerciale = !!preventivo.inviato_a_titolare_il;
 
-    const dataAggiornamento = preventivo.aggiornato_il
-      ? new Date(preventivo.aggiornato_il).toLocaleString('it-IT')
+    const data = inviato
+      ? preventivo.inviato_a_rappresentante_il
+      : preventivo.aggiornato_il;
+
+    const dataTesto = data
+      ? new Date(data).toLocaleString('it-IT')
       : '—';
 
     return `
@@ -6850,44 +6856,58 @@ async function loadPreventiviTitolare() {
             </div>
 
             <div style="font-size:12px;color:var(--m);margin-top:4px">
-              ${ricevutoDalCommerciale
-                ? 'Inviato dal commerciale il '
-                : 'Aggiornato il '
-              }
-              ${esc(dataAggiornamento)}
+              ${inviato ? 'Inviato al rappresentante il ' : 'Aggiornato il '}
+              ${esc(dataTesto)}
             </div>
           </div>
 
-          <span class="bx ${ricevutoDalCommerciale ? 'bblue' : 'bok'}">
-            ${ricevutoDalCommerciale
-              ? 'Da controllare'
-              : 'In lavorazione'
-            }
+          <span class="bx ${inviato ? 'bok' : 'bblue'}">
+            ${inviato ? 'Inviato' : 'Da controllare'}
           </span>
         </div>
 
-   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
-  <button
-    class="btn sm p"
-    onclick="apriPreventivoTitolare(
-      '${preventivo.id}',
-      ${ricevutoDalCommerciale}
-    )"
-  >
-    ✏️ Apri e modifica
-  </button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+          <button
+            class="btn sm p"
+            onclick="apriPreventivoTitolare(
+              '${preventivo.id}',
+              ${ricevutoDalCommerciale}
+            )"
+          >
+            ✏️ Apri e modifica
+          </button>
 
-  <button
-    class="btn sm"
-    style="color:var(--r)"
-    onclick="eliminaPreventivoTitolare('${preventivo.id}')"
-  >
-    🗑️ Elimina
-  </button>
-</div>
-</div>
+          <button
+            class="btn sm"
+            style="color:var(--r)"
+            onclick="eliminaPreventivoTitolare('${preventivo.id}')"
+          >
+            🗑️ Elimina
+          </button>
+        </div>
+      </div>
     `;
-  }).join('');
+  };
+
+  const daControllare = (preventivi || []).filter(function(preventivo) {
+    return preventivo.stato !== 'inviato_a_rappresentante';
+  });
+
+  const inviati = (preventivi || []).filter(function(preventivo) {
+    return preventivo.stato === 'inviato_a_rappresentante';
+  });
+
+  boxDaControllare.innerHTML = daControllare.length
+    ? daControllare.map(function(preventivo) {
+        return creaCard(preventivo, false);
+      }).join('')
+    : '<div class="empty">Nessun preventivo da controllare.</div>';
+
+  boxInviati.innerHTML = inviati.length
+    ? inviati.map(function(preventivo) {
+        return creaCard(preventivo, true);
+      }).join('')
+    : '<div class="empty">Nessun preventivo ancora inviato.</div>';
 }
 
 
@@ -12034,6 +12054,17 @@ ${ROLE === 'titolare' ? `
     >
       📤 Carica e invia PDF al rappresentante
     </button>
+
+    ${preventivo.pdf_esterno_titolare_path ? `
+  <button
+    class="btn"
+    style="margin-left:8px;color:var(--r)"
+    onclick="ritiraPdfEsternoTitolare()"
+  >
+    🗑️ Ritira e cancella PDF inviato
+  </button>
+` : ''}
+
   </div>
 ` : ''}
 
@@ -16063,6 +16094,68 @@ async function caricaEInviaPdfEsternoTitolare() {
   await openPreventivoDetail(currentPreventivoId);
 }
 
+
+async function ritiraPdfEsternoTitolare() {
+  if (ROLE !== 'titolare') {
+    toast('Solo il titolare può ritirare questo PDF', 'err');
+    return;
+  }
+
+  const { data: preventivo, error: errorePreventivo } = await db
+    .from('preventivi')
+    .select('id, numero, pdf_esterno_titolare_path')
+    .eq('id', currentPreventivoId)
+    .single();
+
+  if (errorePreventivo || !preventivo) {
+    toast('Preventivo non trovato', 'err');
+    return;
+  }
+
+  if (!preventivo.pdf_esterno_titolare_path) {
+    toast('Non è presente un PDF esterno da ritirare', 'err');
+    return;
+  }
+
+  if (!confirm(
+    'Ritirare il PDF dal rappresentante e cancellarlo? Il preventivo resterà salvato.'
+  )) {
+    return;
+  }
+
+  const percorso = preventivo.pdf_esterno_titolare_path;
+
+  const { error: erroreAggiornamento } = await db
+    .from('preventivi')
+    .update({
+      pdf_esterno_titolare_path: null,
+      pdf_esterno_titolare_nome: null,
+      pdf_esterno_titolare_caricato_il: null,
+      stato: 'bozza',
+      inviato_a_rappresentante_il: null,
+      inviato_a_rappresentante_da: null,
+      letto_rappresentante_il: null,
+      aggiornato_il: new Date().toISOString()
+    })
+    .eq('id', currentPreventivoId);
+
+  if (erroreAggiornamento) {
+    toast('Errore nel ritiro del PDF: ' + erroreAggiornamento.message, 'err');
+    return;
+  }
+
+  const { error: erroreFile } = await db.storage
+    .from('preventivi-documenti')
+    .remove([percorso]);
+
+  if (erroreFile) {
+    toast('PDF ritirato dal rappresentante, ma non eliminato dallo storage: ' + erroreFile.message, 'err');
+  } else {
+    toast('PDF ritirato e cancellato correttamente', 'ok');
+  }
+
+  await openPreventivoDetail(currentPreventivoId);
+}
 
 async function inviaPdfClienteATitolareERappresentante() {
 
