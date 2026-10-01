@@ -9832,12 +9832,13 @@ async function inviaIntegrazioneCommerciale() {
     .update({
       stato: nuovoStato,
       nota_integrazione: nota,
-      integrazione_richiesta_da: 'commerciale'
+      integrazione_richiesta_da: ROLE
     })
     .eq('id', progettoId)
     .in('stato', [
   'inviato_a_commerciale',
-  'pronto_per_preventivo'
+  'pronto_per_preventivo',
+  'in_preventivazione'
 ])
     .select('id');
 
