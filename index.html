@@ -1155,16 +1155,21 @@
     </div>
   </div>
 
-  <div class="rap-section">Progetti da trasformare in preventivo</div>
-  <div id="preventivi-da-creare">
-    <div class="load">Caricamento...</div>
-  </div>
+<div class="rap-section" style="margin-top:22px">
+  Le mie bozze e preventivi da completare
+</div>
 
-  <div class="rap-section" style="margin-top:22px">Le mie bozze e preventivi</div>
-  <div id="preventivi-lista">
-    <div class="load">Caricamento...</div>
-    
-  </div>
+<div id="preventivi-lista">
+  <div class="load">Caricamento...</div>
+</div>
+
+<div class="rap-section" style="margin-top:22px">
+  📤 Preventivi inviati al rappresentante
+</div>
+
+<div id="preventivi-inviati-lista">
+  <div class="load">Caricamento...</div>
+</div>
 </section>
 
 <!-- SCHEDA PREVENTIVO -->
@@ -1542,7 +1547,7 @@
   <div class="sh"><div><div class="st">Presidi antincendio</div></div><button class="btn p" onclick="resetPF();openM('m-presidio')">+ Nuovo presidio</button></div>
   <div class="sb">
     <input type="text" id="psearch" placeholder="Cerca matricola, cliente, ubicazione..." oninput="filterP()">
-    <select id="ptipo" onchange="filterP()" style="width:auto"><option value="">Tutti i tipi</option><option value="estintore">🧯 Estintori</option><option value="porta_rei">🚪 Porte REI</option><option value="idrante">🚿 Idranti</option><option value="naspo">Naspi</option><option value="luce_emergenza">💡 Luci emergenza</option><option value="pompa_antincendio">⚙️ Pompa</option><option value="centrale_rivelazione">Centrale rivelazione</option><option value="sprinkler">Sprinkler</option><option value="uscita_emergenza">Uscite emergenza</option></select>
+    <select id="ptipo" onchange="filterP()" style="width:auto"><option value="">Tutti i tipi</option><option value="estintore">🧯 Estintori</option><option value="porta_rei">🚪 Porte REI</option><option value="manichetta">🧵 Manichette</option><option value="idrante">🚿 Idranti</option><option value="naspo">Naspi</option><option value="luce_emergenza">💡 Luci emergenza</option><option value="pompa_antincendio">⚙️ Pompa</option><option value="centrale_rivelazione">Centrale rivelazione</option><option value="sprinkler">Sprinkler</option><option value="uscita_emergenza">Uscite emergenza</option></select>
     <select id="pstato" onchange="filterP()" style="width:auto"><option value="">Tutti gli stati</option><option value="ok">OK</option><option value="anomalia">Anomalia</option><option value="scaduto">Scaduto</option></select>
     <select id="pcli" onchange="filterP()" style="width:auto"><option value="">Tutti i clienti</option></select>
   </div>
@@ -2591,9 +2596,9 @@
 
       <button
         class="btn p"
-        onclick="salvaEsitoVerifica('pronto_per_preventivo')"
+        onclick="salvaEsitoVerifica('bozza')"
       >
-        ✅ Pronto per preventivo
+        ✅ Restituisci al rappresentante 
       </button>
     </div>
   </div>
@@ -2901,7 +2906,7 @@
 <div class="mbg" id="m-presidio">
 <div class="modal">
   <div class="mh"><span id="mpt">Nuovo presidio</span><button class="mx" onclick="closeM('m-presidio')">✕</button></div>
-  <div class="f"><label>Tipo *</label><select id="mptp" onchange="switchPF()"><option value="estintore">🧯 Estintore</option><option value="porta_rei">🚪 Porta REI</option><option value="idrante">🚿 Idrante</option><option value="naspo">Naspo</option><option value="luce_emergenza">💡 Luce emergenza</option><option value="pompa_antincendio">⚙️ Pompa antincendio</option><option value="centrale_rivelazione">Centrale rivelazione</option><option value="sprinkler">Sprinkler</option><option value="uscita_emergenza">Uscita emergenza</option></select></div>
+  <div class="f"><label>Tipo *</label><select id="mptp" onchange="switchPF()"><option value="estintore">🧯 Estintore</option><option value="porta_rei">🚪 Porta REI</option><option value="manichetta">🧵 Manichetta</option><option value="idrante">🚿 Idrante</option><option value="naspo">Naspo</option><option value="luce_emergenza">💡 Luce emergenza</option><option value="pompa_antincendio">⚙️ Pompa antincendio</option><option value="centrale_rivelazione">Centrale rivelazione</option><option value="sprinkler">Sprinkler</option><option value="uscita_emergenza">Uscita emergenza</option></select></div>
   <div class="f"><label>Cliente *</label><select id="mpcl" onchange="loadSediPresidio(this.value)"><option value="">Seleziona...</option></select></div>
   <div class="f"><label>Sede</label><select id="mpsede" style="width:100%"><option value="">Sede principale / non specificata</option></select></div>
   <div id="fe">
@@ -2922,6 +2927,136 @@
     <div class="f"><label>Stato</label><select id="mp14"><option value="ok">✅ OK</option><option value="anomalia">⚠️ Anomalia</option><option value="scaduto">❌ Scaduto</option></select></div>
     <div class="f"><label>Note</label><textarea id="mp15" style="min-height:60px"></textarea></div>
   </div>
+  <div id="fm" style="display:none">
+  <div class="fr">
+    <div class="f">
+      <label>Numero / ID manichetta *</label>
+      <input type="text" id="mm1" placeholder="Es. M-01">
+    </div>
+
+    <div class="f">
+      <label>Tipologia *</label>
+      <select id="mm2">
+        <option value="uni_45">UNI 45</option>
+        <option value="uni_70">UNI 70</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="fr">
+    <div class="f">
+      <label>Ubicazione *</label>
+      <input type="text" id="mm3" placeholder="Es. Piano terra, corridoio">
+    </div>
+
+    <div class="f">
+      <label>Piano</label>
+      <input type="text" id="mm4">
+    </div>
+  </div>
+
+  <div class="f">
+    <label>Locale / area</label>
+    <input type="text" id="mm5">
+  </div>
+
+  <div class="fr">
+    <div class="f">
+      <label>Ultima verifica</label>
+      <input type="date" id="mm6">
+    </div>
+
+    <div class="f">
+      <label>Prossima verifica</label>
+      <input type="date" id="mm7">
+    </div>
+  </div>
+
+  <div class="fr">
+    <div class="f">
+      <label>Scadenza collaudo / prova pressione</label>
+      <input type="date" id="mm8">
+    </div>
+
+    <div class="f">
+      <label>Stato</label>
+      <select id="mm9">
+        <option value="ok">✅ OK</option>
+        <option value="anomalia">⚠️ Anomalia</option>
+        <option value="scaduto">❌ Scaduta</option>
+        <option value="fuori_servizio">🔴 Fuori servizio</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="f">
+    <label>Note / anomalie</label>
+    <textarea id="mm10" style="min-height:60px"></textarea>
+  </div>
+</div>
+<div id="fm" style="display:none">
+  <div class="fr">
+    <div class="f">
+      <label>Numero / ID manichetta *</label>
+      <input type="text" id="mm1" placeholder="Es. M-01">
+    </div>
+    <div class="f">
+      <label>Tipologia *</label>
+      <select id="mm2">
+        <option value="uni_45">UNI 45</option>
+        <option value="uni_70">UNI 70</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="fr">
+    <div class="f">
+      <label>Ubicazione *</label>
+      <input type="text" id="mm3" placeholder="Es. Piano terra, corridoio">
+    </div>
+    <div class="f">
+      <label>Piano</label>
+      <input type="text" id="mm4">
+    </div>
+  </div>
+
+  <div class="f">
+    <label>Locale / area</label>
+    <input type="text" id="mm5">
+  </div>
+
+  <div class="fr">
+    <div class="f">
+      <label>Ultima verifica</label>
+      <input type="date" id="mm6">
+    </div>
+    <div class="f">
+      <label>Prossima verifica</label>
+      <input type="date" id="mm7">
+    </div>
+  </div>
+
+  <div class="fr">
+    <div class="f">
+      <label>Scadenza collaudo / prova pressione</label>
+      <input type="date" id="mm8">
+    </div>
+    <div class="f">
+      <label>Stato</label>
+      <select id="mm9">
+        <option value="ok">✅ OK</option>
+        <option value="anomalia">⚠️ Anomalia</option>
+        <option value="scaduto">❌ Scaduta</option>
+        <option value="fuori_servizio">🔴 Fuori servizio</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="f">
+    <label>Note / anomalie</label>
+    <textarea id="mm10" style="min-height:60px"></textarea>
+  </div>
+</div>
   <input type="hidden" id="mpeid">
   <div style="display:flex;gap:8px;margin-top:16px"><button class="btn" onclick="closeM('m-presidio')">Annulla</button><button class="btn p" onclick="saveP()">Salva presidio</button></div>
 </div>

@@ -19,14 +19,37 @@ let appAnno = new Date().getFullYear();
 let appMese = new Date().getMonth();
 let appDati = [];
 
-const TIPI_PRESIDI=['estintore','porta_rei','idrante','naspo','luce_emergenza','pompa_antincendio','centrale_rivelazione','sprinkler','uscita_emergenza'];
-const TIPI_LABEL={estintore:'🧯 Estintori',porta_rei:'🚪 Porte REI',idrante:'🚿 Idranti',naspo:'🌀 Naspi',luce_emergenza:'💡 Luci emergenza',pompa_antincendio:'⚙️ Pompa antincendio',centrale_rivelazione:'🖥 Centrale rivelazione',sprinkler:'🌧 Sprinkler',uscita_emergenza:'🚪 Uscite emergenza'};
+const TIPI_PRESIDI=[
+  'estintore',
+  'porta_rei',
+  'manichetta',
+  'idrante',
+  'naspo',
+  'luce_emergenza',
+  'pompa_antincendio',
+  'centrale_rivelazione',
+  'sprinkler',
+  'uscita_emergenza'
+];
+
+const TIPI_LABEL={
+  estintore:'🧯 Estintori',
+  porta_rei:'🚪 Porte REI',
+  manichetta:'🧵 Manichette',
+  idrante:'🚿 Idranti',
+  naspo:'🌀 Naspi',
+  luce_emergenza:'💡 Luci emergenza',
+  pompa_antincendio:'⚙️ Pompa antincendio',
+  centrale_rivelazione:'🖥 Centrale rivelazione',
+  sprinkler:'🌧 Sprinkler',
+  uscita_emergenza:'🚪 Uscite emergenza'
+};
 const PERIO_OPT=['mensile','bimestrale','trimestrale','quadrimestrale','semestrale','annuale','biennale'];
 const PERIO_MESI={mensile:1,bimestrale:2,trimestrale:3,quadrimestrale:4,semestrale:6,annuale:12,biennale:24};
 
 const NAV={
   titolare:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'preventivi-titolare',l:'🧾 Preventivi'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'workflow',l:'📋 Da gestire'},{id:'interventi',l:'🔧 Interventi'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'},{id:'impostazioni',l:'Impostazioni'}],
-  capo_tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'calendario-team',l:'👥 Calendari team'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'Documenti'}],
+  capo_tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'calendario-team',l:'👥 Calendari team'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'Documenti'}],
   segreteria:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'workflow',l:'📋 Da gestire'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'🔧 Interventi'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}],
   contabile:[{id:'dashboard',l:'📊 Dashboard'},{id:'workflow',l:'📅 Da fatturare'},{id:'fatture',l:'💰 Fatture'},{id:'documenti',l:'Documenti'},{id:'catalogo',l:'📦 Catalogo'}],
   tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
@@ -653,8 +676,8 @@ function buildNav() {
 // Pagine accessibili per ruolo
 const PAGINE_RUOLO = {
   titolare:       ['dashboard','calendario','piano-mensile','trattative','preventivi-titolare','preventivo-detail','progetti-da-preventivare','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','progetto-detail','fornitore-detail', 'tecnico','sopralluogo'],
-  capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','clienti','documenti','cliente-detail'],
-  segreteria:     ['dashboard','calendario','workflow','presidi','interventi','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail'],
+  capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','tecnico','clienti','documenti','cliente-detail'],
+  segreteria:     ['dashboard','calendario','workflow','presidi','interventi','tecnico','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail'],
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
   commerciale:    ['dashboard','progetti-da-preventivare', 'preventivi', 'fornitori', 'fornitore-detail','preventivo-detail','clienti','documenti','progetto-detail','fatture','catalogo','cliente-detail', 'info'],
@@ -3920,11 +3943,42 @@ async function openScheda(id){
 }
 
 // ── PRESIDI ───────────────────────────────────────────────────
-async function loadPresidi(){
-  const {data}=await db.from('impianti').select('*,clienti(ragione_sociale),sedi_cliente(id,tipo,indirizzo,citta)').is('eliminato_il',null).order('tipo').order('creato_il',{ascending:false});
-  PA=data||[];PF=PA;renderPC(PA);renderPT(PA);renderPS(PA);
-  const names=[...new Set(PA.map(p=>p.clienti?.ragione_sociale).filter(Boolean))].sort();
-  const cur=v('pcli');ge('pcli').innerHTML='<option value="">Tutti i clienti</option>'+names.map(n=>`<option value="${n}"${n===cur?' selected':''}>${n}</option>`).join('');
+async function loadPresidi() {
+  const { data, error } = await db
+    .from('impianti')
+    .select('*, clienti(ragione_sociale)')
+    .is('eliminato_il', null)
+    .order('tipo')
+    .order('creato_il', { ascending: false });
+
+  if (error) {
+    console.error('Errore caricamento presidi:', error.message);
+    toast('Errore caricamento presidi: ' + error.message, 'err');
+    return;
+  }
+
+  PA = data || [];
+  PF = PA;
+
+  renderPC(PA);
+  renderPT(PA);
+  renderPS(PA);
+
+  const names = [
+    ...new Set(
+      PA.map(function(p) {
+        return p.clienti?.ragione_sociale;
+      }).filter(Boolean)
+    )
+  ].sort();
+
+  const cur = v('pcli');
+
+  ge('pcli').innerHTML =
+    '<option value="">Tutti i clienti</option>' +
+    names.map(function(nome) {
+      return `<option value="${nome}"${nome === cur ? ' selected' : ''}>${nome}</option>`;
+    }).join('');
 }
 
 function filterP(){
@@ -3949,7 +4003,23 @@ function renderPC(data){
       <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Prossima verifica</span><span class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)} (${dd2(p.data_prossimo_controllo)})</span></div>
       ${p.data_scadenza_collaudo?`<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Scad. collaudo</span><span class="${sc(p.data_scadenza_collaudo)}">${fd(p.data_scadenza_collaudo)}</span></div>`:''}
     </div>
-    <div style="display:flex;gap:6px;margin-top:10px"><button class="btn sm" onclick="editP('${p.id}')">Modifica</button></div>
+   <div style="display:flex;gap:6px;margin-top:10px">
+  <button class="btn sm" onclick="editP('${p.id}')">
+    Modifica
+  </button>
+
+  ${
+    ROLE === 'titolare' || ROLE === 'capo_tecnico'
+      ? `<button
+           class="btn sm"
+           style="color:var(--r)"
+           onclick="eliminaPresidio('${p.id}')"
+         >
+           🗑️ Elimina
+         </button>`
+      : ''
+  }
+</div>
   </div>`).join('');
 }
 
@@ -3966,30 +4036,244 @@ function renderPS(data){
   rl(u,'su');rl(pr,'sp2');
 }
 
-function switchPF(){const t=v('mptp');ge('fe').style.display=t==='estintore'?'block':'none';ge('fp').style.display=t==='porta_rei'?'block':'none';if(t!=='estintore'&&t!=='porta_rei'){ge('fe').style.display='block';}}
-function resetPF(){ge('mpt').textContent='Nuovo presidio';ge('mpeid').value='';ge('mptp').value='estintore';switchPF();['me1','me2','me5','me6','me7','me14','mp1','mp3','mp4','mp6','mp15'].forEach(id=>{const el=ge(id);if(el)el.value='';});['me8','me9','me10','me11','mp7','mp8','mp9'].forEach(id=>{const el=ge(id);if(el)el.value='';});ge('me3').value='polvere_abc';ge('me4').value='6kg';ge('me13').value='ok';ge('mp2').value='REI 60';ge('mp14').value='ok';}
+function switchPF() {
+  const tipo = v('mptp');
 
-function editP(id){
-  const p=PA.find(x=>x.id===id);if(!p)return;
-  resetPF();ge('mpt').textContent='Modifica presidio';ge('mpeid').value=id;ge('mptp').value=p.tipo;ge('mpcl').value=p.cliente_id||'';switchPF();
-  if(p.tipo==='porta_rei'){ge('mp1').value=esc(p.matricola)||'';ge('mp2').value=p.modello||'REI 60';
-  if(p.cliente_id) loadSediPresidio(p.cliente_id, p.sede_id);ge('mp3').value=esc(p.ubicazione)||'';ge('mp4').value=p.piano||'';ge('mp6').value=p.marca||'';ge('mp7').value=p.data_installazione||'';ge('mp8').value=p.data_ultimo_controllo||'';ge('mp9').value=p.data_prossimo_controllo||'';ge('mp14').value=p.stato||'ok';ge('mp15').value=esc(p.note)||'';}
-  else{ge('me1').value=esc(p.matricola)||'';ge('me2').value=p.marca||'';
-  if(p.cliente_id) loadSediPresidio(p.cliente_id, p.sede_id);ge('me3').value=p.modello||'polvere_abc';ge('me4').value=p.marca||'6kg';ge('me5').value=esc(p.ubicazione)||'';ge('me6').value=p.piano||'';ge('me7').value=p.locale||'';ge('me8').value=p.data_installazione||'';ge('me9').value=p.data_ultimo_controllo||'';ge('me10').value=p.data_prossimo_controllo||'';ge('me11').value=p.data_scadenza_collaudo||'';ge('me13').value=p.stato||'ok';ge('me14').value=esc(p.note)||'';}
+  const fe = ge('fe');
+  const fp = ge('fp');
+  const fm = ge('fm');
+
+  if (fe) fe.style.display = 'none';
+  if (fp) fp.style.display = 'none';
+  if (fm) fm.style.display = 'none';
+
+  if (tipo === 'porta_rei') {
+    if (fp) fp.style.display = 'block';
+    return;
+  }
+
+  if (tipo === 'manichetta') {
+    if (fm) fm.style.display = 'block';
+    return;
+  }
+
+  if (fe) fe.style.display = 'block';
+}
+function resetPF() {
+  ge('mpt').textContent = 'Nuovo presidio';
+  ge('mpeid').value = '';
+  ge('mptp').value = 'estintore';
+
+  [
+    'me1', 'me2', 'me5', 'me6', 'me7', 'me14',
+    'mp1', 'mp3', 'mp4', 'mp6', 'mp15',
+    'mm1', 'mm3', 'mm4', 'mm5', 'mm10'
+  ].forEach(function(id) {
+    const el = ge(id);
+    if (el) el.value = '';
+  });
+
+  [
+    'me8', 'me9', 'me10', 'me11',
+    'mp7', 'mp8', 'mp9',
+    'mm6', 'mm7', 'mm8'
+  ].forEach(function(id) {
+    const el = ge(id);
+    if (el) el.value = '';
+  });
+
+  if (ge('me3')) ge('me3').value = 'polvere_abc';
+  if (ge('me4')) ge('me4').value = '6kg';
+  if (ge('me13')) ge('me13').value = 'ok';
+
+  if (ge('mp2')) ge('mp2').value = 'REI 60';
+  if (ge('mp14')) ge('mp14').value = 'ok';
+
+  if (ge('mm2')) ge('mm2').value = 'uni_45';
+  if (ge('mm9')) ge('mm9').value = 'ok';
+
+  switchPF();
+}
+
+function editP(id) {
+  const p = PA.find(function(item) {
+    return item.id === id;
+  });
+
+  if (!p) {
+    toast('Presidio non trovato', 'err');
+    return;
+  }
+
+  resetPF();
+
+  ge('mpt').textContent = 'Modifica presidio';
+  ge('mpeid').value = id;
+  ge('mptp').value = p.tipo;
+  ge('mpcl').value = p.cliente_id || '';
+
+  if (p.cliente_id) {
+    loadSediPresidio(p.cliente_id, p.sede_id);
+  }
+
+  switchPF();
+
+  if (p.tipo === 'manichetta') {
+    ge('mm1').value = p.matricola || '';
+    ge('mm2').value = p.modello || 'uni_45';
+    ge('mm3').value = p.ubicazione || '';
+    ge('mm4').value = p.piano || '';
+    ge('mm5').value = p.locale || '';
+    ge('mm6').value = p.data_ultimo_controllo || '';
+    ge('mm7').value = p.data_prossimo_controllo || '';
+    ge('mm8').value = p.data_scadenza_collaudo || '';
+    ge('mm9').value = p.stato || 'ok';
+    ge('mm10').value = p.note || '';
+  } else if (p.tipo === 'porta_rei') {
+    ge('mp1').value = p.matricola || '';
+    ge('mp2').value = p.modello || 'REI 60';
+    ge('mp3').value = p.ubicazione || '';
+    ge('mp4').value = p.piano || '';
+    ge('mp6').value = p.marca || '';
+    ge('mp7').value = p.data_installazione || '';
+    ge('mp8').value = p.data_ultimo_controllo || '';
+    ge('mp9').value = p.data_prossimo_controllo || '';
+    ge('mp14').value = p.stato || 'ok';
+    ge('mp15').value = p.note || '';
+  } else {
+    ge('me1').value = p.matricola || '';
+    ge('me2').value = p.marca || '';
+    ge('me3').value = p.modello || 'polvere_abc';
+    ge('me4').value = p.marca || '6kg';
+    ge('me5').value = p.ubicazione || '';
+    ge('me6').value = p.piano || '';
+    ge('me7').value = p.locale || '';
+    ge('me8').value = p.data_installazione || '';
+    ge('me9').value = p.data_ultimo_controllo || '';
+    ge('me10').value = p.data_prossimo_controllo || '';
+    ge('me11').value = p.data_scadenza_collaudo || '';
+    ge('me13').value = p.stato || 'ok';
+    ge('me14').value = p.note || '';
+  }
+
   openM('m-presidio');
 }
 
-async function saveP(){
-  const tipo=v('mptp'),cid=v('mpcl');if(!cid){toast('Seleziona un cliente','err');return;}
-  const eid=v('mpeid');let payload={cliente_id:cid,tipo};
-  if(tipo==='porta_rei'){const mat=v('mp1').trim();if(!mat){toast("Inserisci l'ID porta",'err');return;}payload={...payload,matricola:mat,modello:v('mp2'),marca:v('mp6')||null,ubicazione:v('mp3')||null,piano:v('mp4')||null,data_installazione:v('mp7')||null,data_ultimo_controllo:v('mp8')||null,data_prossimo_controllo:v('mp9')||null,stato:v('mp14'),note:v('mp15')||null,sede_id:v('mpsede')||null};}
-  else{const mat=v('me1').trim();if(!mat){toast('Inserisci la matricola','err');return;}payload={...payload,matricola:mat,marca:v('me4'),modello:v('me3'),ubicazione:v('me5')||null,piano:v('me6')||null,locale:v('me7')||null,data_installazione:v('me8')||null,data_ultimo_controllo:v('me9')||null,data_prossimo_controllo:v('me10')||null,data_scadenza_collaudo:v('me11')||null,stato:v('me13'),note:v('me14')||null,sede_id:v('mpsede')||null};}
+async function saveP() {
+  const tipo = v('mptp');
+  const cid = v('mpcl');
+
+  if (!cid) {
+    toast('Seleziona un cliente', 'err');
+    return;
+  }
+
+  const eid = v('mpeid');
+  let payload = {
+    cliente_id: cid,
+    tipo: tipo
+  };
+
+  if (tipo === 'manichetta') {
+    const numero = v('mm1').trim();
+
+    if (!numero) {
+      toast('Inserisci il numero o ID della manichetta', 'err');
+      return;
+    }
+
+    if (!v('mm3').trim()) {
+      toast('Inserisci l’ubicazione della manichetta', 'err');
+      return;
+    }
+
+    payload = {
+      ...payload,
+      matricola: numero,
+      modello: v('mm2'),
+      marca: null,
+      ubicazione: v('mm3') || null,
+      piano: v('mm4') || null,
+      locale: v('mm5') || null,
+      data_ultimo_controllo: v('mm6') || null,
+      data_prossimo_controllo: v('mm7') || null,
+      data_scadenza_collaudo: v('mm8') || null,
+      stato: v('mm9'),
+      note: v('mm10') || null,
+      sede_id: v('mpsede') || null
+    };
+  } else if (tipo === 'porta_rei') {
+    const mat = v('mp1').trim();
+
+    if (!mat) {
+      toast('Inserisci l’ID porta', 'err');
+      return;
+    }
+
+    payload = {
+      ...payload,
+      matricola: mat,
+      modello: v('mp2'),
+      marca: v('mp6') || null,
+      ubicazione: v('mp3') || null,
+      piano: v('mp4') || null,
+      data_installazione: v('mp7') || null,
+      data_ultimo_controllo: v('mp8') || null,
+      data_prossimo_controllo: v('mp9') || null,
+      stato: v('mp14'),
+      note: v('mp15') || null,
+      sede_id: v('mpsede') || null
+    };
+  } else {
+    const mat = v('me1').trim();
+
+    if (!mat) {
+      toast('Inserisci la matricola', 'err');
+      return;
+    }
+
+    payload = {
+      ...payload,
+      matricola: mat,
+      marca: v('me4'),
+      modello: v('me3'),
+      ubicazione: v('me5') || null,
+      piano: v('me6') || null,
+      locale: v('me7') || null,
+      data_installazione: v('me8') || null,
+      data_ultimo_controllo: v('me9') || null,
+      data_prossimo_controllo: v('me10') || null,
+      data_scadenza_collaudo: v('me11') || null,
+      stato: v('me13'),
+      note: v('me14') || null,
+      sede_id: v('mpsede') || null
+    };
+  }
+
   let error;
-  if(eid){({error}=await db.from('impianti').update(payload).eq('id',eid));}
-  else{({error}=await db.from('impianti').insert(payload));}
-  if(error){toast('Errore: '+error.message,'err');return;}
-  closeM('m-presidio');toast(eid?'Presidio aggiornato ✓':'Presidio salvato ✓','ok');loadPresidi();loadDash();
+
+  if (eid) {
+    ({ error } = await db
+      .from('impianti')
+      .update(payload)
+      .eq('id', eid));
+  } else {
+    ({ error } = await db
+      .from('impianti')
+      .insert(payload));
+  }
+
+  if (error) {
+    toast('Errore: ' + error.message, 'err');
+    return;
+  }
+
+  closeM('m-presidio');
+  toast(eid ? 'Presidio aggiornato ✓' : 'Presidio salvato ✓', 'ok');
+  loadPresidi();
+  loadDash();
 }
+
 
 // ── PERIODICITA CLIENTE ───────────────────────────────────────
 async function loadPeriodicitaCliente(cliId){
@@ -6359,41 +6643,72 @@ var cliIdsArr = erroreClientiRappresentante
   el = ge('rap-k-tuoi-cli'); if(el) el.textContent = cliIdsArr.length;
   el = ge('rap-k-presidi-scad'); if(el) el.textContent = presidiScaduti;
     // Progetti rimandati dall’ingegnere al rappresentante.
-  const boxProgetti = ge('rap-progetti-da-integrare');
+  // Progetti rimandati al rappresentante per integrazione.
+const boxProgetti = ge('rap-progetti-da-integrare');
 
-   const { data: progettiDaIntegrare, error: erroreProgetti } = await db
-    .from('progetti_tecnici')
-    .select('id,titolo,nota_verifica_tecnica')
-    .eq('stato', 'da_integrare')
-    .order('creato_il', { ascending: false });
+const { data: progettiDaIntegrare, error: erroreProgetti } = await db
+  .from('progetti_tecnici')
+  .select(`
+    id,
+    titolo,
+    nota_integrazione,
+    nota_verifica_tecnica,
+    aggiornato_il
+  `)
+  .eq('stato', 'da_integrare')
+  .eq('rappresentante_id', ME.id)
+  .order('aggiornato_il', { ascending: false });
 
-  if (boxProgetti) {
-    if (erroreProgetti || !progettiDaIntegrare?.length) {
-      boxProgetti.innerHTML = '';
-    } else {
-      const numero = progettiDaIntegrare.length;
-      const testo = numero === 1
-        ? '1 progetto tecnico da integrare'
-        : numero + ' progetti tecnici da integrare';
+if (boxProgetti) {
+  const chiaveLetti = `progetti_da_integrare_letti_${ME.id}`;
 
-      boxProgetti.innerHTML = `
+  let giaLetti = [];
+  try {
+    const salvati = JSON.parse(localStorage.getItem(chiaveLetti) || '[]');
+    giaLetti = Array.isArray(salvati) ? salvati : [];
+  } catch {
+    giaLetti = [];
+  }
+
+  const nuovi = (progettiDaIntegrare || []).filter(function(progetto) {
+    const versione = [
+      progetto.id,
+      progetto.aggiornato_il || '',
+      progetto.nota_integrazione || progetto.nota_verifica_tecnica || ''
+    ].join('|');
+
+    return !giaLetti.includes(versione);
+  });
+
+  if (erroreProgetti || !nuovi.length) {
+    boxProgetti.innerHTML = '';
+  } else {
+    boxProgetti.innerHTML = nuovi.map(function(progetto) {
+      return `
         <button
+          id="rap-progetto-notifica-${progetto.id}"
           class="rap-primary"
           style="background:#b45309;margin-top:14px"
-          onclick="gotoPage('progetti')"
+          onclick="apriProgettoDaIntegrareDaDashboard('${progetto.id}')"
         >
           <span class="ico">🔧</span>
+
           <span class="body">
-            <span class="title">${testo}</span>
+            <span class="title">
+              Progetto da integrare: ${esc(progetto.titolo || 'Progetto tecnico')}
+            </span>
+
             <span class="sub">
-              L’ingegnere ha richiesto modifiche. Apri i progetti, correggi e rimanda in verifica.
+              È stata richiesta un’integrazione. Apri il progetto, leggi la nota e completa i dati richiesti.
             </span>
           </span>
+
           <span class="chev">›</span>
         </button>
       `;
-    }
+    }).join('');
   }
+}
 
   // Lista sopralluoghi da seguire (aperti, top 5)
   var elL = ge('rap-sopr-lista');
@@ -6481,6 +6796,59 @@ var cliIdsArr = erroreClientiRappresentante
       }
     }
   }
+}
+
+async function apriProgettoDaIntegrareDaDashboard(progettoId) {
+  if (ROLE !== 'rappresentante') return;
+
+  const { data: progetto, error } = await db
+    .from('progetti_tecnici')
+    .select(`
+      id,
+      stato,
+      aggiornato_il,
+      nota_integrazione,
+      nota_verifica_tecnica
+    `)
+    .eq('id', progettoId)
+    .eq('rappresentante_id', ME.id)
+    .eq('stato', 'da_integrare')
+    .single();
+
+  if (error || !progetto) {
+    toast(
+      'Impossibile aprire il progetto: ' + (error?.message || 'progetto non trovato'),
+      'err'
+    );
+    return;
+  }
+
+  const chiaveLetti = `progetti_da_integrare_letti_${ME.id}`;
+  const versione = [
+    progetto.id,
+    progetto.aggiornato_il || '',
+    progetto.nota_integrazione || progetto.nota_verifica_tecnica || ''
+  ].join('|');
+
+  let giaLetti = [];
+  try {
+    const salvati = JSON.parse(localStorage.getItem(chiaveLetti) || '[]');
+    giaLetti = Array.isArray(salvati) ? salvati : [];
+  } catch {
+    giaLetti = [];
+  }
+
+  if (!giaLetti.includes(versione)) {
+    giaLetti.push(versione);
+    localStorage.setItem(chiaveLetti, JSON.stringify(giaLetti));
+  }
+
+  // Rimuove subito soltanto la notifica cliccata.
+  const notifica = ge(`rap-progetto-notifica-${progettoId}`);
+  if (notifica) notifica.remove();
+
+  // Apre direttamente la scheda del progetto rinviato.
+  await openProgettoDetail(progettoId);
 }
 
 
@@ -9573,7 +9941,8 @@ async function inviaProgettoAlCommerciale(progettoId) {
   const { error } = await db
     .from('progetti_tecnici')
     .update({
-      stato: 'inviato_a_commerciale'
+      stato: 'in_preventivazione',
+aggiornato_il: new Date().toISOString()
     })
     .eq('id', progettoId);
 
@@ -9601,7 +9970,7 @@ async function loadPaginaProgetti() {
   const { data, error } = await db
     .from('progetti_tecnici')
     .select('*, clienti(ragione_sociale)')
-    .order('creato_il', { ascending: false });
+    .order('aggiornato_il', { ascending: false });
 
   if (error) {
     box.innerHTML =
@@ -9617,65 +9986,121 @@ async function loadPaginaProgetti() {
     return;
   }
 
-  box.innerHTML = data.map(function(p) {
+  const configurazioneStati = {
+  bozza: {
+    titolo: 'Bozze',
+    etichetta: 'Bozza',
+    classe: 'bblue'
+  },
+
+  in_verifica_tecnica: {
+    titolo: 'In verifica tecnica',
+    etichetta: 'In attesa della verifica tecnica',
+    classe: 'berr'
+  },
+
+  da_integrare: {
+    titolo: 'Progetti da integrare',
+    etichetta: 'Da integrare',
+    classe: 'bwarn'
+  },
+
+  pronto_per_preventivo: {
+    titolo: 'Pronti per il preventivo',
+    etichetta: 'Pronto per preventivo',
+    classe: 'bok'
+  },
+
+  in_preventivazione: {
+    titolo: 'Progetti in preventivazione',
+    etichetta: 'In preventivazione',
+    classe: 'bok'
+  },
+
+  inviato_a_commerciale: {
+    titolo: 'Inviati al commerciale',
+    etichetta: 'Inviato al commerciale',
+    classe: 'bok'
+  }
+};
+
+  const sezioni = [
+  'bozza',
+  'in_verifica_tecnica',
+  'da_integrare',
+  'in_preventivazione',
+  'inviato_a_commerciale'
+];
+
+  function schedaProgetto(p) {
     const cliente = p.clienti?.ragione_sociale || 'Cliente non disponibile';
 
-    const stato = {
-      bozza: 'Bozza',
-      in_verifica_tecnica: 'In verifica tecnica',
-      da_integrare: 'Integrazione richiesta',
-      pronto_per_preventivo: 'Pronto per preventivo',
-      inviato_a_commerciale: 'Inviato al commerciale'
-    }[p.stato] || p.stato;
+    const configurazione = configurazioneStati[p.stato] || {
+      titolo: 'Altri progetti',
+      etichetta: p.stato || 'Stato non definito',
+      classe: 'bgray'
+    };
 
-    // Il rappresentante può rimandare all’ingegnere dopo le integrazioni.
     const puoRichiedereVerifica =
       p.stato === 'bozza' || p.stato === 'da_integrare';
 
-    // All’inizio può mandarlo direttamente al commerciale;
-    // dopo la verifica lo può fare quando l’ingegnere lo dichiara pronto.
-   const puoInviareCommerciale =
-    p.stato === 'bozza' ||
-    p.stato === 'da_integrare' ||
-    p.stato === 'pronto_per_preventivo';
+    const puoInviareCommerciale =
+      p.stato === 'bozza' ||
+      p.stato === 'da_integrare' ||
+      p.stato === 'pronto_per_preventivo';
+
+    const nota = p.nota_integrazione || p.nota_verifica_tecnica;
+
+    const autoreNota =
+      p.integrazione_richiesta_da === 'commerciale'
+        ? 'Nota del commerciale'
+        : p.integrazione_richiesta_da === 'titolare'
+          ? 'Nota del titolare'
+          : 'Nota dell’ingegnere';
 
     return `
       <div class="card" style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
           <div>
             <div style="font-size:14px;font-weight:700">
-              ${esc(p.titolo)}
+              ${esc(p.titolo || 'Progetto tecnico')}
             </div>
+
             <div style="font-size:12px;color:var(--m);margin-top:3px">
-              ${esc(cliente)} · ${esc(p.tipologia)}
+              ${esc(cliente)} · ${esc(p.tipologia || 'Tipologia non indicata')}
             </div>
           </div>
 
-          <span class="bx bblue">${esc(stato)}</span>
+          <span class="bx ${configurazione.classe}">
+            ${esc(configurazione.etichetta)}
+          </span>
         </div>
 
         <div style="font-size:13px;white-space:pre-wrap;margin-top:10px">
-          ${esc(p.descrizione_tecnica || '')}
+          ${esc(p.descrizione_tecnica || 'Nessuna descrizione inserita.')}
         </div>
-        ${p.nota_verifica_tecnica ? `
-  <div class="al2 i" style="margin:10px 0">
-    <b>🔧 Nota dell’ingegnere</b><br>
-    ${esc(p.nota_verifica_tecnica)}
-  </div>
-` : ''}
+
+        ${nota ? `
+          <div class="al2 i" style="margin:10px 0">
+            <b>🔧 ${esc(autoreNota)}</b><br>
+            ${esc(nota)}
+          </div>
+        ` : ''}
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-         <button
-  class="btn sm"
-  onclick="openProgettoDetail('${p.id}')">
-  Apri
-</button>
+          <button
+            class="btn sm"
+            onclick="openProgettoDetail('${p.id}')"
+          >
+            Apri
+          </button>
 
-<button
-  class="btn sm info"
-  onclick="apriProgettoDaElenco('${p.id}')">
-  Modifica
-</button>
+          <button
+            class="btn sm info"
+            onclick="apriProgettoDaElenco('${p.id}')"
+          >
+            Modifica
+          </button>
 
           ${puoRichiedereVerifica ? `
             <button
@@ -9705,7 +10130,51 @@ async function loadPaginaProgetti() {
         </div>
       </div>
     `;
+  }
+
+  const sezioniCreate = new Set();
+
+  box.innerHTML = sezioni.map(function(statoSezione) {
+    const progetti = data.filter(function(p) {
+
+
+      return p.stato === statoSezione;
+    });
+
+    if (!progetti.length) return '';
+
+    sezioniCreate.add(statoSezione);
+
+    const titolo = configurazioneStati[statoSezione].titolo;
+
+    return `
+      <div class="rap-section" style="margin-top:20px">
+        ${esc(titolo)} <span style="color:var(--m)">(${progetti.length})</span>
+      </div>
+
+      ${progetti.map(schedaProgetto).join('')}
+    `;
   }).join('');
+
+  const altri = data.filter(function(p) {
+    return ![
+      'bozza',
+      'da_integrare',
+      'in_preventivazione',
+      'in_verifica_tecnica',
+      'inviato_a_commerciale'
+    ].includes(p.stato);
+  });
+
+  if (altri.length) {
+    box.innerHTML += `
+      <div class="rap-section" style="margin-top:20px">
+        Altri progetti <span style="color:var(--m)">(${altri.length})</span>
+      </div>
+
+      ${altri.map(schedaProgetto).join('')}
+    `;
+  }
 }
 
 async function loadProgettiDaPreventivare() {
@@ -9852,7 +10321,8 @@ async function inviaIntegrazioneCommerciale() {
     .update({
       stato: nuovoStato,
       nota_integrazione: nota,
-      integrazione_richiesta_da: ROLE
+      integrazione_richiesta_da: ROLE, 
+      aggiornato_il: new Date().toISOString()
     })
     .eq('id', progettoId)
     .in('stato', [
@@ -9970,178 +10440,143 @@ if (erroreStato || !progettoAggiornato?.length) {
 }
 
 async function loadPreventivi() {
-  const boxDaCreare = ge('preventivi-da-creare');
   const boxLista = ge('preventivi-lista');
+  const boxInviati = ge('preventivi-inviati-lista');
 
-  if (!boxDaCreare || !boxLista) return;
+  if (!boxLista || !boxInviati) return;
 
-  boxDaCreare.innerHTML = '<div class="load">Caricamento...</div>';
   boxLista.innerHTML = '<div class="load">Caricamento...</div>';
+  boxInviati.innerHTML = '<div class="load">Caricamento...</div>';
 
-  const risultati = await Promise.all([
-    db
-      .from('progetti_tecnici')
-      .select(`
-        id,
-        titolo,
-        tipologia,
-        cliente_id,
-        rappresentante_id,
-        clienti(ragione_sociale)
-      `)
-      .eq('stato', 'in_preventivazione')
-      .order('creato_il', { ascending: false }),
+  const { data: preventivi, error } = await db
+    .from('preventivi')
+    .select(`
+      id,
+      numero,
+      cliente_id,
+      progetto_tecnico_id,
+      stato,
+      tipo,
+      data_scadenza,
+      totale_imponibile,
+      sconto_perc,
+      iva_perc,
+      creato_il,
+      clienti(ragione_sociale)
+    `)
+    .eq('commerciale_id', ME.id)
+    .order('creato_il', { ascending: false });
 
-    db
-      .from('preventivi')
-      .select(`
-        id,
-        numero,
-        cliente_id,
-        progetto_tecnico_id,
-        stato,
-        tipo,
-        data_scadenza,
-        totale_imponibile,
-        sconto_perc,
-        iva_perc,
-        creato_il,
-        clienti(ragione_sociale)
-      `)
-      .eq('commerciale_id', ME.id)
-      .order('creato_il', { ascending: false })
-  ]);
+  if (error) {
+    const messaggio = `
+      <div class="al2 e">
+        Errore caricamento preventivi: ${esc(error.message)}
+      </div>
+    `;
 
-  const progettiRes = risultati[0];
-  const preventiviRes = risultati[1];
-
-  if (progettiRes.error) {
-    boxDaCreare.innerHTML =
-      '<div class="al2 e">Errore progetti: ' +
-      esc(progettiRes.error.message) +
-      '</div>';
-  }
-
-  if (preventiviRes.error) {
-    boxLista.innerHTML =
-      '<div class="al2 e">Errore preventivi: ' +
-      esc(preventiviRes.error.message) +
-      '</div>';
-  }
-
-  if (progettiRes.error || preventiviRes.error) return;
-
-  const preventivi = preventiviRes.data || [];
-  const progettiConBozza = new Set(
-    preventivi
-      .filter(function(p) { return p.progetto_tecnico_id; })
-      .map(function(p) { return p.progetto_tecnico_id; })
-  );
-
-  const progettiDaCreare = (progettiRes.data || []).filter(function(p) {
-    return !progettiConBozza.has(p.id);
-  });
-
-  if (!progettiDaCreare.length) {
-    boxDaCreare.innerHTML =
-      '<div class="empty">Nessun progetto in attesa di preventivo.</div>';
-  } else {
-    boxDaCreare.innerHTML = progettiDaCreare.map(function(p) {
-      const cliente = p.clienti?.ragione_sociale || 'Cliente non disponibile';
-
-      return `
-        <div class="card" style="margin-bottom:10px">
-          <div style="font-size:14px;font-weight:700">
-            ${esc(p.titolo)}
-          </div>
-
-          <div style="font-size:12px;color:var(--m);margin-top:3px">
-            ${esc(cliente)} · ${esc(p.tipologia || 'Tipologia non indicata')}
-          </div>
-<button
-  class="btn sm p"
-  style="margin-top:12px"
-  onclick="apriNuovoPreventivo('${p.id}')"
->
-  🧾 Crea preventivo
-</button>
-        </div>
-      `;
-    }).join('');
-  }
-
-  if (!preventivi.length) {
-    boxLista.innerHTML =
-      '<div class="empty">Non hai ancora creato preventivi.</div>';
+    boxLista.innerHTML = messaggio;
+    boxInviati.innerHTML = '';
     return;
   }
 
-  boxLista.innerHTML = preventivi.map(function(p) {
-    const cliente = p.clienti?.ragione_sociale || 'Cliente non disponibile';
-    const totale = Number(p.totale_imponibile || 0).toLocaleString('it-IT', {
+  const bozze = (preventivi || []).filter(function(preventivo) {
+    return preventivo.stato !== 'inviato_a_rappresentante';
+  });
+
+  const inviati = (preventivi || []).filter(function(preventivo) {
+    return preventivo.stato === 'inviato_a_rappresentante';
+  });
+
+  function creaCardPreventivo(preventivo, inviato) {
+    const cliente =
+      preventivo.clienti?.ragione_sociale || 'Cliente non disponibile';
+
+    const totale = Number(
+      preventivo.totale_imponibile || 0
+    ).toLocaleString('it-IT', {
       style: 'currency',
       currency: 'EUR'
     });
 
-   const stato = {
-  bozza: 'Bozza',
-  in_attesa_approvazione: 'In attesa del titolare',
-  approvato: 'Approvato dal titolare',
-  inviato: 'Inviato al cliente',
-  accettato: 'Accettato',
-  rifiutato: 'Rifiutato',
-  scaduto: 'Scaduto'
-}[p.stato] || p.stato;
+    const stato = inviato
+      ? 'Inviato al rappresentante'
+      : ({
+          bozza: 'Bozza',
+          in_attesa_approvazione: 'In attesa del titolare',
+          approvato: 'Approvato dal titolare',
+          inviato: 'Inviato al cliente',
+          accettato: 'Accettato',
+          rifiutato: 'Rifiutato',
+          scaduto: 'Scaduto'
+        }[preventivo.stato] || preventivo.stato || 'Bozza');
 
     return `
       <div class="card" style="margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;gap:10px">
           <div>
             <div style="font-size:14px;font-weight:700">
-              Preventivo n. ${esc(String(p.numero))}
+              Preventivo n. ${esc(String(preventivo.numero || '—'))}
             </div>
 
             <div style="font-size:12px;color:var(--m);margin-top:3px">
-              ${esc(cliente)} · ${esc(p.tipo || 'Preventivo')}
+              ${esc(cliente)} · ${esc(preventivo.tipo || 'Preventivo')}
             </div>
           </div>
 
-          <span class="bx bblue">${esc(stato)}</span>
+          <span class="bx ${inviato ? 'bok' : 'bblue'}">
+            ${esc(stato)}
+          </span>
         </div>
 
         <div style="font-size:13px;margin-top:10px">
           Totale imponibile attuale: <b>${esc(totale)}</b>
         </div>
 
-        ${p.data_scadenza ? `
+        ${preventivo.data_scadenza ? `
           <div style="font-size:12px;color:var(--m);margin-top:4px">
             Valido fino al ${esc(
-              new Date(p.data_scadenza + 'T00:00:00').toLocaleDateString('it-IT')
+              new Date(
+                preventivo.data_scadenza + 'T00:00:00'
+              ).toLocaleDateString('it-IT')
             )}
           </div>
         ` : ''}
- <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-  <button
-    class="btn sm p"
-    onclick="openPreventivoDetail('${p.id}')"
-  >
-    ${p.stato === 'bozza' ? '✏️ Modifica bozza' : 'Apri preventivo'}
-  </button>
 
-  ${p.stato === 'bozza' ? `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <button
+            class="btn sm p"
+            onclick="openPreventivoDetail('${preventivo.id}')"
+          >
+            ${preventivo.stato === 'bozza'
+              ? '✏️ Modifica bozza'
+              : 'Apri preventivo'}
+          </button>
 
-    <button
-      class="btn sm"
-      style="color:var(--r)"
-      onclick="eliminaPreventivo('${p.id}')"
-    >
-      🗑️ Elimina
-    </button>
-  ` : ''}
-</div>
+          ${preventivo.stato === 'bozza' ? `
+            <button
+              class="btn sm"
+              style="color:var(--r)"
+              onclick="eliminaPreventivo('${preventivo.id}')"
+            >
+              🗑️ Elimina
+            </button>
+          ` : ''}
+        </div>
       </div>
     `;
-  }).join('');
+  }
+
+  boxLista.innerHTML = bozze.length
+    ? bozze.map(function(preventivo) {
+        return creaCardPreventivo(preventivo, false);
+      }).join('')
+    : '<div class="empty">Nessun preventivo da completare.</div>';
+
+  boxInviati.innerHTML = inviati.length
+    ? inviati.map(function(preventivo) {
+        return creaCardPreventivo(preventivo, true);
+      }).join('')
+    : '<div class="empty">Nessun preventivo ancora inviato al rappresentante.</div>';
 }
 
 async function apriNuovoPreventivo(progettoId) {
@@ -10507,9 +10942,18 @@ async function caricaFornitoriSelezionabili() {
     return;
   }
 
-  const disponibili = (data || []).filter(function(t) {
+const disponibili = (data || [])
+  .filter(function(t) {
     return t.fornitori && t.fornitori.attivo !== false;
+  })
+  .sort(function(a, b) {
+    return (a.fornitori?.ragione_sociale || '').localeCompare(
+      b.fornitori?.ragione_sociale || '',
+      'it',
+      { sensitivity: 'base' }
+    );
   });
+
 
   if (!disponibili.length) {
     box.innerHTML = ricerca
@@ -11134,7 +11578,6 @@ async function openProgettoDetail(progettoId) {
     bozza: 'Bozza',
     in_verifica_tecnica: 'In verifica tecnica',
     da_integrare: 'Integrazione richiesta',
-    pronto_per_preventivo: 'Pronto per preventivo',
     inviato_a_commerciale: 'Inviato al commerciale',
     in_preventivazione: 'In preventivazione'
   }[progetto.stato] || progetto.stato || '—';
@@ -14764,8 +15207,16 @@ async function caricaFornitoriCandidatiPreventivo() {
   }
 
   const giaSelezionati = selezionatiRes.data || [];
-  const candidati = (candidatiRes.data || []).filter(function(t) {
+const candidati = (candidatiRes.data || [])
+  .filter(function(t) {
     return t.fornitori && t.fornitori.attivo !== false;
+  })
+  .sort(function(a, b) {
+    return (a.fornitori?.ragione_sociale || '').localeCompare(
+      b.fornitori?.ragione_sociale || '',
+      'it',
+      { sensitivity: 'base' }
+    );
   });
 
   if (!candidati.length) {
