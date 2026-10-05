@@ -1544,7 +1544,21 @@
 
 <!-- PRESIDI -->
 <div class="page" id="pg-presidi">
-  <div class="sh"><div><div class="st">Presidi antincendio</div></div><button class="btn p" onclick="resetPF();openM('m-presidio')">+ Nuovo presidio</button></div>
+<div class="sh">
+  <div>
+    <div class="st">Presidi antincendio</div>
+  </div>
+
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" onclick="apriImportPresidi()">
+      ⇧ Importa presidi CSV
+    </button>
+
+    <button class="btn p" onclick="resetPF();openM('m-presidio')">
+      + Nuovo presidio
+    </button>
+  </div>
+</div>
   <div class="sb">
     <input type="text" id="psearch" placeholder="Cerca matricola, cliente, ubicazione..." oninput="filterP()">
     <select id="ptipo" onchange="filterP()" style="width:auto"><option value="">Tutti i tipi</option><option value="estintore">🧯 Estintori</option><option value="porta_rei">🚪 Porte REI</option><option value="manichetta">🧵 Manichette</option><option value="idrante">🚿 Idranti</option><option value="naspo">Naspi</option><option value="luce_emergenza">💡 Luci emergenza</option><option value="pompa_antincendio">⚙️ Pompa</option><option value="centrale_rivelazione">Centrale rivelazione</option><option value="sprinkler">Sprinkler</option><option value="uscita_emergenza">Uscite emergenza</option></select>
@@ -1847,7 +1861,20 @@
         <div class="f"><label>Tipo intervento *</label><select id="tc2" onchange="mostraRelazioneBox()"><option value="ordinario_programmato">Manutenzione ordinaria programmata</option><option value="ordinario_chiamata">Intervento su chiamata</option><option value="straordinario">Straordinario</option><option value="corso">Corso antincendio</option></select></div>
         <div class="fr"><div class="f"><label>Data *</label><input type="date" id="tc3"></div><div class="f"><label>Ora inizio</label><input type="time" id="tc4"></div></div>
         <div class="f" id="tc5-field"><label>Tecnico assegnato</label><select id="tc5"><option value="">Seleziona...</option></select></div>
-        <div class="f"><label>Note per il tecnico</label><textarea id="tc6" style="min-height:60px"></textarea></div>
+        <div class="f"><label>Note per il tecnico</label><textarea id="tc6" style="min-height:60px"></textarea>
+        <button
+  type="button"
+  class="btn sm p"
+  style="margin-top:10px"
+  onclick="apriManutenzioneOrdinaria()"
+>
+  🧯 Apri schede manutenzione ordinaria
+</button>
+
+<div class="hint" style="margin-top:6px">
+  Riapre le ultime verifiche dei presidi del cliente: modifica soltanto ciò che è cambiato.
+</div>
+</div>
       </div>
       <button class="btn p" style="width:100%;justify-content:center" onclick="tnext(0)">Avanti →</button>
     </div>
@@ -1918,6 +1945,25 @@
       <button class="btn p" style="width:100%;justify-content:center;padding:13px;font-size:14px" id="savebtn" onclick="salvaInt()">Salva e chiudi intervento ✓</button>
       <button class="btn" style="width:100%;margin-top:8px;justify-content:center" onclick="tprev(4)">← Indietro</button>
     </div>
+    <div class="card" style="margin-top:20px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+    <div style="font-size:14px;font-weight:700">
+      📚 I miei interventi compilati
+    </div>
+
+    <button class="btn sm" onclick="loadStoricoInterventiTecnico()">
+      ↻ Aggiorna
+    </button>
+  </div>
+
+  <div style="font-size:12px;color:var(--m);margin-bottom:12px">
+    Interventi già inviati alla segreteria. Puoi riaprire il riepilogo in sola lettura.
+  </div>
+
+  <div id="tec-storico-interventi">
+    <div class="load">Caricamento interventi...</div>
+  </div>
+</div>
   </div>
 </div>
 
@@ -2576,31 +2622,31 @@
     </div>
 
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
-      <button class="btn" onclick="closeM('m-verifica-tecnica')">
-        Annulla
-      </button>
+  <button class="btn" onclick="closeM('m-verifica-tecnica')">
+    Annulla
+  </button>
 
-      <button
-  class="btn sm"
-  onclick="salvaBozzaVerifica()"
->
-  💾 Salva bozza
-</button>
+  <button
+    class="btn sm"
+    onclick="salvaBozzaVerifica()"
+  >
+    💾 Salva appunti verifica
+  </button>
 
-      <button
-        class="btn warn"
-        onclick="salvaEsitoVerifica('da_integrare')"
-      >
-        ↩ Richiedi integrazione
-      </button>
+  <button
+    class="btn warn"
+    onclick="salvaEsitoVerifica('da_integrare')"
+  >
+    ↩ Rimanda al rappresentante per integrazione
+  </button>
 
-      <button
-        class="btn p"
-        onclick="salvaEsitoVerifica('bozza')"
-      >
-        ✅ Restituisci al rappresentante 
-      </button>
-    </div>
+  <button
+    class="btn p"
+    onclick="salvaEsitoVerifica('in_preventivazione')"
+  >
+    ✅ Approva e invia al commerciale
+  </button>
+</div>
   </div>
 </div>
 
@@ -2903,6 +2949,47 @@
 </div>
 
 <!-- MODALS -->
+
+<div class="mbg" id="m-manutenzione-ordinaria">
+  <div class="modal" style="max-width:980px">
+    <div class="mh">
+      <span>🧯 Manutenzione ordinaria presidi</span>
+      <button class="mx" onclick="closeM('m-manutenzione-ordinaria')">✕</button>
+    </div>
+
+    <input type="hidden" id="mo-cliente-id">
+
+    <div id="mo-intestazione" class="hint" style="margin-bottom:12px"></div>
+
+    <div class="fg">
+      <div>
+        <label>Data verifica *</label>
+        <input type="date" id="mo-data">
+      </div>
+
+      <div style="display:flex;align-items:end;padding-bottom:7px">
+        <label style="display:flex;gap:7px;align-items:center;cursor:pointer">
+          <input type="checkbox" id="mo-storico">
+          Inserimento storico semestre precedente
+        </label>
+      </div>
+    </div>
+
+    <div class="hint" style="margin:10px 0 14px">
+      Le risposte dell’ultima verifica sono già riportate. Le righe non modificate restano invariate.
+    </div>
+
+    <div id="mo-schede"></div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-manutenzione-ordinaria')">Annulla</button>
+      <button class="btn p" onclick="salvaManutenzioneOrdinaria()">
+        💾 Salva manutenzione
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="mbg" id="m-presidio">
 <div class="modal">
   <div class="mh"><span id="mpt">Nuovo presidio</span><button class="mx" onclick="closeM('m-presidio')">✕</button></div>
@@ -3062,7 +3149,154 @@
 </div>
 </div>
 
+<div class="mbg" id="m-import-presidi">
+  <div class="modal" style="max-width:1000px">
+    <div class="mh">
+      <span>⇧ Importa presidi da CSV</span>
+      <button class="mx" onclick="closeM('m-import-presidi')">✕</button>
+    </div>
 
+    <div class="al2 i" style="margin-bottom:12px">
+      Carica un CSV UTF-8 separato da punto e virgola. Il gestionale controlla
+      cliente, tipo, matricola e duplicati prima di salvare.
+    </div>
+
+    <div class="f">
+      <label>File CSV</label>
+      <input
+        type="file"
+        id="import-presidi-file"
+        accept=".csv,text/csv"
+        onchange="leggiFileImportPresidi(this)"
+      >
+    </div>
+
+    <div id="import-presidi-riepilogo" class="hint" style="margin:12px 0">
+      Nessun file selezionato.
+    </div>
+
+    <div class="tw" style="max-height:360px;overflow:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Riga</th>
+            <th>Cliente</th>
+            <th>Tipo</th>
+            <th>Matricola</th>
+            <th>Azione</th>
+            <th>Esito</th>
+          </tr>
+        </thead>
+        <tbody id="import-presidi-righe">
+          <tr>
+            <td colspan="6">
+              <div class="empty">Carica un file per vedere l’anteprima.</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-import-presidi')">
+        Annulla
+      </button>
+
+      <button
+        class="btn p"
+        id="import-presidi-conferma"
+        disabled
+        onclick="confermaImportPresidi()"
+      >
+        ✓ Conferma importazione
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="mbg" id="m-import-presidi">
+  <div class="modal" style="max-width:1000px">
+    <div class="mh">
+      <span>⇧ Importa presidi da CSV</span>
+      <button class="mx" onclick="closeM('m-import-presidi')">✕</button>
+    </div>
+
+    <div class="al2 i" style="margin-bottom:12px">
+      Carica un file CSV UTF-8. Prima di salvare verranno controllati
+      clienti, matricole e duplicati.
+    </div>
+
+    <div class="f">
+      <label>File CSV</label>
+      <input
+        type="file"
+        id="import-presidi-file"
+        accept=".csv,text/csv"
+        onchange="leggiFileImportPresidi(this)"
+      >
+    </div>
+
+    <div id="import-presidi-riepilogo" class="hint" style="margin:12px 0">
+      Nessun file selezionato.
+    </div>
+
+    <div class="tw" style="max-height:360px;overflow:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Riga</th>
+            <th>Cliente</th>
+            <th>Tipo</th>
+            <th>Matricola</th>
+            <th>Azione</th>
+            <th>Esito</th>
+          </tr>
+        </thead>
+
+        <tbody id="import-presidi-righe">
+          <tr>
+            <td colspan="6">
+              <div class="empty">
+                Carica un file per vedere l’anteprima.
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-import-presidi')">
+        Annulla
+      </button>
+
+      <button
+        class="btn p"
+        id="import-presidi-conferma"
+        disabled
+        onclick="confermaImportPresidi()"
+      >
+        ✓ Conferma importazione
+      </button>
+    </div>
+  </div>
+</div>
+<div class="mbg" id="m-scheda-presidio">
+  <div class="modal" style="max-width:760px">
+    <div class="mh">
+      <span id="msp-titolo">Scheda presidio</span>
+      <button class="mx" onclick="closeM('m-scheda-presidio')">✕</button>
+    </div>
+
+    <div id="msp-contenuto">
+      <div class="load">Caricamento...</div>
+    </div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-scheda-presidio')">Chiudi</button>
+    </div>
+  </div>
+</div>
 <div class="mbg" id="m-ddt"><div class="modal" style="max-width:700px">
 <div class="mh">
   <span id="ddt-modal-title">Nuovo DDT</span>

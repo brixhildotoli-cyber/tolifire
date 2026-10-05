@@ -742,7 +742,7 @@ function gotoPage(id){
   if(id==='trattative')loadTrattative();
   if(id==='catalogo'){loadPaginaCatalogo();var _ba=ge('btn-add-prodotto');if(_ba)_ba.style.display=(ROLE==='titolare')?'':'none';var _bi=ge('btn-import-excel');if(_bi)_bi.style.display=(ROLE==='titolare')?'':'none';}
   if(id==='fatture'){loadFatture();}
-  if(id==='tecnico')loadOdlTecnico();
+  if(id==='tecnico'){loadOdlTecnico(); loadStoricoInterventiTecnico();}
   if(id==='fornitori')loadFornitori();
   if(id==='preventivazione') loadPreventivazione();
   if(id==='sopralluogo' && ROLE!=='rappresentante' && ROLE!=='titolare'){toast('Accesso non consentito','err');return;}
@@ -777,7 +777,8 @@ async function caricaAvvisoProgettiDaPreventivareCommerciale() {
     .select('id')
     .in('stato', [
       'inviato_a_commerciale',
-      'pronto_per_preventivo'
+      'pronto_per_preventivo', 
+      'in_preventivazione'
     ]);
 
   if (error) {
@@ -788,6 +789,43 @@ async function caricaAvvisoProgettiDaPreventivareCommerciale() {
     box.innerHTML = '';
     return;
   }
+
+    // Mostra solo i progetti che NON hanno ancora un preventivo reale collegato.
+  const idsProgetti = (data || []).map(function(progetto) {
+    return progetto.id;
+  });
+
+  let preventiviCollegati = [];
+
+  if (idsProgetti.length) {
+    const { data: righePreventivi, error: errorePreventivi } = await db
+      .from('preventivi')
+      .select('progetto_tecnico_id')
+      .in('progetto_tecnico_id', idsProgetti);
+
+    if (errorePreventivi) {
+      box.innerHTML =
+        '<div class="al2 e">Errore controllo preventivi: ' +
+        esc(errorePreventivi.message) +
+        '</div>';
+      return;
+    }
+
+    preventiviCollegati = righePreventivi || [];
+  }
+
+  const progettiConPreventivo = new Set(
+    preventiviCollegati
+      .map(function(preventivo) {
+        return preventivo.progetto_tecnico_id;
+      })
+      .filter(Boolean)
+  );
+
+  const progettiDaPreventivare = (data || []).filter(function(progetto) {
+    return !progettiConPreventivo.has(progetto.id);
+  });
+
 
   const nuovi = (progetti || []).filter(function(progetto) {
     return !giaLetti.has(progetto.id);
@@ -4004,6 +4042,9 @@ function renderPC(data){
       ${p.data_scadenza_collaudo?`<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Scad. collaudo</span><span class="${sc(p.data_scadenza_collaudo)}">${fd(p.data_scadenza_collaudo)}</span></div>`:''}
     </div>
    <div style="display:flex;gap:6px;margin-top:10px">
+   <button class="btn sm" onclick="apriSchedaPresidio('${p.id}')">
+  👁 Visualizza scheda
+</button>
   <button class="btn sm" onclick="editP('${p.id}')">
     Modifica
   </button>
@@ -4047,7 +4088,7 @@ function switchPF() {
   if (fp) fp.style.display = 'none';
   if (fm) fm.style.display = 'none';
 
-  if (tipo === 'porta_rei') {
+ if (tipo === 'porta_rei' || tipo === 'uscita_emergenza') {
     if (fp) fp.style.display = 'block';
     return;
   }
@@ -4093,6 +4134,74 @@ function resetPF() {
   if (ge('mm9')) ge('mm9').value = 'ok';
 
   switchPF();
+}
+
+async function apriSchedaPresidio(id) {
+  openM('m-scheda-presidio');
+
+  ge('msp-titolo').textContent = 'Scheda presidio';
+  ge('msp-contenuto').innerHTML = '<div class="load">Caricamento...</div>';
+
+  const { data: p, error } = await db
+    .from('impianti')
+    .select('*, clienti(ragione_sociale)')
+    .eq('id', id)
+    .is('eliminato_il', null)
+    .single();
+
+  if (error || !p) {
+    ge('msp-contenuto').innerHTML =
+      '<div class="empty">Impossibile caricare la scheda del presidio.</div>';
+    return;
+  }
+
+  const campo = (etichetta, valore) => `
+    <div style="padding:10px 0;border-bottom:1px solid var(--bl)">
+      <div class="muted" style="font-size:12px">${esc(etichetta)}</div>
+      <div style="font-weight:600;margin-top:3px">
+        ${valore !== null && valore !== undefined && valore !== ''
+          ? esc(String(valore))
+          : '—'}
+      </div>
+    </div>
+  `;
+
+  const stato = {
+    ok: '✅ OK',
+    anomalia: '⚠️ Anomalia',
+    fuori_servizio: '🔴 Fuori servizio',
+    scaduto: '❌ Scaduto'
+  }[p.stato] || p.stato || '—';
+
+  ge('msp-titolo').textContent =
+    `Scheda presidio · ${p.matricola || 'senza matricola'}`;
+
+  ge('msp-contenuto').innerHTML = `
+    <div class="card" style="margin:0">
+      <div class="grid2">
+        ${campo('Cliente', p.clienti?.ragione_sociale)}
+        ${campo('Tipologia', tpl(p.tipo))}
+        ${campo('Matricola', p.matricola)}
+        ${campo('Stato', stato)}
+        ${campo('Marca', p.marca)}
+        ${campo('Modello / descrizione', p.modello)}
+        ${campo('Ubicazione', p.ubicazione)}
+        ${campo('Piano', p.piano)}
+        ${campo('Locale / area', p.locale)}
+        ${campo('Periodicità', p.periodicita_mesi ? `${p.periodicita_mesi} mesi` : '')}
+        ${campo('Ultima verifica', p.data_ultimo_controllo ? fd(p.data_ultimo_controllo) : '')}
+        ${campo('Prossima verifica', p.data_prossimo_controllo ? fd(p.data_prossimo_controllo) : '')}
+        ${campo('Scadenza collaudo', p.data_scadenza_collaudo ? fd(p.data_scadenza_collaudo) : '')}
+      </div>
+
+      <div style="margin-top:16px">
+        <div class="muted" style="font-size:12px">Note / anomalie</div>
+        <div style="margin-top:5px;white-space:pre-wrap">
+          ${p.note ? esc(p.note) : 'Nessuna nota registrata.'}
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function editP(id) {
@@ -4202,7 +4311,7 @@ async function saveP() {
       note: v('mm10') || null,
       sede_id: v('mpsede') || null
     };
-  } else if (tipo === 'porta_rei') {
+  } else if (tipo === 'porta_rei' || tipo === 'uscita_emergenza') {
     const mat = v('mp1').trim();
 
     if (!mat) {
@@ -4272,6 +4381,524 @@ async function saveP() {
   toast(eid ? 'Presidio aggiornato ✓' : 'Presidio salvato ✓', 'ok');
   loadPresidi();
   loadDash();
+}
+
+  let righeImportPresidi = [];
+
+function pulisciImportPresidi(valore) {
+  return String(valore || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
+function pulisciPivaImport(valore) {
+  return String(valore || '').replace(/\D/g, '');
+}
+
+function leggiCsvImportPresidi(testo) {
+  const primaRiga = testo.split(/\r?\n/)[0] || '';
+  const separatore = primaRiga.includes(';') ? ';' : ',';
+
+  const righe = [];
+  let riga = [];
+  let valore = '';
+  let traVirgolette = false;
+
+  for (let i = 0; i < testo.length; i++) {
+    const carattere = testo[i];
+    const successivo = testo[i + 1];
+
+    if (carattere === '"') {
+      if (traVirgolette && successivo === '"') {
+        valore += '"';
+        i++;
+      } else {
+        traVirgolette = !traVirgolette;
+      }
+
+      continue;
+    }
+
+    if (!traVirgolette && carattere === separatore) {
+      riga.push(valore.trim());
+      valore = '';
+      continue;
+    }
+
+    if (!traVirgolette && (carattere === '\n' || carattere === '\r')) {
+      if (carattere === '\r' && successivo === '\n') i++;
+
+      riga.push(valore.trim());
+
+      if (riga.some(function(cella) { return cella !== ''; })) {
+        righe.push(riga);
+      }
+
+      riga = [];
+      valore = '';
+      continue;
+    }
+
+    valore += carattere;
+  }
+
+  riga.push(valore.trim());
+
+  if (riga.some(function(cella) { return cella !== ''; })) {
+    righe.push(riga);
+  }
+
+  return righe;
+}
+
+function dataImportPresidi(valore) {
+  const data = String(valore || '').trim();
+
+  if (!data) return '';
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+    return data;
+  }
+
+  const match = data.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+
+  if (!match) return null;
+
+  return [
+    match[3],
+    String(match[2]).padStart(2, '0'),
+    String(match[1]).padStart(2, '0')
+  ].join('-');
+}
+
+function tipoImportPresidio(valore) {
+  const tipo = pulisciImportPresidi(valore);
+
+  const mappa = {
+    estintore: 'estintore',
+    estintori: 'estintore',
+
+    porta_rei: 'porta_rei',
+    porte_rei: 'porta_rei',
+    porta_tagliafuoco: 'porta_rei',
+    porte_tagliafuoco: 'porta_rei',
+
+    uscita_emergenza: 'uscita_emergenza',
+    uscite_emergenza: 'uscita_emergenza',
+
+    manichetta: 'manichetta',
+    manichette: 'manichetta',
+
+    idrante: 'idrante',
+    idranti: 'idrante',
+
+    naspo: 'naspo',
+    naspi: 'naspo',
+
+    luce_emergenza: 'luce_emergenza',
+    luci_emergenza: 'luce_emergenza',
+
+    pompa_antincendio: 'pompa_antincendio',
+    centrale_rivelazione: 'centrale_rivelazione',
+    sprinkler: 'sprinkler'
+  };
+
+  return mappa[tipo] || '';
+}
+
+function apriImportPresidi() {
+  if (!['titolare', 'capo_tecnico'].includes(ROLE)) {
+    toast('Solo titolare e capo tecnico possono importare presidi', 'err');
+    return;
+  }
+
+  righeImportPresidi = [];
+
+  ge('import-presidi-file').value = '';
+  ge('import-presidi-conferma').disabled = true;
+
+  ge('import-presidi-riepilogo').textContent =
+    'Nessun file selezionato.';
+
+  ge('import-presidi-righe').innerHTML = `
+    <tr>
+      <td colspan="6">
+        <div class="empty">Carica un file per vedere l’anteprima.</div>
+      </td>
+    </tr>
+  `;
+
+  openM('m-import-presidi');
+}
+
+function leggiFileImportPresidi(input) {
+  const file = input.files?.[0];
+
+  if (!file) return;
+
+  const lettore = new FileReader();
+
+  lettore.onload = async function(evento) {
+    await preparaImportPresidi(evento.target.result);
+  };
+
+  lettore.onerror = function() {
+    toast('Non riesco a leggere il file selezionato', 'err');
+  };
+
+  lettore.readAsText(file, 'utf-8');
+}
+
+async function preparaImportPresidi(testo) {
+  const righeCsv = leggiCsvImportPresidi(testo);
+
+  if (righeCsv.length < 2) {
+    toast('Il file deve contenere intestazione e almeno una riga', 'err');
+    return;
+  }
+
+  const intestazioni = righeCsv[0].map(pulisciImportPresidi);
+
+  const obbligatorie = ['cliente', 'tipo', 'matricola'];
+  const mancanti = obbligatorie.filter(function(nome) {
+    return !intestazioni.includes(nome);
+  });
+
+  if (mancanti.length) {
+    toast(
+      'Colonne mancanti nel CSV: ' + mancanti.join(', '),
+      'err'
+    );
+    return;
+  }
+
+  const datiCsv = righeCsv
+    .slice(1)
+    .map(function(celle, indice) {
+      const riga = { numeroRiga: indice + 2 };
+
+      intestazioni.forEach(function(intestazione, posizione) {
+        riga[intestazione] = (celle[posizione] || '').trim();
+      });
+
+      return riga;
+    })
+    .filter(function(riga) {
+      return Object.keys(riga).some(function(chiave) {
+        return chiave !== 'numeroRiga' && riga[chiave];
+      });
+    });
+
+  ge('import-presidi-riepilogo').textContent =
+    'Controllo ' + datiCsv.length + ' righe...';
+
+  const { data: clienti, error: erroreClienti } = await db
+    .from('clienti')
+    .select('id,ragione_sociale,piva')
+    .is('eliminato_il', null);
+
+  if (erroreClienti) {
+    toast('Errore caricamento clienti: ' + erroreClienti.message, 'err');
+    return;
+  }
+
+  const { data: esistenti, error: errorePresidi } = await db
+    .from('impianti')
+    .select('id,cliente_id,tipo,matricola')
+    .is('eliminato_il', null);
+
+  if (errorePresidi) {
+    toast('Errore controllo presidi esistenti: ' + errorePresidi.message, 'err');
+    return;
+  }
+
+  const presidiPerChiave = {};
+
+  (esistenti || []).forEach(function(presidio) {
+    const chiave = [
+      presidio.cliente_id,
+      presidio.tipo,
+      pulisciImportPresidi(presidio.matricola)
+    ].join('|');
+
+    if (!presidiPerChiave[chiave]) {
+      presidiPerChiave[chiave] = [];
+    }
+
+    presidiPerChiave[chiave].push(presidio);
+  });
+
+  const righeViste = new Set();
+
+  righeImportPresidi = datiCsv.map(function(riga) {
+    const clienteDaCercare = pulisciImportPresidi(riga.cliente);
+    const pivaDaCercare = pulisciPivaImport(riga.piva_cliente);
+    const tipo = tipoImportPresidio(riga.tipo);
+    const matricola = String(riga.matricola || '').trim();
+
+    const risultato = {
+      ...riga,
+      tipoNormale: tipo,
+      matricolaNormale: matricola,
+      valido: false,
+      azione: '',
+      messaggio: '',
+      clienteId: null,
+      presidioEsistenteId: null,
+      payload: null
+    };
+
+    if (!clienteDaCercare || !tipo || !matricola) {
+      risultato.messaggio =
+        'Cliente, tipo e matricola sono obbligatori';
+      return risultato;
+    }
+
+  let clientiCompatibili = (clienti || []).filter(function(cliente) {
+  return pulisciImportPresidi(cliente.ragione_sociale) === clienteDaCercare;
+});
+
+/*
+  Se nel CSV trovi "GT AUTO" e nel gestionale c'è
+  "GT AUTO S.R.L." oppure "GT AUTO PISA", prova un match parziale.
+  Se trova più clienti, lo lascia comunque bloccato come ambiguo.
+*/
+if (!clientiCompatibili.length) {
+  clientiCompatibili = (clienti || []).filter(function(cliente) {
+    const nomeDatabase = pulisciImportPresidi(cliente.ragione_sociale);
+
+    return (
+      nomeDatabase.includes(clienteDaCercare) ||
+      clienteDaCercare.includes(nomeDatabase)
+    );
+  });
+}
+
+if (pivaDaCercare) {
+  clientiCompatibili = clientiCompatibili.filter(function(cliente) {
+    return pulisciPivaImport(cliente.piva) === pivaDaCercare;
+  });
+}
+
+    if (clientiCompatibili.length === 0) {
+      risultato.messaggio = 'Cliente non trovato';
+      return risultato;
+    }
+
+    if (clientiCompatibili.length > 1) {
+      risultato.messaggio =
+        'Cliente ambiguo: aggiungi piva_cliente nel CSV';
+      return risultato;
+    }
+
+    const cliente = clientiCompatibili[0];
+
+    const chiaveImport = [
+      cliente.id,
+      tipo,
+      pulisciImportPresidi(matricola)
+    ].join('|');
+
+    if (righeViste.has(chiaveImport)) {
+      risultato.messaggio =
+        'Duplicato nel file: stessa matricola, cliente e tipo';
+      return risultato;
+    }
+
+    righeViste.add(chiaveImport);
+
+    const trovati = presidiPerChiave[chiaveImport] || [];
+
+    if (trovati.length > 1) {
+      risultato.messaggio =
+        'Esistono già più presidi uguali: non aggiorno automaticamente';
+      return risultato;
+    }
+
+    const stato = pulisciImportPresidi(riga.stato) || 'ok';
+    const statiValidi = ['ok', 'anomalia', 'scaduto', 'fuori_servizio'];
+
+    if (!statiValidi.includes(stato)) {
+      risultato.messaggio = 'Stato non valido';
+      return risultato;
+    }
+
+    const ultimaVerifica = dataImportPresidi(riga.ultima_verifica);
+    const prossimaVerifica = dataImportPresidi(riga.prossima_verifica);
+    const scadenzaCollaudo = dataImportPresidi(riga.scadenza_collaudo);
+
+    if (
+      ultimaVerifica === null ||
+      prossimaVerifica === null ||
+      scadenzaCollaudo === null
+    ) {
+      risultato.messaggio =
+        'Data non valida: usa gg/mm/aaaa oppure aaaa-mm-gg';
+      return risultato;
+    }
+
+    const periodicita = Number.parseInt(riga.periodicita_mesi, 10);
+
+    const payloadBase = {
+      cliente_id: cliente.id,
+      tipo: tipo,
+      matricola: matricola,
+      marca: riga.marca || null,
+      modello: riga.modello || null,
+      ubicazione: riga.ubicazione || null,
+      piano: riga.piano || null,
+      locale: riga.locale || null,
+      data_ultimo_controllo: ultimaVerifica || null,
+      data_prossimo_controllo: prossimaVerifica || null,
+      data_scadenza_collaudo: scadenzaCollaudo || null,
+      stato: stato,
+      periodicita_mesi: Number.isFinite(periodicita) ? periodicita : 6,
+      note: riga.note || null
+    };
+
+    risultato.clienteId = cliente.id;
+    risultato.payload = payloadBase;
+    risultato.valido = true;
+
+    if (trovati.length === 1) {
+      risultato.azione = 'Aggiorna';
+      risultato.presidioEsistenteId = trovati[0].id;
+      risultato.messaggio = 'Presidio già presente';
+    } else {
+      risultato.azione = 'Crea';
+      risultato.messaggio = 'Nuovo presidio';
+    }
+
+    return risultato;
+  });
+
+  renderAnteprimaImportPresidi();
+}
+
+function renderAnteprimaImportPresidi() {
+  const valide = righeImportPresidi.filter(function(riga) {
+    return riga.valido;
+  });
+
+  const errori = righeImportPresidi.filter(function(riga) {
+    return !riga.valido;
+  });
+
+  const nuove = valide.filter(function(riga) {
+    return riga.azione === 'Crea';
+  });
+
+  const aggiornamenti = valide.filter(function(riga) {
+    return riga.azione === 'Aggiorna';
+  });
+
+  ge('import-presidi-riepilogo').innerHTML = `
+    <b>${valide.length}</b> righe pronte:
+    ${nuove.length} nuove,
+    ${aggiornamenti.length} aggiornamenti,
+    ${errori.length} con errore.
+  `;
+
+  ge('import-presidi-conferma').disabled = valide.length === 0;
+
+  ge('import-presidi-righe').innerHTML = righeImportPresidi
+    .slice(0, 100)
+    .map(function(riga) {
+      return `
+        <tr>
+          <td>${riga.numeroRiga}</td>
+          <td>${esc(riga.cliente || '—')}</td>
+          <td>${esc(riga.tipoNormale || riga.tipo || '—')}</td>
+          <td>${esc(riga.matricolaNormale || riga.matricola || '—')}</td>
+          <td>${esc(riga.azione || '—')}</td>
+          <td style="color:${riga.valido ? 'var(--g)' : 'var(--r)'}">
+            ${esc(riga.messaggio)}
+          </td>
+        </tr>
+      `;
+    })
+    .join('');
+}
+
+async function confermaImportPresidi() {
+  const valide = righeImportPresidi.filter(function(riga) {
+    return riga.valido;
+  });
+
+  if (!valide.length) {
+    toast('Non ci sono righe valide da importare', 'err');
+    return;
+  }
+
+  if (!confirm(
+    `Importare ${valide.length} presidi? I duplicati segnalati non verranno creati.`
+  )) {
+    return;
+  }
+
+  const bottone = ge('import-presidi-conferma');
+  bottone.disabled = true;
+  bottone.textContent = 'Importazione in corso...';
+
+  let creati = 0;
+  let aggiornati = 0;
+  const errori = [];
+
+  for (const riga of valide) {
+    let error;
+
+    if (riga.azione === 'Aggiorna') {
+      ({ error } = await db
+        .from('impianti')
+        .update(riga.payload)
+        .eq('id', riga.presidioEsistenteId));
+
+      if (!error) aggiornati++;
+    } else {
+      ({ error } = await db
+        .from('impianti')
+        .insert(riga.payload));
+
+      if (!error) creati++;
+    }
+
+    if (error) {
+      errori.push(
+        `Riga ${riga.numeroRiga}: ${error.message}`
+      );
+    }
+  }
+
+  bottone.textContent = '✓ Conferma importazione';
+
+  if (errori.length) {
+    bottone.disabled = false;
+
+    ge('import-presidi-riepilogo').innerHTML = `
+      Importati: ${creati} nuovi, ${aggiornati} aggiornati.<br>
+      <span style="color:var(--r)">
+        Errori: ${esc(errori.join(' · '))}
+      </span>
+    `;
+
+    toast('Importazione completata con alcuni errori', 'err');
+    await loadPresidi();
+    return;
+  }
+
+  closeM('m-import-presidi');
+
+  toast(
+    `Importazione completata: ${creati} nuovi, ${aggiornati} aggiornati`,
+    'ok'
+  );
+
+  await loadPresidi();
+  await loadDash();
 }
 
 
@@ -6153,6 +6780,121 @@ async function eliminaOdlCal(id) {
 }
 
 // ── TECNICO: carica OdL assegnati ────────────────────────────
+
+async function loadStoricoInterventiTecnico() {
+  const box = ge('tec-storico-interventi');
+
+  if (!box) return;
+
+  if (!['tecnico', 'capo_tecnico'].includes(ROLE)) {
+    box.innerHTML = '';
+    return;
+  }
+
+  box.innerHTML = '<div class="load">Caricamento interventi...</div>';
+
+  const { data: schede, error } = await db
+    .from('schede_lavoro')
+    .select(`
+      id,
+      numero,
+      data_intervento,
+      ora_inizio,
+      ora_fine,
+      lavori_eseguiti,
+      anomalie_rilevate,
+      esito,
+      stato,
+      creato_il,
+      clienti(ragione_sociale),
+      ordini_lavoro(tipo)
+    `)
+    .eq('tecnico_id', ME.id)
+    .is('eliminato_il', null)
+    .order('data_intervento', { ascending: false })
+    .order('creato_il', { ascending: false })
+    .limit(30);
+
+  if (error) {
+    box.innerHTML = `
+      <div class="al2 e">
+        Errore caricamento storico: ${esc(error.message)}
+      </div>
+    `;
+    return;
+  }
+
+  if (!schede?.length) {
+    box.innerHTML = `
+      <div class="empty">
+        Nessun intervento compilato finora.
+      </div>
+    `;
+    return;
+  }
+
+  box.innerHTML = schede.map(function(scheda) {
+    const cliente =
+      scheda.clienti?.ragione_sociale || 'Cliente non disponibile';
+
+    const tipo =
+      tl(scheda.ordini_lavoro?.tipo || '') || 'Intervento';
+
+    const stato = scheda.stato === 'firmata'
+      ? 'Inviata alla segreteria'
+      : (WFL[scheda.stato] || scheda.stato || '—');
+
+    const classeStato = scheda.stato === 'firmata'
+      ? 'bblue'
+      : scheda.stato === 'approvata'
+        ? 'bok'
+        : 'bgray';
+
+    const lavori = (scheda.lavori_eseguiti || 'Nessun lavoro indicato.')
+      .slice(0, 180);
+
+    return `
+      <div style="padding:12px 0;border-bottom:1px solid var(--bo)">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+          <div style="min-width:0">
+            <div style="font-size:14px;font-weight:700">
+              ${esc(cliente)}
+            </div>
+
+            <div style="font-size:12px;color:var(--m);margin-top:3px">
+              ${esc(tipo)} · ${esc(fd(scheda.data_intervento))}
+              ${scheda.numero ? ' · Scheda n. ' + esc(String(scheda.numero)) : ''}
+            </div>
+          </div>
+
+          <span class="bx ${classeStato}">
+            ${esc(stato)}
+          </span>
+        </div>
+
+        <div style="font-size:13px;white-space:pre-wrap;margin-top:9px">
+          ${esc(lavori)}${(scheda.lavori_eseguiti || '').length > 180 ? '…' : ''}
+        </div>
+
+        ${scheda.anomalie_rilevate ? `
+          <div style="font-size:12px;color:var(--a);margin-top:7px">
+            ⚠️ Anomalie registrate
+          </div>
+        ` : ''}
+
+        <button
+          class="btn sm"
+          style="margin-top:10px"
+          onclick="openScheda('${scheda.id}')"
+        >
+          📄 Apri riepilogo completo
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+
 async function loadOdlTecnico() {
   var sel = ge('tc-odl');
   if(!sel) return;
@@ -10193,6 +10935,7 @@ async function loadProgettiDaPreventivare() {
       descrizione_tecnica,
       nota_verifica_tecnica,
       creato_il,
+      stato,
       cliente_id,
       rappresentante_id,
       clienti(ragione_sociale)
@@ -10204,7 +10947,7 @@ async function loadProgettiDaPreventivare() {
 ])
     .order('creato_il', { ascending: false });
 
-  if (error) {
+   if (error) {
     box.innerHTML =
       '<div class="al2 e">Errore nel caricamento: ' +
       esc(error.message) +
@@ -10212,15 +10955,50 @@ async function loadProgettiDaPreventivare() {
     return;
   }
 
-  if (!data || data.length === 0) {
+  const idsProgetti = (data || []).map(function(progetto) {
+    return progetto.id;
+  });
+
+  let preventiviCollegati = [];
+
+  if (idsProgetti.length) {
+    const { data: righePreventivi, error: errorePreventivi } = await db
+      .from('preventivi')
+      .select('progetto_tecnico_id')
+      .in('progetto_tecnico_id', idsProgetti);
+
+    if (errorePreventivi) {
+      box.innerHTML =
+        '<div class="al2 e">Errore controllo preventivi: ' +
+        esc(errorePreventivi.message) +
+        '</div>';
+      return;
+    }
+
+    preventiviCollegati = righePreventivi || [];
+  }
+
+  const progettiConPreventivo = new Set(
+    preventiviCollegati
+      .map(function(preventivo) {
+        return preventivo.progetto_tecnico_id;
+      })
+      .filter(Boolean)
+  );
+
+  const progettiDaPreventivare = (data || []).filter(function(progetto) {
+    return !progettiConPreventivo.has(progetto.id);
+  });
+
+  if (!progettiDaPreventivare.length) {
     box.innerHTML =
       '<div class="empty">🎉 Nessun progetto da preventivare al momento.</div>';
     return;
   }
 
-  box.innerHTML = data.map(function(p) {
+  box.innerHTML = progettiDaPreventivare.map(function(p) {
     const cliente = p.clienti?.ragione_sociale || 'Cliente non disponibile';
-    const inLavorazione = p.stato === 'in_preventivazione';
+    const inLavorazione = false;
     const dataInvio = p.creato_il
       ? new Date(p.creato_il).toLocaleDateString('it-IT')
       : '';
@@ -10355,26 +11133,57 @@ async function inviaIntegrazioneCommerciale() {
 
 
 async function avviaPreventivo(progettoId) {
+  const paginaPreventivi =
+    ROLE === 'titolare'
+      ? 'preventivi-titolare'
+      : 'preventivi';
+
   const { data: esistente, error: erroreEsistente } = await db
     .from('preventivi')
-   .select('id')
-  .eq('progetto_tecnico_id', progettoId)
-  .maybeSingle();
+    .select('id, numero')
+    .eq('progetto_tecnico_id', progettoId)
+    .maybeSingle();
 
   if (erroreEsistente) {
     toast('Errore controllo preventivo: ' + erroreEsistente.message, 'err');
     return;
   }
 
-  // Se esiste già una bozza, riapre direttamente quella.
+  // Se il preventivo esiste già, il progetto non deve più restare
+  // nella lista "Da preventivare".
   if (esistente) {
-    await openPreventivoDetail(esistente.id);
+    const { error: erroreStato } = await db
+      .from('progetti_tecnici')
+      .update({
+        stato: 'in_preventivazione',
+        aggiornato_il: new Date().toISOString()
+      })
+      .eq('id', progettoId)
+      .in('stato', [
+        'inviato_a_commerciale',
+        'pronto_per_preventivo'
+      ]);
+
+    if (erroreStato) {
+      toast(
+        'Errore spostamento progetto: ' + erroreStato.message,
+        'err'
+      );
+      return;
+    }
+
+    toast(
+      'Preventivo n. ' + esistente.numero + ' già presente',
+      'ok'
+    );
+
+    gotoPage(paginaPreventivi);
     return;
   }
 
   const { data: progetto, error: erroreProgetto } = await db
     .from('progetti_tecnici')
-    .select('id,cliente_id,rappresentante_id')
+    .select('id, cliente_id, rappresentante_id')
     .eq('id', progettoId)
     .single();
 
@@ -10417,26 +11226,37 @@ async function avviaPreventivo(progettoId) {
     return;
   }
 
-const { data: progettoAggiornato, error: erroreStato } = await db
-  .from('progetti_tecnici')
-  .update({ stato: 'in_preventivazione' })
-  .eq('id', progettoId)
-  .in('stato', [
-    'inviato_a_commerciale',
-    'pronto_per_preventivo'
-  ])
-  .select('id');
+  const { data: progettoAggiornato, error: erroreStato } = await db
+    .from('progetti_tecnici')
+    .update({
+      stato: 'in_preventivazione',
+      aggiornato_il: new Date().toISOString()
+    })
+    .eq('id', progettoId)
+    .in('stato', [
+      'inviato_a_commerciale',
+      'pronto_per_preventivo'
+    ])
+    .select('id');
 
-if (erroreStato || !progettoAggiornato?.length) {
-  toast(
-    'Bozza creata, ma non è stato possibile aggiornare lo stato del progetto',
-    'err'
-  );
-  return;
-}
+  if (erroreStato || !progettoAggiornato?.length) {
+    // Elimina solo la bozza appena creata: evita preventivi scollegati.
+    await db
+      .from('preventivi')
+      .delete()
+      .eq('id', preventivo.id);
+
+    toast(
+      'Errore nel passaggio del progetto ai preventivi',
+      'err'
+    );
+    return;
+  }
+
   toast('Bozza preventivo n. ' + preventivo.numero + ' creata', 'ok');
 
-  await openPreventivoDetail(preventivo.id);
+  // Commerciale → Preventivi. Titolare → Preventivi da controllare.
+  gotoPage(paginaPreventivi);
 }
 
 async function loadPreventivi() {
