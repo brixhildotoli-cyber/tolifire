@@ -3120,6 +3120,7 @@ async function salvaAttivitaIngegnere() {
     return;
   }
 
+
   const payload = {
     titolo: titolo,
     data: data,
@@ -4173,6 +4174,35 @@ async function apriSchedaPresidio(id) {
     scaduto: '❌ Scaduto'
   }[p.stato] || p.stato || '—';
 
+
+   const vociSi = Array.isArray(p.voci_x_si) ? p.voci_x_si : [];
+const vociNo = Array.isArray(p.voci_x_no) ? p.voci_x_no : [];
+const vociVuote = Array.isArray(p.voci_x_vuote)
+  ? p.voci_x_vuote
+  : [];
+
+const rigaVuota = function(voce) {
+  return `
+    <div style="padding:8px 0;border-bottom:1px solid var(--bl);display:flex;gap:10px">
+      <b style="color:var(--m);min-width:42px">☐</b>
+      <span>${esc(voce)}</span>
+    </div>
+  `;
+};
+
+  const rigaControllo = function(voce, esito) {
+    const positivo = esito === 'SI';
+
+    return `
+      <div style="padding:8px 0;border-bottom:1px solid var(--bl);display:flex;gap:10px">
+        <b style="color:${positivo ? 'var(--g)' : 'var(--r)'};min-width:42px">
+          ☒ ${esito}
+        </b>
+        <span>${esc(voce)}</span>
+      </div>
+    `;
+  };
+
   ge('msp-titolo').textContent =
     `Scheda presidio · ${p.matricola || 'senza matricola'}`;
 
@@ -4193,6 +4223,80 @@ async function apriSchedaPresidio(id) {
         ${campo('Prossima verifica', p.data_prossimo_controllo ? fd(p.data_prossimo_controllo) : '')}
         ${campo('Scadenza collaudo', p.data_scadenza_collaudo ? fd(p.data_scadenza_collaudo) : '')}
       </div>
+
+          ${(vociSi.length || vociNo.length || vociVuote.length || p.esito_verifica) ? `
+        <div style="margin-top:18px;border-top:1px solid var(--bl);padding-top:14px">
+          <div style="font-weight:700;margin-bottom:8px">
+            Controlli della verifica
+          </div>
+
+          ${p.esito_verifica ? `
+            <div class="al2 i" style="margin-bottom:10px">
+              <b>Esito:</b> ${esc(p.esito_verifica)}
+            </div>
+          ` : ''}
+
+          ${vociSi.length ? `
+            <div style="font-size:12px;color:var(--m);margin:10px 0 4px">
+              Voci contrassegnate SI
+            </div>
+            ${vociSi.map(function(voce) {
+              return rigaControllo(voce, 'SI');
+            }).join('')}
+          ` : ''}
+
+          ${vociNo.length ? `
+            <div style="font-size:12px;color:var(--m);margin:14px 0 4px">
+              Voci contrassegnate NO
+            </div>
+            ${vociNo.map(function(voce) {
+              return rigaControllo(voce, 'NO');
+            }).join('')}
+          ` : ''}
+
+          ${vociVuote.length ? `
+  <div style="font-size:12px;color:var(--m);margin:14px 0 4px">
+    Voci senza esito indicato
+  </div>
+
+  ${vociVuote.map(function(voce) {
+    return rigaVuota(voce);
+  }).join('')}
+` : ''}
+
+          ${p.fonte_pdf ? `
+            <div style="font-size:11px;color:var(--m);margin-top:12px">
+              Fonte: ${esc(p.fonte_pdf)}
+              ${p.pagina_pdf ? ` · pagina ${esc(String(p.pagina_pdf))}` : ''}
+            </div>
+          ` : ''}
+
+<div
+  style="
+    margin-top:14px;
+    padding:10px 12px;
+    border-radius:8px;
+    background:#f8fafc;
+    border:1px solid var(--bl);
+    font-size:12px;
+    line-height:1.65
+  "
+>
+  <b>Legenda</b><br>
+
+  <span style="font-weight:700;color:#166534">☒ SI</span>
+  = controllo verificato con esito positivo.<br>
+
+  <span style="font-weight:700;color:var(--r)">☒ NO</span>
+  = controllo non superato o anomalia da gestire.<br>
+
+  <span style="font-weight:700;color:var(--m)">☐</span>
+  = operazione presente nel modulo, ma senza una X:
+  deve essere verificata o compilata.<br><br>
+x
+</div>
+        </div>
+      ` : ''}
 
       <div style="margin-top:16px">
         <div class="muted" style="font-size:12px">Note / anomalie</div>
@@ -4510,6 +4614,41 @@ function tipoImportPresidio(valore) {
   return mappa[tipo] || '';
 }
 
+function elencoVociCsv(valore) {
+  return String(valore || '')
+    .split('|')
+    .map(function(voce) {
+      return voce.trim();
+    })
+    .filter(Boolean);
+}
+
+function statoDaEsitoCsv(esito) {
+  const valore = pulisciImportPresidi(esito || '');
+
+  if (!valore) return 'ok';
+
+  if (['ok', 'anomalia', 'scaduto', 'fuori_servizio'].includes(valore)) {
+    return valore;
+  }
+
+  if (
+    valore.includes('non riallineabile') ||
+    valore.includes('fuori servizio')
+  ) {
+    return 'fuori_servizio';
+  }
+
+  if (
+    valore.includes('non conforme') ||
+    valore.includes('non manutenzionata')
+  ) {
+    return 'anomalia';
+  }
+
+  return 'ok';
+}
+
 function apriImportPresidi() {
   if (!['titolare', 'capo_tecnico'].includes(ROLE)) {
     toast('Solo titolare e capo tecnico possono importare presidi', 'err');
@@ -4719,7 +4858,23 @@ if (pivaDaCercare) {
       return risultato;
     }
 
-    const stato = pulisciImportPresidi(riga.stato) || 'ok';
+    const stato = statoDaEsitoCsv(
+  riga.stato || riga.esito_verifica
+);
+
+const esitoVerifica = String(
+  riga.esito_verifica || ''
+).trim() || null;
+
+const vociSi = elencoVociCsv(riga.voci_x_si);
+const vociNo = elencoVociCsv(riga.voci_x_no);
+const vociVuote = [
+  ...elencoVociCsv(riga.voci_senza_x),
+  ...elencoVociCsv(riga.voci_da_verificare),
+  ...elencoVociCsv(riga.voci_x_vuote)
+];
+
+const paginaPdf = Number.parseInt(riga.pagina_pdf, 10);
     const statiValidi = ['ok', 'anomalia', 'scaduto', 'fuori_servizio'];
 
     if (!statiValidi.includes(stato)) {
@@ -4727,7 +4882,9 @@ if (pivaDaCercare) {
       return risultato;
     }
 
-    const ultimaVerifica = dataImportPresidi(riga.ultima_verifica);
+    const ultimaVerifica = dataImportPresidi(
+  riga.ultima_verifica || riga.data_verifica
+);
     const prossimaVerifica = dataImportPresidi(riga.prossima_verifica);
     const scadenzaCollaudo = dataImportPresidi(riga.scadenza_collaudo);
 
@@ -4757,6 +4914,12 @@ if (pivaDaCercare) {
       data_scadenza_collaudo: scadenzaCollaudo || null,
       stato: stato,
       periodicita_mesi: Number.isFinite(periodicita) ? periodicita : 6,
+            esito_verifica: esitoVerifica,
+      voci_x_si: vociSi,
+      voci_x_no: vociNo,
+      voci_x_vuote: vociVuote,
+      fonte_pdf: riga.fonte_pdf || null,
+      pagina_pdf: Number.isInteger(paginaPdf) ? paginaPdf : null,
       note: riga.note || null
     };
 
@@ -10427,6 +10590,15 @@ async function salvaProgetto() {
       return;
     }
 
+    const { data: authData, error: authError } = await db.auth.getUser();
+
+if (authError || !authData.user) {
+  toast('Sessione utente non valida', 'err');
+  return;
+}
+
+const authUserId = authData.user.id;
+
     const payload = {
       titolo: titolo,
       tipologia: tipologia,
@@ -10463,7 +10635,7 @@ async function salvaProgetto() {
       }
     } else {
       payload.cliente_id = currentCliId;
-      payload.rappresentante_id = ME.id;
+      payload.rappresentante_id = authUserId;
       payload.stato = 'bozza';
 
       const { data, error } = await db
@@ -10480,14 +10652,7 @@ async function salvaProgetto() {
       progettoId = data.id;
     }
 
-    const { data: authData, error: authError } = await db.auth.getUser();
-
-    if (authError || !authData.user) {
-      toast('Sessione utente non valida', 'err');
-      return;
-    }
-
-    const utenteStorageId = authData.user.id;
+  const utenteStorageId = authUserId;
 
     for (const file of files) {
       const nomeSicuro = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -10517,7 +10682,7 @@ async function salvaProgetto() {
           storage_path: path,
           mime_type: file.type,
           dimensione: file.size,
-          caricato_da: ME.id
+          caricato_da: authUserId
         });
 
       if (erroreAllegato) {
