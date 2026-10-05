@@ -3996,7 +3996,48 @@ async function loadPresidi() {
     return;
   }
 
-  PA = data || [];
+  const presidi = data || [];
+
+  const sediIds = [
+    ...new Set(
+      presidi
+        .map(function(presidio) {
+          return presidio.sede_id;
+        })
+        .filter(Boolean)
+    )
+  ];
+
+  let sediPerId = {};
+
+  if (sediIds.length) {
+    const { data: sedi } = await db
+      .from('sedi_cliente')
+      .select('id,tipo,nome,via,civico,citta')
+      .in('id', sediIds);
+
+    (sedi || []).forEach(function(sede) {
+      const indirizzo = [sede.via, sede.civico]
+        .filter(Boolean)
+        .join(' ');
+
+      sediPerId[sede.id] = [
+        sede.nome,
+        indirizzo,
+        sede.citta
+      ].filter(Boolean).join(' · ') || sede.tipo || 'Sede';
+    });
+  }
+
+  PA = presidi.map(function(presidio) {
+    return {
+      ...presidio,
+      sede_label: presidio.sede_id
+        ? (sediPerId[presidio.sede_id] || 'Sede non disponibile')
+        : 'Sede principale / non specificata'
+    };
+  });
+
   PF = PA;
 
   renderPC(PA);
@@ -4022,47 +4063,241 @@ async function loadPresidi() {
 
 function filterP(){
   const q=v('psearch').toLowerCase(),t=v('ptipo'),s=v('pstato'),c=v('pcli');
-  PF=PA.filter(p=>(!q||(p.matricola||'').toLowerCase().includes(q)||(p.clienti?.ragione_sociale||'').toLowerCase().includes(q)||(p.ubicazione||'').toLowerCase().includes(q))&&(!t||p.tipo===t)&&(!s||p.stato===s)&&(!c||(p.clienti?.ragione_sociale||'')===c));
+  PF=PA.filter(p=>(!q ||
+  (p.matricola || '').toLowerCase().includes(q) ||
+  (p.clienti?.ragione_sociale || '').toLowerCase().includes(q) ||
+  (p.ubicazione || '').toLowerCase().includes(q) ||
+  (p.sede_label || '').toLowerCase().includes(q)
+)&&(!t||p.tipo===t)&&(!s||p.stato===s)&&(!c||(p.clienti?.ragione_sociale||'')===c));
   renderPC(PF);renderPT(PF);
 }
 
-function renderPC(data){
-  const w=ge('pcards');
-  if(!data.length){w.innerHTML='<div style="grid-column:1/-1"><div class="empty">Nessun presidio.<br><button class="btn p sm" style="margin-top:12px" onclick="resetPF();openM(\'m-presidio\')">+ Aggiungi</button></div></div>';return;}
-  w.innerHTML=data.map(p=>`<div class="pc">
-    <div style="position:absolute;top:12px;right:12px">${si2(p.stato)}</div>
-    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--m);margin-bottom:4px">${tpl(p.tipo)}</div>
-    <div style="font-size:14px;font-weight:600;margin-bottom:2px">${esc(p.matricola||'—')}</div>
-    <div style="font-size:12px;color:var(--m);margin-bottom:10px">${esc(p.clienti?.ragione_sociale||'—')}</div>
-    <div style="font-size:12px;display:flex;flex-direction:column;gap:4px">
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ubicazione</span><span>${esc(p.ubicazione||'—')}${esc(p.piano?' ('+p.piano+')':'')}</span></div>
-      ${p.tipo==='estintore'?`<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Agente</span><span>${al2(p.modello)||'—'} ${p.marca||''}</span></div>`:''}
-      ${p.tipo==='porta_rei'?`<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Classe</span><span>${p.modello||'—'}</span></div>`:''}
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ultima verifica</span><span>${fd(p.data_ultimo_controllo)}</span></div>
-      <div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Prossima verifica</span><span class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)} (${dd2(p.data_prossimo_controllo)})</span></div>
-      ${p.data_scadenza_collaudo?`<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Scad. collaudo</span><span class="${sc(p.data_scadenza_collaudo)}">${fd(p.data_scadenza_collaudo)}</span></div>`:''}
-    </div>
-   <div style="display:flex;gap:6px;margin-top:10px">
-   <button class="btn sm" onclick="apriSchedaPresidio('${p.id}')">
-  👁 Visualizza scheda
-</button>
-  <button class="btn sm" onclick="editP('${p.id}')">
-    Modifica
-  </button>
+function renderPC(data) {
+  const w = ge('pcards');
 
-  ${
-    ROLE === 'titolare' || ROLE === 'capo_tecnico'
-      ? `<button
-           class="btn sm"
-           style="color:var(--r)"
-           onclick="eliminaPresidio('${p.id}')"
-         >
-           🗑️ Elimina
-         </button>`
-      : ''
+  if (!data.length) {
+    w.innerHTML = `
+      <div style="grid-column:1/-1">
+        <div class="empty">
+          Nessun presidio.<br>
+          <button
+            class="btn p sm"
+            style="margin-top:12px"
+            onclick="resetPF();openM('m-presidio')"
+          >
+            + Aggiungi
+          </button>
+        </div>
+      </div>
+    `;
+    return;
   }
-</div>
-  </div>`).join('');
+
+  const scheda = function(p) {
+    return `
+      <div class="pc">
+        <div style="position:absolute;top:12px;right:12px">
+          ${si2(p.stato)}
+        </div>
+
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--m);margin-bottom:4px">
+          ${tpl(p.tipo)}
+        </div>
+
+        <div style="font-size:14px;font-weight:600;margin-bottom:2px">
+          ${esc(p.matricola || '—')}
+        </div>
+
+        <div style="font-size:12px;color:var(--m);margin-bottom:10px">
+          ${esc(p.clienti?.ragione_sociale || '—')}
+        </div>
+
+        <div style="font-size:12px;display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;justify-content:space-between">
+            <span style="color:var(--m)">Ubicazione</span>
+            <span>
+              ${esc(p.ubicazione || '—')}
+              ${esc(p.piano ? ' (' + p.piano + ')' : '')}
+            </span>
+          </div>
+
+          ${p.tipo === 'estintore' ? `
+            <div style="display:flex;justify-content:space-between">
+              <span style="color:var(--m)">Agente</span>
+              <span>${al2(p.modello) || '—'} ${p.marca || ''}</span>
+            </div>
+          ` : ''}
+
+          ${p.tipo === 'porta_rei' ? `
+            <div style="display:flex;justify-content:space-between">
+              <span style="color:var(--m)">Classe</span>
+              <span>${esc(p.modello || '—')}</span>
+            </div>
+          ` : ''}
+
+          <div style="display:flex;justify-content:space-between">
+            <span style="color:var(--m)">Ultima verifica</span>
+            <span>${fd(p.data_ultimo_controllo)}</span>
+          </div>
+
+          <div style="display:flex;justify-content:space-between">
+            <span style="color:var(--m)">Prossima verifica</span>
+            <span class="${sc(p.data_prossimo_controllo)}">
+              ${fd(p.data_prossimo_controllo)}
+              (${dd2(p.data_prossimo_controllo)})
+            </span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn sm" onclick="apriSchedaPresidio('${p.id}')">
+            👁 Visualizza scheda
+          </button>
+
+          <button class="btn sm" onclick="editP('${p.id}')">
+            Modifica
+          </button>
+
+          ${ROLE === 'titolare' || ROLE === 'capo_tecnico' ? `
+            <button
+              class="btn sm"
+              style="color:var(--r)"
+              onclick="eliminaPresidio('${p.id}')"
+            >
+              🗑️ Elimina
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  };
+
+  const gruppiCliente = {};
+
+  data.forEach(function(p) {
+    const cliente = p.clienti?.ragione_sociale || 'Cliente non assegnato';
+    const sede = p.sede_label || 'Sede principale / non specificata';
+
+    if (!gruppiCliente[cliente]) {
+      gruppiCliente[cliente] = {};
+    }
+
+    if (!gruppiCliente[cliente][sede]) {
+      gruppiCliente[cliente][sede] = {};
+    }
+
+    if (!gruppiCliente[cliente][sede][p.tipo]) {
+      gruppiCliente[cliente][sede][p.tipo] = [];
+    }
+
+    gruppiCliente[cliente][sede][p.tipo].push(p);
+  });
+
+  const filtroAttivo = data.length < PA.length;
+  const clienti = Object.keys(gruppiCliente)
+    .sort(function(a, b) {
+      return a.localeCompare(b, 'it');
+    });
+
+  w.innerHTML = clienti.map(function(cliente) {
+    const sedi = gruppiCliente[cliente];
+    const tutti = Object.values(sedi).flatMap(function(tipi) {
+      return Object.values(tipi).flat();
+    });
+
+    const anomalie = tutti.filter(function(p) {
+      return p.stato !== 'ok';
+    }).length;
+
+    return `
+      <details
+        class="card"
+        style="grid-column:1/-1;padding:0;overflow:hidden"
+        ${clienti.length === 1 || filtroAttivo ? 'open' : ''}
+      >
+        <summary
+          style="cursor:pointer;padding:15px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px"
+        >
+          <div>
+            <div style="font-size:15px;font-weight:700">
+              🗂️ ${esc(cliente)}
+            </div>
+            <div style="font-size:12px;color:var(--m);margin-top:3px">
+              ${tutti.length} ${tutti.length === 1 ? 'presidio' : 'presidi'}
+            </div>
+          </div>
+
+          ${anomalie ? `
+            <span class="bx berr">
+              ${anomalie} da verificare
+            </span>
+          ` : '<span class="bx bok">Tutto OK</span>'}
+        </summary>
+
+        <div style="padding:0 16px 16px">
+          ${Object.keys(sedi).sort(function(a, b) {
+            return a.localeCompare(b, 'it');
+          }).map(function(sede) {
+            const tipi = sedi[sede];
+
+            return `
+              <details
+                style="margin-top:10px;border:1px solid var(--bl);border-radius:8px;padding:0 12px"
+                ${Object.keys(sedi).length === 1 && filtroAttivo ? 'open' : ''}
+              >
+                <summary
+                  style="cursor:pointer;padding:11px 0;font-size:13px;font-weight:700"
+                >
+                  📍 ${esc(sede)}
+                </summary>
+
+                <div style="padding:0 0 12px">
+                  ${Object.keys(tipi).sort(function(a, b) {
+                    return tpl(a).localeCompare(tpl(b), 'it');
+                  }).map(function(tipo) {
+                    const presidi = tipi[tipo].sort(function(a, b) {
+                      return String(a.matricola || '').localeCompare(
+                        String(b.matricola || ''),
+                        'it',
+                        { numeric: true }
+                      );
+                    });
+
+                    const daGestire = presidi.filter(function(p) {
+                      return p.stato !== 'ok';
+                    }).length;
+
+                    return `
+                      <details
+                        style="margin-top:8px;background:var(--bg);border-radius:7px;padding:0 10px"
+                        ${filtroAttivo ? 'open' : ''}
+                      >
+                        <summary
+                          style="cursor:pointer;padding:10px 0;display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:700"
+                        >
+                          <span>${tpl(tipo)}</span>
+                          <span style="color:var(--m)">
+                            ${presidi.length} ·
+                            ${daGestire ? `${daGestire} attenzione` : 'OK'}
+                          </span>
+                        </summary>
+
+                        <div
+                          style="display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:12px;padding:4px 0 12px"
+                        >
+                          ${presidi.map(scheda).join('')}
+                        </div>
+                      </details>
+                    `;
+                  }).join('')}
+                </div>
+              </details>
+            `;
+          }).join('')}
+        </div>
+      </details>
+    `;
+  }).join('');
 }
 
 function renderPT(data){
