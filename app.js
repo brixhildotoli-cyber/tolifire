@@ -4104,9 +4104,16 @@ function renderPC(data) {
           ${tpl(p.tipo)}
         </div>
 
-        <div style="font-size:14px;font-weight:600;margin-bottom:2px">
-          ${esc(p.matricola || '—')}
-        </div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:2px">
+  ${esc(p.matricola || '—')}
+</div>
+
+<div style="font-size:11px;color:var(--m);margin-bottom:4px">
+  Numero progressivo:
+  <b style="color:var(--t)">
+    ${esc(p.numero_progressivo || '—')}
+  </b>
+</div>
 
         <div style="font-size:12px;color:var(--m);margin-bottom:10px">
           ${esc(p.clienti?.ragione_sociale || '—')}
@@ -4151,7 +4158,7 @@ function renderPC(data) {
 
         <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
           <button class="btn sm" onclick="apriSchedaPresidio('${p.id}')">
-            👁 Visualizza scheda
+            Visualizza scheda
           </button>
 
           <button class="btn sm" onclick="editP('${p.id}')">
@@ -4211,6 +4218,7 @@ function renderPC(data) {
 
     return `
       <details
+       data-cartella="cliente|${encodeURIComponent(cliente)}"
         class="card"
         style="grid-column:1/-1;padding:0;overflow:hidden"
         ${clienti.length === 1 || filtroAttivo ? 'open' : ''}
@@ -4242,6 +4250,7 @@ function renderPC(data) {
 
             return `
               <details
+               data-cartella="sede|${encodeURIComponent(cliente)}|${encodeURIComponent(sede)}"
                 style="margin-top:10px;border:1px solid var(--bl);border-radius:8px;padding:0 12px"
                 ${Object.keys(sedi).length === 1 && filtroAttivo ? 'open' : ''}
               >
@@ -4269,6 +4278,7 @@ function renderPC(data) {
 
                     return `
                       <details
+                      data-cartella="tipo|${encodeURIComponent(cliente)}|${encodeURIComponent(sede)}|${encodeURIComponent(tipo)}"
                         style="margin-top:8px;background:var(--bg);border-radius:7px;padding:0 10px"
                         ${filtroAttivo ? 'open' : ''}
                       >
@@ -4447,6 +4457,7 @@ const rigaVuota = function(voce) {
         ${campo('Cliente', p.clienti?.ragione_sociale)}
         ${campo('Tipologia', tpl(p.tipo))}
         ${campo('Matricola', p.matricola)}
+        ${campo('Numero progressivo', p.numero_progressivo)}
         ${campo('Stato', stato)}
         ${campo('Marca', p.marca)}
         ${campo('Modello / descrizione', p.modello)}
@@ -4982,7 +4993,7 @@ async function preparaImportPresidi(testo) {
 
   const { data: esistenti, error: errorePresidi } = await db
     .from('impianti')
-    .select('id,cliente_id,tipo,matricola')
+    .select('id,cliente_id,tipo,matricola,ubicazione')
     .is('eliminato_il', null);
 
   if (errorePresidi) {
@@ -4994,9 +5005,10 @@ async function preparaImportPresidi(testo) {
 
   (esistenti || []).forEach(function(presidio) {
     const chiave = [
-      presidio.cliente_id,
-      presidio.tipo,
-      pulisciImportPresidi(presidio.matricola)
+    presidio.cliente_id,
+    presidio.tipo,
+    pulisciImportPresidi(presidio.matricola),
+    pulisciImportPresidi(presidio.ubicazione)
     ].join('|');
 
     if (!presidiPerChiave[chiave]) {
@@ -5013,6 +5025,7 @@ async function preparaImportPresidi(testo) {
     const pivaDaCercare = pulisciPivaImport(riga.piva_cliente);
     const tipo = tipoImportPresidio(riga.tipo);
     const matricola = String(riga.matricola || '').trim();
+    const ubicazione = String(riga.ubicazione || '').trim();
 
     const risultato = {
       ...riga,
@@ -5074,12 +5087,13 @@ if (pivaDaCercare) {
     const chiaveImport = [
       cliente.id,
       tipo,
-      pulisciImportPresidi(matricola)
+      pulisciImportPresidi(matricola),
+      pulisciImportPresidi(ubicazione)
     ].join('|');
 
     if (righeViste.has(chiaveImport)) {
       risultato.messaggio =
-        'Duplicato nel file: stessa matricola, cliente e tipo';
+        'Duplicato nel file: stessa matricola, cliente, tipologia e ubicazione';
       return risultato;
     }
 
@@ -5139,6 +5153,7 @@ const paginaPdf = Number.parseInt(riga.pagina_pdf, 10);
       cliente_id: cliente.id,
       tipo: tipo,
       matricola: matricola,
+      numero_progressivo: String(riga.numero_progressivo || '').trim() || null,
       marca: riga.marca || null,
       modello: riga.modello || null,
       ubicazione: riga.ubicazione || null,
@@ -5149,7 +5164,7 @@ const paginaPdf = Number.parseInt(riga.pagina_pdf, 10);
       data_scadenza_collaudo: scadenzaCollaudo || null,
       stato: stato,
       periodicita_mesi: Number.isFinite(periodicita) ? periodicita : 6,
-            esito_verifica: esitoVerifica,
+      esito_verifica: esitoVerifica,
       voci_x_si: vociSi,
       voci_x_no: vociNo,
       voci_x_vuote: vociVuote,
@@ -6138,7 +6153,67 @@ function renderC(data) {
   }).join('');
 }
 
-function filterC(){const q=v('csearch').toLowerCase(),s=v('cfilt');renderC(CLIS.filter(c=>(!q||c.ragione_sociale.toLowerCase().includes(q)||(c.referente_email||'').toLowerCase().includes(q)||(c.piva||'').includes(q))&&(!s||c.stato===s)));}
+function filterC() {
+  const posizionePagina = window.scrollY;
+  const paginaClienti = ge('pg-clienti');
+  const posizioneSezione = paginaClienti ? paginaClienti.scrollTop : 0;
+
+  const q = v('csearch').toLowerCase().trim();
+  const s = v('cfilt');
+
+  const risultati = CLIS.filter(function(c) {
+    const nome = (c.ragione_sociale || '').toLowerCase();
+    const email = (c.referente_email || '').toLowerCase();
+    const piva = (c.piva || '').toLowerCase();
+    const citta = (c.citta || '').toLowerCase();
+
+    return (
+      (
+        !q ||
+       nome.startsWith(q) ||
+email.startsWith(q) ||
+piva.startsWith(q) ||
+citta.startsWith(q)
+      ) &&
+      (!s || c.stato === s)
+    );
+  });
+
+  // Prima il nome che inizia con la ricerca, poi gli altri risultati.
+  if (q) {
+    risultati.sort(function(a, b) {
+      const nomeA = (a.ragione_sociale || '').toLowerCase();
+      const nomeB = (b.ragione_sociale || '').toLowerCase();
+
+      const priorita = function(nome) {
+        if (nome === q) return 0;
+        if (nome.startsWith(q)) return 1;
+
+        const parolaCheInizia = nome
+          .split(/[\s.,/-]+/)
+          .some(function(parola) {
+            return parola.startsWith(q);
+          });
+
+        return parolaCheInizia ? 2 : 3;
+      };
+
+      const confronto = priorita(nomeA) - priorita(nomeB);
+
+      return confronto || nomeA.localeCompare(nomeB, 'it');
+    });
+  }
+
+  renderC(risultati);
+
+  requestAnimationFrame(function() {
+    window.scrollTo(0, posizionePagina);
+
+    if (paginaClienti) {
+      paginaClienti.scrollTop = posizioneSezione;
+    }
+  });
+}
 
 function openEditCli(id) {
   // Carica dati e apri modal cliente in modifica
@@ -9870,13 +9945,41 @@ async function eliminaCliente(id) {
 }
 
 async function eliminaPresidio(id) {
-  if(ROLE !== 'titolare' && ROLE !== 'capo_tecnico') { toast('Non hai i permessi', 'err'); return; }
-  if(!confirm('Eliminare questo presidio? (Soft-delete: recuperabile)')) return;
-  var r = await softDel('impianti').eq('id', id);
-  if(r.error) { toast('Errore: ' + r.error.message, 'err'); return; }
+  if (ROLE !== 'titolare' && ROLE !== 'capo_tecnico') {
+    toast('Non hai i permessi', 'err');
+    return;
+  }
+
+  if (!confirm('Eliminare questo presidio? (Soft-delete: recuperabile)')) {
+    return;
+  }
+
+  // Memorizza cliente, sede e tipologia attualmente aperti.
+  const cartelleAperte = Array.from(
+    document.querySelectorAll('#pcards details[open][data-cartella]')
+  ).map(function(el) {
+    return el.dataset.cartella;
+  });
+
+  const r = await softDel('impianti').eq('id', id);
+
+  if (r.error) {
+    toast('Errore: ' + r.error.message, 'err');
+    return;
+  }
+
+  await loadPresidi();
+
+  // Dopo il ricaricamento riapre le stesse cartelle, se contengono ancora presìdi.
+  document.querySelectorAll('#pcards details[data-cartella]').forEach(function(el) {
+    if (cartelleAperte.includes(el.dataset.cartella)) {
+      el.open = true;
+    }
+  });
+
   toast('Presidio eliminato', 'ok');
-  loadPresidi();
 }
+
 
 async function eliminaScheda(id) {
   if(ROLE !== 'titolare') { toast('Solo il titolare può eliminare', 'err'); return; }
@@ -11083,7 +11186,7 @@ async function inviaProgettoAlCommerciale(progettoId) {
   const { error } = await db
     .from('progetti_tecnici')
     .update({
-      stato: 'in_preventivazione',
+     stato: 'inviato_a_commerciale',
 aggiornato_il: new Date().toISOString()
     })
     .eq('id', progettoId);
@@ -11561,7 +11664,8 @@ async function avviaPreventivo(progettoId) {
       .eq('id', progettoId)
       .in('stato', [
         'inviato_a_commerciale',
-        'pronto_per_preventivo'
+        'pronto_per_preventivo', 
+        'in_preventivazione'
       ]);
 
     if (erroreStato) {
@@ -11635,7 +11739,8 @@ async function avviaPreventivo(progettoId) {
     .eq('id', progettoId)
     .in('stato', [
       'inviato_a_commerciale',
-      'pronto_per_preventivo'
+      'pronto_per_preventivo', 
+      'in_preventivazione'
     ])
     .select('id');
 
@@ -11922,7 +12027,7 @@ if (erroreStatoProgetto) {
 
   toast(
     'Errore nel passaggio del progetto ai preventivi: ' +
-    erroreStatoProgetto.message,
+    (erroreStatoProgetto.message || 'progetto non aggiornato perché non era nello stato previsto'),
     'err'
   );
   return;
