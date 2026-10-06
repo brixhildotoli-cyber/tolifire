@@ -4263,43 +4263,88 @@ function renderPC(data) {
                 <div style="padding:0 0 12px">
                   ${Object.keys(tipi).sort(function(a, b) {
                     return tpl(a).localeCompare(tpl(b), 'it');
-                  }).map(function(tipo) {
-                    const presidi = tipi[tipo].sort(function(a, b) {
-                      return String(a.matricola || '').localeCompare(
-                        String(b.matricola || ''),
-                        'it',
-                        { numeric: true }
-                      );
-                    });
+                 }).map(function(tipo) {
+  const presidi = tipi[tipo];
 
-                    const daGestire = presidi.filter(function(p) {
-                      return p.stato !== 'ok';
-                    }).length;
+  // Dentro ogni tipologia raggruppa ulteriormente per ubicazione.
+  const ubicazioni = {};
 
-                    return `
-                      <details
-                      data-cartella="tipo|${encodeURIComponent(cliente)}|${encodeURIComponent(sede)}|${encodeURIComponent(tipo)}"
-                        style="margin-top:8px;background:var(--bg);border-radius:7px;padding:0 10px"
-                        ${filtroAttivo ? 'open' : ''}
-                      >
-                        <summary
-                          style="cursor:pointer;padding:10px 0;display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:700"
-                        >
-                          <span>${tpl(tipo)}</span>
-                          <span style="color:var(--m)">
-                            ${presidi.length} ·
-                            ${daGestire ? `${daGestire} attenzione` : 'OK'}
-                          </span>
-                        </summary>
+  presidi.forEach(function(p) {
+    const ubicazione = String(
+      p.ubicazione || 'Ubicazione non specificata'
+    ).trim() || 'Ubicazione non specificata';
 
-                        <div
-                          style="display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:12px;padding:4px 0 12px"
-                        >
-                          ${presidi.map(scheda).join('')}
-                        </div>
-                      </details>
-                    `;
-                  }).join('')}
+    if (!ubicazioni[ubicazione]) {
+      ubicazioni[ubicazione] = [];
+    }
+
+    ubicazioni[ubicazione].push(p);
+  });
+
+  const daGestire = presidi.filter(function(p) {
+    return p.stato !== 'ok';
+  }).length;
+
+  return `
+    <details
+      data-cartella="tipo|${encodeURIComponent(cliente)}|${encodeURIComponent(sede)}|${encodeURIComponent(tipo)}"
+      style="margin-top:8px;background:var(--bg);border-radius:7px;padding:0 10px"
+      ${filtroAttivo ? 'open' : ''}
+    >
+      <summary
+        style="cursor:pointer;padding:10px 0;display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:700"
+      >
+        <span>${tpl(tipo)}</span>
+        <span style="color:var(--m)">
+          ${presidi.length} ·
+          ${daGestire ? `${daGestire} attenzione` : 'OK'}
+        </span>
+      </summary>
+
+      <div style="padding:0 0 10px">
+        ${Object.keys(ubicazioni).sort(function(a, b) {
+          return a.localeCompare(b, 'it');
+        }).map(function(ubicazione) {
+          const presidiUbicazione = ubicazioni[ubicazione].sort(function(a, b) {
+            return String(a.matricola || '').localeCompare(
+              String(b.matricola || ''),
+              'it',
+              { numeric: true }
+            );
+          });
+
+          const anomalieUbicazione = presidiUbicazione.filter(function(p) {
+            return p.stato !== 'ok';
+          }).length;
+
+          return `
+            <details
+              data-cartella="ubicazione|${encodeURIComponent(cliente)}|${encodeURIComponent(sede)}|${encodeURIComponent(tipo)}|${encodeURIComponent(ubicazione)}"
+              style="margin-top:8px;border:1px solid var(--bl);border-radius:7px;padding:0 10px;background:#fff"
+              ${filtroAttivo ? 'open' : ''}
+            >
+              <summary
+                style="cursor:pointer;padding:9px 0;display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:700"
+              >
+                <span>📌 ${esc(ubicazione)}</span>
+                <span style="color:var(--m)">
+                  ${presidiUbicazione.length} ·
+                  ${anomalieUbicazione ? `${anomalieUbicazione} attenzione` : 'OK'}
+                </span>
+              </summary>
+
+              <div
+                style="display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:12px;padding:6px 0 12px"
+              >
+                ${presidiUbicazione.map(scheda).join('')}
+              </div>
+            </details>
+          `;
+        }).join('')}
+      </div>
+    </details>
+  `;
+}).join('')}
                 </div>
               </details>
             `;
@@ -4896,7 +4941,7 @@ function statoDaEsitoCsv(esito) {
 }
 
 function apriImportPresidi() {
-  if (!['titolare', 'capo_tecnico'].includes(ROLE)) {
+  if (!['titolare', 'capo_tecnico', 'tecnico'].includes(ROLE)) {
     toast('Solo titolare e capo tecnico possono importare presidi', 'err');
     return;
   }
@@ -4916,6 +4961,7 @@ function apriImportPresidi() {
       </td>
     </tr>
   `;
+  ge('import-presidi-anno').value = new Date().getFullYear();
 
   openM('m-import-presidi');
 }
@@ -4924,6 +4970,29 @@ function leggiFileImportPresidi(input) {
   const file = input.files?.[0];
 
   if (!file) return;
+
+  const cicloManutenzione = v('import-presidi-ciclo');
+
+  const annoManutenzione = Number.parseInt(
+    v('import-presidi-anno'),
+    10
+  );
+
+  if (!cicloManutenzione) {
+    input.value = '';
+    toast('Seleziona prima il periodo di manutenzione', 'err');
+    return;
+  }
+
+  if (
+    !Number.isInteger(annoManutenzione) ||
+    annoManutenzione < 2020 ||
+    annoManutenzione > 2100
+  ) {
+    input.value = '';
+    toast('Inserisci un anno di manutenzione valido', 'err');
+    return;
+  }
 
   const lettore = new FileReader();
 
@@ -4939,6 +5008,13 @@ function leggiFileImportPresidi(input) {
 }
 
 async function preparaImportPresidi(testo) {
+
+    const annoManutenzione = Number.parseInt(
+    v('import-presidi-anno'),
+    10
+  );
+
+  const cicloManutenzione = v('import-presidi-ciclo');
   const righeCsv = leggiCsvImportPresidi(testo);
 
   if (righeCsv.length < 2) {
@@ -5154,6 +5230,8 @@ const paginaPdf = Number.parseInt(riga.pagina_pdf, 10);
       tipo: tipo,
       matricola: matricola,
       numero_progressivo: String(riga.numero_progressivo || '').trim() || null,
+      anno_manutenzione: annoManutenzione,
+      ciclo_manutenzione: cicloManutenzione,
       marca: riga.marca || null,
       modello: riga.modello || null,
       ubicazione: riga.ubicazione || null,
@@ -6080,75 +6158,341 @@ if (btnNuovoCliente) {
   renderC(CLIS);
 }
 
-function renderC(data) {
-  const tb = ge('ctbody');
-  const puoModificare = puoModificareClienti();
+function renderPC(data) {
+  const w = ge('pcards');
 
   if (!data.length) {
-    tb.innerHTML = `
-      <tr>
-        <td colspan="5">
-          <div class="empty">
-            Nessun cliente.
-            ${
-              puoModificare
-                ? '<br><button class="btn p sm" style="margin-top:10px" onclick="openNewCli()">+ Aggiungi il primo</button>'
-                : ''
-            }
-          </div>
-        </td>
-      </tr>
+    w.innerHTML = `
+      <div style="grid-column:1/-1">
+        <div class="empty">
+          Nessun presidio.<br>
+          <button
+            class="btn p sm"
+            style="margin-top:12px"
+            onclick="resetPF();openM('m-presidio')"
+          >
+            + Aggiungi
+          </button>
+        </div>
+      </div>
     `;
     return;
   }
 
-  window._cliMap = Object.fromEntries(data.map(function(c) {
-    return [c.id, c];
-  }));
+  const filtroAttivo = data.length < PA.length;
 
-  tb.innerHTML = data.map(function(c) {
+  const etichettaPeriodo = function(anno, ciclo) {
+    const cicloLabel = {
+      gennaio_luglio: 'Gennaio – Luglio',
+      febbraio_agosto: 'Febbraio – Agosto'
+    }[ciclo] || 'Periodo non assegnato';
+
+    return anno ? `${cicloLabel} ${anno}` : cicloLabel;
+  };
+
+  const scheda = function(p) {
     return `
-      <tr>
-        <td>
-          <strong>${esc(c.ragione_sociale)}</strong>
-          ${
-            esc(c.piva)
-              ? '<br><span style="font-size:11px;color:var(--m)">P.IVA: ' + esc(c.piva) + '</span>'
-              : ''
-          }
-        </td>
+      <div class="pc">
+        <div style="position:absolute;top:12px;right:12px">
+          ${si2(p.stato)}
+        </div>
 
-        <td>
-          ${
-            esc(c.referente_email) || esc(c.referente_telefono)
-              ? `<span style="font-size:12px">
-                   ${esc(c.referente_email || '')}<br>
-                   ${esc(c.referente_telefono || '')}
-                 </span>`
-              : '—'
-          }
-        </td>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--m);margin-bottom:4px">
+          ${tpl(p.tipo)}
+        </div>
 
-        <td>${esc(c.citta || '—')}</td>
-        <td>${bc(c.stato)}</td>
+        <div style="font-size:14px;font-weight:600;margin-bottom:2px">
+          ${esc(p.matricola || '—')}
+        </div>
 
-        <td style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn sm p" onclick="openClienteDetail('${c.id}')">
-            📋 Scheda
+        <div style="font-size:11px;color:var(--m);margin-bottom:4px">
+          Numero progressivo:
+          <b style="color:var(--t)">
+            ${esc(p.numero_progressivo || '—')}
+          </b>
+        </div>
+
+        <div style="font-size:12px;color:var(--m);margin-bottom:10px">
+          ${esc(p.clienti?.ragione_sociale || '—')}
+        </div>
+
+        <div style="font-size:12px;display:flex;flex-direction:column;gap:4px">
+          <div style="display:flex;justify-content:space-between">
+            <span style="color:var(--m)">Ubicazione</span>
+            <span>
+              ${esc(p.ubicazione || '—')}
+              ${esc(p.piano ? ' (' + p.piano + ')' : '')}
+            </span>
+          </div>
+
+          ${p.tipo === 'estintore' ? `
+            <div style="display:flex;justify-content:space-between">
+              <span style="color:var(--m)">Agente</span>
+              <span>${al2(p.modello) || '—'} ${p.marca || ''}</span>
+            </div>
+          ` : ''}
+
+          ${p.tipo === 'porta_rei' ? `
+            <div style="display:flex;justify-content:space-between">
+              <span style="color:var(--m)">Classe</span>
+              <span>${esc(p.modello || '—')}</span>
+            </div>
+          ` : ''}
+
+          <div style="display:flex;justify-content:space-between">
+            <span style="color:var(--m)">Ultima verifica</span>
+            <span>${fd(p.data_ultimo_controllo)}</span>
+          </div>
+
+          <div style="display:flex;justify-content:space-between">
+            <span style="color:var(--m)">Prossima verifica</span>
+            <span class="${sc(p.data_prossimo_controllo)}">
+              ${fd(p.data_prossimo_controllo)}
+              (${dd2(p.data_prossimo_controllo)})
+            </span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn sm" onclick="apriSchedaPresidio('${p.id}')">
+            Visualizza scheda
           </button>
 
-          ${
-            puoModificare
-              ? `<button class="btn sm" onclick="editCliById('${c.id}')">
-                   Modifica
-                 </button>
-                 <button class="btn sm" style="color:var(--r)" onclick="eliminaCliente('${c.id}')">
-                   🗑️ Elimina
-                 </button>`
-              : ''
+          <button class="btn sm" onclick="editP('${p.id}')">
+            Modifica
+          </button>
+
+          ${ROLE === 'titolare' || ROLE === 'capo_tecnico' ? `
+            <button
+              class="btn sm"
+              style="color:var(--r)"
+              onclick="eliminaPresidio('${p.id}')"
+            >
+              🗑️ Elimina
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  };
+
+  const renderGriglia = function(presidi) {
+    const ordinati = [...presidi].sort(function(a, b) {
+      return String(a.matricola || '').localeCompare(
+        String(b.matricola || ''),
+        'it',
+        { numeric: true }
+      );
+    });
+
+    return `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:12px;padding:6px 0 12px">
+        ${ordinati.map(scheda).join('')}
+      </div>
+    `;
+  };
+
+  const renderTipologie = function(presidi, chiavePeriodo, cliente) {
+    const tipi = {};
+
+    presidi.forEach(function(p) {
+      if (!tipi[p.tipo]) tipi[p.tipo] = [];
+      tipi[p.tipo].push(p);
+    });
+
+    return Object.keys(tipi).sort(function(a, b) {
+      return tpl(a).localeCompare(tpl(b), 'it');
+    }).map(function(tipo) {
+      const elementi = tipi[tipo];
+
+      const ubicazioni = {};
+
+      elementi.forEach(function(p) {
+        const ubicazione = String(p.ubicazione || '').trim();
+
+        if (!ubicazioni[ubicazione]) {
+          ubicazioni[ubicazione] = [];
+        }
+
+        ubicazioni[ubicazione].push(p);
+      });
+
+      const chiaviUbicazioni = Object.keys(ubicazioni);
+      const mostraCartelleUbicazione =
+        chiaviUbicazioni.length > 1 &&
+        !(chiaviUbicazioni.length === 1 && !chiaviUbicazioni[0]);
+
+      const daGestire = elementi.filter(function(p) {
+        return p.stato !== 'ok';
+      }).length;
+
+      return `
+        <details
+          data-cartella="tipo|${encodeURIComponent(chiavePeriodo)}|${encodeURIComponent(cliente)}|${encodeURIComponent(tipo)}"
+          style="margin-top:8px;background:var(--bg);border-radius:7px;padding:0 10px"
+          ${filtroAttivo ? 'open' : ''}
+        >
+          <summary
+            style="cursor:pointer;padding:10px 0;display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:700"
+          >
+            <span>${tpl(tipo)}</span>
+            <span style="color:var(--m)">
+              ${elementi.length} ·
+              ${daGestire ? `${daGestire} attenzione` : 'OK'}
+            </span>
+          </summary>
+
+          <div style="padding:0 0 10px">
+            ${mostraCartelleUbicazione
+              ? chiaviUbicazioni.sort(function(a, b) {
+                  return (a || 'Ubicazione non specificata')
+                    .localeCompare(b || 'Ubicazione non specificata', 'it');
+                }).map(function(ubicazione) {
+                  const etichetta = ubicazione || 'Ubicazione non specificata';
+                  const elementiUbicazione = ubicazioni[ubicazione];
+
+                  return `
+                    <details
+                      data-cartella="ubicazione|${encodeURIComponent(chiavePeriodo)}|${encodeURIComponent(cliente)}|${encodeURIComponent(tipo)}|${encodeURIComponent(ubicazione)}"
+                      style="margin-top:8px;border:1px solid var(--bl);border-radius:7px;padding:0 10px;background:#fff"
+                      ${filtroAttivo ? 'open' : ''}
+                    >
+                      <summary
+                        style="cursor:pointer;padding:9px 0;font-size:12px;font-weight:700"
+                      >
+                        📍 ${esc(etichetta)}
+                        <span style="color:var(--m);font-weight:400">
+                          (${elementiUbicazione.length})
+                        </span>
+                      </summary>
+
+                      ${renderGriglia(elementiUbicazione)}
+                    </details>
+                  `;
+                }).join('')
+              : renderGriglia(elementi)
+            }
+          </div>
+        </details>
+      `;
+    }).join('');
+  };
+
+  // Primo livello: anno + semestre.
+  const periodi = {};
+
+  data.forEach(function(p) {
+    const anno = p.anno_manutenzione || '';
+    const ciclo = p.ciclo_manutenzione || '';
+    const chiavePeriodo = `${anno}|${ciclo}`;
+
+    if (!periodi[chiavePeriodo]) {
+      periodi[chiavePeriodo] = {
+        anno: anno,
+        ciclo: ciclo,
+        presidi: []
+      };
+    }
+
+    periodi[chiavePeriodo].presidi.push(p);
+  });
+
+  const ordineCicli = {
+    gennaio_luglio: 1,
+    febbraio_agosto: 2
+  };
+
+  const chiaviPeriodi = Object.keys(periodi).sort(function(a, b) {
+    const A = periodi[a];
+    const B = periodi[b];
+
+    return (
+      Number(B.anno || 0) - Number(A.anno || 0) ||
+      (ordineCicli[A.ciclo] || 99) - (ordineCicli[B.ciclo] || 99)
+    );
+  });
+
+  w.innerHTML = chiaviPeriodi.map(function(chiavePeriodo) {
+    const periodo = periodi[chiavePeriodo];
+    const presidiPeriodo = periodo.presidi;
+
+    const clienti = {};
+
+    presidiPeriodo.forEach(function(p) {
+      const cliente = p.clienti?.ragione_sociale || 'Cliente non assegnato';
+
+      if (!clienti[cliente]) clienti[cliente] = [];
+      clienti[cliente].push(p);
+    });
+
+    const anomaliePeriodo = presidiPeriodo.filter(function(p) {
+      return p.stato !== 'ok';
+    }).length;
+
+    return `
+      <details
+        data-cartella="periodo|${encodeURIComponent(chiavePeriodo)}"
+        class="card"
+        style="grid-column:1/-1;padding:0;overflow:hidden"
+        ${chiaviPeriodi.length === 1 || filtroAttivo ? 'open' : ''}
+      >
+        <summary
+          style="cursor:pointer;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px"
+        >
+          <div>
+            <div style="font-size:16px;font-weight:700">
+              📅 ${esc(etichettaPeriodo(periodo.anno, periodo.ciclo))}
+            </div>
+            <div style="font-size:12px;color:var(--m);margin-top:3px">
+              ${presidiPeriodo.length} presìdi
+            </div>
+          </div>
+
+          ${anomaliePeriodo
+            ? `<span class="bx berr">${anomaliePeriodo} da verificare</span>`
+            : '<span class="bx bok">Tutto OK</span>'
           }
-        </td>
-      </tr>
+        </summary>
+
+        <div style="padding:0 16px 16px">
+          ${Object.keys(clienti).sort(function(a, b) {
+            return a.localeCompare(b, 'it');
+          }).map(function(cliente) {
+            const presidiCliente = clienti[cliente];
+
+            const anomalieCliente = presidiCliente.filter(function(p) {
+              return p.stato !== 'ok';
+            }).length;
+
+            return `
+              <details
+                data-cartella="cliente|${encodeURIComponent(chiavePeriodo)}|${encodeURIComponent(cliente)}"
+                style="margin-top:10px;border:1px solid var(--bl);border-radius:8px;padding:0 12px"
+                ${Object.keys(clienti).length === 1 && filtroAttivo ? 'open' : ''}
+              >
+                <summary
+                  style="cursor:pointer;padding:11px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;font-weight:700"
+                >
+                  <span>🗂️ ${esc(cliente)}</span>
+
+                  <span style="color:var(--m);font-size:12px">
+                    ${presidiCliente.length} ·
+                    ${anomalieCliente ? `${anomalieCliente} attenzione` : 'OK'}
+                  </span>
+                </summary>
+
+                <div style="padding:0 0 12px">
+                  ${renderTipologie(
+                    presidiCliente,
+                    chiavePeriodo,
+                    cliente
+                  )}
+                </div>
+              </details>
+            `;
+          }).join('')}
+        </div>
+      </details>
     `;
   }).join('');
 }
@@ -8401,7 +8745,7 @@ async function loadPreventiviTitolare() {
       aggiornato_il,
       clienti(ragione_sociale)
     `)
-    .order('numero', { ascending: true });
+    .order('numero', { ascending: false });
 
   if (error) {
     const messaggio = `

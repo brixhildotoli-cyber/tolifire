@@ -840,6 +840,7 @@
     <span style="margin-left:8px"><span class="sw" style="background:transparent;outline:2px solid var(--r);outline-offset:-2px"></span>In ritardo</span>
   </div>
 
+
   <!-- Vista corrente -->
   <div id="cal-team-body"><div class="load">Caricamento...</div></div>
 </div>
@@ -1856,6 +1857,7 @@
         <div class="f"><label>Intervento assegnato</label><select id="tc-odl" onchange="preloadFromOdl()"><option value="">— Seleziona intervento o compila manualmente —</option></select></div>
         <div id="tec-odl-info" style="display:none"></div>
         <div class="f"><label>Cliente *</label><select id="tc1" onchange="loadSediTec()"><option value="">Seleziona...</option></select></div>
+        <div class="f">
         <div class="f"><label>📍 Sede intervento</label><select id="tc1-sede" onchange="mostraInfoSede()"><option value="">Sede principale (indirizzo del cliente)</option></select></div>
         <div id="tc-sede-info" style="display:none;background:var(--bl);border-radius:var(--rs);padding:10px;font-size:13px;margin-top:-8px"></div>
         <div class="f"><label>Tipo intervento *</label><select id="tc2" onchange="mostraRelazioneBox()"><option value="ordinario_programmato">Manutenzione ordinaria programmata</option><option value="ordinario_chiamata">Intervento su chiamata</option><option value="straordinario">Straordinario</option><option value="corso">Corso antincendio</option></select></div>
@@ -3162,6 +3164,29 @@
     </div>
 
     <div class="f">
+  <label>Anno manutenzione *</label>
+  <input
+    type="number"
+    id="import-presidi-anno"
+    min="2020"
+    max="2100"
+    value="2026"
+  >
+</div>
+
+<div class="f">
+  <label>Periodo di manutenzione *</label>
+  <select id="import-presidi-ciclo">
+    <option value="">Seleziona il semestre...</option>
+    <option value="gennaio_luglio">Gennaio – Luglio</option>
+    <option value="febbraio_agosto">Febbraio – Agosto</option>
+  </select>
+  <div class="hint">
+    Il periodo scelto verrà assegnato a tutti i presìdi di questo CSV.
+  </div>
+</div>
+
+    <div class="f">
       <label>File CSV</label>
       <input
         type="file"
@@ -3214,73 +3239,6 @@
   </div>
 </div>
 
-<div class="mbg" id="m-import-presidi">
-  <div class="modal" style="max-width:1000px">
-    <div class="mh">
-      <span>⇧ Importa presidi da CSV</span>
-      <button class="mx" onclick="closeM('m-import-presidi')">✕</button>
-    </div>
-
-    <div class="al2 i" style="margin-bottom:12px">
-      Carica un file CSV UTF-8. Prima di salvare verranno controllati
-      clienti, matricole e duplicati.
-    </div>
-
-    <div class="f">
-      <label>File CSV</label>
-      <input
-        type="file"
-        id="import-presidi-file"
-        accept=".csv,text/csv"
-        onchange="leggiFileImportPresidi(this)"
-      >
-    </div>
-
-    <div id="import-presidi-riepilogo" class="hint" style="margin:12px 0">
-      Nessun file selezionato.
-    </div>
-
-    <div class="tw" style="max-height:360px;overflow:auto">
-      <table>
-        <thead>
-          <tr>
-            <th>Riga</th>
-            <th>Cliente</th>
-            <th>Tipo</th>
-            <th>Matricola</th>
-            <th>Azione</th>
-            <th>Esito</th>
-          </tr>
-        </thead>
-
-        <tbody id="import-presidi-righe">
-          <tr>
-            <td colspan="6">
-              <div class="empty">
-                Carica un file per vedere l’anteprima.
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="ma">
-      <button class="btn" onclick="closeM('m-import-presidi')">
-        Annulla
-      </button>
-
-      <button
-        class="btn p"
-        id="import-presidi-conferma"
-        disabled
-        onclick="confermaImportPresidi()"
-      >
-        ✓ Conferma importazione
-      </button>
-    </div>
-  </div>
-</div>
 <div class="mbg" id="m-scheda-presidio">
   <div class="modal" style="max-width:760px">
     <div class="mh">
