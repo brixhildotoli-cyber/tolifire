@@ -55,7 +55,7 @@ const NAV={
   tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
   commerciale:[{id:'dashboard',l:'📊 Dashboard'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'preventivi',l:'🧾 Preventivi'},{id:'fornitori',l:'🏭 Fornitori'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}, {id: 'info', l: 'ℹ️ Info'}],
   rappresentante:[{id:'dashboard-rapp',l:'📊 Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead e trattative'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'preventivi-rapp',l:'🧾 Preventivi'},{id:'progetti', l:'📐 Progetti'}, {id:'catalogo',l:'📦 Catalogo'}, {id:'info',l:'ⓘ Info'}],
-  ingegnere: [{id: 'dashboard', l: '📊 Dashboard'},{id: 'calendario-ingegnere', l: '📅 Calendario'},{id: 'verifiche-tecniche', l: '🔧 Verifiche'},{id: 'documenti', l: '📄 Documenti'},{id: 'info', l: 'ℹ️ Info'}],
+  ingegnere: [{id: 'dashboard', l: '📊 Dashboard'},{id: 'calendario-ingegnere', l: '📅 Calendario'},{id: 'verifiche-tecniche', l: '🔧 Verifiche'},{id:'certificati-ingegnere', l:'📜 Certificati'},{id: 'documenti', l: '📄 Documenti'},{id: 'info', l: 'ℹ️ Info'}],
 };
 
 // NAV MOBILE
@@ -682,7 +682,7 @@ const PAGINE_RUOLO = {
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
   commerciale:    ['dashboard','progetti-da-preventivare', 'preventivi', 'fornitori', 'fornitore-detail','preventivo-detail','clienti','documenti','progetto-detail','fatture','catalogo','cliente-detail', 'info'],
   rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','trattative','preventivi-rapp','cliente-detail','progetto-detail','catalogo', 'info'],
-  ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti', 'progetto-detail','cliente-detail','info'],
+  ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti', 'certificati-ingegnere','progetto-detail','cliente-detail','info'],
 };
 
 function canAccessPage(id) {
@@ -734,6 +734,7 @@ function gotoPage(id){
   if(id==='dashboard-rapp')loadDashRappresentante();
   if(id==='preventivi-rapp')loadPreventiviRappresentante();
   if(id==='calendario-ingegnere')loadCalendarioIngegnere();
+  if(id === 'certificati-ingegnere') {loadCertificatiIngegnere();}
   if(id==='verifiche-tecniche')loadVerificheTecniche();
   if(id==='progetti'){loadPaginaProgetti();}
   if(id==='progetti-da-preventivare') loadProgettiDaPreventivare();
@@ -14318,6 +14319,7 @@ ${ROLE === 'titolare' ? `
   await renderSchedePreventivo();
   await renderFornitoriPreventivo();
   await renderCostiPreventivo();
+  await renderCertificatiPreventivo();
   gotoPage('preventivo-detail');
   
 }
@@ -17632,6 +17634,384 @@ function disegnaVociPreventivo() {
     </div>
   `;
 }
+
+function formatoDataOraCertificato(data) {
+  if (!data) return '—';
+
+  return new Date(data).toLocaleString('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function cardCertificatoPreventivo(certificato, origine) {
+  const puoGestire =
+    ROLE === 'titolare' ||
+    (ROLE === 'commerciale' && origine === 'commerciale');
+
+  const titolo = origine === 'commerciale'
+    ? '📄 Certificato del commerciale'
+    : '📄 Certificato del titolare';
+
+  if (!certificato) {
+    if (origine === 'commerciale' && ROLE === 'titolare') {
+      return `
+        <div class="card" style="margin-bottom:14px">
+          <b>${titolo}</b>
+          <p class="muted" style="margin-top:8px">
+            Il commerciale non ha ancora caricato un certificato.
+          </p>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="card" style="margin-bottom:14px">
+        <b>${titolo}</b>
+        <p class="muted" style="margin-top:8px">Nessun PDF caricato.</p>
+
+        ${puoGestire ? `
+          <input
+            type="file"
+            id="certificato-file-${origine}"
+            accept="application/pdf"
+            style="margin-top:10px"
+          >
+
+          <button
+            class="btn primary"
+            style="margin-top:10px"
+            onclick="caricaCertificatoPreventivo('${origine}')"
+          >
+            📤 Carica PDF
+          </button>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  const statoInvio = certificato.inviato_il
+    ? `<span class="badge green">✓ Inviato all’ingegnere il ${formatoDataOraCertificato(certificato.inviato_il)}</span>`
+    : `<span class="badge yellow">Da inviare all’ingegnere</span>`;
+
+  return `
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:start">
+        <div>
+          <b>${titolo}</b>
+          <div style="margin-top:8px">${statoInvio}</div>
+        </div>
+      </div>
+
+      <p style="margin:12px 0 4px"><b>File:</b> ${esc(certificato.nome_file)}</p>
+      <p class="muted" style="margin:0">
+        Caricato il ${formatoDataOraCertificato(certificato.caricato_il)}
+      </p>
+
+      <div class="actions" style="margin-top:12px">
+        <button class="btn" onclick="apriCertificatoPreventivo('${certificato.id}')">
+          👁 Apri / scarica
+        </button>
+
+        ${puoGestire ? `
+          <button
+            class="btn primary"
+            onclick="inviaCertificatoAllIngegnere('${certificato.id}')"
+          >
+            ${certificato.inviato_il ? '↻ Reinvia all’ingegnere' : '📨 Invia all’ingegnere'}
+          </button>
+
+          <input
+            type="file"
+            id="certificato-file-${origine}"
+            accept="application/pdf"
+            style="margin-top:10px"
+          >
+
+          <button
+            class="btn"
+            style="margin-top:10px"
+            onclick="caricaCertificatoPreventivo('${origine}')"
+          >
+            🔄 Sostituisci PDF
+          </button>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+async function renderCertificatiPreventivo() {
+  const box = ge('pvd-certificati-content');
+  if (!box || !currentPreventivoId) return;
+
+  box.innerHTML = '<div class="load">Caricamento certificati...</div>';
+
+  const { data, error } = await db
+    .from('preventivi_certificati')
+    .select('*')
+    .eq('preventivo_id', currentPreventivoId)
+    .order('origine');
+
+  if (error) {
+    box.innerHTML = `<div class="empty">Errore nel caricamento dei certificati: ${esc(error.message)}</div>`;
+    return;
+  }
+
+  const commerciale = (data || []).find(x => x.origine === 'commerciale');
+  const titolare = (data || []).find(x => x.origine === 'titolare');
+
+  if (ROLE === 'commerciale') {
+    box.innerHTML = `
+      <div class="info">
+        Carica il certificato del preventivo e invialo direttamente all’ingegnere.
+        Se sostituisci il PDF, dovrai poi reinviarlo.
+      </div>
+      ${cardCertificatoPreventivo(commerciale, 'commerciale')}
+    `;
+    return;
+  }
+
+  if (ROLE === 'titolare') {
+    box.innerHTML = `
+      <div class="info">
+        Puoi vedere e correggere il certificato del commerciale.
+        Il tuo certificato riservato non sarà invece visibile al commerciale.
+      </div>
+
+      ${cardCertificatoPreventivo(commerciale, 'commerciale')}
+      ${cardCertificatoPreventivo(titolare, 'titolare')}
+    `;
+  }
+}
+
+async function caricaCertificatoPreventivo(origine) {
+  const input = ge(`certificato-file-${origine}`);
+  const file = input?.files?.[0];
+
+  if (!file) {
+    toast('Seleziona prima un PDF', 'err');
+    return;
+  }
+
+  if (file.type !== 'application/pdf') {
+    toast('Puoi caricare soltanto file PDF', 'err');
+    return;
+  }
+
+  const puoGestire =
+    ROLE === 'titolare' ||
+    (ROLE === 'commerciale' && origine === 'commerciale');
+
+  if (!puoGestire) {
+    toast('Non hai i permessi per modificare questo certificato', 'err');
+    return;
+  }
+
+  const { data: utenteData } = await db.auth.getUser();
+  const utente = utenteData?.user;
+
+  if (!utente) {
+    toast('Sessione non valida. Effettua di nuovo l’accesso.', 'err');
+    return;
+  }
+
+  const { data: esistente, error: erroreEsistente } = await db
+    .from('preventivi_certificati')
+    .select('*')
+    .eq('preventivo_id', currentPreventivoId)
+    .eq('origine', origine)
+    .maybeSingle();
+
+  if (erroreEsistente) {
+    toast(`Errore lettura certificato: ${erroreEsistente.message}`, 'err');
+    return;
+  }
+
+  if (ROLE === 'titolare' && origine === 'commerciale' && !esistente) {
+    toast('Il certificato commerciale può essere creato solo dal commerciale', 'err');
+    return;
+  }
+
+  const conferma = esistente
+    ? confirm('Vuoi sostituire il PDF attuale? Il nuovo file dovrà essere reinviato all’ingegnere.')
+    : true;
+
+  if (!conferma) return;
+
+  const { data: preventivo } = await db
+    .from('preventivi')
+    .select('numero, clienti(ragione_sociale)')
+    .eq('id', currentPreventivoId)
+    .single();
+
+  const nomeSicuro = file.name
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .replace(/_+/g, '_');
+
+  const percorso = `${currentPreventivoId}/${origine}/${Date.now()}_${nomeSicuro}`;
+
+  const { error: erroreUpload } = await db.storage
+    .from('certificati-preventivi')
+    .upload(percorso, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: 'application/pdf'
+    });
+
+  if (erroreUpload) {
+    toast(`Errore caricamento PDF: ${erroreUpload.message}`, 'err');
+    return;
+  }
+
+  const datiCertificato = {
+    preventivo_id: currentPreventivoId,
+    origine,
+    commerciale_id: origine === 'commerciale'
+      ? (esistente?.commerciale_id || utente.id)
+      : null,
+    preventivo_numero: preventivo?.numero || null,
+    cliente_nome: preventivo?.clienti?.ragione_sociale || null,
+    nome_file: file.name,
+    storage_path: percorso,
+    dimensione: file.size,
+    caricato_da: utente.id,
+    caricato_il: new Date().toISOString(),
+    inviato_il: null,
+    inviato_da: null,
+    letto_ingegnere_il: null
+  };
+
+  let erroreSalvataggio;
+
+  if (esistente) {
+    const risposta = await db
+      .from('preventivi_certificati')
+      .update(datiCertificato)
+      .eq('id', esistente.id);
+
+    erroreSalvataggio = risposta.error;
+  } else {
+    const risposta = await db
+      .from('preventivi_certificati')
+      .insert(datiCertificato);
+
+    erroreSalvataggio = risposta.error;
+  }
+
+  if (erroreSalvataggio) {
+    toast(`Errore salvataggio certificato: ${erroreSalvataggio.message}`, 'err');
+    return;
+  }
+
+  if (esistente?.storage_path) {
+    await db.storage
+      .from('certificati-preventivi')
+      .remove([esistente.storage_path]);
+  }
+
+  toast(esistente ? 'PDF sostituito. Ricordati di reinviarlo all’ingegnere.' : 'Certificato caricato');
+  await renderCertificatiPreventivo();
+}
+
+async function inviaCertificatoAllIngegnere(certificatoId) {
+  const { data: utenteData } = await db.auth.getUser();
+  const utente = utenteData?.user;
+
+  if (!utente) {
+    toast('Sessione non valida. Effettua di nuovo l’accesso.', 'err');
+    return;
+  }
+
+  const { error } = await db
+    .from('preventivi_certificati')
+    .update({
+      inviato_il: new Date().toISOString(),
+      inviato_da: utente.id,
+      letto_ingegnere_il: null
+    })
+    .eq('id', certificatoId);
+
+  if (error) {
+    toast(`Errore invio certificato: ${error.message}`, 'err');
+    return;
+  }
+
+  toast('Certificato inviato all’ingegnere');
+  await renderCertificatiPreventivo();
+}
+
+async function apriCertificatoPreventivo(certificatoId) {
+  const { data: certificato, error } = await db
+    .from('preventivi_certificati')
+    .select('*')
+    .eq('id', certificatoId)
+    .single();
+
+  if (error || !certificato) {
+    toast('Certificato non disponibile', 'err');
+    return;
+  }
+
+  const { data, error: erroreUrl } = await db.storage
+    .from('certificati-preventivi')
+    .createSignedUrl(certificato.storage_path, 300);
+
+  if (erroreUrl || !data?.signedUrl) {
+    toast(`Impossibile aprire il PDF: ${erroreUrl?.message || ''}`, 'err');
+    return;
+  }
+
+  window.open(data.signedUrl, '_blank', 'noopener');
+}
+
+async function loadCertificatiIngegnere() {
+  const box = ge('certificati-ingegnere-lista');
+  if (!box || ROLE !== 'ingegnere') return;
+
+  box.innerHTML = '<div class="load">Caricamento certificati...</div>';
+
+  const { data, error } = await db
+    .from('preventivi_certificati')
+    .select('*')
+    .not('inviato_il', 'is', null)
+    .order('inviato_il', { ascending: false });
+
+  if (error) {
+    box.innerHTML = `<div class="empty">Errore nel caricamento: ${esc(error.message)}</div>`;
+    return;
+  }
+
+  if (!data?.length) {
+    box.innerHTML = '<div class="empty">Nessun certificato ricevuto al momento.</div>';
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="grid">
+      ${data.map(certificato => `
+        <div class="card">
+          <h3>Preventivo n. ${certificato.preventivo_numero || '—'}</h3>
+          <p><b>Cliente:</b> ${esc(certificato.cliente_nome || '—')}</p>
+          <p><b>Origine:</b> ${certificato.origine === 'commerciale' ? 'Commerciale' : 'Titolare'}</p>
+          <p><b>File:</b> ${esc(certificato.nome_file)}</p>
+          <p class="muted">Inviato il ${formatoDataOraCertificato(certificato.inviato_il)}</p>
+
+          <button
+            class="btn primary"
+            onclick="apriCertificatoPreventivo('${certificato.id}')"
+          >
+            👁 Visualizza / scarica PDF
+          </button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
 
 async function renderCostiPreventivo() {
   const box = ge('pvd-costi-content');
