@@ -6498,6 +6498,92 @@ function renderPC(data) {
   }).join('');
 }
 
+function renderC(clienti) {
+  const corpo = ge('ctbody');
+  if (!corpo) return;
+
+  if (!clienti?.length) {
+    corpo.innerHTML = `
+      <tr>
+        <td colspan="5">
+          <div class="empty">Nessun cliente trovato.</div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const puoModificare = puoModificareClienti();
+  const puoEliminare = ['titolare', 'rappresentante'].includes(ROLE);
+
+  corpo.innerHTML = clienti.map(function(cliente) {
+    const nome = cliente.ragione_sociale || 'Cliente senza nome';
+    const telefono = cliente.referente_telefono || '—';
+    const email = cliente.referente_email || '—';
+    const citta = [
+      cliente.indirizzo,
+      cliente.citta
+    ].filter(Boolean).join(', ') || '—';
+
+    const stato = cliente.stato === 'prospect'
+      ? '<span class="bx bgray">Prospect</span>'
+      : '<span class="bx bok">Attivo</span>';
+
+    return `
+      <tr>
+        <td>
+          <strong>${esc(nome)}</strong>
+          ${cliente.piva ? `
+            <br>
+            <span style="font-size:11px;color:var(--m)">
+              P.IVA: ${esc(cliente.piva)}
+            </span>
+          ` : ''}
+        </td>
+
+        <td>
+          <div>${esc(email)}</div>
+          <div style="font-size:12px;color:var(--m);margin-top:3px">
+            ${esc(telefono)}
+          </div>
+        </td>
+
+        <td>${esc(citta)}</td>
+
+        <td>${stato}</td>
+
+        <td style="white-space:nowrap">
+          <button
+            class="btn sm"
+            onclick="openClienteDetail('${cliente.id}')"
+          >
+            Apri
+          </button>
+
+          ${puoModificare ? `
+            <button
+              class="btn sm"
+              onclick="editCliById('${cliente.id}')"
+            >
+              Modifica
+            </button>
+          ` : ''}
+
+          ${puoEliminare ? `
+            <button
+              class="btn sm"
+              style="color:var(--r)"
+              onclick="eliminaCliente('${cliente.id}')"
+            >
+              🗑️
+            </button>
+          ` : ''}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
 function filterC() {
   const posizionePagina = window.scrollY;
   const paginaClienti = ge('pg-clienti');
@@ -20115,17 +20201,21 @@ async function apriLeadAssegnateDaDashboardRapp() {
 }
 
 // ── INIT ──────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded',async()=>{
-  ge('lem').addEventListener('keydown',e=>{if(e.key==='Enter')ge('lpw').focus();});
-  ge('lpw').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-  buildSB();
-  // Controlla sessione esistente
-  const {data:{session}}=await db.auth.getSession();
-  if(session?.user){
-    let ud=null;
-    const {data:u1}=await db.from('utenti').select('*').eq('id',session.user.id).maybeSingle();
-    if(u1)ud=u1;
-    else{const {data:u2}=await db.from('utenti').select('*').eq('email',session.user.email).maybeSingle();if(u2)ud=u2;}
-    if(ud)await boot(ud);
+document.addEventListener('DOMContentLoaded', () => {
+  const email = ge('lem');
+  const password = ge('lpw');
+
+  if (email) {
+    email.addEventListener('keydown', e => {
+      if (e.key === 'Enter') password?.focus();
+    });
   }
+
+  if (password) {
+    password.addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    });
+  }
+
+  buildSB();
 });
