@@ -12,6 +12,44 @@ function periodoSuccessivo(s) {
   return { ciclo: s.ciclo, anno: Number(s.anno) + (Number(s.mese) >= 7 ? 1 : 0),
            mese: Number(s.mese) < 7 ? Number(s.mese) + 6 : Number(s.mese) - 6 };
 }
+function periodoRiportoPresidio(s) {
+  const oggi = new Date();
+  const semestre = oggi.getMonth() < 6 ? 0 : 1;
+  const mese = (s.ciclo === 'febbraio_agosto' ? [2,8] : [1,7])[semestre];
+  const corrente = {ciclo:s.ciclo,anno:oggi.getFullYear(),mese};
+  // Se l'origine appartiene già al periodo corrente, propone il successivo.
+  return corrente.anno > Number(s.anno) || (corrente.anno === Number(s.anno) && corrente.mese > Number(s.mese))
+    ? corrente : periodoSuccessivo(s);
+}
+function controlliSchedaPresidio(dati) {
+  const si = new Set(Array.isArray(dati.voci_x_si) ? dati.voci_x_si : []);
+  const no = new Set(Array.isArray(dati.voci_x_no) ? dati.voci_x_no : []);
+  const vuote = Array.isArray(dati.voci_x_vuote) ? dati.voci_x_vuote : [];
+  let voci = [...new Set([...si,...no,...vuote])];
+  if (!voci.length && typeof CKL_PRESIDIO !== 'undefined') voci = CKL_PRESIDIO[dati.tipo] || [];
+  return voci.map(voce => ({voce,esito:no.has(voce) ? 'NO' : si.has(voce) ? 'SI' : ''}));
+}
+function htmlControlliScheda(dati) {
+  const voci = controlliSchedaPresidio(dati);
+  if (!voci.length) return '<p>Non ci sono controlli nella scheda di origine. Puoi aggiungerli qui sotto.</p>';
+  return voci.map((r,i) => `<div class="sp-controllo" data-voce="${esc(r.voce)}" style="padding:10px 0;border-bottom:1px solid var(--bo)">
+    <div style="margin-bottom:6px">${esc(r.voce)}</div>
+    ${[['SI','☒ SI'],['NO','☒ NO'],['','☐ Senza esito']].map(([valore,label]) => `<label style="display:inline-flex;align-items:center;gap:5px;margin-right:14px"><input type="radio" name="sp-controllo-${i}" value="${valore}" ${r.esito === valore ? 'checked' : ''}>${label}</label>`).join('')}
+  </div>`).join('');
+}
+function leggiControlliScheda() {
+  const esiti = new Map();
+  ge('sp-controlli').querySelectorAll('.sp-controllo').forEach(riga => {
+    esiti.set(riga.dataset.voce,riga.querySelector('input:checked')?.value || '');
+  });
+  // Eventuali voci nuove vengono aggiunte senza duplicare quelle già presenti.
+  listaControlliScheda(v('sp-aggiunte')).forEach(voce => { if (!esiti.has(voce)) esiti.set(voce,'SI'); });
+  return {
+    voci_x_si:[...esiti].filter(([voce,esito]) => esito === 'SI').map(([voce]) => voce),
+    voci_x_no:[...esiti].filter(([voce,esito]) => esito === 'NO').map(([voce]) => voce),
+    voci_x_vuote:[...esiti].filter(([voce,esito]) => !esito).map(([voce]) => voce)
+  };
+}
 function listaControlliScheda(testo) {
   return String(testo || '').split('\n').map(x => x.trim()).filter(Boolean);
 }
@@ -64,7 +102,7 @@ function mostraStoricoPresidio() {
         <div style="white-space:pre-wrap">${esc(d.note || '')}</div>
         ${gestisceStoricoPresidi() ? `<div>Operatore: ${esc(tecnico ? `${tecnico.nome || ''} ${tecnico.cognome || ''}` : 'Non assegnato')}</div>` : ''}
         <button class="btn sm" onclick="apriEditorSchedaPresidio(${i},false)">Apri / modifica ${esc(periodoScheda(s))}</button>
-        <button class="btn sm p" onclick="apriEditorSchedaPresidio(${i},true)">Porta a ${esc(periodoScheda(periodoSuccessivo(s)))}</button>
+        <button class="btn sm p" onclick="apriEditorSchedaPresidio(${i},true)">Porta a ${esc(periodoScheda(periodoRiportoPresidio(s)))}</button>
       </div>`;
     }).join('');
 }
@@ -72,7 +110,7 @@ function mostraStoricoPresidio() {
 function apriEditorSchedaPresidio(indice, riporta) {
   const origine = storicoPresidi.schede[indice];
   if (!origine) return;
-  const target = riporta ? periodoSuccessivo(origine) : origine;
+  const target = riporta ? periodoRiportoPresidio(origine) : origine;
   const esistente = riporta && storicoPresidi.schede.find(s => Number(s.anno) === target.anno && Number(s.mese) === target.mese);
   if (esistente) {
     toast('Questo periodo esiste già: apro la scheda salvata.');
@@ -83,14 +121,14 @@ function apriEditorSchedaPresidio(indice, riporta) {
   const righe = a => Array.isArray(a) ? a.join('\n') : '';
   ge('storico-presidio').innerHTML = `<div class="card">
     <h3>${riporta ? 'Nuova scheda' : 'Modifica scheda'}: ${esc(periodoScheda(target))}</h3>
-    <p>${riporta ? 'La scheda precedente resta intatta. Conferma i controlli e indica la data della nuova verifica.' : 'Stai modificando questo periodo, non creando il successivo.'}</p>
+    <p>${riporta ? 'I controlli e le note sono già riportati. Se è tutto invariato, inserisci la data e salva. Altrimenti cambia le X o le note: lo storico precedente resta intatto.' : 'Stai modificando questo periodo, non creando il successivo.'}</p>
     <div class="f"><label>Data della verifica</label><input id="sp-data" type="date" value="${esc(riporta ? '' : d.data_ultimo_controllo || '')}"></div>
     <div class="f"><label>Prossima verifica</label><input id="sp-prossima" type="date" value="${esc(riporta ? '' : d.data_prossimo_controllo || '')}"></div>
     <div class="f"><label>Stato</label><select id="sp-stato">${['ok','anomalia','scaduto','fuori_servizio'].map(st => `<option value="${st}" ${st === d.stato ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
     ${textarea('sp-esito','Esito della verifica',d.esito_verifica)}
-    ${textarea('sp-si','Controlli SI — una voce per riga',righe(d.voci_x_si))}
-    ${textarea('sp-no','Controlli NO — una voce per riga',righe(d.voci_x_no))}
-    ${textarea('sp-vuote','Controlli senza esito — una voce per riga',righe(d.voci_x_vuote))}
+    <h4>Controlli — X riportate dalla scheda precedente</h4>
+    <div id="sp-controlli">${htmlControlliScheda(d)}</div>
+    ${textarea('sp-aggiunte','Eventuali nuovi controlli con esito SI — una voce per riga','')}
     ${textarea('sp-note','Note / anomalie',d.note)}
     ${gestisceStoricoPresidi() ? `<div class="f"><label>Operatore che può vedere e modificare questa scheda</label><select id="sp-tecnico"><option value="">Non assegnato</option>${storicoPresidi.utenti.map(u => `<option value="${esc(u.id)}" ${u.id === origine.tecnico_id ? 'selected' : ''}>${esc(`${u.nome || ''} ${u.cognome || ''}`)}</option>`).join('')}</select></div>` : ''}
     ${riporta ? '<div class="f"><label><input id="sp-conferma" type="checkbox"> Ho verificato i controlli riportati dalla scheda precedente.</label></div>' : ''}
@@ -102,7 +140,7 @@ function apriEditorSchedaPresidio(indice, riporta) {
 async function salvaSchedaPresidio(indice, riporta) {
   const origine = storicoPresidi.schede[indice];
   if (!origine) return;
-  const target = riporta ? periodoSuccessivo(origine) : origine;
+  const target = riporta ? periodoRiportoPresidio(origine) : origine;
   const impianto = storicoPresidi.impianto;
   const data = v('sp-data');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
@@ -119,14 +157,13 @@ async function salvaSchedaPresidio(indice, riporta) {
   const dati = {...origine.dati, data_ultimo_controllo:data,
     data_prossimo_controllo:v('sp-prossima') || null, stato:v('sp-stato'),
     esito_verifica:v('sp-esito').trim() || null, note:v('sp-note').trim() || null,
-    voci_x_si:listaControlliScheda(v('sp-si')), voci_x_no:listaControlliScheda(v('sp-no')),
-    voci_x_vuote:listaControlliScheda(v('sp-vuote')),
+    ...leggiControlliScheda(),
     anno_manutenzione:Number(target.anno), ciclo_manutenzione:origine.ciclo};
   if (riporta) { dati.fonte_pdf = null; dati.pagina_pdf = null; }
   bottone.disabled = true;
   try {
     if (riporta) {
-      const {error} = await db.rpc('riporta_scheda_presidio',{p_origine:origine.id,p_dati:dati});
+      const {error} = await db.rpc('salva_riporto_presidio',{p_origine:origine.id,p_dati:dati,p_anno:target.anno,p_mese:target.mese});
       if (error) throw error;
       toast('Periodo pronto. Se esisteva già, i dati salvati sono stati conservati.');
     } else {

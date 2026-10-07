@@ -69,7 +69,7 @@ function fileProgettoValido(file) {
     'image/png'
   ];
 
-  const estensioniAmmesse = ['pdf', 'jpg', 'jpeg', 'png'];
+  const estensioniAmmesse = ['pdf', 'jpg', 'jpeg', 'png', 'dwg'];
 
   const estensione = file.name.split('.').pop().toLowerCase();
 
@@ -396,7 +396,7 @@ async function salvaProgetto() {
     }
 
     if (files.some(function(file) { return !fileProgettoValido(file); })) {
-      toast('Formato non valido: carica solo PDF, JPG/JPEG o PNG', 'err');
+      toast('Formato non valido: carica solo PDF, JPG/JPEG, PNG o DWG', 'err');
       return;
     }
 
