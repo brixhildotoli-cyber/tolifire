@@ -470,42 +470,47 @@ const authUserId = authData.user.id;
   const utenteStorageId = authUserId;
 
     for (const file of files) {
-      const nomeSicuro = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const path =
-        utenteStorageId + '/' +
-        progettoId + '/' +
-        Date.now() + '_' +
-        nomeSicuro;
+  const nomeSicuro = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
 
-      const { error: erroreUpload } = await db.storage
-        .from('progetti-tecnici')
-        .upload(path, file, {
-          contentType: file.type,
-          upsert: false
-        });
+  const path =
+    utenteStorageId + '/' +
+    progettoId + '/' +
+    Date.now() + '_' +
+    nomeSicuro;
 
-      if (erroreUpload) {
-        toast('Caricamento file non riuscito: ' + erroreUpload.message, 'err');
-        return;
-      }
+  const tipoFile = /\.dwg$/i.test(file.name)
+    ? 'application/acad'
+    : file.type;
 
-      const { error: erroreAllegato } = await db
-        .from('progetti_tecnici_allegati')
-        .insert({
-          progetto_id: progettoId,
-          nome_file: file.name,
-          storage_path: path,
-          mime_type: file.type,
-          dimensione: file.size,
-          caricato_da: authUserId
-        });
+  const { error: erroreUpload } = await db.storage
+    .from('progetti-tecnici')
+    .upload(path, file, {
+      contentType: tipoFile,
+      upsert: false
+    });
 
-      if (erroreAllegato) {
-        await db.storage.from('progetti-tecnici').remove([path]);
-        toast('Errore salvataggio allegato: ' + erroreAllegato.message, 'err');
-        return;
-      }
-    }
+  if (erroreUpload) {
+    toast('Caricamento file non riuscito: ' + erroreUpload.message, 'err');
+    return;
+  }
+
+  const { error: erroreAllegato } = await db
+    .from('progetti_tecnici_allegati')
+    .insert({
+      progetto_id: progettoId,
+      nome_file: file.name,
+      storage_path: path,
+      mime_type: tipoFile,
+      dimensione: file.size,
+      caricato_da: authUserId
+    });
+
+  if (erroreAllegato) {
+    await db.storage.from('progetti-tecnici').remove([path]);
+    toast('Errore salvataggio allegato: ' + erroreAllegato.message, 'err');
+    return;
+  }
+}
 
     closeM('m-progetto');
 
@@ -3125,10 +3130,14 @@ async function caricaAllegatiDaVerifica(progettoId) {
       Date.now() + '_' +
       nomeSicuro;
 
+      const tipoFile = /\.dwg$/i.test(file.name)
+  ? 'application/acad'
+  : file.type;
+
     const { error: erroreUpload } = await db.storage
       .from('progetti-tecnici')
       .upload(path, file, {
-        contentType: file.type,
+        contentType: tipoFile,
         upsert: false
       });
 
@@ -3140,7 +3149,7 @@ async function caricaAllegatiDaVerifica(progettoId) {
         progetto_id: progettoId,
         nome_file: file.name,
         storage_path: path,
-        mime_type: file.type,
+        mime_type: tipoFile,
         dimensione: file.size,
         caricato_da: utenteId
       });
