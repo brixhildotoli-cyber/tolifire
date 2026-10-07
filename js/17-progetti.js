@@ -1247,15 +1247,22 @@ async function avviaPreventivo(progettoId) {
 }
 
 async function loadPreventivi() {
-  const boxLista = ge('preventivi-lista');
-  const boxInviati = ge('preventivi-inviati-lista');
+  const bozzeBox = ge('preventivi-lista');
+  const attesaBox = ge('preventivi-attesa-lista');
+  const inviatiBox = ge('preventivi-inviati-lista');
+  const chiusiBox = ge('preventivi-chiusi-lista');
+  const rinviatiBox = ge('preventivi-progetti-rinviati');
 
-  if (!boxLista || !boxInviati) return;
+  if (!bozzeBox || !attesaBox || !inviatiBox || !chiusiBox || !rinviatiBox) {
+    return;
+  }
 
-  boxLista.innerHTML = '<div class="load">Caricamento...</div>';
-  boxInviati.innerHTML = '<div class="load">Caricamento...</div>';
+  [bozzeBox, attesaBox, inviatiBox, chiusiBox, rinviatiBox]
+    .forEach(function(box) {
+      box.innerHTML = '<div class="load">Caricamento...</div>';
+    });
 
-  const { data: preventivi, error } = await db
+  const { data, error } = await db
     .from('preventivi')
     .select(`
       id,
@@ -1266,13 +1273,12 @@ async function loadPreventivi() {
       tipo,
       data_scadenza,
       totale_imponibile,
-      sconto_perc,
-      iva_perc,
       creato_il,
+      aggiornato_il,
       clienti(ragione_sociale)
     `)
     .eq('commerciale_id', ME.id)
-    .order('creato_il', { ascending: false });
+    .order('numero', { ascending: false });
 
   if (error) {
     const messaggio = `
@@ -1281,41 +1287,41 @@ async function loadPreventivi() {
       </div>
     `;
 
-    boxLista.innerHTML = messaggio;
-    boxInviati.innerHTML = '';
+    [bozzeBox, attesaBox, inviatiBox, chiusiBox, rinviatiBox]
+      .forEach(function(box) {
+        box.innerHTML = messaggio;
+      });
+
     return;
   }
 
-  const bozze = (preventivi || []).filter(function(preventivo) {
-    return preventivo.stato !== 'inviato_a_rappresentante';
-  });
+  const preventivi = data || [];
 
-  const inviati = (preventivi || []).filter(function(preventivo) {
-    return preventivo.stato === 'inviato_a_rappresentante';
-  });
+  const stati = {
+    bozza: { testo: 'Bozza', classe: 'bblue' },
+    approvato: { testo: 'Approvato dal titolare', classe: 'bok' },
+    in_attesa_approvazione: { testo: 'In attesa del titolare', classe: 'bwarn' },
+    inviato_a_rappresentante: { testo: 'Inviato al rappresentante', classe: 'bok' },
+    inviato: { testo: 'Inviato al cliente', classe: 'bok' },
+    accettato: { testo: 'Accettato', classe: 'bok' },
+    rifiutato: { testo: 'Rifiutato', classe: 'berr' },
+    scaduto: { testo: 'Scaduto', classe: 'bgray' }
+  };
 
-  function creaCardPreventivo(preventivo, inviato) {
+  function card(preventivo) {
+    const info = stati[preventivo.stato] || {
+      testo: preventivo.stato || 'Stato non definito',
+      classe: 'bgray'
+    };
+
     const cliente =
       preventivo.clienti?.ragione_sociale || 'Cliente non disponibile';
 
-    const totale = Number(
-      preventivo.totale_imponibile || 0
-    ).toLocaleString('it-IT', {
-      style: 'currency',
-      currency: 'EUR'
-    });
-
-    const stato = inviato
-      ? 'Inviato al rappresentante'
-      : ({
-          bozza: 'Bozza',
-          in_attesa_approvazione: 'In attesa del titolare',
-          approvato: 'Approvato dal titolare',
-          inviato: 'Inviato al cliente',
-          accettato: 'Accettato',
-          rifiutato: 'Rifiutato',
-          scaduto: 'Scaduto'
-        }[preventivo.stato] || preventivo.stato || 'Bozza');
+    const totale = Number(preventivo.totale_imponibile || 0)
+      .toLocaleString('it-IT', {
+        style: 'currency',
+        currency: 'EUR'
+      });
 
     return `
       <div class="card" style="margin-bottom:10px">
@@ -1330,24 +1336,14 @@ async function loadPreventivi() {
             </div>
           </div>
 
-          <span class="bx ${inviato ? 'bok' : 'bblue'}">
-            ${esc(stato)}
+          <span class="bx ${info.classe}">
+            ${esc(info.testo)}
           </span>
         </div>
 
         <div style="font-size:13px;margin-top:10px">
-          Totale imponibile attuale: <b>${esc(totale)}</b>
+          Totale imponibile: <b>${esc(totale)}</b>
         </div>
-
-        ${preventivo.data_scadenza ? `
-          <div style="font-size:12px;color:var(--m);margin-top:4px">
-            Valido fino al ${esc(
-              new Date(
-                preventivo.data_scadenza + 'T00:00:00'
-              ).toLocaleDateString('it-IT')
-            )}
-          </div>
-        ` : ''}
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
           <button
@@ -1373,17 +1369,91 @@ async function loadPreventivi() {
     `;
   }
 
-  boxLista.innerHTML = bozze.length
-    ? bozze.map(function(preventivo) {
-        return creaCardPreventivo(preventivo, false);
-      }).join('')
-    : '<div class="empty">Nessun preventivo da completare.</div>';
+  function mostra(box, elementi, messaggioVuoto) {
+    box.innerHTML = elementi.length
+      ? elementi.map(card).join('')
+      : `<div class="empty">${messaggioVuoto}</div>`;
+  }
 
-  boxInviati.innerHTML = inviati.length
-    ? inviati.map(function(preventivo) {
-        return creaCardPreventivo(preventivo, true);
+  const bozze = preventivi.filter(function(p) {
+    return ['bozza', 'approvato'].includes(p.stato) || !p.stato;
+  });
+
+  const attesa = preventivi.filter(function(p) {
+    return p.stato === 'in_attesa_approvazione';
+  });
+
+  const inviati = preventivi.filter(function(p) {
+    return ['inviato_a_rappresentante', 'inviato'].includes(p.stato);
+  });
+
+  const chiusi = preventivi.filter(function(p) {
+    return ['accettato', 'rifiutato', 'scaduto'].includes(p.stato);
+  });
+
+  mostra(bozzeBox, bozze, 'Nessuna bozza da completare.');
+  mostra(attesaBox, attesa, 'Nessun preventivo in attesa del titolare.');
+  mostra(inviatiBox, inviati, 'Nessun preventivo inviato.');
+  mostra(chiusiBox, chiusi, 'Nessun preventivo nello storico.');
+
+  const progettiIds = preventivi
+    .map(function(p) { return p.progetto_tecnico_id; })
+    .filter(Boolean);
+
+  if (!progettiIds.length) {
+    rinviatiBox.innerHTML =
+      '<div class="empty">Nessun progetto rinviato per modifiche.</div>';
+    return;
+  }
+
+  const { data: progettiRinviati, error: erroreProgetti } = await db
+    .from('progetti_tecnici')
+    .select('id,titolo,tipologia,stato,aggiornato_il,clienti(ragione_sociale)')
+    .in('id', progettiIds)
+    .in('stato', ['da_integrare', 'in_verifica_tecnica'])
+    .order('aggiornato_il', { ascending: false });
+
+  if (erroreProgetti) {
+    rinviatiBox.innerHTML =
+      `<div class="al2 e">Errore caricamento progetti: ${esc(erroreProgetti.message)}</div>`;
+    return;
+  }
+
+  rinviatiBox.innerHTML = progettiRinviati?.length
+    ? progettiRinviati.map(function(progetto) {
+        const stato = progetto.stato === 'in_verifica_tecnica'
+          ? 'In verifica tecnica'
+          : 'Rinviato per integrazione';
+
+        return `
+          <div class="card" style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;gap:10px">
+              <div>
+                <div style="font-size:14px;font-weight:700">
+                  ${esc(progetto.titolo || 'Progetto tecnico')}
+                </div>
+
+                <div style="font-size:12px;color:var(--m);margin-top:3px">
+                  ${esc(progetto.clienti?.ragione_sociale || 'Cliente')}
+                  · ${esc(progetto.tipologia || 'Progetto tecnico')}
+                </div>
+              </div>
+
+              <span class="bx bwarn">${stato}</span>
+            </div>
+
+            <div style="margin-top:12px">
+              <button
+                class="btn sm"
+                onclick="openProgettoDetail('${progetto.id}')"
+              >
+                Apri progetto
+              </button>
+            </div>
+          </div>
+        `;
       }).join('')
-    : '<div class="empty">Nessun preventivo ancora inviato al rappresentante.</div>';
+    : '<div class="empty">Nessun progetto rinviato per modifiche.</div>';
 }
 
 async function apriNuovoPreventivo(progettoId) {
@@ -2469,7 +2539,17 @@ if (btnModifica) {
       })
     );
 
-    ge('pd-file-content').innerHTML = fileConLink.map(function(file) {
+   ge('pd-file-content').innerHTML = `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+    <button
+      class="btn sm p"
+      onclick="scaricaTuttiAllegatiProgetto('${progetto.id}')"
+    >
+      ⬇ Scarica tutto (${allegati.length})
+    </button>
+  </div>
+
+  ${allegati.map(function(file) {
       return `
         <div class="card" style="margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
@@ -2501,7 +2581,8 @@ if (btnModifica) {
           </div>
         </div>
       `;
-    }).join('');
+   }).join('')}
+`;
   }
 
   await renderSchedeProgettoCommerciale(progetto.id);
@@ -2627,6 +2708,45 @@ function tornaDaSchedaProgetto() {
   }
 
   gotoPage('progetti');
+}
+
+
+async function scaricaTuttiAllegatiProgetto(progettoId) {
+  const { data: allegati, error } = await db
+    .from('progetti_tecnici_allegati')
+    .select('nome_file,storage_path')
+    .eq('progetto_id', progettoId)
+    .order('caricato_il', { ascending: false });
+
+  if (error || !allegati?.length) {
+    toast('Nessun file disponibile da scaricare', 'err');
+    return;
+  }
+
+  toast('Preparazione di ' + allegati.length + ' download...', 'ok');
+
+  for (const file of allegati) {
+    const { data } = await db.storage
+      .from('progetti-tecnici')
+      .createSignedUrl(file.storage_path, 300, {
+        download: file.nome_file
+      });
+
+    if (!data?.signedUrl) continue;
+
+    const link = document.createElement('a');
+    link.href = data.signedUrl;
+    link.download = file.nome_file;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    await new Promise(function(resolve) {
+      setTimeout(resolve, 350);
+    });
+  }
+
+  toast('Download avviati', 'ok');
 }
 
 
