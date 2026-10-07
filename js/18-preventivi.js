@@ -5195,7 +5195,6 @@ if (progetto.materiali_note) {
     });
   }
 
-  titolo('Richiesta al fornitore');
 
   if (selezione.note) {
   titolo('Indicazioni aggiuntive');
@@ -5205,16 +5204,6 @@ if (progetto.materiali_note) {
     10
   );
 }
-
-  testo(
-    'Indicare prezzo netto, disponibilità, tempi di consegna, eventuali minimi d’ordine, condizioni di pagamento e note tecniche.'
-  );
-
-  testo(
-    'Questa richiesta non costituisce ordine. Le informazioni contenute sono riservate alla sola formulazione della quotazione.',
-    8,
-    [100, 100, 100]
-  );
 
   for (const foto of fotoDaInserire) {
     try {
