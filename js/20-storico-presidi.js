@@ -192,7 +192,9 @@ confermaImportPresidi = async function() {
   const semestre = Number(risposta);
   if (![1,2].includes(semestre)) { toast('Scegli semestre 1 oppure 2.','err'); return; }
   const mese = mesi[semestre - 1];
-  if (!confirm(`Importare ${valide.length} schede nel ${semestre}° semestre, gruppo ${nomeCicloScheda(ciclo)}? I periodi già presenti verranno saltati, senza sovrascriverli.`)) return;
+  const clienteDest = ge('import-presidi-cliente')?.selectedOptions?.[0]?.textContent || '';
+  const sedeDest = ge('import-presidi-sede')?.selectedOptions?.[0]?.textContent || '';
+  if (!confirm(`${clienteDest}${sedeDest ? ' → '+sedeDest : ''}\nImportare ${valide.length} schede nel ${semestre}° semestre, gruppo ${nomeCicloScheda(ciclo)}? I periodi già presenti verranno saltati, senza sovrascriverli.`)) return;
   const bottone = ge('import-presidi-conferma');
   if (bottone.disabled) return;
   bottone.disabled = true;
@@ -203,7 +205,7 @@ confermaImportPresidi = async function() {
     for (const r of valide) {
       try {
         let id = r.presidioEsistenteId;
-        const chiave = JSON.stringify([r.payload.cliente_id,r.payload.tipo,
+        const chiave = JSON.stringify([r.payload.cliente_id,r.payload.sede_id || '',r.payload.tipo,
           pulisciImportPresidi(r.payload.matricola),pulisciImportPresidi(r.payload.ubicazione)]);
         if (!id) id = creati.get(chiave);
         if (!id) {
