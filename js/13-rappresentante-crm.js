@@ -619,6 +619,9 @@ pdf_esterno_titolare_nome,
           >
             📄 Apri / scarica PDF
           </button>
+          <button class="btn sm" onclick="rinviaPreventivoAlCommercialeDalRappresentante('${preventivo.id}')">
+  ↩ Rinvio al commerciale
+</button>
         </div>
       </div>
     `;
@@ -689,6 +692,25 @@ async function apriPdfPreventivoRappresentante(preventivoId) {
     window.open(urlData.signedUrl, '_blank', 'noopener');
   }
 
+  await loadPreventiviRappresentante();
+}
+
+async function rinviaPreventivoAlCommercialeDalRappresentante(preventivoId) {
+  if (ROLE !== 'rappresentante') return;
+
+  if (!confirm('Rinviare il preventivo al commerciale per le modifiche?')) return;
+
+  const { error } = await db.rpc(
+    'rinvia_preventivo_al_commerciale_da_rappresentante',
+    { p_preventivo_id: preventivoId }
+  );
+
+  if (error) {
+    toast('Errore nel rinvio: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Preventivo rinviato al commerciale', 'ok');
   await loadPreventiviRappresentante();
 }
 
