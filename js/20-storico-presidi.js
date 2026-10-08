@@ -6,6 +6,7 @@ function nomeCicloScheda(ciclo) {
   return {gennaio_luglio:'Gennaio–Luglio',febbraio_agosto:'Febbraio–Agosto'}[ciclo] || 'Gruppo non assegnato';
 }
 function periodoScheda(s) {
+  if (s.dati?.tipo === 'manichetta') return s.data_intervento ? 'Intervento del '+fd(s.data_intervento) : 'Scheda documentale — data non indicata';
   return `${nomeCicloScheda(s.ciclo)} · ${Number(s.mese) < 7 ? '1°' : '2°'} semestre ${s.anno}`;
 }
 function periodoSuccessivo(s) {
@@ -70,13 +71,17 @@ async function caricaStoricoPresidio(id) {
   const box = ge('storico-presidio');
   if (!box) return;
   box.textContent = 'Caricamento schede semestrali...';
-  const [{data, error}, utenti, anagrafica] = await Promise.all([
-    db.from('schede_presidi').select('*').eq('impianto_id',id)
-      .order('anno',{ascending:false}).order('mese',{ascending:false}),
+  const anagrafica = await db.from('impianti').select('*').eq('id',id).is('eliminato_il',null).single();
+  if (richiesta !== storicoPresidi.richiesta || ge('storico-presidio') !== box) return;
+  if (anagrafica.error || !anagrafica.data) {box.textContent='Impossibile leggere il presidio.';return;}
+  const manichetta = anagrafica.data.tipo === 'manichetta';
+  const [{data, error}, utenti] = await Promise.all([
+    manichetta
+      ? db.from('schede_manichette').select('*').eq('impianto_id',id).order('data_intervento',{ascending:false,nullsFirst:false}).order('creato_il',{ascending:false})
+      : db.from('schede_presidi').select('*').eq('impianto_id',id).order('anno',{ascending:false}).order('mese',{ascending:false}),
     gestisceStoricoPresidi()
       ? db.from('utenti').select('id,nome,cognome').in('ruolo',['tecnico','capo_tecnico']).eq('attivo',true)
-      : Promise.resolve({data:[]}),
-    db.from('impianti').select('*').eq('id',id).is('eliminato_il',null).single()
+      : Promise.resolve({data:[]})
   ]);
   if (richiesta !== storicoPresidi.richiesta || ge('storico-presidio') !== box) return;
   if (error) { box.textContent = 'Errore storico: ' + error.message; return; }
@@ -90,9 +95,9 @@ async function caricaStoricoPresidio(id) {
 function mostraStoricoPresidio() {
   const box = ge('storico-presidio');
   if (!box) return;
-  box.innerHTML = '<h3>Schede semestrali</h3><p>Il gruppo resta fisso. La data effettiva della verifica è indipendente dal semestre di riferimento.</p>' +
+  box.innerHTML = (storicoPresidi.anagrafica?.tipo === 'manichetta' ? '<h3>Storico interventi manichetta</h3><p>La scadenza della manichetta è distinta dalla data dell’intervento. Nessun riporto semestrale.</p>' : '<h3>Schede semestrali</h3><p>Il gruppo resta fisso. La data effettiva della verifica è indipendente dal semestre di riferimento.</p>') +
     (gestisceStoricoPresidi() ? '<button class="btn sm" onclick="registraSchedaGiaCaricata()">Registra nello storico la scheda già caricata</button>' : '') +
-    (storicoPresidi.schede.length ? '' : '<p>Nessuna scheda storica. Importa il CSV scegliendo esplicitamente il periodo.</p>') +
+    (storicoPresidi.schede.length ? '' : '<p>Nessuna scheda storica: registra la scheda già caricata o importa il CSV.</p>') +
     storicoPresidi.schede.map((s,i) => {
       const d = s.dati || {};
       const tecnico = storicoPresidi.utenti.find(u => u.id === s.tecnico_id);
@@ -102,7 +107,7 @@ function mostraStoricoPresidio() {
         <div style="white-space:pre-wrap">${esc(d.note || '')}</div>
         ${gestisceStoricoPresidi() ? `<div>Operatore: ${esc(tecnico ? `${tecnico.nome || ''} ${tecnico.cognome || ''}` : 'Non assegnato')}</div>` : ''}
         <button class="btn sm" onclick="apriEditorSchedaPresidio(${i},false)">Apri / modifica ${esc(periodoScheda(s))}</button>
-        <button class="btn sm p" onclick="apriEditorSchedaPresidio(${i},true)">Porta a ${esc(periodoScheda(periodoRiportoPresidio(s)))}</button>
+        <button class="btn sm p" onclick="apriEditorSchedaPresidio(${i},true)">${s.dati?.tipo === 'manichetta' ? 'Riprendi per un nuovo intervento' : 'Porta a '+esc(periodoScheda(periodoRiportoPresidio(s)))}</button>
       </div>`;
     }).join('');
 }
@@ -110,22 +115,28 @@ function mostraStoricoPresidio() {
 function apriEditorSchedaPresidio(indice, riporta) {
   const origine = storicoPresidi.schede[indice];
   if (!origine) return;
-  const target = riporta ? periodoRiportoPresidio(origine) : origine;
-  const esistente = riporta && storicoPresidi.schede.find(s => Number(s.anno) === target.anno && Number(s.mese) === target.mese);
+  const manichetta = origine.dati?.tipo === 'manichetta';
+  const target = riporta ? (manichetta ? origine : periodoRiportoPresidio(origine)) : origine;
+  const esistente = riporta && !manichetta && storicoPresidi.schede.find(s => Number(s.anno) === target.anno && Number(s.mese) === target.mese);
   if (esistente) {
     toast('Questo periodo esiste già: apro la scheda salvata.');
     return apriEditorSchedaPresidio(storicoPresidi.schede.indexOf(esistente),false);
   }
   const d = origine.dati || {};
+  storicoPresidi.token = riporta ? crypto.randomUUID() : null;
   const textarea = (id,label,val) => `<div class="f"><label>${label}</label><textarea id="${id}">${esc(val || '')}</textarea></div>`;
   const righe = a => Array.isArray(a) ? a.join('\n') : '';
   ge('storico-presidio').innerHTML = `<div class="card">
-    <h3>${riporta ? 'Nuova scheda' : 'Modifica scheda'}: ${esc(periodoScheda(target))}</h3>
+    <h3>${manichetta && riporta ? 'Nuovo intervento manichetta' : (riporta ? 'Nuova scheda' : 'Modifica scheda')+': '+esc(periodoScheda(target))}</h3>
     <p>${riporta ? 'I controlli e le note sono già riportati. Se è tutto invariato, inserisci la data e salva. Altrimenti cambia le X o le note: lo storico precedente resta intatto.' : 'Stai modificando questo periodo, non creando il successivo.'}</p>
     <div class="f"><label>Data della verifica</label><input id="sp-data" type="date" value="${esc(riporta ? '' : d.data_ultimo_controllo || '')}"></div>
-    <div class="f"><label>Prossima verifica</label><input id="sp-prossima" type="date" value="${esc(riporta ? '' : d.data_prossimo_controllo || '')}"></div>
-    <div class="f"><label>Stato</label><select id="sp-stato">${['ok','anomalia','scaduto','fuori_servizio'].map(st => `<option value="${st}" ${st === d.stato ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
+    ${manichetta ? '' : `<div class="f"><label>Prossima verifica</label><input id="sp-prossima" type="date" value="${esc(riporta ? '' : d.data_prossimo_controllo || '')}"></div>`}
+    <div class="f"><label>Stato</label><select id="sp-stato"><option value="" ${!d.stato ? 'selected' : ''}>Non compilato</option>${['ok','anomalia','scaduto','fuori_servizio'].map(st => `<option value="${st}" ${st === d.stato ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
     ${textarea('sp-esito','Esito della verifica',d.esito_verifica)}
+    ${d.tipo === 'manichetta' ? `<div class="fr">
+      <div class="f"><label>Scadenza — data precisa, se nota</label><input id="sp-collaudo" type="date" value="${esc(d.data_scadenza_collaudo || '')}"></div>
+      <div class="f"><label>Scadenza indicata solo come anno</label><input id="sp-anno-scadenza" type="number" min="1900" max="2200" value="${esc(d.anno_scadenza ?? '')}"></div>
+    </div>` : ''}
     <h4>Controlli — X riportate dalla scheda precedente</h4>
     <div id="sp-controlli">${htmlControlliScheda(d)}</div>
     ${textarea('sp-aggiunte','Eventuali nuovi controlli con esito SI — una voce per riga','')}
@@ -133,17 +144,18 @@ function apriEditorSchedaPresidio(indice, riporta) {
     ${gestisceStoricoPresidi() ? `<div class="f"><label>Operatore che può vedere e modificare questa scheda</label><select id="sp-tecnico"><option value="">Non assegnato</option>${storicoPresidi.utenti.map(u => `<option value="${esc(u.id)}" ${u.id === origine.tecnico_id ? 'selected' : ''}>${esc(`${u.nome || ''} ${u.cognome || ''}`)}</option>`).join('')}</select></div>` : ''}
     ${riporta ? '<div class="f"><label><input id="sp-conferma" type="checkbox"> Ho verificato i controlli riportati dalla scheda precedente.</label></div>' : ''}
     <button class="btn" onclick="mostraStoricoPresidio()">Annulla</button>
-    <button id="sp-salva" class="btn p" onclick="salvaSchedaPresidio(${indice},${riporta})">Salva ${esc(periodoScheda(target))}</button>
+    <button id="sp-salva" class="btn p" onclick="salvaSchedaPresidio(${indice},${riporta})">${manichetta ? 'Salva intervento' : 'Salva '+esc(periodoScheda(target))}</button>
   </div>`;
 }
 
 async function salvaSchedaPresidio(indice, riporta) {
   const origine = storicoPresidi.schede[indice];
   if (!origine) return;
-  const target = riporta ? periodoRiportoPresidio(origine) : origine;
+  const manichetta = origine.dati?.tipo === 'manichetta';
+  const target = riporta ? (manichetta ? origine : periodoRiportoPresidio(origine)) : origine;
   const impianto = storicoPresidi.impianto;
   const data = v('sp-data');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+  if ((!data && (!manichetta || riporta)) || (data && !/^\d{4}-\d{2}-\d{2}$/.test(data))) {
     toast('Indica la data effettiva della verifica.','err'); return;
   }
   if (riporta && !ge('sp-conferma')?.checked) { toast('Conferma i controlli prima di salvare.','err'); return; }
@@ -154,20 +166,32 @@ async function salvaSchedaPresidio(indice, riporta) {
   if (riporta && tecnico !== origine.tecnico_id) {
     toast('Salva il riporto con lo stesso operatore; potrai cambiarlo riaprendo la nuova scheda.','err'); return;
   }
-  const dati = {...origine.dati, data_ultimo_controllo:data,
-    data_prossimo_controllo:v('sp-prossima') || null, stato:v('sp-stato'),
+  const dati = {...origine.dati, data_ultimo_controllo:data || null,
+    data_prossimo_controllo:v('sp-prossima') || null, stato:v('sp-stato') || null,
     esito_verifica:v('sp-esito').trim() || null, note:v('sp-note').trim() || null,
     ...leggiControlliScheda(),
     anno_manutenzione:Number(target.anno), ciclo_manutenzione:origine.ciclo};
+  if (origine.dati?.tipo === 'manichetta') {
+    try {
+      dati.anno_scadenza = annoScadenzaManichetta(v('sp-anno-scadenza'));
+      dati.data_scadenza_collaudo = v('sp-collaudo') || null;
+      if (dati.anno_scadenza && dati.data_scadenza_collaudo && dati.anno_scadenza !== Number(dati.data_scadenza_collaudo.slice(0,4))) {
+        throw new Error('Anno di scadenza e data precisa non coincidono.');
+      }
+    } catch(e) {toast(e.message,'err');return;}
+  }
+  if (manichetta) {delete dati.anno_manutenzione;delete dati.ciclo_manutenzione;dati.periodicita_mesi=null;dati.data_prossimo_controllo=null;}
   if (riporta) { dati.fonte_pdf = null; dati.pagina_pdf = null; }
   bottone.disabled = true;
   try {
     if (riporta) {
-      const {error} = await db.rpc('salva_riporto_presidio',{p_origine:origine.id,p_dati:dati,p_anno:target.anno,p_mese:target.mese});
+      const {error} = manichetta
+        ? await db.rpc('nuovo_intervento_manichetta',{p_origine:origine.id,p_dati:dati,p_data:data,p_token:storicoPresidi.token})
+        : await db.rpc('salva_riporto_presidio',{p_origine:origine.id,p_dati:dati,p_anno:target.anno,p_mese:target.mese});
       if (error) throw error;
-      toast('Periodo pronto. Se esisteva già, i dati salvati sono stati conservati.');
+      toast(manichetta ? 'Nuovo intervento salvato. Lo storico precedente è conservato.' : 'Periodo pronto. Se esisteva già, i dati salvati sono stati conservati.');
     } else {
-      const {data:salvate,error} = await db.from('schede_presidi').update({dati,tecnico_id:tecnico})
+      const {data:salvate,error} = await db.from(manichetta ? 'schede_manichette' : 'schede_presidi').update(manichetta ? {dati,tecnico_id:tecnico,data_intervento:data || null} : {dati,tecnico_id:tecnico})
         .eq('id',origine.id).eq('aggiornato_il',origine.aggiornato_il).select('id');
       if (error) throw error;
       if (!salvate?.length) throw new Error('Scheda modificata da un altro utente: riaprila prima di salvare.');
@@ -248,6 +272,13 @@ preparaImportPresidi = async function(testo) {
 async function registraSchedaGiaCaricata() {
   if (!gestisceStoricoPresidi() || !storicoPresidi.anagrafica) return;
   const p = storicoPresidi.anagrafica;
+  if (p.tipo === 'manichetta') {
+    const {error} = await db.from('schede_manichette').insert({impianto_id:p.id,data_intervento:p.data_ultimo_controllo || null,chiave_import:'anagrafica-iniziale',dati:p});
+    if (error && error.code !== '23505') {toast(error.message,'err');return;}
+    toast(error ? 'Scheda già registrata: conservata.' : 'Scheda documentale registrata.');
+    if (storicoPresidi.impianto === p.id) await caricaStoricoPresidio(p.id);
+    return;
+  }
   const gruppo = ['gennaio_luglio','febbraio_agosto'].includes(p.ciclo_manutenzione)
     ? p.ciclo_manutenzione : null;
   if (!gruppo) { toast('La scheda non ha un gruppo assegnato: usa l’importazione CSV scegliendo il gruppo.','err'); return; }

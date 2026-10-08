@@ -48,7 +48,10 @@ async function openPreventivoDetail(preventivoId) {
         tipologia,
         descrizione_tecnica,
         materiali_note,
-        stato
+        stato, 
+        nota_verifica_tecnica,
+  nota_integrazione,
+  integrazione_richiesta_da
       )
     `)
     .eq('id', preventivoId)
@@ -187,6 +190,11 @@ ${ROLE === 'titolare' ? `
     ` : ''}
   `;
 
+  const notaTecnica =
+  progetto?.nota_verifica_tecnica ||
+  progetto?.nota_integrazione ||
+  '';
+
   ge('pvd-progetto-content').innerHTML = `
     <div class="g2" style="margin-bottom:16px">
       ${ir('Titolo', progetto?.titolo)}
@@ -195,9 +203,13 @@ ${ROLE === 'titolare' ? `
       ${ir('Cliente', cliente)}
     </div>
 
-    <div style="font-size:13px;font-weight:600;margin-bottom:8px">
-      Descrizione / studio tecnico
-    </div>
+   ${notaTecnica ? `
+  <div class="al2 i" style="margin-bottom:16px;white-space:pre-wrap">
+    <b>🔧 Nota dell’ingegnere / modifiche richieste</b><br>
+    ${esc(notaTecnica)}
+  </div>
+` : ''}
+
 
     <div class="card" style="white-space:pre-wrap">
       ${esc(progetto?.descrizione_tecnica || 'Nessuna descrizione disponibile.')}
@@ -2570,9 +2582,25 @@ const bloccoAllegati = !allegatiProgetto.length
           📎 Allegati da inserire nel PDF
         </div>
 
-        <div style="font-size:12px;color:var(--m);margin:4px 0 10px">
-          Seleziona solo foto e documenti che possono essere inviati al fornitore.
-        </div>
+      <div style="
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  margin:4px 0 10px
+">
+  <div style="font-size:12px;color:var(--m)">
+    Seleziona solo foto e documenti che possono essere inviati al fornitore.
+  </div>
+
+  <button
+    type="button"
+    class="btn sm"
+    onclick="selezionaTuttiAllegatiRichiesta('${s.id}')"
+  >
+    ☑ Seleziona tutti
+  </button>
+</div>
 
         ${allegatiProgetto.map(function(file) {
           const selezionato = allegatiSelezionati.includes(file.id);
@@ -4855,6 +4883,22 @@ if (!eliminati || !eliminati.length) {
   await loadPreventivi();
 }
 
+async function selezionaTuttiAllegatiRichiesta(selezioneId) {
+  const input = document.querySelectorAll(
+    '[data-allegato-richiesta="' + selezioneId + '"]'
+  );
+
+  if (!input.length) {
+    toast('Non ci sono file da selezionare', 'err');
+    return;
+  }
+
+  input.forEach(function(file) {
+    file.checked = true;
+  });
+
+  await salvaAllegatiRichiestaFornitore(selezioneId);
+}
 
 async function salvaAllegatiRichiestaFornitore(selezioneId) {
   const allegatiProgettoIds = Array.from(
