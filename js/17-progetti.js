@@ -2549,7 +2549,7 @@ if (btnModifica) {
     </button>
   </div>
 
-  ${allegati.map(function(file) {
+  ${fileConLink.map(function(file) {
       return `
         <div class="card" style="margin-bottom:10px">
           <div style="display:flex;justify-content:space-between;gap:12px;align-items:center">
