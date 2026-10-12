@@ -3296,10 +3296,10 @@ function ricaricoFornituraDaCosto(costoFornitura) {
   const costo = numeroPreventivo(costoFornitura);
 
   if (costo <= 3000) return 70;
-  if (costo <= 10000) return 50;
-  if (costo <= 20000) return 45;
-  if (costo <= 50000) return 35;
-  if (costo <= 100000) return 30;
+  if (costo <= 10000) return 45;
+  if (costo <= 20000) return 35;
+  if (costo <= 50000) return 30;
+  if (costo <= 100000) return 25;
 
   return 25;
 }
