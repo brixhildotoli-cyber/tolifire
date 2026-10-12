@@ -104,18 +104,54 @@ function renderPresidiPerSede(pp) {
   el.innerHTML = html;
 }
 
+
 async function loadSediPresidio(cliId, selectedSedeId) {
-  var sel = ge('mpsede');
-  if(!sel) return;
-  sel.innerHTML = '<option value="">Sede principale / non specificata</option>';
-  if(!cliId) return;
-  var r = await db.from('sedi_cliente').select('id,tipo,nome,via,civico,citta').eq('cliente_id',cliId).order('tipo');
-  (r.data||[]).forEach(function(s) {
-    var label = (s.tipo||'') + ' — ' + (s.indirizzo||'') + (s.citta?', '+s.citta:'');
-    var opt = document.createElement('option');
-    opt.value = s.id;
-    opt.textContent = label;
-    if(selectedSedeId && s.id === selectedSedeId) opt.selected = true;
+  const sel = ge('mpsede');
+
+  if (!sel) return;
+
+  sel.innerHTML =
+    '<option value="">Sede principale / non specificata</option>';
+
+  if (!cliId) return;
+
+  const { data: sedi, error } = await db
+    .from('sedi_cliente')
+    .select('id,tipo,nome,via,civico,cap,citta')
+    .eq('cliente_id', cliId)
+    .order('tipo');
+
+  if (error) {
+    console.error('Errore caricamento sedi:', error);
+    toast('Non riesco a caricare le sedi: ' + error.message, 'err');
+    return;
+  }
+
+  (sedi || []).forEach(function(sede) {
+    const intestazione =
+      (sede.tipo || 'Sede').toUpperCase() +
+      (sede.nome ? ' — ' + sede.nome : '');
+
+    const indirizzo = [sede.via, sede.civico]
+      .filter(Boolean)
+      .join(' ');
+
+    const localita = [sede.cap, sede.citta]
+      .filter(Boolean)
+      .join(' ');
+
+    const etichetta = [intestazione, indirizzo, localita]
+      .filter(Boolean)
+      .join(' · ');
+
+    const opt = document.createElement('option');
+    opt.value = sede.id;
+    opt.textContent = etichetta;
+
+    if (selectedSedeId && sede.id === selectedSedeId) {
+      opt.selected = true;
+    }
+
     sel.appendChild(opt);
   });
 }

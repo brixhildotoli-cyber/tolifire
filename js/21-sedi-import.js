@@ -136,7 +136,7 @@ async function preparaImportPresidiPerSede(testo) {
 
   const { data: esistenti, error: errorePresidi } = await db
     .from('impianti')
-    .select('id,cliente_id,sede_id,tipo,matricola,ubicazione')
+   .select('id,cliente_id,sede_id,tipo,matricola,ubicazione,numero_progressivo,modello')
     .is('eliminato_il', null);
 
   if (errorePresidi) {
@@ -152,6 +152,7 @@ async function preparaImportPresidiPerSede(testo) {
     presidio.sede_id || '',
     presidio.tipo,
     pulisciImportPresidi(presidio.matricola),
+    pulisciImportPresidi(presidio.numero_progressivo),
     pulisciImportPresidi(presidio.ubicazione)
     ].join('|');
 
@@ -216,23 +217,52 @@ if (pivaDaCercare) {
       sedeScelta,
       tipo,
       pulisciImportPresidi(matricola),
+      pulisciImportPresidi(riga.numero_progressivo),
       pulisciImportPresidi(ubicazione)
     ].join('|');
 
-    if (righeViste.has(chiaveImport)) {
+       if (righeViste.has(chiaveImport)) {
       risultato.messaggio =
-        'Duplicato nel file: stessa matricola, cliente, tipologia e ubicazione';
+        'Duplicato nel file: stessa sede, matricola, numero progressivo, tipologia e ubicazione';
       return risultato;
     }
 
     righeViste.add(chiaveImport);
 
     const trovati = presidiPerChiave[chiaveImport] || [];
-    const senzaSede = (esistenti || []).filter(p => !p.sede_id && p.cliente_id === cliente.id && p.tipo === tipo &&
+    const progressivo = pulisciImportPresidi(riga.numero_progressivo);
+
+    const stessaIdentitaBase = (esistenti || []).filter(p =>
+      p.cliente_id === cliente.id &&
+      p.sede_id === sedeScelta &&
+      p.tipo === tipo &&
       pulisciImportPresidi(p.matricola) === pulisciImportPresidi(matricola) &&
-      pulisciImportPresidi(p.ubicazione) === pulisciImportPresidi(ubicazione));
+      pulisciImportPresidi(p.ubicazione) === pulisciImportPresidi(ubicazione)
+    );
+
+    if (
+      !trovati.length &&
+      stessaIdentitaBase.some(p =>
+        !progressivo || !pulisciImportPresidi(p.numero_progressivo)
+      )
+    ) {
+      risultato.messaggio =
+        'Numero progressivo mancante nel CSV o in un presidio già presente: verifica prima l’abbinamento per evitare cloni';
+      return risultato;
+    }
+
+    const senzaSede = (esistenti || []).filter(p =>
+      !p.sede_id &&
+      p.cliente_id === cliente.id &&
+      p.tipo === tipo &&
+      pulisciImportPresidi(p.matricola) === pulisciImportPresidi(matricola) &&
+      pulisciImportPresidi(p.numero_progressivo) === progressivo &&
+      pulisciImportPresidi(p.ubicazione) === pulisciImportPresidi(ubicazione)
+    );
+
     if (!trovati.length && senzaSede.length) {
-      risultato.messaggio = 'Presidio già presente senza sede: assegna prima la sede corretta dalla sua anagrafica, poi ricarica il CSV';
+      risultato.messaggio =
+        'Presidio già presente senza sede: assegna prima la sede corretta dalla sua anagrafica, poi ricarica il CSV';
       return risultato;
     }
 

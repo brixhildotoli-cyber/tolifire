@@ -487,6 +487,24 @@ const vociNo = Array.isArray(p.voci_x_no) ? p.voci_x_no : [];
 const vociVuote = Array.isArray(p.voci_x_vuote)
   ? p.voci_x_vuote
   : [];
+  const notaOperativa = String(p.note || '')
+  .split(/[;\n]+/)
+  .map(function(parte) {
+    return parte
+      .trim()
+      .replace(/^note\s*:\s*/i, '');
+  })
+  .filter(function(parte) {
+    return parte &&
+      !/^(documento(?:\s+\w+)?|fonte|pagina|scheda\s+\d+|numero\s+progressivo)\b/i.test(parte);
+  })
+  .join('\n')
+  .trim();
+
+const esitoNonConforme =
+  /non\s+conforme|non\s+riallineabile/i.test(
+    String(p.esito_verifica || '')
+  );
 
 const rigaVuota = function(voce) {
   return `
@@ -496,6 +514,7 @@ const rigaVuota = function(voce) {
     </div>
   `;
 };
+
 
   const rigaControllo = function(voce, esito) {
     const positivo = esito === 'SI';
@@ -538,11 +557,33 @@ const rigaVuota = function(voce) {
             Controlli della verifica
           </div>
 
-          ${p.esito_verifica ? `
-            <div class="al2 i" style="margin-bottom:10px">
-              <b>Esito:</b> ${esc(p.esito_verifica)}
-            </div>
-          ` : ''}
+         ${p.esito_verifica ? `
+  <div class="al2 i" style="margin-bottom:10px">
+    <b>Esito:</b> ${esc(p.esito_verifica)}
+  </div>
+` : ''}
+
+${esitoNonConforme && notaOperativa ? `
+  <div
+    style="
+      margin:0 0 12px;
+      padding:12px;
+      border-radius:8px;
+      border:1px solid #fed7aa;
+      border-left:4px solid #ea580c;
+      background:#fff7ed;
+      white-space:pre-wrap
+    "
+  >
+    <div style="font-size:12px;font-weight:700;color:#9a3412;margin-bottom:5px">
+      ⚠️ Note / anomalia rilevata
+    </div>
+
+    <div style="font-size:13px">
+      ${esc(notaOperativa)}
+    </div>
+  </div>
+` : ''}
 
           ${vociSi.length ? `
             <div style="font-size:12px;color:var(--m);margin:10px 0 4px">
@@ -606,12 +647,14 @@ x
         </div>
       ` : ''}
 
-      <div style="margin-top:16px">
-        <div class="muted" style="font-size:12px">Note / anomalie</div>
-        <div style="margin-top:5px;white-space:pre-wrap">
-          ${p.note ? esc(p.note) : 'Nessuna nota registrata.'}
-        </div>
-      </div>
+     ${!(esitoNonConforme && notaOperativa) ? `
+  <div style="margin-top:16px">
+    <div class="muted" style="font-size:12px">Note / anomalie</div>
+    <div style="margin-top:5px;white-space:pre-wrap">
+      ${p.note ? esc(p.note) : 'Nessuna nota registrata.'}
+    </div>
+  </div>
+` : ''}
     </div>
   `;
 }

@@ -530,13 +530,36 @@ function renderPC(data) {
   };
 
   const renderGriglia = function(presidi) {
-    const ordinati = [...presidi].sort(function(a, b) {
-      return String(a.matricola || '').localeCompare(
-        String(b.matricola || ''),
-        'it',
-        { numeric: true }
-      );
-    });
+
+  const ordinati = [...presidi].sort(function(a, b) {
+  if (a.tipo === 'porta_rei' && b.tipo === 'porta_rei') {
+    const progressivoA = Number(
+      String(a.numero_progressivo || '').replace(',', '.')
+    );
+
+    const progressivoB = Number(
+      String(b.numero_progressivo || '').replace(',', '.')
+    );
+
+    const valoreA = Number.isFinite(progressivoA)
+      ? progressivoA
+      : Number.MAX_SAFE_INTEGER;
+
+    const valoreB = Number.isFinite(progressivoB)
+      ? progressivoB
+      : Number.MAX_SAFE_INTEGER;
+
+    if (valoreA !== valoreB) {
+      return valoreA - valoreB;
+    }
+  }
+
+  return String(a.matricola || '').localeCompare(
+    String(b.matricola || ''),
+    'it',
+    { numeric: true }
+  );
+});
 
     return `
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:12px;padding:6px 0 12px">
@@ -546,91 +569,86 @@ function renderPC(data) {
   };
 
   const renderTipologie = function(presidi, chiavePeriodo, cliente) {
-    const tipi = {};
+  const tipi = {};
 
-    presidi.forEach(function(p) {
-      if (!tipi[p.tipo]) tipi[p.tipo] = [];
-      tipi[p.tipo].push(p);
+  presidi.forEach(function(p) {
+    if (!tipi[p.tipo]) tipi[p.tipo] = [];
+    tipi[p.tipo].push(p);
+  });
+
+  return Object.keys(tipi).sort(function(a, b) {
+    return tpl(a).localeCompare(tpl(b), 'it');
+  }).map(function(tipo) {
+    const elementi = tipi[tipo];
+    const sedi = {};
+
+    elementi.forEach(function(p) {
+      const sede = String(p.sede_label || '').trim() ||
+        'Sede principale / non specificata';
+
+      if (!sedi[sede]) sedi[sede] = [];
+      sedi[sede].push(p);
     });
 
-    return Object.keys(tipi).sort(function(a, b) {
-      return tpl(a).localeCompare(tpl(b), 'it');
-    }).map(function(tipo) {
-      const elementi = tipi[tipo];
+    const daGestire = elementi.filter(function(p) {
+      return p.stato !== 'ok';
+    }).length;
 
-      const ubicazioni = {};
-
-      elementi.forEach(function(p) {
-        const ubicazione = String(p.ubicazione || '').trim();
-
-        if (!ubicazioni[ubicazione]) {
-          ubicazioni[ubicazione] = [];
-        }
-
-        ubicazioni[ubicazione].push(p);
-      });
-
-      const chiaviUbicazioni = Object.keys(ubicazioni);
-      const mostraCartelleUbicazione =
-        chiaviUbicazioni.length > 1 &&
-        !(chiaviUbicazioni.length === 1 && !chiaviUbicazioni[0]);
-
-      const daGestire = elementi.filter(function(p) {
-        return p.stato !== 'ok';
-      }).length;
-
-      return `
-        <details
-          data-cartella="tipo|${encodeURIComponent(chiavePeriodo)}|${encodeURIComponent(cliente)}|${encodeURIComponent(tipo)}"
-          style="margin-top:8px;background:var(--bg);border-radius:7px;padding:0 10px"
-          ${filtroAttivo ? 'open' : ''}
+    return `
+      <details
+        data-cartella="tipo|${encodeURIComponent(chiavePeriodo)}|${encodeURIComponent(cliente)}|${encodeURIComponent(tipo)}"
+        style="margin-top:8px;background:var(--bg);border-radius:7px;padding:0 10px"
+        ${filtroAttivo ? 'open' : ''}
+      >
+        <summary
+          style="cursor:pointer;padding:10px 0;display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:700"
         >
-          <summary
-            style="cursor:pointer;padding:10px 0;display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:700"
-          >
-            <span>${tpl(tipo)}</span>
-            <span style="color:var(--m)">
-              ${elementi.length} ·
-              ${daGestire ? `${daGestire} attenzione` : 'OK'}
-            </span>
-          </summary>
+          <span>${tpl(tipo)}</span>
 
-          <div style="padding:0 0 10px">
-            ${mostraCartelleUbicazione
-              ? chiaviUbicazioni.sort(function(a, b) {
-                  return (a || 'Ubicazione non specificata')
-                    .localeCompare(b || 'Ubicazione non specificata', 'it');
-                }).map(function(ubicazione) {
-                  const etichetta = ubicazione || 'Ubicazione non specificata';
-                  const elementiUbicazione = ubicazioni[ubicazione];
+          <span style="color:var(--m)">
+            ${elementi.length} ·
+            ${daGestire ? `${daGestire} attenzione` : 'OK'}
+          </span>
+        </summary>
 
-                  return `
-                    <details
-                      data-cartella="ubicazione|${encodeURIComponent(chiavePeriodo)}|${encodeURIComponent(cliente)}|${encodeURIComponent(tipo)}|${encodeURIComponent(ubicazione)}"
-                      style="margin-top:8px;border:1px solid var(--bl);border-radius:7px;padding:0 10px;background:#fff"
-                      ${filtroAttivo ? 'open' : ''}
-                    >
-                      <summary
-                        style="cursor:pointer;padding:9px 0;font-size:12px;font-weight:700"
-                      >
-                        📍 ${esc(etichetta)}
-                        <span style="color:var(--m);font-weight:400">
-                          (${elementiUbicazione.length})
-                        </span>
-                      </summary>
+<div style="padding:0 0 10px">
+  ${Object.keys(sedi).length === 1
+    ? renderGriglia(elementi)
+    : Object.keys(sedi).sort(function(a, b) {
+            return a.localeCompare(b, 'it');
+          }).map(function(sede) {
+            const elementiSede = sedi[sede];
+            const anomalieSede = elementiSede.filter(function(p) {
+              return p.stato !== 'ok';
+            }).length;
 
-                      ${renderGriglia(elementiUbicazione)}
-                    </details>
-                  `;
-                }).join('')
-              : renderGriglia(elementi)
-            }
-          </div>
-        </details>
-      `;
-    }).join('');
-  };
+            return `
+              <details
+                data-cartella="sede|${encodeURIComponent(chiavePeriodo)}|${encodeURIComponent(cliente)}|${encodeURIComponent(tipo)}|${encodeURIComponent(sede)}"
+                style="margin-top:8px;border:1px solid var(--bl);border-radius:7px;padding:0 10px;background:#fff"
+                ${filtroAttivo ? 'open' : ''}
+              >
+                <summary
+                  style="cursor:pointer;padding:9px 0;display:flex;justify-content:space-between;gap:10px;font-size:12px;font-weight:700"
+                >
+                  <span>📍 ${esc(sede)}</span>
 
+                  <span style="color:var(--m);font-weight:400">
+                    ${elementiSede.length} ·
+                    ${anomalieSede ? `${anomalieSede} attenzione` : 'OK'}
+                  </span>
+                </summary>
+
+                ${renderGriglia(elementiSede)}
+              </details>
+            `;
+         }).join('')
+}
+</div>
+      </details>
+    `;
+  }).join('');
+};
   // Primo livello: anno + semestre.
   const periodi = {};
 
@@ -735,11 +753,11 @@ function renderPC(data) {
                 </summary>
 
                 <div style="padding:0 0 12px">
-                  ${renderTipologie(
-                    presidiCliente,
-                    chiavePeriodo,
-                    cliente
-                  )}
+   ${renderTipologie(
+  presidiCliente,
+  chiavePeriodo,
+  cliente
+)}
                 </div>
               </details>
             `;

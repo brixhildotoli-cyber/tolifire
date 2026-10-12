@@ -106,10 +106,68 @@ function mostraStoricoPresidio() {
         <div>Stato: ${esc(d.stato || '—')} · Verifica: ${esc(d.data_ultimo_controllo || '—')}</div>
         <div style="white-space:pre-wrap">${esc(d.note || '')}</div>
         ${gestisceStoricoPresidi() ? `<div>Operatore: ${esc(tecnico ? `${tecnico.nome || ''} ${tecnico.cognome || ''}` : 'Non assegnato')}</div>` : ''}
-        <button class="btn sm" onclick="apriEditorSchedaPresidio(${i},false)">Apri / modifica ${esc(periodoScheda(s))}</button>
-        <button class="btn sm p" onclick="apriEditorSchedaPresidio(${i},true)">${s.dati?.tipo === 'manichetta' ? 'Riprendi per un nuovo intervento' : 'Porta a '+esc(periodoScheda(periodoRiportoPresidio(s)))}</button>
+       <button class="btn sm" onclick="apriEditorSchedaPresidio(${i},false)">
+  Apri / modifica ${esc(periodoScheda(s))}
+</button>
+
+<button class="btn sm p" onclick="apriEditorSchedaPresidio(${i},true)">
+  ${s.dati?.tipo === 'manichetta'
+    ? 'Riprendi per un nuovo intervento'
+    : 'Porta a ' + esc(periodoScheda(periodoRiportoPresidio(s)))}
+</button>
+
+${gestisceStoricoPresidi() ? `
+  <button
+    class="btn sm"
+    style="color:var(--r)"
+    onclick="eliminaSchedaStoricoPresidio(${i})"
+  >
+    🗑 Elimina questa scheda
+  </button>
+` : ''}
       </div>`;
     }).join('');
+}
+
+async function eliminaSchedaStoricoPresidio(indice) {
+  if (!gestisceStoricoPresidi()) {
+    toast('Non hai i permessi per eliminare questa scheda', 'err');
+    return;
+  }
+
+  const scheda = storicoPresidi.schede[indice];
+
+  if (!scheda?.id) {
+    toast('Scheda storica non trovata', 'err');
+    return;
+  }
+
+  const periodo = periodoScheda(scheda);
+
+  if (!confirm(
+    'Eliminare solo la scheda "' + periodo + '"?\n\n' +
+    'La porta e le altre schede semestrali non verranno eliminate.'
+  )) {
+    return;
+  }
+
+  const tipoScheda =
+  storicoPresidi.anagrafica?.tipo === 'manichetta'
+    ? 'manichetta'
+    : 'presidio';
+
+const { error } = await db.rpc('elimina_scheda_storico', {
+  p_scheda_id: scheda.id,
+  p_tipo: tipoScheda
+});
+
+  if (error) {
+    toast('Errore eliminazione scheda: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Scheda semestrale eliminata', 'ok');
+  await caricaStoricoPresidio(storicoPresidi.impianto);
 }
 
 function apriEditorSchedaPresidio(indice, riporta) {
@@ -229,8 +287,14 @@ confermaImportPresidi = async function() {
     for (const r of valide) {
       try {
         let id = r.presidioEsistenteId;
-        const chiave = JSON.stringify([r.payload.cliente_id,r.payload.sede_id || '',r.payload.tipo,
-          pulisciImportPresidi(r.payload.matricola),pulisciImportPresidi(r.payload.ubicazione)]);
+                const chiave = JSON.stringify([
+          r.payload.cliente_id,
+          r.payload.sede_id || '',
+          r.payload.tipo,
+          pulisciImportPresidi(r.payload.matricola),
+          pulisciImportPresidi(r.payload.numero_progressivo),
+          pulisciImportPresidi(r.payload.ubicazione)
+        ]);
         if (!id) id = creati.get(chiave);
         if (!id) {
           const {data,error} = await db.from('impianti').insert(r.payload).select('id').single();
