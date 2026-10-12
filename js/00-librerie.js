@@ -65,16 +65,17 @@ async function caricaLibreriePDF() {
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
     () => !!window.jspdf?.jsPDF
   );
-async function caricaLibreriaPDFLib() {
-  await caricaScriptLibreria(
-    'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',
-    () => !!window.PDFLib?.PDFDocument
-  );
-}
 
   await caricaScriptLibreria(
     'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',
     () => typeof window.jspdf?.jsPDF?.API?.autoTable === 'function'
+  );
+}
+
+async function caricaLibreriaPDFLib() {
+  await caricaScriptLibreria(
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',
+    () => !!window.PDFLib?.PDFDocument
   );
 }
 
