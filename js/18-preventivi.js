@@ -4329,6 +4329,13 @@ if (!(await preparaPDF())) return;
   }
 
   doc.autoTable({
+margin: {
+  top: 18,
+  right: margine,
+  bottom: 82,
+  left: margine
+},
+
     startY: y + 4,
     head: [[
       'Descrizione',
@@ -4337,6 +4344,8 @@ if (!(await preparaPDF())) return;
       'Prezzo unit.',
       'Totale'
     ]],
+    
+    
     body: voci.map(function(voce) {
       const quantita = numeroPreventivo(voce.quantita);
       const prezzo = numeroPreventivo(voce.prezzo_unitario);
@@ -4366,11 +4375,12 @@ if (!(await preparaPDF())) return;
       3: { halign: 'right', cellWidth: 34 },
       4: { halign: 'right', cellWidth: 34 }
     }
+    
   });
 
   y = doc.lastAutoTable.finalY + 12;
 
-  if (y > 245) {
+  if (y > 210) {
     doc.addPage();
     y = 20;
   }
@@ -4408,7 +4418,7 @@ if (!(await preparaPDF())) return;
   function sezione(titolo, testo) {
     if (!testo) return;
 
-    if (y > 255) {
+    if (y > 210) {
       doc.addPage();
       y = 20;
     }
@@ -4426,7 +4436,7 @@ if (!(await preparaPDF())) return;
 
     const righe = doc.splitTextToSize(testo, 178);
 
-    if (y + righe.length * 5 > 280) {
+    if (y + righe.length * 5 > 215) {
       doc.addPage();
       y = 20;
     }
@@ -4445,16 +4455,458 @@ if (!(await preparaPDF())) return;
     preventivo.note
   );
 
-  doc.setFontSize(7);
-  doc.setTextColor(120, 120, 120);
-  doc.text(
-    'Documento generato il ' +
-    new Date().toLocaleString('it-IT') +
-    ' — Toli Fire',
-    larghezza / 2,
-    290,
-    { align: 'center' }
-  );
+const condizioniGenerali = String.raw`
+1. OGGETTO E LIMITI DELLA PRESTAZIONE
+
+Il presente preventivo comprende esclusivamente le forniture, le prestazioni, le lavorazioni, le quantità e le attività espressamente indicate nel documento e negli eventuali allegati richiamati. Qualsiasi attività, materiale, accessorio, lavorazione, collegamento, verifica, prova, certificazione, dichiarazione, relazione tecnica o adempimento non espressamente riportato si intende escluso dal prezzo e, ove richiesto o necessario, sarà oggetto di separata quotazione.
+
+Le descrizioni sintetiche delle lavorazioni devono essere interpretate in relazione all’effettivo oggetto del preventivo e non comportano l’assunzione di obblighi ulteriori rispetto a quelli espressamente concordati e previsti dalla normativa applicabile.
+
+2. ESCLUSIONI E LAVORAZIONI AGGIUNTIVE
+
+Salvo espressa indicazione contraria, sono esclusi dal presente preventivo:
+
+* opere murarie, demolizioni, ripristini edili, tinteggiature e finiture;
+* opere elettriche, cablaggi, alimentazioni, collegamenti a quadri o centrali e predisposizioni impiantistiche non espressamente descritti;
+* ponteggi, piattaforme aeree, mezzi di sollevamento, opere provvisionali e sistemi di accesso in quota;
+* smontaggio, rimontaggio, spostamento o modifica di impianti, strutture, arredi e componenti esistenti;
+* bonifica, rimozione o smaltimento di materiali pericolosi;
+* progettazioni, calcoli, pratiche amministrative, autorizzazioni, asseverazioni, certificazioni e prestazioni professionali non espressamente indicate;
+* interventi su impianti, componenti o opere eseguiti da terzi;
+* qualsiasi ulteriore prestazione non espressamente inclusa.
+
+Qualora, durante l’esecuzione, emergano lavorazioni ulteriori necessarie per completare l’intervento richiesto, ripristinare condizioni non conformi o affrontare circostanze non ragionevolmente rilevabili in fase di sopralluogo, Toli Fire ne darà comunicazione al cliente e formulerà, ove necessario, un’offerta integrativa. Le attività aggiuntive saranno eseguite previa approvazione del cliente, salvo gli interventi urgenti consentiti dalla legge o necessari per evitare un pericolo immediato, nei limiti delle autorizzazioni ricevute e della normativa applicabile.
+
+3. SOPRALLUOGHI E CONDIZIONI ESISTENTI
+
+Il preventivo è formulato sulla base delle informazioni ricevute, della documentazione disponibile e delle condizioni dei luoghi ragionevolmente verificabili al momento del sopralluogo, ove effettuato.
+
+Eventuali difformità, impedimenti, vizi occulti, condizioni non accessibili, difetti strutturali, incompatibilità tecniche, carenze documentali o anomalie non rilevabili mediante le verifiche ordinarie potranno comportare la revisione delle modalità operative, dei tempi e dei corrispettivi.
+
+Il sopralluogo non costituisce, di per sé, un’indagine distruttiva, una verifica integrale di tutte le opere esistenti o una certificazione generale di conformità dell’immobile e degli impianti.
+
+4. MATERIALI, MODELLI, MARCHE E FINITURE
+
+I prodotti saranno forniti secondo le caratteristiche tecniche, le quantità e le eventuali marche, i modelli e le finiture espressamente indicati nel preventivo.
+
+In assenza di specifiche contrattuali, Toli Fire potrà proporre prodotti e soluzioni tecnicamente idonei all’impiego previsto, conformi ai requisiti normativi applicabili e compatibili con le condizioni rilevate, senza che sia automaticamente inclusa la fornitura di prodotti di fascia premium, finiture speciali, personalizzazioni estetiche o marchi specifici.
+
+Eventuali sostituzioni di prodotto saranno effettuate nel rispetto della normativa applicabile e, quando incidano su caratteristiche essenziali concordate, previa approvazione del cliente.
+
+Le richieste di variazione di marca, modello, colore, finitura, prestazione, accessorio o modalità di posa formulate dopo l’accettazione del preventivo potranno comportare una variazione del prezzo e dei tempi di consegna o di esecuzione.
+
+5. PREZZI E PRESTAZIONI NON INCLUSE
+
+I corrispettivi indicati si riferiscono esclusivamente alle prestazioni descritte nel preventivo. IVA e altri oneri saranno applicati secondo il regime fiscale e la normativa vigente.
+
+Eventuali quantità aggiuntive, materiali supplementari, trasferte ulteriori, interventi fuori orario, accessi ripetuti non imputabili a Toli Fire, attese in cantiere, urgenze e lavorazioni non previste saranno valorizzati separatamente, ove dovuti, secondo accordi integrativi o listini preventivamente comunicati e accettati.
+
+Nessuna prestazione ulteriore sarà addebitata unilateralmente al cliente al di fuori dei casi consentiti dalla legge o preventivamente concordati.
+
+6. VALIDITÀ DEL PREVENTIVO
+
+Il preventivo è valido fino alla data espressamente indicata. In mancanza di una data, la validità è di 30 giorni dalla data di emissione.
+
+Decorso tale termine, prezzi, disponibilità dei materiali, condizioni di fornitura e tempi di esecuzione potranno essere riconfermati o aggiornati prima dell’accettazione.
+
+Eventuali aumenti dei costi o variazioni sopravvenute dopo la conclusione del contratto saranno gestiti nei limiti consentiti dalla legge e dagli accordi applicabili.
+
+7. ACCETTAZIONE E AVVIO DELLE ATTIVITÀ
+
+L’accettazione del preventivo comporta l’approvazione dell’oggetto, dei prezzi, delle quantità, delle esclusioni e delle condizioni espressamente richiamate.
+
+L’avvio delle attività è subordinato, ove applicabile, alla ricezione dell’accettazione, al pagamento dell’acconto concordato, alla disponibilità dei materiali, alla consegna della documentazione necessaria e alla predisposizione dei luoghi di lavoro.
+
+Eventuali ordini, richieste o istruzioni impartiti da soggetti diversi dal referente autorizzato del cliente dovranno essere verificati prima di eseguire modifiche contrattuali o attività aggiuntive.
+
+8. OBBLIGHI DEL CLIENTE E ACCESSIBILITÀ DEI LUOGHI
+
+Il cliente si impegna a garantire, per le date concordate:
+
+* accesso ai locali e alle aree interessate;
+* disponibilità delle aree di lavoro e rimozione degli ostacoli;
+* presenza di un referente autorizzato;
+* disponibilità di alimentazioni, predisposizioni e servizi espressamente previsti a suo carico;
+* comunicazione preventiva di rischi, interferenze, vincoli di accesso e procedure di sicurezza;
+* consegna della documentazione tecnica e delle informazioni necessarie;
+* ottenimento delle autorizzazioni e dei permessi posti a suo carico;
+* coordinamento con le altre imprese e con il responsabile del sito, ove necessario.
+
+Il cliente dovrà inoltre comunicare eventuali limitazioni operative, orari consentiti, procedure di ingresso, obblighi di registrazione, permessi di lavoro e prescrizioni particolari.
+
+L’indisponibilità dei luoghi o la mancata predisposizione delle condizioni necessarie potrà comportare la riprogrammazione dell’intervento e l’addebito dei costi aggiuntivi documentabili e contrattualmente dovuti.
+
+9. SICUREZZA, INTERFERENZE E SOSPENSIONE OPERATIVA
+
+Toli Fire eseguirà le attività nel rispetto degli obblighi di sicurezza applicabili alla propria prestazione.
+
+Qualora vengano rilevate condizioni di pericolo, interferenze non gestite, accessi non sicuri, assenza delle misure necessarie o situazioni incompatibili con l’esecuzione a regola d’arte, Toli Fire potrà sospendere le lavorazioni interessate nella misura necessaria a tutelare le persone e i beni, informando il cliente e coordinando la ripresa quando le condizioni risultino adeguate.
+
+I ritardi e gli eventuali costi conseguenti saranno valutati in base alle cause, alle responsabilità effettive e agli accordi applicabili. Restano fermi gli obblighi inderogabili in materia di sicurezza e le responsabilità previste dalla legge.
+
+10. TEMPI DI CONSEGNA ED ESECUZIONE
+
+Le date e i tempi indicati sono riferiti alle condizioni operative e alle disponibilità conosciute al momento dell’offerta. Salvo espressa pattuizione scritta, non costituiscono termini essenziali né garanzie di completamento entro una data inderogabile.
+
+I tempi potranno essere adeguati in presenza di ritardi di fornitori, indisponibilità dei prodotti, condizioni meteorologiche incompatibili con le lavorazioni, impedimenti di accesso, varianti richieste dal cliente, interferenze di terzi, sospensioni legittime o altri eventi non imputabili a Toli Fire.
+
+Toli Fire comunicherà, per quanto ragionevolmente possibile, gli impedimenti rilevanti e la nuova previsione di esecuzione.
+
+La presente clausola non esclude i rimedi spettanti al cliente nei casi previsti dalla legge.
+
+11. VARIANTI E MODIFICHE IN CORSO D’OPERA
+
+Qualsiasi modifica alle lavorazioni, alle quantità, ai prodotti, alle modalità di posa, alle caratteristiche estetiche o funzionali e alle tempistiche dovrà essere concordata tra le parti.
+
+Le varianti potranno comportare adeguamenti del corrispettivo, dei tempi e delle modalità di esecuzione. Toli Fire sottoporrà al cliente una conferma scritta della modifica e dei relativi effetti economici, ove applicabile.
+
+Le istruzioni verbali non comportano automaticamente l’inclusione di nuove prestazioni nel prezzo originario. Le richieste urgenti dovranno essere confermate per iscritto, fatti salvi gli interventi consentiti dalla legge.
+
+12. RICHIESTE ESTETICHE E PREFERENZE DEL CLIENTE
+
+Salvo specifica indicazione nel preventivo, la prestazione è finalizzata al risultato tecnico e funzionale concordato e non comprende lavorazioni aggiuntive volte a ottenere particolari risultati estetici, mimetizzazioni, allineamenti speciali, finiture personalizzate o uniformità con elementi preesistenti.
+
+Le preferenze estetiche dovranno essere comunicate prima dell’accettazione e, se rilevanti per il prezzo o per la scelta dei materiali, dovranno risultare da una specifica descrizione scritta.
+
+Eventuali richieste formulate dopo l’ordine o durante l’esecuzione saranno valutate come possibili varianti, con eventuali costi e tempi aggiuntivi. Resta fermo l’obbligo di rispettare le caratteristiche espressamente concordate e i requisiti normativi applicabili.
+
+13. IMPIANTI E COMPONENTI PREESISTENTI
+
+In caso di intervento su impianti, dispositivi o componenti preesistenti, Toli Fire risponde delle attività effettivamente affidate ed eseguite, nei limiti del contratto e della normativa applicabile.
+
+Non si intendono inclusi la revisione generale, l’adeguamento integrale, la ricostruzione documentale o la certificazione complessiva dell’impianto, salvo espressa indicazione.
+
+Difetti preesistenti, manomissioni, incompatibilità, componenti deteriorati, assenza di documentazione o interventi di terzi che incidano sul risultato saranno segnalati, ove rilevati. Gli eventuali interventi correttivi ulteriori saranno oggetto di valutazione e, quando necessario, di separata offerta.
+
+La presente clausola non esonera Toli Fire dalle responsabilità relative alle proprie lavorazioni né dagli obblighi di segnalazione previsti dalla legge.
+
+14. PROVE, COLLAUDI E VERIFICHE
+
+Le prove funzionali, i controlli e le verifiche inclusi sono esclusivamente quelli espressamente indicati nel preventivo e quelli obbligatori per legge in relazione alla prestazione affidata.
+
+Prove straordinarie, collaudi specialistici, verifiche di terze parti, prove distruttive, verifiche integrali dell’immobile, pratiche presso enti e ulteriori attività non comprese saranno quotati separatamente, quando richiesti o necessari.
+
+L’esito delle prove sarà riferito alle condizioni riscontrate al momento dell’esecuzione e non costituisce garanzia di assenza di guasti futuri o di corretto funzionamento di componenti estranei all’intervento.
+
+15. DOCUMENTAZIONE TECNICA E CERTIFICAZIONI
+
+Toli Fire consegnerà la documentazione prevista dalla normativa applicabile e quella espressamente compresa nell’incarico, purché sussistano i presupposti tecnici e documentali per il suo rilascio.
+
+Non sono incluse, salvo indicazione espressa, relazioni di professionisti esterni, progetti, asseverazioni, certificazioni di prodotti o opere di terzi, documenti non spettanti a Toli Fire o documentazione relativa a lavori precedenti non eseguiti dalla società.
+
+Il rilascio di dichiarazioni, verbali e certificazioni è subordinato alla verifica dei requisiti applicabili e alla disponibilità delle informazioni necessarie. Nessun documento sarà emesso in assenza dei presupposti previsti dalla legge.
+
+16. MANUTENZIONE DEI PRESIDI ANTINCENDIO
+
+Gli interventi di manutenzione sono limitati ai dispositivi, alle quantità, alle attività e alle periodicità espressamente indicati nell’offerta o nel contratto.
+
+Non si intendono compresi, salvo esplicita previsione, sostituzioni integrali, ricambi straordinari, riparazioni per danneggiamenti, adeguamenti normativi, interventi su dispositivi non censiti, manutenzioni di impianti di terzi o attività rese necessarie da uso improprio, manomissione, incuria o eventi accidentali.
+
+Le anomalie riscontrate saranno segnalate al cliente e, ove necessario, sarà proposta la relativa attività correttiva.
+
+Le attività manutentive non sostituiscono gli obblighi di gestione della sicurezza antincendio del cliente, né le verifiche, le attività e gli adempimenti che restano a carico dei soggetti individuati dalla normativa applicabile.
+
+17. SOSTITUZIONI, RIPARAZIONI E MATERIALI DI CONSUMO
+
+Ricambi, componenti, batterie, guarnizioni, accessori, ricariche, sostituzioni di dispositivi e materiali di consumo sono inclusi esclusivamente quando indicati nel preventivo o nel contratto di manutenzione.
+
+Quando durante l’intervento emerga la necessità di sostituire un componente non incluso, Toli Fire ne comunicherà la necessità e il relativo costo prima dell’esecuzione, salvo le eccezioni legittimamente applicabili.
+
+La sostituzione di un singolo componente non implica l’adeguamento o la sostituzione di tutte le parti correlate, se non espressamente concordati o imposti dalla normativa applicabile.
+
+18. CORRISPETTIVI E MODALITÀ DI PAGAMENTO
+
+Il cliente si impegna a effettuare i pagamenti secondo le scadenze e le modalità riportate nel preventivo o nella conferma d’ordine.
+
+In caso di mancato o ritardato pagamento si applicheranno, ove ne ricorrano i presupposti, gli interessi moratori e gli ulteriori rimedi previsti dalla normativa applicabile, compresa quella sui ritardi di pagamento nelle transazioni commerciali.
+
+Eventuali contestazioni dovranno essere comunicate tempestivamente e in modo circostanziato. Le contestazioni non giustificate non autorizzano automaticamente la sospensione del pagamento di somme dovute e non contestate, nei limiti consentiti dalla legge.
+
+19. SOSPENSIONE PER INADEMPIMENTO
+
+In caso di mancato pagamento, mancata collaborazione essenziale o grave inadempimento del cliente, Toli Fire potrà avvalersi dei rimedi previsti dalla legge e dal contratto, compresa, quando ne ricorrano i presupposti, la sospensione delle prestazioni future previa comunicazione scritta.
+
+La sospensione sarà gestita tenendo conto degli obblighi di sicurezza, delle prestazioni già eseguite, dei materiali ordinati e delle disposizioni inderogabili applicabili.
+
+La ripresa delle attività potrà richiedere la regolarizzazione delle somme scadute e la riprogrammazione degli interventi. Eventuali costi aggiuntivi dovranno essere giustificati e dovuti secondo gli accordi e la normativa applicabile.
+
+20. IMPOSSIBILITÀ DI ESECUZIONE E ACCESSI A VUOTO
+
+Qualora l’intervento non possa essere eseguito per cause imputabili al cliente, quali indisponibilità dei locali, assenza del referente, mancata autorizzazione all’accesso, aree non predisposte o mancata comunicazione di vincoli rilevanti, le parti concorderanno una nuova data.
+
+Gli eventuali costi documentabili di trasferta, personale, mezzi, attese o riprogrammazione potranno essere addebitati quando previsti dal contratto, comunicati preventivamente o comunque dovuti in base alla legge.
+
+La riprogrammazione non comporta l’automatica rinuncia di Toli Fire ai diritti derivanti dall’inadempimento del cliente.
+
+21. SOSPENSIONE RICHIESTA DAL CLIENTE
+
+La richiesta di sospensione o rinvio dei lavori dovrà essere comunicata per iscritto.
+
+Le parti concorderanno gli effetti sulla programmazione, sulla disponibilità dei materiali, sulle consegne e sui costi già sostenuti o non recuperabili. Eventuali costi di smobilitazione, custodia, trasporto, riavvio o nuova programmazione saranno addebitabili nei limiti in cui siano documentati, contrattualmente previsti o altrimenti dovuti.
+
+La sospensione non annulla automaticamente gli obblighi di pagamento relativi alle prestazioni già eseguite o ai materiali già forniti.
+
+22. CONSEGNA E VERIFICA DELLE PRESTAZIONI
+
+Al termine delle attività, il cliente è invitato a verificare le prestazioni eseguite e a segnalare per iscritto eventuali difformità specifiche, indicando le lavorazioni interessate.
+
+La firma di verbali di intervento, rapportini o documenti di consegna attesta quanto effettivamente riportato nel documento sottoscritto e non comporta la rinuncia ai diritti inderogabili del cliente né esclude la responsabilità per vizi non immediatamente riconoscibili.
+
+Eventuali osservazioni saranno esaminate da Toli Fire e gestite secondo il contratto e la normativa applicabile.
+
+23. GARANZIA E DIFETTI DELLE PRESTAZIONI
+
+Restano applicabili le garanzie e le responsabilità previste dalla legge in relazione alla natura del contratto, alla qualità di professionista o consumatore delle parti e alla tipologia di fornitura o lavorazione.
+
+Le segnalazioni relative a difetti dovranno essere comunicate nei termini e con le modalità previsti dalla normativa applicabile.
+
+Sono estranei alla garanzia per le prestazioni eseguite da Toli Fire i guasti effettivamente riconducibili a uso improprio, manomissioni, mancata manutenzione, interventi non autorizzati, danneggiamenti accidentali o cause esterne, nella misura in cui tali circostanze abbiano causato il difetto contestato.
+
+Le garanzie eventualmente riconosciute dai produttori saranno applicate secondo le relative condizioni, senza pregiudizio per i diritti inderogabili spettanti al cliente nei confronti di Toli Fire.
+
+24. RESPONSABILITÀ E LIMITI DELL’INCARICO
+
+Ciascuna parte risponde degli obblighi di propria competenza e delle conseguenze dei propri inadempimenti secondo la legge.
+
+Toli Fire non assume responsabilità per difetti preesistenti, attività svolte da terzi, manomissioni o modifiche estranee al proprio incarico, salvo che tali eventi siano causalmente riconducibili a condotte imputabili a Toli Fire.
+
+Nessuna disposizione del presente preventivo esclude o limita responsabilità che non possano essere escluse o limitate per legge, né gli obblighi inderogabili relativi alla sicurezza, alla conformità delle prestazioni o alla tutela dei diritti del cliente.
+
+25. OBBLIGHI DEL CLIENTE IN MATERIA DI SICUREZZA ANTINCENDIO
+
+Il cliente resta responsabile degli obblighi che la normativa attribuisce al proprietario, al datore di lavoro, al gestore dell’attività o agli altri soggetti competenti, inclusi quelli relativi alla gestione della sicurezza antincendio, alla formazione, alle procedure di emergenza, alla tenuta della documentazione e alla disponibilità dei presidi.
+
+Toli Fire svolge le attività affidate nei limiti dell’incarico accettato. L’acquisto, l’installazione o la manutenzione di singoli dispositivi non costituisce automaticamente attestazione di conformità complessiva dell’immobile, dell’attività o di tutti gli impianti presenti.
+
+Eventuali ulteriori carenze rilevate durante l’intervento saranno comunicate al cliente, ove ragionevolmente identificabili nell’ambito della prestazione.
+
+26. FORNITORI, DISPONIBILITÀ E APPROVVIGIONAMENTO
+
+Le forniture sono soggette alla disponibilità dei prodotti e ai tempi di approvvigionamento comunicati dai produttori e distributori.
+
+In caso di indisponibilità o ritardo, Toli Fire informerà il cliente e potrà proporre una nuova tempistica o, ove tecnicamente e contrattualmente ammissibile, una soluzione alternativa da sottoporre ad approvazione.
+
+Non saranno effettuate sostituzioni che alterino caratteristiche essenziali concordate senza il consenso richiesto. Eventuali ritardi saranno gestiti secondo le disposizioni contrattuali e normative applicabili.
+
+27. FORZA MAGGIORE E IMPEDIMENTI ESTERNI
+
+In presenza di eventi straordinari non ragionevolmente controllabili dalla parte interessata, che impediscano o ritardino l’esecuzione, le parti coopereranno per individuare soluzioni ragionevoli, aggiornare la programmazione e limitare gli effetti dell’impedimento.
+
+La parte interessata comunicherà l’evento e i suoi effetti non appena ragionevolmente possibile. Restano applicabili le regole di legge in materia di impossibilità della prestazione, ritardo, responsabilità e risoluzione del contratto.
+
+28. COMUNICAZIONI E REFERENTI AUTORIZZATI
+
+Le comunicazioni relative a varianti, approvazioni, sospensioni, contestazioni, prezzi aggiuntivi e modifiche dei tempi dovranno essere effettuate mediante i recapiti aziendali indicati nel preventivo o mediante altri canali scritti concordati.
+
+Il cliente è tenuto a indicare i soggetti autorizzati a impartire istruzioni e approvare modifiche. Toli Fire potrà chiedere conferma al referente contrattuale quando riceva indicazioni da soggetti la cui autorità non risulti chiara.
+
+29. TRATTAMENTO DEI DATI PERSONALI
+
+I dati personali eventualmente raccolti saranno trattati per finalità connesse alla gestione del rapporto contrattuale, agli obblighi di legge e alle ulteriori finalità legittime indicate nell’informativa privacy di Toli Fire, nel rispetto della normativa applicabile.
+
+30. DISPOSIZIONI FINALI
+
+Le presenti condizioni si applicano nella misura in cui siano state rese disponibili al cliente prima della conclusione del contratto e siano state validamente accettate o incorporate nel rapporto contrattuale.
+
+Eventuali deroghe o accordi particolari dovranno risultare da comunicazione scritta approvata dalle parti. In caso di contrasto, prevarranno le condizioni specifiche espressamente concordate, nei limiti consentiti dalla legge.
+
+L’eventuale invalidità o inefficacia di una singola disposizione non comporterà automaticamente l’invalidità delle restanti disposizioni, purché queste possano conservare efficacia autonomamente.
+
+Per quanto non espressamente disciplinato, si applicano le disposizioni della legge italiana.
+
+31. APPROVAZIONE DEL PREVENTIVO
+
+Il cliente dichiara di aver ricevuto e letto il preventivo, di averne compreso l’oggetto, le quantità, i prezzi, le esclusioni e le condizioni applicabili e di accettare le prestazioni espressamente indicate.
+`;
+
+function aggiungiCondizioniGeneraliPreventivo(testo) {
+  const margineCondizioni = 15;
+  const larghezzaTesto = larghezza - (margineCondizioni * 2);
+  const fondoPagina = 215;
+
+  let yCondizioni = 20;
+  let paginaCondizioni = 0;
+
+  function footerCondizioni() {
+   // Il footer unico con articoli viene disegnato alla fine su tutte le pagine.
+  }
+
+ function nuovaPaginaCondizioni() {
+  if (paginaCondizioni > 0) {
+    footerCondizioni();
+  }
+
+  doc.addPage();
+  paginaCondizioni++;
+
+  if (paginaCondizioni === 1) {
+    yCondizioni = 20;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(8, 80, 65);
+
+    doc.text(
+      'CONDIZIONI GENERALI DI FORNITURA, INSTALLAZIONE,',
+      margineCondizioni,
+      yCondizioni
+    );
+
+    yCondizioni += 5;
+
+    doc.text(
+      'MANUTENZIONE E LAVORI ANTINCENDIO',
+      margineCondizioni,
+      yCondizioni
+    );
+
+    yCondizioni += 9;
+  } else {
+    yCondizioni = 20;
+  }
+}
+
+  function scriviBlocco(testoBlocco, titolo) {
+    const righe = doc.splitTextToSize(testoBlocco, larghezzaTesto);
+    const altezza = righe.length * (titolo ? 4.6 : 4.1) + 4;
+
+    if (yCondizioni + altezza > fondoPagina) {
+      nuovaPaginaCondizioni();
+    }
+
+    doc.setFont(
+      'helvetica',
+      titolo ? 'bold' : 'normal'
+    );
+
+    doc.setFontSize(titolo ? 9 : 8);
+    doc.setTextColor(titolo ? 8 : 45, titolo ? 80 : 45, titolo ? 65 : 45);
+
+    doc.text(righe, margineCondizioni, yCondizioni);
+    yCondizioni += altezza;
+  }
+
+  nuovaPaginaCondizioni();
+
+  testo.trim().split(/\n\s*\n/).forEach(function(blocco) {
+    const righeOriginali = blocco
+      .split('\n')
+      .map(function(riga) {
+        return riga.trim();
+      })
+      .filter(Boolean);
+
+    if (!righeOriginali.length) return;
+
+    const titolo = /^\d+\.\s+[A-ZÀ-Ú]/.test(righeOriginali[0]);
+
+    if (righeOriginali.every(function(riga) {
+      return riga.startsWith('* ');
+    })) {
+      righeOriginali.forEach(function(riga) {
+        scriviBlocco('• ' + riga.slice(2), false);
+      });
+      return;
+    }
+
+    scriviBlocco(
+      righeOriginali.join(' '),
+      titolo
+    );
+  });
+
+  footerCondizioni();
+}
+
+aggiungiCondizioniGeneraliPreventivo(condizioniGenerali);
+
+
+
+  const clausoleSpecifiche = [
+  'APPROVAZIONE SPECIFICA DELLE CLAUSOLE',
+  'Ai sensi e per gli effetti degli articoli 1341 e 1342 del Codice civile, ove applicabili, il cliente dichiara di approvare specificamente le seguenti disposizioni delle Condizioni Generali:',
+  '',
+  '• Art. 2 — Esclusioni e lavorazioni aggiuntive.',
+  '• Art. 3 — Sopralluoghi e condizioni esistenti.',
+  '• Art. 4 — Materiali, modelli, marche e finiture.',
+  '• Art. 6 — Validità del preventivo.',
+  '• Art. 8 — Obblighi del cliente e accessibilità dei luoghi.',
+  '• Art. 9 — Sicurezza, interferenze e sospensione operativa.',
+  '• Art. 10 — Tempi di consegna ed esecuzione.',
+  '• Art. 11 — Varianti e modifiche in corso d’opera.',
+  '• Art. 18 — Corrispettivi e modalità di pagamento.',
+  '• Art. 19 — Sospensione per inadempimento.',
+  '• Art. 20 — Impossibilità di esecuzione e accessi a vuoto.',
+  '• Art. 21 — Sospensione richiesta dal cliente.',
+  '• Art. 22 — Consegna e verifica delle prestazioni.',
+  '• Art. 23 — Garanzia e difetti delle prestazioni.',
+  '• Art. 24 — Responsabilità e limiti dell’incarico.',
+  '• Art. 26 — Fornitori, disponibilità e approvvigionamento.',
+  '• Art. 27 — Forza maggiore e impedimenti esterni.'
+].join('\n');
+
+function disegnaFooterClausoleSuTutteLePagine() {
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.4);
+  doc.setTextColor(90, 90, 90);
+  doc.setLineHeightFactor(1.05);
+
+  const righeOriginali = clausoleSpecifiche
+  .split('\n')
+  .map(function(riga) {
+    return riga.trim();
+  })
+  .filter(Boolean);
+
+const titoloFooter = righeOriginali.shift();
+
+const testoFooterCompatto = righeOriginali.join(' ');
+
+const righeFooter = [
+  titoloFooter,
+  ...doc.splitTextToSize(
+    testoFooterCompatto,
+    larghezza - (margine * 2)
+  )
+];
+  const altezzaRiga =
+    (6.4 / doc.internal.scaleFactor) * 1.05;
+
+  const yFooter =
+    282 - ((righeFooter.length - 1) * altezzaRiga);
+
+  const totalePagine = doc.getNumberOfPages();
+
+  for (let pagina = 1; pagina <= totalePagine; pagina++) {
+    doc.setPage(pagina);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.4);
+    doc.setTextColor(90, 90, 90);
+    doc.setLineHeightFactor(1.05);
+
+ doc.text(
+  righeFooter,
+  larghezza / 2,
+  yFooter,
+  { align: 'center' }
+);
+
+    doc.setFontSize(7);
+    doc.setTextColor(120, 120, 120);
+
+    doc.text(
+      'Documento generato il ' +
+      new Date().toLocaleString('it-IT') +
+      ' — Toli Fire',
+      larghezza / 2,
+      290,
+      { align: 'center' }
+    );
+  }
+}
+
+disegnaFooterClausoleSuTutteLePagine();
 
  const nomeFile = `Preventivo_${preventivo.numero}_Toli_Fire_${Date.now()}.pdf`;
 
@@ -4951,6 +5403,73 @@ async function segnaRichiestaFornitoreInviata(selezioneId) {
   await renderFornitoriPreventivo();
 }
 
+async function unisciPdfAllegatiRichiesta(doc, allegatiPdf) {
+  if (!allegatiPdf.length) {
+    return doc.output('blob');
+  }
+
+  await caricaLibreriaPDFLib();
+
+  const PdfDocument = window.PDFLib.PDFDocument;
+  const pdfFinale = await PdfDocument.load(
+    doc.output('arraybuffer')
+  );
+
+  for (const file of allegatiPdf) {
+    const { data: urlData, error: erroreUrl } = await db.storage
+      .from('progetti-tecnici')
+      .createSignedUrl(file.storage_path, 600);
+
+    if (erroreUrl || !urlData?.signedUrl) {
+      throw new Error(
+        'PDF allegato non disponibile: ' + file.nome_file
+      );
+    }
+
+    const risposta = await fetch(urlData.signedUrl);
+
+    if (!risposta.ok) {
+      throw new Error(
+        'Non riesco a scaricare: ' + file.nome_file
+      );
+    }
+
+    const pdfAllegato = await PdfDocument.load(
+      await risposta.arrayBuffer()
+    );
+
+    const pagine = await pdfFinale.copyPages(
+      pdfAllegato,
+      pdfAllegato.getPageIndices()
+    );
+
+    pagine.forEach(function(pagina) {
+      pdfFinale.addPage(pagina);
+    });
+  }
+
+  return new Blob(
+    [await pdfFinale.save()],
+    { type: 'application/pdf' }
+  );
+}
+
+function scaricaBlobRichiesta(blob, nomeFile) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = nomeFile;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(function() {
+    URL.revokeObjectURL(url);
+  }, 1000);
+}
+
 async function generaRichiestaQuotazionePDF(selezioneId) {
     const allegatiSelezionatiOra = Array.from(
     document.querySelectorAll(
@@ -5050,6 +5569,7 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
     : [];
 
   let fotoDaInserire = [];
+let pdfDaInserire = [];
 
   if (idsAllegati.length) {
     const { data: allegati, error: erroreAllegati } = await db
@@ -5073,6 +5593,13 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
       return tipo.startsWith('image/') ||
         /\.(jpg|jpeg|png)$/i.test(nome);
     });
+pdfDaInserire = (allegati || []).filter(function(file) {
+  const tipo = String(file.mime_type || '').toLowerCase();
+  const nome = String(file.nome_file || '').toLowerCase();
+
+  return tipo === 'application/pdf' || nome.endsWith('.pdf');
+});
+
   }
 
   const versione = Number(selezione.richiesta_versione || 0) + 1;
@@ -5307,6 +5834,7 @@ if (progetto.materiali_note) {
   doc.setFontSize(7);
   doc.setTextColor(120, 120, 120);
 
+
   doc.text(
     'Documento generato il ' +
     new Date().toLocaleString('it-IT') +
@@ -5316,21 +5844,43 @@ if (progetto.materiali_note) {
     { align: 'center' }
   );
 
+
+
   const nomeFornitore = String(
     fornitore.ragione_sociale || 'fornitore'
   )
     .replace(/[^a-z0-9]+/gi, '_')
     .replace(/^_+|_+$/g, '');
 
-  doc.save(
-    'Richiesta_quotazione_RQ-' +
-    preventivo.numero +
-    '-V' +
-    versione +
-    '_' +
-    nomeFornitore +
-    '.pdf'
+const nomeFileRichiesta =
+  'Richiesta_quotazione_RQ-' +
+  preventivo.numero +
+  '-V' +
+  versione +
+  '_' +
+  nomeFornitore +
+  '.pdf';
+
+let pdfFinale;
+
+try {
+  pdfFinale = await unisciPdfAllegatiRichiesta(
+    doc,
+    pdfDaInserire
   );
+} catch (errorePdf) {
+  toast(
+    'Impossibile aggiungere il PDF allegato: ' +
+    errorePdf.message,
+    'err'
+  );
+  return;
+}
+
+scaricaBlobRichiesta(
+  pdfFinale,
+  nomeFileRichiesta
+);
 
   const { error: erroreAggiornamento } = await db
     .from('preventivi_fornitori')

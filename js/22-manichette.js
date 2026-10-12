@@ -163,7 +163,10 @@ confermaImportPresidi = async function() {
   if (!gestisceStoricoPresidi()) {toast('Importazione riservata a capo tecnico e titolare.','err');return;}
   const cliente = ge('import-presidi-cliente')?.selectedOptions?.[0]?.textContent || '';
   const sede = ge('import-presidi-sede')?.selectedOptions?.[0]?.textContent || '';
-  if (!confirm(`Importare ${righe.length} manichette in ${cliente} → ${sede}? Le scadenze restano individuali. Nessun semestre viene assegnato.`)) return;
+  const riferimento = chiediRiferimentoManichette();
+  if (!riferimento) return;
+  righe.forEach(r => Object.assign(r.payload,riferimento));
+  if (!confirm(`Importare ${righe.length} manichette in ${cliente} → ${sede}? Le scadenze restano individuali. Le schede verranno registrate nel semestre scelto.`)) return;
   const bottone = ge('import-presidi-conferma');
   if (bottone.disabled) return;
   bottone.disabled=true;
@@ -187,7 +190,7 @@ confermaImportPresidi = async function() {
       } catch(e) {errori.push(`Riga ${r.numeroRiga}: ${e.message}`);}
     }
     ge('import-presidi-riepilogo').textContent=`Schede inserite: ${inserite}; già presenti: ${saltate}. ${errori.join(' · ')}`;
-    toast(errori.length ? 'Importazione con errori: leggi il riepilogo.' : 'Manichette importate senza periodo semestrale.',errori.length ? 'err':'ok');
+    toast(errori.length ? 'Importazione con errori: leggi il riepilogo.' : 'Manichette importate nel semestre scelto.',errori.length ? 'err':'ok');
     await loadPresidi();
   } finally {bottone.disabled=false;}
 };
