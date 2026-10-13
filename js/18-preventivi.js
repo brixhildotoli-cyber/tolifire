@@ -3668,57 +3668,24 @@ function cardCertificatoPreventivo(certificato, origine) {
     ? '📄 Certificato del commerciale'
     : '📄 Certificato del titolare';
 
-  if (!certificato) {
-    if (origine === 'commerciale' && ROLE === 'titolare') {
-      return `
-        <div class="card" style="margin-bottom:14px">
-          <b>${titolo}</b>
-          <p class="muted" style="margin-top:8px">
-            Il commerciale non ha ancora caricato un certificato.
-          </p>
-        </div>
-      `;
-    }
-
-    return `
-      <div class="card" style="margin-bottom:14px">
-        <b>${titolo}</b>
-        <p class="muted" style="margin-top:8px">Nessun PDF caricato.</p>
-
-        ${puoGestire ? `
-          <input
-            type="file"
-            id="certificato-file-${origine}"
-            accept="application/pdf"
-            style="margin-top:10px"
-          >
-
-          <button
-            class="btn primary"
-            style="margin-top:10px"
-            onclick="caricaCertificatoPreventivo('${origine}')"
-          >
-            📤 Carica PDF
-          </button>
-        ` : ''}
-      </div>
-    `;
-  }
-
   const statoInvio = certificato.inviato_il
     ? `<span class="badge green">✓ Inviato all’ingegnere il ${formatoDataOraCertificato(certificato.inviato_il)}</span>`
     : `<span class="badge yellow">Da inviare all’ingegnere</span>`;
 
+  const inputId = `certificato-file-${certificato.id}`;
+
   return `
     <div class="card" style="margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;gap:12px;align-items:start">
-        <div>
-          <b>${titolo}</b>
-          <div style="margin-top:8px">${statoInvio}</div>
-        </div>
+      <b>${titolo}</b>
+
+      <div style="margin-top:8px">
+        ${statoInvio}
       </div>
 
-      <p style="margin:12px 0 4px"><b>File:</b> ${esc(certificato.nome_file)}</p>
+      <p style="margin:12px 0 4px">
+        <b>File:</b> ${esc(certificato.nome_file)}
+      </p>
+
       <p class="muted" style="margin:0">
         Caricato il ${formatoDataOraCertificato(certificato.caricato_il)}
       </p>
@@ -3733,25 +3700,60 @@ function cardCertificatoPreventivo(certificato, origine) {
             class="btn primary"
             onclick="inviaCertificatoAllIngegnere('${certificato.id}')"
           >
-            ${certificato.inviato_il ? '↻ Reinvia all’ingegnere' : '📨 Invia all’ingegnere'}
+            ${certificato.inviato_il
+              ? '↻ Reinvia all’ingegnere'
+              : '📨 Invia all’ingegnere'}
           </button>
 
           <input
             type="file"
-            id="certificato-file-${origine}"
-            accept="application/pdf"
+            id="${inputId}"
+            accept="application/pdf,.pdf"
             style="margin-top:10px"
           >
 
           <button
             class="btn"
             style="margin-top:10px"
-            onclick="caricaCertificatoPreventivo('${origine}')"
+            onclick="caricaCertificatoPreventivo('${origine}', '${certificato.id}')"
           >
-            🔄 Sostituisci PDF
+            🔄 Sostituisci questo PDF
           </button>
         ` : ''}
       </div>
+    </div>
+  `;
+}
+
+function caricatoreCertificatiPreventivo(origine) {
+  const puoCaricare =
+    (ROLE === 'commerciale' && origine === 'commerciale') ||
+    (ROLE === 'titolare' && origine === 'titolare');
+
+  if (!puoCaricare) return '';
+
+  return `
+    <div class="card" style="margin-bottom:14px">
+      <b>➕ Aggiungi certificati</b>
+
+      <p class="muted" style="margin:8px 0">
+        Puoi selezionare più PDF insieme.
+      </p>
+
+      <input
+        type="file"
+        id="certificati-file-nuovi-${origine}"
+        accept="application/pdf,.pdf"
+        multiple
+      >
+
+      <button
+        class="btn primary"
+        style="margin-top:10px"
+        onclick="caricaNuoviCertificatiPreventivo('${origine}')"
+      >
+        📤 Carica certificati selezionati
+      </button>
     </div>
   `;
 }
@@ -3766,23 +3768,41 @@ async function renderCertificatiPreventivo() {
     .from('preventivi_certificati')
     .select('*')
     .eq('preventivo_id', currentPreventivoId)
-    .order('origine');
+    .order('caricato_il', { ascending: false });
 
   if (error) {
-    box.innerHTML = `<div class="empty">Errore nel caricamento dei certificati: ${esc(error.message)}</div>`;
+    box.innerHTML = `
+      <div class="empty">
+        Errore nel caricamento dei certificati: ${esc(error.message)}
+      </div>
+    `;
     return;
   }
 
-  const commerciale = (data || []).find(x => x.origine === 'commerciale');
-  const titolare = (data || []).find(x => x.origine === 'titolare');
+  const certificatiCommerciale = (data || []).filter(function(certificato) {
+    return certificato.origine === 'commerciale';
+  });
+
+  const certificatiTitolare = (data || []).filter(function(certificato) {
+    return certificato.origine === 'titolare';
+  });
 
   if (ROLE === 'commerciale') {
     box.innerHTML = `
       <div class="info">
-        Carica il certificato del preventivo e invialo direttamente all’ingegnere.
-        Se sostituisci il PDF, dovrai poi reinviarlo.
+        Puoi caricare più certificati PDF. Ogni file può essere inviato,
+        reinviato o sostituito singolarmente.
       </div>
-      ${cardCertificatoPreventivo(commerciale, 'commerciale')}
+
+      ${caricatoreCertificatiPreventivo('commerciale')}
+
+      ${
+        certificatiCommerciale.length
+          ? certificatiCommerciale.map(function(certificato) {
+              return cardCertificatoPreventivo(certificato, 'commerciale');
+            }).join('')
+          : '<div class="empty">Nessun certificato caricato.</div>'
+      }
     `;
     return;
   }
@@ -3790,28 +3810,52 @@ async function renderCertificatiPreventivo() {
   if (ROLE === 'titolare') {
     box.innerHTML = `
       <div class="info">
-        Puoi vedere e correggere il certificato del commerciale.
-        Il tuo certificato riservato non sarà invece visibile al commerciale.
+        Puoi vedere e correggere i certificati del commerciale.
+        I certificati del titolare restano riservati al titolare e all’ingegnere.
       </div>
 
-      ${cardCertificatoPreventivo(commerciale, 'commerciale')}
-      ${cardCertificatoPreventivo(titolare, 'titolare')}
+      <h3 style="margin:16px 0 10px">
+        Certificati del commerciale
+      </h3>
+
+      ${
+        certificatiCommerciale.length
+          ? certificatiCommerciale.map(function(certificato) {
+              return cardCertificatoPreventivo(certificato, 'commerciale');
+            }).join('')
+          : '<div class="empty">Il commerciale non ha ancora caricato certificati.</div>'
+      }
+
+      <h3 style="margin:20px 0 10px">
+        Certificati riservati del titolare
+      </h3>
+
+      ${caricatoreCertificatiPreventivo('titolare')}
+
+      ${
+        certificatiTitolare.length
+          ? certificatiTitolare.map(function(certificato) {
+              return cardCertificatoPreventivo(certificato, 'titolare');
+            }).join('')
+          : '<div class="empty">Nessun certificato del titolare.</div>'
+      }
     `;
   }
 }
 
-async function caricaCertificatoPreventivo(origine) {
-  const input = ge(`certificato-file-${origine}`);
-  const file = input?.files?.[0];
+async function salvaCertificatoPreventivo(origine, file, certificatoId) {
+  const ePdf =
+    file &&
+    (
+      file.type === 'application/pdf' ||
+      /\.pdf$/i.test(file.name)
+    );
 
-  if (!file) {
-    toast('Seleziona prima un PDF', 'err');
-    return;
-  }
-
-  if (file.type !== 'application/pdf') {
-    toast('Puoi caricare soltanto file PDF', 'err');
-    return;
+  if (!ePdf) {
+    return {
+      ok: false,
+      messaggio: 'Puoi caricare soltanto file PDF'
+    };
   }
 
   const puoGestire =
@@ -3819,40 +3863,48 @@ async function caricaCertificatoPreventivo(origine) {
     (ROLE === 'commerciale' && origine === 'commerciale');
 
   if (!puoGestire) {
-    toast('Non hai i permessi per modificare questo certificato', 'err');
-    return;
+    return {
+      ok: false,
+      messaggio: 'Non hai i permessi per modificare questo certificato'
+    };
   }
 
   const { data: utenteData } = await db.auth.getUser();
   const utente = utenteData?.user;
 
   if (!utente) {
-    toast('Sessione non valida. Effettua di nuovo l’accesso.', 'err');
-    return;
+    return {
+      ok: false,
+      messaggio: 'Sessione non valida. Effettua di nuovo l’accesso.'
+    };
   }
 
-  const { data: esistente, error: erroreEsistente } = await db
-    .from('preventivi_certificati')
-    .select('*')
-    .eq('preventivo_id', currentPreventivoId)
-    .eq('origine', origine)
-    .maybeSingle();
+  let esistente = null;
 
-  if (erroreEsistente) {
-    toast(`Errore lettura certificato: ${erroreEsistente.message}`, 'err');
-    return;
+  if (certificatoId) {
+    const { data, error } = await db
+      .from('preventivi_certificati')
+      .select('*')
+      .eq('id', certificatoId)
+      .eq('preventivo_id', currentPreventivoId)
+      .single();
+
+    if (error || !data) {
+      return {
+        ok: false,
+        messaggio: 'Certificato da sostituire non trovato'
+      };
+    }
+
+    esistente = data;
   }
 
   if (ROLE === 'titolare' && origine === 'commerciale' && !esistente) {
-    toast('Il certificato commerciale può essere creato solo dal commerciale', 'err');
-    return;
+    return {
+      ok: false,
+      messaggio: 'Il certificato commerciale può essere creato solo dal commerciale'
+    };
   }
-
-  const conferma = esistente
-    ? confirm('Vuoi sostituire il PDF attuale? Il nuovo file dovrà essere reinviato all’ingegnere.')
-    : true;
-
-  if (!conferma) return;
 
   const { data: preventivo } = await db
     .from('preventivi')
@@ -3864,7 +3916,8 @@ async function caricaCertificatoPreventivo(origine) {
     .replace(/[^a-zA-Z0-9._-]/g, '_')
     .replace(/_+/g, '_');
 
-  const percorso = `${currentPreventivoId}/${origine}/${Date.now()}_${nomeSicuro}`;
+  const percorso =
+    `${currentPreventivoId}/${origine}/${Date.now()}_${nomeSicuro}`;
 
   const { error: erroreUpload } = await db.storage
     .from('certificati-preventivi')
@@ -3875,8 +3928,10 @@ async function caricaCertificatoPreventivo(origine) {
     });
 
   if (erroreUpload) {
-    toast(`Errore caricamento PDF: ${erroreUpload.message}`, 'err');
-    return;
+    return {
+      ok: false,
+      messaggio: `Errore caricamento PDF: ${erroreUpload.message}`
+    };
   }
 
   const datiCertificato = {
@@ -3915,8 +3970,14 @@ async function caricaCertificatoPreventivo(origine) {
   }
 
   if (erroreSalvataggio) {
-    toast(`Errore salvataggio certificato: ${erroreSalvataggio.message}`, 'err');
-    return;
+    await db.storage
+      .from('certificati-preventivi')
+      .remove([percorso]);
+
+    return {
+      ok: false,
+      messaggio: `Errore salvataggio certificato: ${erroreSalvataggio.message}`
+    };
   }
 
   if (esistente?.storage_path) {
@@ -3925,7 +3986,77 @@ async function caricaCertificatoPreventivo(origine) {
       .remove([esistente.storage_path]);
   }
 
-  toast(esistente ? 'PDF sostituito. Ricordati di reinviarlo all’ingegnere.' : 'Certificato caricato');
+  return {
+    ok: true,
+    sostituito: !!esistente
+  };
+}
+
+async function caricaCertificatoPreventivo(origine, certificatoId) {
+  const input = ge(`certificato-file-${certificatoId}`);
+  const file = input?.files?.[0];
+
+  if (!file) {
+    toast('Seleziona prima il PDF sostitutivo', 'err');
+    return;
+  }
+
+  const risultato = await salvaCertificatoPreventivo(
+    origine,
+    file,
+    certificatoId
+  );
+
+  if (!risultato.ok) {
+    toast(risultato.messaggio, 'err');
+    return;
+  }
+
+  toast(
+    'PDF sostituito. Ricordati di reinviarlo all’ingegnere.',
+    'ok'
+  );
+
+  await renderCertificatiPreventivo();
+}
+
+async function caricaNuoviCertificatiPreventivo(origine) {
+  const input = ge(`certificati-file-nuovi-${origine}`);
+  const fileDaCaricare = Array.from(input?.files || []);
+
+  if (!fileDaCaricare.length) {
+    toast('Seleziona almeno un PDF', 'err');
+    return;
+  }
+
+  let caricati = 0;
+  const errori = [];
+
+  for (const file of fileDaCaricare) {
+    const risultato = await salvaCertificatoPreventivo(
+      origine,
+      file,
+      null
+    );
+
+    if (risultato.ok) {
+      caricati++;
+    } else {
+      errori.push(`${file.name}: ${risultato.messaggio}`);
+    }
+  }
+
+  if (errori.length) {
+    toast(errori.join(' · '), 'err');
+  }
+
+  if (caricati) {
+    toast(
+      `${caricati} certificato${caricati === 1 ? '' : 'i'} caricato${caricati === 1 ? '' : 'i'}.`,
+      'ok'
+    );
+  }
+
   await renderCertificatiPreventivo();
 }
 
@@ -6674,4 +6805,3 @@ async function apriLeadAssegnateDaDashboardRapp() {
 
   gotoPage("trattative");
 }
-
