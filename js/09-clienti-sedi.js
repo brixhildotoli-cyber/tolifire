@@ -496,7 +496,26 @@ function renderPC(data) {
             <span style="color:var(--m)">Ultima verifica</span>
             <span>${fd(p.data_ultimo_controllo)}</span>
           </div>
-
+${p.tipo === 'manichetta' ? `
+  <div style="
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    padding:8px;
+    margin:5px 0;
+    background:var(--bg);
+    border-radius:6px;
+  ">
+    <span>📅 Scadenza</span>
+    <strong>
+      ${p.data_scadenza_collaudo
+        ? fd(p.data_scadenza_collaudo)
+        : p.anno_scadenza
+          ? esc(String(p.anno_scadenza))
+          : 'Da inserire'}
+    </strong>
+  </div>
+` : ''}
           <div style="display:flex;justify-content:space-between">
             <span style="color:var(--m)">Prossima verifica</span>
             <span class="${sc(p.data_prossimo_controllo)}">
@@ -1030,20 +1049,76 @@ async function loadSediForCliente(cliId){
   renderSediList();
 }
 
-async function saveCliSedi(cliId){
 
+
+async function saveCliSedi(cliId) {
   if (!puoModificareClienti()) {
-  toast('I clienti sono in sola lettura per il tuo ruolo', 'err');
-  return;
-}
-  // Elimina tutte le sedi esistenti e reinserisci
-  if(existingSediIds.length){
-    await db.from('sedi_cliente').delete().in('id',existingSediIds);
+    toast('I clienti sono in sola lettura per il tuo ruolo', 'err');
+    return false;
   }
-  if(pendingSedi.length){
-    const payload=pendingSedi.map(s=>{const {_existing,id,...rest}=s;return {...rest,cliente_id:cliId};});
-    await db.from('sedi_cliente').insert(payload);
+
+  // Elimina soltanto le sedi che hai tolto dalla lista.
+  const sediMantenute = pendingSedi.filter(function(sede) {
+    return sede._existing && sede.id;
+  });
+
+  const idsDaEliminare = existingSediIds.filter(function(id) {
+    return !sediMantenute.some(function(sede) {
+      return sede.id === id;
+    });
+  });
+
+  if (idsDaEliminare.length) {
+    const { data: eliminate, error: erroreEliminazione } = await db
+      .from('sedi_cliente')
+      .delete()
+      .eq('cliente_id', cliId)
+      .in('id', idsDaEliminare)
+      .select('id');
+
+    if (erroreEliminazione) {
+      toast('Errore eliminazione sedi: ' + erroreEliminazione.message, 'err');
+      return false;
+    }
+
+    if ((eliminate || []).length !== idsDaEliminare.length) {
+      toast(
+        'Le sedi non sono state eliminate: permesso mancante oppure sedi collegate a presidi.',
+        'err'
+      );
+      return false;
+    }
   }
+
+  // Inserisce soltanto le sedi appena aggiunte.
+  const nuoveSedi = pendingSedi
+    .filter(function(sede) {
+      return !sede._existing;
+    })
+    .map(function(sede) {
+      const { _existing, id, ...datiSede } = sede;
+      return {
+        ...datiSede,
+        cliente_id: cliId
+      };
+    });
+
+  if (nuoveSedi.length) {
+    const { error: erroreInserimento } = await db
+      .from('sedi_cliente')
+      .insert(nuoveSedi);
+
+    if (erroreInserimento) {
+      toast('Errore salvataggio nuove sedi: ' + erroreInserimento.message, 'err');
+      return false;
+    }
+  }
+
+  existingSediIds = sediMantenute.map(function(sede) {
+    return sede.id;
+  });
+
+  return true;
 }
 
 async function loadSediDetail(cliId){
@@ -1107,8 +1182,16 @@ if (!eid && ROLE === 'rappresentante') {
     const {data:nd,error:ne}=await db.from('clienti').insert(payload).select().single();
     error=ne;if(nd)cliId=nd.id;
   }
-  if(error){toast('Errore: '+error.message,'err');return;}
-  if(cliId)await saveCliSedi(cliId);
+  if(error){toast('Errore: '+error.message,'err');
+    return;
+
+  }
+
+
+if (cliId) {
+  const sediSalvate = await saveCliSedi(cliId);
+  if (!sediSalvate) return;
+}
     if (completamentoLead) {
     const { error: erroreFase } = await db
       .from('pipeline_crm')

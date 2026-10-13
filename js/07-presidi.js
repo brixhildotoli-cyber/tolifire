@@ -548,7 +548,14 @@ const rigaVuota = function(voce) {
         ${campo('Periodicità', p.periodicita_mesi ? `${p.periodicita_mesi} mesi` : '')}
         ${campo('Ultima verifica', p.data_ultimo_controllo ? fd(p.data_ultimo_controllo) : '')}
         ${campo('Prossima verifica', p.data_prossimo_controllo ? fd(p.data_prossimo_controllo) : '')}
-        ${campo('Scadenza collaudo', p.data_scadenza_collaudo ? fd(p.data_scadenza_collaudo) : '')}
+        ${campo(
+  p.tipo === 'manichetta' ? 'Scadenza' : 'Scadenza collaudo',
+  p.data_scadenza_collaudo
+    ? fd(p.data_scadenza_collaudo)
+    : p.anno_scadenza
+      ? `${p.anno_scadenza} — data da precisare`
+      : ''
+)}
       </div>
 
           ${(vociSi.length || vociNo.length || vociVuote.length || p.esito_verifica) ? `

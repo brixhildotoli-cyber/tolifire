@@ -102,6 +102,24 @@ registraSchedaGiaCaricata=async function() {
   await caricaStoricoPresidio(p.id);
 };
 let versioneScadenze=0;
+const cartelleScadenzeAperte=new Set();
+function conservaCartelleScadenze(box) {
+  box.querySelectorAll('details[data-cartella-scadenze]').forEach(el=>{
+    const chiave=el.dataset.cartellaScadenze;
+    if(el.open)cartelleScadenzeAperte.add(chiave);
+    else cartelleScadenzeAperte.delete(chiave);
+  });
+}
+function collegaCartelleScadenze(box) {
+  box.querySelectorAll('details[data-cartella-scadenze]').forEach(el=>{
+    el.addEventListener('toggle',()=>{
+      if(!el.isConnected)return;
+      const chiave=el.dataset.cartellaScadenze;
+      if(el.open)cartelleScadenzeAperte.add(chiave);
+      else cartelleScadenzeAperte.delete(chiave);
+    });
+  });
+}
 async function leggiSchedeScadenze(tabella,ids) {
   const risultato=[];
   for(let i=0;i<ids.length;i+=100) {
@@ -116,6 +134,7 @@ async function leggiSchedeScadenze(tabella,ids) {
 }
 renderPS=async function(data) {
   const versione=++versioneScadenze,box=ge('tc-ps');if(!box)return;
+  conservaCartelleScadenze(box);
   box.innerHTML='<div class="load">Caricamento scadenze...</div>';
   try {
     const [normali,manichette]=await Promise.all([
@@ -180,11 +199,14 @@ renderPS=async function(data) {
           sedi.get(chiave).push(r);
         });
         const count=new Set(items.map(r=>r.p.id)).size;
-        return `<details class="card" style="margin-bottom:12px"><summary style="cursor:pointer"><b>📁 ${esc(items[0].p.clienti?.ragione_sociale||'Cliente non indicato')}</b>
+        const chiaveCliente=JSON.stringify(['cliente',items[0].p.cliente_id||('presidio:'+items[0].p.id)]);
+        const attributiCartella=chiave=>`data-cartella-scadenze="${esc(chiave)}" ${cartelleScadenzeAperte.has(chiave)?'open':''}`;
+        return `<details ${attributiCartella(chiaveCliente)} class="card" style="margin-bottom:12px"><summary style="cursor:pointer"><b>📁 ${esc(items[0].p.clienti?.ragione_sociale||'Cliente non indicato')}</b>
           <div style="margin-top:5px">${riepilogo(items)} · ${count} presidi</div></summary>
-          ${[...sedi.values()].map(elenco=>`<details style="margin-top:12px;padding:10px;border:1px solid var(--bo);border-radius:8px"><summary style="cursor:pointer"><b>📍 ${esc(elenco[0].p.sede_label||'Sede non assegnata')}</b><div>${riepilogo(elenco)}</div></summary>${contenuto(elenco)}</details>`).join('')}
+          ${[...sedi.values()].map(elenco=>`<details ${attributiCartella(JSON.stringify(['sede',chiaveCliente,elenco[0].p.sede_id||'senza-sede']))} style="margin-top:12px;padding:10px;border:1px solid var(--bo);border-radius:8px"><summary style="cursor:pointer"><b>📍 ${esc(elenco[0].p.sede_label||'Sede non assegnata')}</b><div>${riepilogo(elenco)}</div></summary>${contenuto(elenco)}</details>`).join('')}
         </details>`;
       }).join(''):'<div class="empty">Nessun presidio.</div>');
+    collegaCartelleScadenze(box);
   } catch(e) {if(versione===versioneScadenze)box.textContent='Impossibile leggere le scadenze: '+e.message;}
 };
 function aggiungiGiorniScadenze(iso,n) {
