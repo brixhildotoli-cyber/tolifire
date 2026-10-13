@@ -1185,11 +1185,31 @@ async function avviaPreventivo(progettoId) {
   const scadenza = new Date();
   scadenza.setDate(scadenza.getDate() + 30);
 
+    let commercialeDestinatarioId = ME.id;
+
+  if (ROLE === 'titolare') {
+    const { data: commerciali, error: erroreCommerciali } = await db
+      .from('utenti')
+      .select('id')
+      .eq('ruolo', 'commerciale')
+      .limit(2);
+
+    if (erroreCommerciali || commerciali?.length !== 1) {
+      toast(
+        'Impossibile assegnare il preventivo: serve un solo profilo commerciale.',
+        'err'
+      );
+      return;
+    }
+
+    commercialeDestinatarioId = commerciali[0].id;
+  }
+
   const { data: preventivo, error: erroreCreazione } = await db
     .from('preventivi')
     .insert({
       cliente_id: progetto.cliente_id,
-      commerciale_id: ME.id,
+     commerciale_id: ME.id,
       rappresentante_id: progetto.rappresentante_id || null,
       progetto_tecnico_id: progetto.id,
       tipo: 'fornitura_e_posa',
