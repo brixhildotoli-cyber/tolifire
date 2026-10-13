@@ -5,6 +5,7 @@ modaleNuovoControllo.id='m-nuovo-controllo';modaleNuovoControllo.className='mbg'
 modaleNuovoControllo.innerHTML='<div class="modal" style="max-width:850px"><div id="nc-contenuto"></div></div>';
 document.body.append(modaleNuovoControllo);
 async function eseguiNuovoControllo(id) {
+    ricordaPosizionePagina();
   if(nuovoControlloPresidio.salvataggio)return;
   const p=PA.find(r=>r.id===id);if(!p)return;
   openM('m-nuovo-controllo');ge('nc-contenuto').textContent='Caricamento ultima scheda...';
@@ -38,6 +39,7 @@ async function eseguiNuovoControllo(id) {
   }catch(e){ge('nc-contenuto').textContent=e.message;}
 }
 async function salvaNuovoControlloPresidio() {
+    ricordaPosizionePagina();
   if(nuovoControlloPresidio.salvataggio)return;
   const {origine,presidio:p}=nuovoControlloPresidio;if(!origine||!p)return;
   const data=v('nc-data'),anno=Number(v('nc-anno')),semestre=Number(v('nc-semestre')),ciclo=v('nc-ciclo');
@@ -82,6 +84,7 @@ async function salvaNuovoControlloPresidio() {
 // Aggiunge il comando alle schede presenti in Scadenze.
 const renderScadenzePrimaNuovoControllo=renderPS;
 renderPS=async function(data) {
+    ricordaPosizionePagina();
   await renderScadenzePrimaNuovoControllo(data);
   ge('tc-ps')?.querySelectorAll('button[onclick^="apriSchedaPresidio("]').forEach(btn=>{
     if(btn.parentElement.querySelector('[data-nuovo-controllo]'))return;

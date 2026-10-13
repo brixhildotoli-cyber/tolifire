@@ -93,6 +93,7 @@ async function caricaStoricoPresidio(id) {
 }
 
 function mostraStoricoPresidio() {
+  ricordaPosizionePagina();
   const box = ge('storico-presidio');
   if (!box) return;
   box.innerHTML = (storicoPresidi.anagrafica?.tipo === 'manichetta' ? '<h3>Storico interventi manichetta</h3><p>La scadenza della manichetta è distinta dalla data dell’intervento. Nessun riporto semestrale.</p>' : '<h3>Schede semestrali</h3><p>Il gruppo resta fisso. La data effettiva della verifica è indipendente dal semestre di riferimento.</p>') +
@@ -171,6 +172,7 @@ const { error } = await db.rpc('elimina_scheda_storico', {
 }
 
 function apriEditorSchedaPresidio(indice, riporta) {
+  ricordaPosizionePagina();
   const origine = storicoPresidi.schede[indice];
   if (!origine) return;
   const manichetta = origine.dati?.tipo === 'manichetta';
@@ -207,6 +209,7 @@ function apriEditorSchedaPresidio(indice, riporta) {
 }
 
 async function salvaSchedaPresidio(indice, riporta) {
+  ricordaPosizionePagina();
   const origine = storicoPresidi.schede[indice];
   if (!origine) return;
   const manichetta = origine.dati?.tipo === 'manichetta';

@@ -90,6 +90,7 @@ function filterP(){
 }
 
 function renderPC(data) {
+  ricordaPosizionePagina();
   const w = ge('pcards');
 
   if (!data.length) {
@@ -445,6 +446,7 @@ function resetPF() {
 }
 
 async function apriSchedaPresidio(id) {
+  ricordaPosizionePagina();
   openM('m-scheda-presidio');
 
   ge('msp-titolo').textContent = 'Scheda presidio';
@@ -1008,6 +1010,7 @@ function statoDaEsitoCsv(esito) {
 }
 
 function apriImportPresidi() {
+  ricordaPosizionePagina();
   if (!['titolare', 'capo_tecnico', 'tecnico'].includes(ROLE)) {
     toast('Solo titolare e capo tecnico possono importare presidi', 'err');
     return;

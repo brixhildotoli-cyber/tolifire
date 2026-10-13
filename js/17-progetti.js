@@ -209,6 +209,7 @@ async function eliminaAllegatoProgetto(allegatoId) {
 }
 
 async function loadProgettiCliente(clienteId) {
+  ricordaPosizionePagina();
   const lista = ge('cd-progetti-lista');
 
   if (!clienteId || !lista) return;
@@ -1267,6 +1268,8 @@ async function avviaPreventivo(progettoId) {
 }
 
 async function loadPreventivi() {
+  ricordaPosizionePagina();
+
   const bozzeBox = ge('preventivi-lista');
   const attesaBox = ge('preventivi-attesa-lista');
   const inviatiBox = ge('preventivi-inviati-lista');
@@ -1477,6 +1480,7 @@ async function loadPreventivi() {
 }
 
 async function apriNuovoPreventivo(progettoId) {
+  ricordaPosizionePagina();
   const { data: progetto, error } = await db
     .from('progetti_tecnici')
     .select(`
@@ -1725,6 +1729,7 @@ async function loadPreventivazione() {
 }
 
 async function apriSelezioneFornitori(progettoId) {
+  ricordaPosizionePagina();
   const { data: progetto, error } = await db
     .from('progetti_tecnici')
     .select('id,titolo,tipologia,clienti(ragione_sociale)')
@@ -2058,6 +2063,7 @@ async function openFornitoreDetail(fornitoreId) {
 }
 
 function modificaFornitoreDaScheda() {
+  ricordaPosizionePagina();
   if (!currentFornitoreId) return;
   apriFornitore(currentFornitoreId, true);
 }
@@ -2272,6 +2278,7 @@ function openNuovoFornitore() {
 }
 
 async function apriFornitore(fornitoreId, modalitaModifica) {
+  ricordaPosizionePagina();
   const { data: fornitore, error } = await db
     .from('fornitori')
     .select('*, fornitore_tipologie(*)')
@@ -2446,6 +2453,7 @@ function dimensioneFileProgetto(bytes) {
 }
 
 async function openProgettoDetail(progettoId) {
+  ricordaPosizionePagina();
     const paginaAttuale = document
     .querySelector('.page.on')
     ?.id
@@ -2788,6 +2796,7 @@ function datiSchedaDaMostrare(scheda) {
 }
 
 async function renderSchedeProgettoCommerciale(progettoId) {
+  ricordaPosizionePagina();
   const box = ge('pd-schede-content');
 
   if (!box) return;
@@ -2923,6 +2932,7 @@ async function renderSchedeProgettoCommerciale(progettoId) {
 }
 
 async function apriModificaSchedaCommerciale(progettoId, famiglia) {
+  ricordaPosizionePagina();
  if (!['commerciale', 'titolare'].includes(ROLE)) {
   toast('Solo commerciale o titolare possono modificare la copia', 'err');
   return;
@@ -3056,6 +3066,7 @@ function modificaProgettoDaScheda() {
 }
 
 async function apriProgettoDaElenco(id) {
+  ricordaPosizionePagina();
   const { data: progetto, error } = await db
     .from('progetti_tecnici')
     .select('*')
@@ -3090,6 +3101,7 @@ async function apriProgettoDaElenco(id) {
 }
 
 async function apriVerificaTecnica(progettoId) {
+  ricordaPosizionePagina();
   const { data: progetto, error } = await db
     .from('progetti_tecnici')
     .select(`

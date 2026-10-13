@@ -12,6 +12,7 @@ async function eliminaOdl(id) {
 }
 
 async function openEditOdl(id) {
+  ricordaPosizionePagina();
   // Apri modal OdL precompilato
   var r = await db.from('ordini_lavoro').select('*,clienti(ragione_sociale)').eq('id', id).single();
   if(r.error) { toast('Errore caricamento', 'err'); return; }
@@ -212,6 +213,7 @@ async function confermaUploadDoc() {
 }
 
 async function scaricaDocumento(id, path, nomeFile) {
+  ricordaPosizionePagina();
   var r = await db.storage.from('documenti-clienti').createSignedUrl(path, 3600);
   if(r.error) { toast('Errore download: ' + r.error.message, 'err'); return; }
   // Apri in nuova tab

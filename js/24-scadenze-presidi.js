@@ -133,6 +133,7 @@ async function leggiSchedeScadenze(tabella,ids) {
   return risultato;
 }
 renderPS=async function(data) {
+    ricordaPosizionePagina();
   const versione=++versioneScadenze,box=ge('tc-ps');if(!box)return;
   conservaCartelleScadenze(box);
   box.innerHTML='<div class="load">Caricamento scadenze...</div>';

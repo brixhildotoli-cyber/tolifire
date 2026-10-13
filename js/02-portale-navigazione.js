@@ -504,6 +504,7 @@ function gotoPage(id){
 }
 
 async function caricaAvvisoProgettiDaPreventivareCommerciale() {
+  ricordaPosizionePagina();
   if (ROLE !== 'commerciale') return;
 
   const box = ge('com-avviso-progetti');
@@ -614,6 +615,7 @@ async function caricaAvvisoProgettiDaPreventivareCommerciale() {
 }
 
 async function apriProgettiDaPreventivareDaDashboard() {
+  ricordaPosizionePagina();
   if (ROLE !== 'commerciale') return;
 
   const box = ge('com-avviso-progetti');

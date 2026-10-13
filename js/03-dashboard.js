@@ -401,6 +401,7 @@ function tecSedeFmt(o, sediMap){
 }
 
 function tecCardOggi(o, sediMap){
+  ricordaPosizionePagina();
   var cls = tecTipoCls(o.tipo);
   var cli = o.clienti?.ragione_sociale || '—';
   var sede = tecSedeFmt(o, sediMap);
@@ -422,6 +423,7 @@ function tecCardOggi(o, sediMap){
 }
 
 function tecRigaSettimana(o){
+  ricordaPosizionePagina();
   var cls = tecTipoCls(o.tipo);
   var cli = o.clienti?.ragione_sociale || '—';
   var fascia = o.fascia_oraria || '';

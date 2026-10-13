@@ -412,6 +412,7 @@ if (btnNuovoCliente) {
 }
 
 function renderPC(data) {
+  ricordaPosizionePagina();
   const w = ge('pcards');
 
   if (!data.length) {
@@ -936,6 +937,7 @@ citta.startsWith(q)
 }
 
 function openEditCli(id) {
+  ricordaPosizionePagina();
   // Carica dati e apri modal cliente in modifica
   var cli = CLIS.find(function(c) { return c.id === id; });
   if(!cli) { toast('Cliente non trovato', 'err'); return; }

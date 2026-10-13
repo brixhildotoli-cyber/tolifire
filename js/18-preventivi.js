@@ -37,6 +37,7 @@ function tornaDaPreventivo() {
 }
 
 async function openPreventivoDetail(preventivoId) {
+  ricordaPosizionePagina();
   const { data: preventivo, error } = await db
     .from('preventivi')
     .select(`
@@ -485,6 +486,7 @@ function valoreSchedaTecnica(valore) {
 }
 
 async function renderSchedePreventivo() {
+  ricordaPosizionePagina();
   const box = ge('pvd-schede-content');
 
   if (!box || !currentPreventivoProgettoId) return;
@@ -607,6 +609,7 @@ async function renderSchedePreventivo() {
 }
 
 async function apriSchedaRilevazioneIngegnere() {
+  ricordaPosizionePagina();
   const progettoId = v('mvt-id');
 
   if (!progettoId) {
@@ -631,6 +634,7 @@ function chiudiSchedaRilevazione() {
 }
 
 async function apriSchedaPorteReiIngegnere() {
+  ricordaPosizionePagina();
   const progettoId = v('mvt-id');
 
   if (!progettoId) {
@@ -649,6 +653,7 @@ function chiudiSchedaPorteRei() {
 }
 
 async function apriSchedaPorteRei() {
+  ricordaPosizionePagina();
   const box = ge('mrt-content');
 
   const { data, error } = await db
@@ -891,6 +896,7 @@ async function salvaSchedaPorteRei() {
 
 
 async function apriSchedaEstintoriIngegnere() {
+  ricordaPosizionePagina();
   const progettoId = v('mvt-id');
 
   if (!progettoId) {
@@ -909,6 +915,7 @@ function chiudiSchedaEstintori() {
 }
 
 async function apriSchedaEstintori() {
+  ricordaPosizionePagina();
   const box = ge('mrt-content');
 
   const { data, error } = await db
@@ -1145,6 +1152,7 @@ async function salvaSchedaEstintori() {
 }
 
 async function apriSchedaRilevazioneIncendi() {
+  ricordaPosizionePagina();
   const usaProgetto = contestoSchedaRilevazione === 'progetto';
 
   const box = usaProgetto
@@ -1525,6 +1533,7 @@ await renderSchedePreventivo();
 }
 
 async function apriSchedaCompartimentazioneIngegnere() {
+  ricordaPosizionePagina();
   const progettoId = v('mvt-id');
 
   if (!progettoId) {
@@ -1543,6 +1552,7 @@ function chiudiSchedaCompartimentazione() {
 }
 
 async function apriSchedaCompartimentazione() {
+  ricordaPosizionePagina();
   const box = ge('mrt-content');
 
   const { data, error } = await db
@@ -1792,6 +1802,7 @@ async function salvaSchedaCompartimentazione() {
 }
 
 async function apriSchedaVerniceIntumescenteIngegnere() {
+  ricordaPosizionePagina();
   const progettoId = v('mvt-id');
 
   if (!progettoId) {
@@ -1810,6 +1821,7 @@ function chiudiSchedaVerniceIntumescente() {
 }
 
 async function apriSchedaVerniceIntumescente() {
+  ricordaPosizionePagina();
   const box = ge('mrt-content');
 
   const { data, error } = await db
@@ -2090,6 +2102,7 @@ async function salvaSchedaVerniceIntumescente() {
 
 
 async function apriSchedaImpiantiSpegnimentoIngegnere() {
+  ricordaPosizionePagina();
   const progettoId = v('mvt-id');
 
   if (!progettoId) {
@@ -2108,6 +2121,7 @@ function chiudiSchedaImpiantiSpegnimento() {
 }
 
 async function apriSchedaImpiantiSpegnimento() {
+  ricordaPosizionePagina();
   const box = ge('mrt-content');
 
   const { data, error } = await db
@@ -2383,6 +2397,7 @@ async function salvaSchedaImpiantiSpegnimento() {
 
 
 async function renderFornitoriPreventivo() {
+  ricordaPosizionePagina();
   const box = ge('pvd-fornitori-content');
 
   if (!box || !currentPreventivoId) return;
@@ -2809,6 +2824,7 @@ ${
 }
 
 async function apriSelettoreFornitoriPreventivo() {
+  ricordaPosizionePagina();
   const box = ge('pvd-fornitori-content');
 
   box.innerHTML = `
@@ -3092,6 +3108,7 @@ async function caricaPreventivoRicevutoFornitore(selezioneId) {
 }
 
 async function apriAllegatoPreventivoFornitore(storagePath) {
+  ricordaPosizionePagina();
   const { data, error } = await db.storage
     .from('preventivi-documenti')
     .createSignedUrl(storagePath, 3600);
@@ -3660,6 +3677,7 @@ function formatoDataOraCertificato(data) {
 }
 
 function cardCertificatoPreventivo(certificato, origine) {
+  ricordaPosizionePagina();
   const puoGestire =
     ROLE === 'titolare' ||
     (ROLE === 'commerciale' && origine === 'commerciale');
@@ -4088,6 +4106,7 @@ async function inviaCertificatoAllIngegnere(certificatoId) {
 }
 
 async function apriCertificatoPreventivo(certificatoId) {
+  ricordaPosizionePagina();
   const { data: certificato, error } = await db
     .from('preventivi_certificati')
     .select('*')
@@ -4112,6 +4131,7 @@ async function apriCertificatoPreventivo(certificatoId) {
 }
 
 async function loadCertificatiIngegnere() {
+  ricordaPosizionePagina();
   const box = ge('certificati-ingegnere-lista');
   if (!box || ROLE !== 'ingegnere') return;
 
@@ -5250,6 +5270,7 @@ async function ritiraPdfEsternoTitolare() {
 }
 
 async function inviaPdfClienteATitolareERappresentante() {
+  ricordaPosizionePagina();
 
   if (!['commerciale', 'titolare'].includes(ROLE)) {
   toast('Solo commerciale o titolare possono inviare il preventivo', 'err');
@@ -6072,6 +6093,7 @@ function nomeUtenteLeadSito(id) {
 }
 
 function montaLeadSitoTitolare() {
+  ricordaPosizionePagina();
   if (ROLE !== "titolare") return;
 
   const tabs = document.querySelector("#pg-trattative .tabs");
@@ -6399,6 +6421,7 @@ async function nonQualificareLeadSito(leadId) {
 }
 
 async function caricaAvvisiLeadAssegnate() {
+  ricordaPosizionePagina();
   if (ROLE !== "rappresentante") return;
 
   let box = ge("rap-lead-assegnate");
@@ -6534,6 +6557,7 @@ async function assegnaEInviaLeadSito(leadId) {
 
 
 async function caricaAvvisoLeadSitoTitolare() {
+  ricordaPosizionePagina();
   if (ROLE !== "titolare") return;
 
   let box = ge("tit-avviso-lead-sito");
@@ -6587,6 +6611,7 @@ async function caricaAvvisoLeadSitoTitolare() {
 }
 
 async function apriLeadSitoDaDashboardTitolare() {
+  ricordaPosizionePagina();
   const box = ge("tit-avviso-lead-sito");
 
   // La nasconde subito graficamente.
@@ -6666,6 +6691,7 @@ function tornaDaSchedaCliente() {
 }
 
 async function caricaCodaCommercialeTitolare() {
+  ricordaPosizionePagina();
   if (ROLE !== 'titolare') return;
 
   let sezione = ge('tit-coda-commerciale');
@@ -6765,6 +6791,7 @@ async function caricaCodaCommercialeTitolare() {
 }
 
 function apriSopralluoghiDaDashboardTitolare() {
+  ricordaPosizionePagina();
   gotoPage('trattative');
 
   setTimeout(function() {
@@ -6780,6 +6807,7 @@ function apriSopralluoghiDaDashboardTitolare() {
 }
 
 async function apriLeadAssegnateDaDashboardRapp() {
+  ricordaPosizionePagina();
   const box = ge("rap-lead-assegnate");
 
   // Sparisce subito dalla dashboard.

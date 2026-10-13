@@ -270,6 +270,7 @@ async function loadImpegniTeamAnonimi() {
 
 
 async function loadDashRappresentante() {
+  ricordaPosizionePagina();
   caricaAvvisiLeadAssegnate();
   caricaAvvisiPreventiviRappresentante();
   var ora = new Date().getHours();
@@ -480,6 +481,7 @@ if (boxProgetti) {
 }
 
 async function apriProgettoDaIntegrareDaDashboard(progettoId) {
+  ricordaPosizionePagina();
   if (ROLE !== 'rappresentante') return;
 
   const { data: progetto, error } = await db
@@ -534,6 +536,7 @@ async function apriProgettoDaIntegrareDaDashboard(progettoId) {
 
 
 async function loadPreventiviRappresentante() {
+  ricordaPosizionePagina();
   if (ROLE !== 'rappresentante') return;
 
   const box = ge('preventivi-rapp-lista');
@@ -629,6 +632,7 @@ pdf_esterno_titolare_nome,
 }
 
 async function apriPdfPreventivoRappresentante(preventivoId) {
+  ricordaPosizionePagina();
   if (ROLE !== 'rappresentante') return;
 
   const nuovaScheda = window.open('', '_blank');
@@ -715,6 +719,7 @@ async function rinviaPreventivoAlCommercialeDalRappresentante(preventivoId) {
 }
 
 async function caricaAvvisiPreventiviRappresentante() {
+  ricordaPosizionePagina();
   if (ROLE !== 'rappresentante') return;
 
   const box = ge('rap-preventivi-ricevuti');
@@ -768,6 +773,7 @@ async function caricaAvvisiPreventiviRappresentante() {
 }
 
 async function apriPreventiviRappresentanteDaDashboard() {
+  ricordaPosizionePagina();
   const box = ge('rap-preventivi-ricevuti');
   if (box) box.innerHTML = '';
 
@@ -847,6 +853,7 @@ async function caricaAvvisiPreventiviTitolare() {
 }
 
 async function apriPreventiviTitolareDaDashboard() {
+  ricordaPosizionePagina();
   const { data: preventivi } = await db
     .from('preventivi')
     .select('id')
@@ -1078,7 +1085,7 @@ async function apriPreventivoTitolare(
 
 
 async function loadTrattative() {
-
+  ricordaPosizionePagina();
   montaLeadSitoTitolare();
 
  const richieste = [
@@ -1154,6 +1161,7 @@ renderProspectListT(_allProspect);
 }
 
 function renderProspectListT(data) {
+  ricordaPosizionePagina();
   const el = ge('tr-prospect-list');
   if (!el) return;
 
@@ -1312,6 +1320,7 @@ const riepilogoProgetti = (
 }
 
 function apriNuovoLead() {
+  ricordaPosizionePagina();
   [
     'lead-ragione',
     'lead-referente',
@@ -1436,6 +1445,7 @@ async function completaAnagraficaDopoContatto(clienteId) {
 }
 
 function apriAppuntamentoDaLead(clienteId) {
+  ricordaPosizionePagina();
   const lead = _allProspect.find(c => c.id === clienteId);
 
   apriNuovoAppuntamento(new Date().toISOString().split('T')[0]);

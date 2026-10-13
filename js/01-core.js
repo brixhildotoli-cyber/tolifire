@@ -19,6 +19,31 @@ let appAnno = new Date().getFullYear();
 let appMese = new Date().getMonth();
 let appDati = [];
 
+const storicoScrollPagine = [];
+
+function ricordaPosizionePagina() {
+  storicoScrollPagine.push({
+    top: window.scrollY || 0,
+    left: window.scrollX || 0
+  });
+}
+
+function ripristinaPosizionePagina() {
+  const posizione = storicoScrollPagine.pop();
+
+  if (!posizione) return;
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.scrollTo({
+        top: posizione.top,
+        left: posizione.left,
+        behavior: 'auto'
+      });
+    });
+  });
+}
+
 const TIPI_PRESIDI=[
   'estintore',
   'porta_rei',

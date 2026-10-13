@@ -298,6 +298,7 @@ function cambiaMeseAppuntamenti(delta) {
 }
 
 async function loadVerificheTecniche() {
+  ricordaPosizionePagina();
   const box = ge('verifiche-tecniche-lista');
 
   if (!box) return;
