@@ -3406,13 +3406,9 @@ function ricaricoFornituraDaCosto(costoFornitura) {
 }
 
 function costoTotaleFornituraPreventivo() {
-  return vociPreventivoDati
-    .filter(function(voce) {
-      return voce.categoria === 'materiale';
-    })
-    .reduce(function(totale, voce) {
-      return totale + totaleVocePreventivo(voce, 'costo');
-    }, 0);
+  return vociPreventivoDati.reduce(function(totale, voce) {
+    return totale + totaleVocePreventivo(voce, 'costo');
+  }, 0);
 }
 
 function applicaRicaricoFornitura() {
@@ -3427,9 +3423,7 @@ function applicaRicaricoFornitura() {
   const moltiplicatore = 1 + (percentuale / 100);
 registraStatoUndoPreventivo('ricarico-' + Date.now());
   vociPreventivoDati.forEach(function(voce) {
-    if (voce.categoria !== 'materiale') return;
-
-    voce.prezzo_unitario = Math.round(
+  voce.prezzo_unitario = Math.round(
       numeroPreventivo(voce.costo_unitario) * moltiplicatore * 100
     ) / 100;
   });
@@ -4349,7 +4343,7 @@ async function salvaVociPreventivo() {
 
   if (vociNonValide) {
     toast('Inserisci una descrizione per ogni voce', 'err');
-    return;
+    return false;
   }
 
   const vociEsistenti = vociPreventivoDati.filter(function(voce) {
@@ -4380,7 +4374,7 @@ async function salvaVociPreventivo() {
 
     if (error) {
       toast('Errore salvataggio voce: ' + error.message, 'err');
-      return;
+      return false;
     }
   }
 
@@ -4404,7 +4398,7 @@ async function salvaVociPreventivo() {
 
     if (error) {
       toast('Errore inserimento voci: ' + error.message, 'err');
-      return;
+      return false;
     }
   }
 
@@ -4425,15 +4419,20 @@ async function salvaVociPreventivo() {
 
   if (erroreTotale) {
     toast('Voci salvate, ma totale non aggiornato: ' + erroreTotale.message, 'err');
-    return;
+    return false;
   }
 
   toast('Voci e totale preventivo salvati', 'ok');
   await renderCostiPreventivo();
+  return true;
 }
 
 async function generaPreventivoClientePDF() {
-if (!(await preparaPDF())) return;
+  const salvato = await salvaVociPreventivo();
+
+  if (!salvato) return;
+
+  if (!(await preparaPDF())) return;
 
   const [
     preventivoRes,
