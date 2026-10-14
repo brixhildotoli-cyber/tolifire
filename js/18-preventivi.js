@@ -2877,6 +2877,8 @@ async function apriSelettoreFornitoriPreventivo() {
   `;
 
   await caricaFornitoriCandidatiPreventivo();
+   renderSchedePreventivo();
+
 }
 
 async function caricaFornitoriCandidatiPreventivo() {
@@ -3291,6 +3293,70 @@ async function usaQuotazioneFornitoreNelPreventivo(selezioneId) {
 let vociPreventivoDati = [];
 let notePreventivoCliente = '';
 let condizioniPagamentoPreventivo = '';
+let storicoUndoPreventivo = [];
+let vociEliminatePreventivo = [];
+let chiaveModificaPreventivo = '';
+let timerModificaPreventivo = null;
+
+function registraStatoUndoPreventivo(chiave) {
+  clearTimeout(timerModificaPreventivo);
+
+  timerModificaPreventivo = setTimeout(function() {
+    chiaveModificaPreventivo = '';
+  }, 800);
+
+  // Durante la stessa digitazione salva un solo punto di annullamento.
+  if (chiave && chiave === chiaveModificaPreventivo) return;
+
+  storicoUndoPreventivo.push({
+    voci: JSON.parse(JSON.stringify(vociPreventivoDati)),
+    eliminate: [...vociEliminatePreventivo]
+  });
+
+  if (storicoUndoPreventivo.length > 50) {
+    storicoUndoPreventivo.shift();
+  }
+
+  chiaveModificaPreventivo = chiave || '';
+}
+
+function annullaUltimaModificaPreventivo() {
+  const statoPrecedente = storicoUndoPreventivo.pop();
+
+  if (!statoPrecedente) {
+    toast('Non ci sono modifiche da annullare', 'err');
+    return;
+  }
+
+  vociPreventivoDati = statoPrecedente.voci;
+  vociEliminatePreventivo = statoPrecedente.eliminate;
+  chiaveModificaPreventivo = '';
+
+  disegnaVociPreventivo();
+  toast('Ultima modifica annullata', 'ok');
+}
+
+document.addEventListener('keydown', function(evento) {
+  const undo = (evento.metaKey || evento.ctrlKey) &&
+    !evento.shiftKey &&
+    evento.key.toLowerCase() === 'z';
+
+  if (!undo) return;
+
+  const box = ge('pvd-costi-content');
+
+  // Funziona solo nella pagina Preventivo Cliente.
+  if (!box || !box.contains(evento.target)) return;
+
+  // Nei campi note resta attivo l'annulla nativo del browser.
+  if (
+    evento.target.id === 'pvv-note-cliente' ||
+    evento.target.id === 'pvv-condizioni-pagamento'
+  ) return;
+
+  evento.preventDefault();
+  annullaUltimaModificaPreventivo();
+});
 
 function numeroPreventivo(valore) {
   const numero = Number(valore);
@@ -3359,7 +3425,7 @@ function applicaRicaricoFornitura() {
 
   const percentuale = ricaricoFornituraDaCosto(costoFornitura);
   const moltiplicatore = 1 + (percentuale / 100);
-
+registraStatoUndoPreventivo('ricarico-' + Date.now());
   vociPreventivoDati.forEach(function(voce) {
     if (voce.categoria !== 'materiale') return;
 
@@ -3403,6 +3469,7 @@ function aggiornaRiepilogoVociPreventivo() {
 
 function aggiornaCampoVocePreventivo(indice, campo, valore) {
   if (!vociPreventivoDati[indice]) return;
+  registraStatoUndoPreventivo('campo-' + indice + '-' + campo);
 
   const campiNumerici = [
     'quantita',
@@ -3471,6 +3538,10 @@ function disegnaVociPreventivo() {
       <button class="btn sm p" onclick="aggiungiVocePreventivo()">
         + Aggiungi voce
       </button>
+
+      <button class="btn sm" onclick="annullaUltimaModificaPreventivo()">
+  ↶ Annulla ultima modifica
+</button>
 
       <button
   class="btn sm info"
@@ -4233,6 +4304,7 @@ async function renderCostiPreventivo() {
 }
 
 function aggiungiVocePreventivo() {
+  registraStatoUndoPreventivo('aggiungi-' + Date.now());
   vociPreventivoDati.push({
     id: null,
     categoria: 'materiale',
@@ -4247,6 +4319,7 @@ function aggiungiVocePreventivo() {
 }
 
 function rimuoviNuovaVocePreventivo(indice) {
+  registraStatoUndoPreventivo('rimuovi-' + Date.now());
   vociPreventivoDati.splice(indice, 1);
   disegnaVociPreventivo();
 }
