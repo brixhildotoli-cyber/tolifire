@@ -1,6 +1,8 @@
 // ── SCHEDA CLIENTE ────────────────────────────────────────────
 async function openClienteDetail(id) {
-const paginaAttuale = document
+    scrollPrimaSchedaCliente = window.scrollY || 0;
+
+  const paginaAttuale = document
   .querySelector('.page.on')
   ?.id
   ?.replace('pg-', '');
@@ -412,7 +414,7 @@ if (btnNuovoCliente) {
 }
 
 function renderPC(data) {
-  ricordaPosizionePagina();
+
   const w = ge('pcards');
 
   if (!data.length) {
@@ -1006,19 +1008,119 @@ async function editCli(c){
 let pendingSedi = [];
 let existingSediIds = [];
 
-function renderSediList(){
-  const el=ge('sedi-list');
-  const cnt=ge('sedi-count');
-  if(cnt)cnt.textContent=pendingSedi.length||'';
-  if(!pendingSedi.length){if(el)el.innerHTML='<div style="font-size:13px;color:var(--m);padding:8px">Nessuna sede aggiunta</div>';return;}
-  if(el)el.innerHTML=pendingSedi.map((s,i)=>`<div class="sede-card">
-    <div style="flex:1">
-      <div class="sede-tipo ${s.tipo}">${s.tipo.toUpperCase()}${s.nome?' — '+esc(s.nome):''}</div>
-      <div style="font-size:13px;font-weight:500">${[esc(s.via),esc(s.civico)].filter(Boolean).join(' ')}${s.via||s.civico?' — ':''}${esc(s.citta||'')}${s.cap?' '+esc(s.cap):''}</div>
-      ${s.zona?`<div style="font-size:12px;color:var(--m)">${s.zona}</div>`:''}
-    </div>
-    <button class="btn sm" onclick="removeSede(${i})" style="color:var(--r);flex-shrink:0">✕</button>
-  </div>`).join('');
+function chiaveSedeNormalizzata(sede) {
+  return [
+    sede.tipo,
+    sede.nome,
+    sede.via,
+    sede.civico,
+    sede.cap,
+    sede.citta,
+    sede.provincia,
+    sede.zona
+  ].map(function(valore) {
+    return String(valore || '')
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, ' ');
+  }).join('|');
+}
+
+function rimuoviSediDuplicate() {
+  const viste = new Set();
+  let rimosse = 0;
+
+  pendingSedi = pendingSedi.filter(function(sede) {
+    const chiave = chiaveSedeNormalizzata(sede);
+
+    if (viste.has(chiave)) {
+      rimosse++;
+      return false;
+    }
+
+    viste.add(chiave);
+    return true;
+  });
+
+  renderSediList();
+
+  toast(
+    rimosse
+      ? rimosse + ' sedi duplicate rimosse. Premi Salva cliente per confermare.'
+      : 'Non ci sono sedi duplicate identiche.',
+    rimosse ? 'ok' : 'err'
+  );
+}
+
+function renderSediList() {
+  const el = ge('sedi-list');
+  const cnt = ge('sedi-count');
+
+  const numeroSediUniche = new Set(
+    pendingSedi.map(chiaveSedeNormalizzata)
+  ).size;
+
+  const duplicati = pendingSedi.length - numeroSediUniche;
+
+  if (cnt) {
+    cnt.textContent = pendingSedi.length
+      ? numeroSediUniche + (duplicati ? ' · ' + duplicati + ' duplicati' : '')
+      : '';
+  }
+
+  if (!pendingSedi.length) {
+    if (el) {
+      el.innerHTML =
+        '<div style="font-size:13px;color:var(--m);padding:8px">Nessuna sede aggiunta</div>';
+    }
+    return;
+  }
+
+  const pulsanteDuplicati = duplicati
+    ? `
+      <button
+        type="button"
+        class="btn sm"
+        style="color:var(--r);margin-bottom:10px"
+        onclick="rimuoviSediDuplicate()"
+      >
+        🗑 Elimina ${duplicati} duplicati
+      </button>
+    `
+    : '';
+
+  if (el) {
+    el.innerHTML = pulsanteDuplicati + pendingSedi.map(function(s, i) {
+      return `
+        <div class="sede-card">
+          <div style="flex:1">
+            <div class="sede-tipo ${s.tipo}">
+              ${s.tipo.toUpperCase()}${s.nome ? ' — ' + esc(s.nome) : ''}
+            </div>
+
+            <div style="font-size:13px;font-weight:500">
+              ${[esc(s.via), esc(s.civico)].filter(Boolean).join(' ')}
+              ${s.via || s.civico ? ' — ' : ''}
+              ${esc(s.citta || '')}${s.cap ? ' ' + esc(s.cap) : ''}
+            </div>
+
+            ${s.zona
+              ? `<div style="font-size:12px;color:var(--m)">${esc(s.zona)}</div>`
+              : ''}
+          </div>
+
+          <button
+            type="button"
+            class="btn sm"
+            onclick="removeSede(${i})"
+            style="color:var(--r);flex-shrink:0"
+          >
+            ✕
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
 }
 
 function addSede(){
@@ -1070,27 +1172,40 @@ async function saveCliSedi(cliId) {
     });
   });
 
-  if (idsDaEliminare.length) {
-    const { data: eliminate, error: erroreEliminazione } = await db
+ if (idsDaEliminare.length) {
+  let eliminate = 0;
+  const errori = [];
+
+  for (const id of idsDaEliminare) {
+    const { data, error } = await db
       .from('sedi_cliente')
       .delete()
       .eq('cliente_id', cliId)
-      .in('id', idsDaEliminare)
+      .eq('id', id)
       .select('id');
 
-    if (erroreEliminazione) {
-      toast('Errore eliminazione sedi: ' + erroreEliminazione.message, 'err');
-      return false;
+    if (error) {
+      errori.push(error.message || 'Errore sconosciuto');
+      continue;
     }
 
-    if ((eliminate || []).length !== idsDaEliminare.length) {
-      toast(
-        'Le sedi non sono state eliminate: permesso mancante oppure sedi collegate a presidi.',
-        'err'
-      );
-      return false;
+    if (!data || !data.length) {
+      errori.push('Permesso mancante o sede collegata a un presidio');
+      continue;
     }
+
+    eliminate++;
   }
+
+  if (errori.length) {
+    toast(
+      'Eliminate ' + eliminate + ' sedi. ' +
+      errori.length + ' non eliminabili: ' + errori[0],
+      'err'
+    );
+    return false;
+  }
+}
 
   // Inserisce soltanto le sedi appena aggiunte.
   const nuoveSedi = pendingSedi

@@ -6770,15 +6770,23 @@ async function eliminaFornitore(fornitoreId) {
 }
 
 function tornaDaSchedaCliente() {
-  if (
+  const destinazione =
     paginaPrecedenteCliente &&
     canAccessPage(paginaPrecedenteCliente)
-  ) {
-    gotoPage(paginaPrecedenteCliente);
-    return;
-  }
+      ? paginaPrecedenteCliente
+      : 'clienti';
 
-  gotoPage('clienti');
+  gotoPage(destinazione);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      window.scrollTo({
+        top: scrollPrimaSchedaCliente,
+        left: 0,
+        behavior: 'auto'
+      });
+    });
+  });
 }
 
 async function caricaCodaCommercialeTitolare() {
