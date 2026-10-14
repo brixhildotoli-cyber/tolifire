@@ -4293,8 +4293,11 @@ async function renderCostiPreventivo() {
   condizioniPagamentoPreventivo =
   preventivo?.condizioni_pagamento || '';
 
-  vociPreventivoDati = data || [];
-  disegnaVociPreventivo();
+vociPreventivoDati = data || [];
+storicoUndoPreventivo = [];
+vociEliminatePreventivo = [];
+chiaveModificaPreventivo = '';
+disegnaVociPreventivo();
 }
 
 function aggiungiVocePreventivo() {
@@ -4318,22 +4321,25 @@ function rimuoviNuovaVocePreventivo(indice) {
   disegnaVociPreventivo();
 }
 
-async function eliminaVocePreventivo(voceId) {
+function eliminaVocePreventivo(voceId) {
+  const indice = vociPreventivoDati.findIndex(voce => voce.id === voceId);
+
+  if (indice < 0) return;
   if (!confirm('Eliminare questa voce dal preventivo?')) return;
 
-  const { error } = await db
-    .from('preventivi_voci')
-    .delete()
-    .eq('id', voceId)
-    .eq('preventivo_id', currentPreventivoId);
+  registraStatoUndoPreventivo('elimina-' + Date.now());
 
-  if (error) {
-    toast('Errore eliminazione voce: ' + error.message, 'err');
-    return;
+  const [voceEliminata] = vociPreventivoDati.splice(indice, 1);
+
+  if (
+    voceEliminata.id &&
+    !vociEliminatePreventivo.includes(voceEliminata.id)
+  ) {
+    vociEliminatePreventivo.push(voceEliminata.id);
   }
 
-  toast('Voce eliminata', 'ok');
-  await renderCostiPreventivo();
+  disegnaVociPreventivo();
+  toast('Voce rimossa. Salva il preventivo per confermare.', 'ok');
 }
 
 async function salvaVociPreventivo() {
