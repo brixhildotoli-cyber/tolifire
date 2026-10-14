@@ -106,6 +106,7 @@ function calDayClick(dateStr) {
 }
 
 function renderCalList() {
+  ricordaPosizionePagina();
   var el = ge('cal-list');
   if(!el) return;
   if(!calOdls.length) {
@@ -141,6 +142,7 @@ function openOdlDetail(id) {
 }
 
 async function apriEditOdlCal(id) {
+  ricordaPosizionePagina();
   var odl = calOdls.find(function(o) { return o.id === id; });
   if(!odl) {
     // Se non in cache, carica da DB
@@ -205,6 +207,7 @@ async function apriEditOdlCal(id) {
     '</div></div>';
 
   openM('m-cal-edit');
+  ripristinaPosizionePagina();
 }
 
 async function salvaEditOdlCal(id) {
@@ -248,6 +251,7 @@ async function eliminaOdlCal(id) {
 // ── TECNICO: carica OdL assegnati ────────────────────────────
 
 async function loadStoricoInterventiTecnico() {
+  ricordaPosizionePagina();
   const box = ge('tec-storico-interventi');
 
   if (!box) return;

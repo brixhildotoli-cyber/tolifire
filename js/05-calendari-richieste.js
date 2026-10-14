@@ -621,6 +621,7 @@ async function loadRichiesteInAttesaTecnico() {
 }
 
 function apriRichiestaModifica(odlId, dataAttuale, nomeCliente) {
+  ricordaPosizionePagina();
   // Crea modal al volo
   var m = ge('m-richiesta-modifica');
   if(!m) {
@@ -907,6 +908,8 @@ async function apriTicket(id) {
   }
   ge('m-ticket-body').innerHTML = html;
   m.classList.add('on');
+
+  ripristinaPosizionePagina();
 }
 
 
@@ -941,6 +944,8 @@ async function pianificaDaTicket(ticketId, cliId, sedeId) {
   loadDash();
   await loadDashTicket();
   if(ge('pg-interventi') && ge('pg-interventi').classList.contains('on')) loadOdl();
+
+  ripristinaPosizionePagina();
 }
 
 async function salvaTicket(id) {

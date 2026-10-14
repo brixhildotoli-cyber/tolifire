@@ -2330,6 +2330,7 @@ async function apriFornitore(fornitoreId, modalitaModifica) {
     `;
 
   openM('m-fornitore');
+  ripristinaPosizionePagina();
 }
 
 function abilitaModificaFornitore(abilitato) {

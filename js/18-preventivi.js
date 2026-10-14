@@ -625,12 +625,13 @@ async function apriSchedaRilevazioneIngegnere() {
 }
 
 function chiudiSchedaRilevazione() {
+   renderSchedePreventivo();
   if (contestoSchedaRilevazione === 'progetto') {
     closeM('m-rilievo-tecnico');
     return;
   }
 
-  renderSchedePreventivo();
+  ripristinaPosizionePagina();
 }
 
 async function apriSchedaPorteReiIngegnere() {
@@ -650,6 +651,7 @@ async function apriSchedaPorteReiIngegnere() {
 
 function chiudiSchedaPorteRei() {
   closeM('m-rilievo-tecnico');
+   renderSchedePreventivo();
 }
 
 async function apriSchedaPorteRei() {
@@ -826,6 +828,7 @@ async function apriSchedaPorteRei() {
       </button>
     </div>
   `;
+   renderSchedePreventivo();
 }
 
 async function salvaSchedaPorteRei() {
@@ -912,6 +915,8 @@ async function apriSchedaEstintoriIngegnere() {
 
 function chiudiSchedaEstintori() {
   closeM('m-rilievo-tecnico');
+   renderSchedePreventivo();
+
 }
 
 async function apriSchedaEstintori() {
@@ -1087,6 +1092,7 @@ async function apriSchedaEstintori() {
       </button>
     </div>
   `;
+   renderSchedePreventivo();
 }
 
 async function salvaSchedaEstintori() {
@@ -1411,6 +1417,7 @@ async function apriSchedaRilevazioneIncendi() {
       </button>
     </div>
   `;
+   renderSchedePreventivo();
 }
 
 async function salvaSchedaRilevazioneIncendi() {
@@ -1549,6 +1556,7 @@ async function apriSchedaCompartimentazioneIngegnere() {
 
 function chiudiSchedaCompartimentazione() {
   closeM('m-rilievo-tecnico');
+   renderSchedePreventivo();
 }
 
 async function apriSchedaCompartimentazione() {
@@ -1733,6 +1741,7 @@ async function apriSchedaCompartimentazione() {
       </button>
     </div>
   `;
+   renderSchedePreventivo();
 }
 
 async function salvaSchedaCompartimentazione() {
@@ -1818,6 +1827,7 @@ async function apriSchedaVerniceIntumescenteIngegnere() {
 
 function chiudiSchedaVerniceIntumescente() {
   closeM('m-rilievo-tecnico');
+   renderSchedePreventivo();
 }
 
 async function apriSchedaVerniceIntumescente() {
@@ -2033,6 +2043,8 @@ async function apriSchedaVerniceIntumescente() {
       </button>
     </div>
   `;
+   renderSchedePreventivo();
+
 }
 
 async function salvaSchedaVerniceIntumescente() {
@@ -2118,6 +2130,8 @@ async function apriSchedaImpiantiSpegnimentoIngegnere() {
 
 function chiudiSchedaImpiantiSpegnimento() {
   closeM('m-rilievo-tecnico');
+   renderSchedePreventivo();
+
 }
 
 async function apriSchedaImpiantiSpegnimento() {
@@ -2327,6 +2341,8 @@ async function apriSchedaImpiantiSpegnimento() {
       </button>
     </div>
   `;
+   renderSchedePreventivo();
+
 }
 
 async function salvaSchedaImpiantiSpegnimento() {
@@ -2821,6 +2837,8 @@ ${
       `;
     }).join('')}
   `;
+   renderSchedePreventivo();
+
 }
 
 async function apriSelettoreFornitoriPreventivo() {

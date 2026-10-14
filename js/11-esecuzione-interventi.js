@@ -157,6 +157,7 @@ async function loadSediPresidio(cliId, selectedSedeId) {
 }
 
 async function loadPC(){
+  ricordaPosizionePagina();
   const cid=v('tc1');if(!cid){ge('pcl').innerHTML='<div class="empty">Seleziona un cliente</div>';return;}
   const [{data:pp},{data:perio}]=await Promise.all([
     db.from('impianti').select('*').eq('cliente_id',cid).order('tipo').order('matricola'),
@@ -278,6 +279,8 @@ async function salvaInt(){
   var impCb = ge('tc-impossibilitato'); if(impCb){impCb.checked=false; toggleImpossibilitato();}
   var relBox = ge('tc-relazione-box'); if(relBox) relBox.style.display='none';
   tnav(0);gotoPage('dashboard');document.querySelectorAll('.nb')[0]?.classList.add('on');document.querySelectorAll('.nb').forEach((t,i)=>{if(i>0)t.classList.remove('on');});
+
+  ripristinaPosizionePagina();
 }
 
 // ── SAVE ──────────────────────────────────────────────────────
@@ -384,6 +387,7 @@ async function openNuovoOdlVuoto(){
 
 // Apre m-odl in modalità "create" pulito (usato dai bottoni "+ Pianifica intervento").
 async function apriNuovoIntervento(){
+  ricordaPosizionePagina();
   await loadCS(); await loadUS();
   if(ge('mcli-odl-id')) ge('mcli-odl-id').value='';
   if(ge('mo-sopr-id')) ge('mo-sopr-id').value='';
@@ -403,6 +407,7 @@ async function apriNuovoIntervento(){
 // Apre m-odl in modalità "tecnico-self": il tecnico schedula un proprio intervento.
 // Sostituisce il vecchio m-schedula-tec (B5).
 async function apriSchedulazionePersonale(){
+  ricordaPosizionePagina();
   await loadCS(); // CLIS popolato
   // Reset
   ['mo1','mo-sede','mo3','mo4','mo6','mo-materiali','mo-note-cap'].forEach(function(id){
