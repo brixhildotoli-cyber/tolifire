@@ -437,7 +437,16 @@ const PAGINE_RUOLO = {
   commerciale:    ['dashboard','progetti-da-preventivare', 'preventivi', 'fornitori', 'fornitore-detail','preventivo-detail','clienti','documenti','progetto-detail','fatture','catalogo','cliente-detail', 'info'],
   rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','trattative','preventivi-rapp','cliente-detail','progetto-detail','catalogo', 'info'],
   ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti', 'certificati-ingegnere','progetto-detail','cliente-detail','info'],
+  
 };
+// L’ingegnere può consultare clienti e relative schede, senza modificarli.
+if (!PAGINE_RUOLO.ingegnere.includes('clienti')) {
+  PAGINE_RUOLO.ingegnere.push('clienti');
+}
+
+if (!PAGINE_RUOLO.ingegnere.includes('cliente-detail')) {
+  PAGINE_RUOLO.ingegnere.push('cliente-detail');
+}
 
 function canAccessPage(id) {
   if(!ROLE) return false;

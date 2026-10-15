@@ -11,7 +11,7 @@ if (paginaAttuale && paginaAttuale !== 'cliente-detail') {
   paginaPrecedenteCliente = paginaAttuale;
 }
 
-  const schedaSolaLettura = ROLE === 'commerciale';
+  const schedaSolaLettura = ['commerciale', 'ingegnere'].includes(ROLE);
   const puoModificare = puoModificareClienti();
 
   const btnNuovoPresidio = ge('cli-det-add-presidio');
