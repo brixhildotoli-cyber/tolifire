@@ -1145,11 +1145,46 @@ function renderSediList() {
   }
 }
 
-function addSede(){
-  const cit=v('ns-cit').trim();if(!cit){toast('Inserisci almeno la città','err');return;}
-  pendingSedi.push({tipo:v('ns-tipo'),nome:v('ns-nome')||null,via:v('ns-via')||null,civico:v('ns-civ')||null,cap:v('ns-cap')||null,citta:cit,provincia:v('ns-prov')||null,zona:v('ns-zona')||null});
-  ['ns-nome','ns-via','ns-civ','ns-cap','ns-cit','ns-prov','ns-zona'].forEach(id=>{const el=ge(id);if(el)el.value='';});
-  renderSediList();toast('Sede aggiunta','ok');
+function addSede() {
+  const citta = v('ns-cit').trim();
+  const via = v('ns-via').trim();
+
+  if (!citta) {
+    toast('Inserisci almeno la città', 'err');
+    return;
+  }
+
+  if (contestoCompletamentoLead && !via) {
+    toast('Per confermare il contatto inserisci anche la via della sede', 'err');
+    return;
+  }
+
+  pendingSedi.push({
+    tipo: v('ns-tipo'),
+    nome: v('ns-nome') || null,
+    via: via || null,
+    civico: v('ns-civ') || null,
+    cap: v('ns-cap') || null,
+    citta: citta,
+    provincia: v('ns-prov') || null,
+    zona: v('ns-zona') || null
+  });
+
+  [
+    'ns-nome',
+    'ns-via',
+    'ns-civ',
+    'ns-cap',
+    'ns-cit',
+    'ns-prov',
+    'ns-zona'
+  ].forEach(function(id) {
+    const campo = ge(id);
+    if (campo) campo.value = '';
+  });
+
+  renderSediList();
+  toast('Sede aggiunta', 'ok');
 }
 
 function removeSede(i){pendingSedi.splice(i,1);renderSediList();}
@@ -1292,24 +1327,32 @@ async function saveCli(){
     giorni_pagamento:parseInt(v('mf9'))||30,iban:v('mf10')||null,note_fatturazione:v('mf11')||null,
   };
 
-    if (completamentoLead) {
-    const mancanti = [];
+  if (completamentoLead) {
+  const mancanti = [];
 
-    if (!payload.piva) mancanti.push('P.IVA');
-    if (!payload.referente_nome) mancanti.push('referente');
-    if (!payload.referente_telefono) mancanti.push('telefono');
-    if (!payload.indirizzo_fattura) mancanti.push('indirizzo');
-    if (!payload.cap_fattura) mancanti.push('CAP');
-    if (!payload.citta_fattura) mancanti.push('città');
-
-    if (mancanti.length) {
-      toast(
-        'Per confermare il contatto completa: ' + mancanti.join(', '),
-        'err'
-      );
-      return;
-    }
+  if (!payload.piva) {
+    mancanti.push('P.IVA');
   }
+
+  const esisteSedeCompleta = pendingSedi.some(function(sede) {
+    return (
+      String(sede.via || '').trim() &&
+      String(sede.citta || '').trim()
+    );
+  });
+
+  if (!esisteSedeCompleta) {
+    mancanti.push('una sede con via e città');
+  }
+
+  if (mancanti.length) {
+    toast(
+      'Per confermare il contatto completa: ' + mancanti.join(', '),
+      'err'
+    );
+    return;
+  }
+}
   // Il cliente creato dal rappresentante viene assegnato a lui.
 if (!eid && ROLE === 'rappresentante') {
   payload.rappresentante_id = ME.id;
