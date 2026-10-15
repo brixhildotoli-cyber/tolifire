@@ -1,0 +1,22 @@
+{
+  "name": "Gestionale – Toli Fire",
+  "short_name": "Toli Fire",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#075b4c",
+  "theme_color": "#075b4c",
+  "icons": [
+    {
+      "src": "assets/logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
