@@ -541,7 +541,11 @@ const rigaVuota = function(voce) {
         ${campo('Tipologia', tpl(p.tipo))}
         ${campo('Matricola', p.matricola)}
         ${campo('Numero progressivo', p.numero_progressivo)}
-        ${campo('Stato', stato)}
+        ${campo(p.tipo === 'manichetta' ? 'Esito generale' : 'Stato', stato)}
+
+${p.tipo === 'manichetta'
+  ? campo('Stato — anomalia / appunto del tecnico', p.esito_verifica || '')
+  : ''}
         ${campo('Marca', p.marca)}
         ${campo('Modello / descrizione', p.modello)}
         ${campo('Ubicazione', p.ubicazione)}

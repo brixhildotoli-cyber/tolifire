@@ -32,11 +32,24 @@ if (formManichette.length) {
       <div class="f"><label>Scadenza — data precisa, se nota</label><input id="mm8" type="date"></div>
       <div class="f"><label>Scadenza indicata solo come anno</label><input id="mm-anno" type="number" min="1900" max="2200" placeholder="Es. 2031"></div>
     </div>
-    <div class="f"><label>Stato</label><select id="mm9">
-      <option value="">Non compilato</option><option value="ok">OK</option>
-      <option value="anomalia">Anomalia</option><option value="scaduto">Scaduto</option><option value="fuori_servizio">Fuori servizio</option>
-    </select></div>
-    <div class="f"><label>Esito della verifica</label><input id="mm-esito"></div>
+  <div class="f">
+  <label>Stato della manichetta</label>
+  <select id="mm9">
+    <option value="">Da verificare / non compilato</option>
+    <option value="ok">✅ OK</option>
+    <option value="anomalia">⚠️ Anomalia</option>
+    <option value="scaduto">❌ Scaduta</option>
+    <option value="fuori_servizio">🔴 Fuori servizio</option>
+  </select>
+</div>
+   <div class="f">
+  <label>Stato — anomalia o appunto del tecnico</label>
+  <textarea
+    id="mm-esito"
+    rows="3"
+    placeholder="Es. Cartellonistica mancante, lastra da sostituire..."
+  ></textarea>
+</div>
     <div class="f"><label>Controlli SI — una voce per riga</label><textarea id="mm-si"></textarea></div>
     <div class="f"><label>Controlli NO — una voce per riga</label><textarea id="mm-no"></textarea></div>
     <div class="f"><label>Controlli senza esito — una voce per riga</label><textarea id="mm-vuote"></textarea></div>
@@ -111,6 +124,12 @@ preparaImportPresidi = async function(testo) {
       r.payload.data_prossimo_controllo = null;
       delete r.payload.anno_manutenzione;delete r.payload.ciclo_manutenzione;
       r.payload.anno_scadenza = annoScadenzaManichetta(r.anno_scadenza);
+      // Conserva lo stato descrittivo del documento nel campo testuale.
+const statoDocumento = String(r.stato_documento || '').trim();
+
+if (statoDocumento) {
+  r.payload.esito_verifica = statoDocumento;
+}
       if (r.payload.anno_scadenza && r.payload.data_scadenza_collaudo &&
           r.payload.anno_scadenza !== Number(r.payload.data_scadenza_collaudo.slice(0,4))) {
         throw new Error('Anno di scadenza e data collaudo non coincidono.');

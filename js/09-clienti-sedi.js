@@ -495,6 +495,28 @@ function renderPC(data) {
             </div>
           ` : ''}
 
+          ${p.tipo === 'manichetta' ? `
+  <div style="
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    padding:8px;
+    margin:5px 0;
+    background:var(--bg);
+    border-radius:6px;
+  ">
+    <span>Stato</span>
+    <strong>
+      ${esc({
+        ok: '✅ OK',
+        anomalia: '⚠️ Anomalia',
+        scaduto: '❌ Scaduta',
+        fuori_servizio: '🔴 Fuori servizio'
+      }[p.stato] || 'Da verificare')}
+    </strong>
+  </div>
+` : ''}
+
           <div style="display:flex;justify-content:space-between">
             <span style="color:var(--m)">Ultima verifica</span>
             <span>${fd(p.data_ultimo_controllo)}</span>
