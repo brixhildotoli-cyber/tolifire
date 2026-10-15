@@ -165,7 +165,12 @@ confermaImportPresidi = async function() {
   const sede = ge('import-presidi-sede')?.selectedOptions?.[0]?.textContent || '';
   const riferimento = chiediRiferimentoManichette();
   if (!riferimento) return;
-  righe.forEach(r => Object.assign(r.payload,riferimento));
+ righe.forEach(function(r) {
+  r.datiSchedaManichetta = {
+    ...r.payload,
+    ...riferimento
+  };
+});
   if (!confirm(`Importare ${righe.length} manichette in ${cliente} → ${sede}? Le scadenze restano individuali. Le schede verranno registrate nel semestre scelto.`)) return;
   const bottone = ge('import-presidi-conferma');
   if (bottone.disabled) return;
@@ -181,8 +186,10 @@ confermaImportPresidi = async function() {
           id=data.id;r.presidioEsistenteId=id;
         }
         const {error}=await db.from('schede_manichette').insert({
-          impianto_id:id,data_intervento:r.payload.data_ultimo_controllo || null,
-          chiave_import:'csv:'+JSON.stringify(r.payload),dati:r.payload
+        impianto_id: id,
+data_intervento: r.datiSchedaManichetta.data_ultimo_controllo || null,
+chiave_import: 'csv:' + JSON.stringify(r.datiSchedaManichetta),
+dati: r.datiSchedaManichetta
         });
         if (error?.code==='23505') {saltate++;continue;}
         if (error) throw error;

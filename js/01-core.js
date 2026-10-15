@@ -12,6 +12,7 @@ let _pianoAnno=new Date().getFullYear(),_pianoMese=new Date().getMonth()+1;
 let calCicli=[];
 let currentCliId=null;
 let paginaPrecedenteCliente = 'clienti';
+let scrollPrimaSchedaCliente = 0;
 let paginaPrecedenteProgetto = 'progetti';
 let richiestaProgettiCliente = 0;
 let progettiClienteDati = [];
@@ -80,11 +81,12 @@ const NAV={
   tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario-tec',l:'📅 Il mio calendario'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'documenti',l:'Documenti'}],
   commerciale:[{id:'dashboard',l:'📊 Dashboard'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'preventivi',l:'🧾 Preventivi'},{id:'fornitori',l:'🏭 Fornitori'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'}, {id: 'info', l: 'ℹ️ Info'}],
   rappresentante:[{id:'dashboard-rapp',l:'📊 Dashboard'},{id:'calendario-appuntamenti', l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead e trattative'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'preventivi-rapp',l:'🧾 Preventivi'},{id:'progetti', l:'📐 Progetti'}, {id:'catalogo',l:'📦 Catalogo'}, {id:'info',l:'ⓘ Info'}],
-  ingegnere: [{id: 'dashboard', l: '📊 Dashboard'},{id: 'calendario-ingegnere', l: '📅 Calendario'},{id: 'verifiche-tecniche', l: '🔧 Verifiche'},{id:'certificati-ingegnere', l:'📜 Certificati'},{id: 'documenti', l: '📄 Documenti'},{id: 'info', l: 'ℹ️ Info'}],
+  ingegnere: [{id: 'dashboard', l: '📊 Dashboard'},{id: 'calendario-ingegnere', l: '📅 Calendario'},{id: 'verifiche-tecniche', l: '🔧 Verifiche'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'certificati-ingegnere', l:'📜 Certificati'},{id: 'documenti', l: '📄 Documenti'},{id: 'info', l: 'ℹ️ Info'}],
 };
 
 // NAV MOBILE
 function toggleNavMobile() {
+  
   const nav = ge('nav');
   const btn = ge('nav-toggle');
 
@@ -93,6 +95,7 @@ function toggleNavMobile() {
   const aperto = nav.classList.contains('mobile-open');
   btn.setAttribute('aria-expanded', aperto ? 'true' : 'false');
   btn.textContent = aperto ? '✕ Chiudi' : '☰ Menu';
+  ripristinaPosizionePagina();
 }
 
 function chiudiNavMobile() {
@@ -104,6 +107,7 @@ function chiudiNavMobile() {
   nav.classList.remove('mobile-open');
   btn.setAttribute('aria-expanded', 'false');
   btn.textContent = '☰ Menu';
+  ripristinaPosizionePagina();
 }
 
 

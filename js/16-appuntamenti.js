@@ -298,18 +298,25 @@ function cambiaMeseAppuntamenti(delta) {
 }
 
 async function loadVerificheTecniche() {
-  ricordaPosizionePagina();
   const box = ge('verifiche-tecniche-lista');
 
   if (!box) return;
 
-  box.innerHTML = '<div class="load">Caricamento verifiche...</div>';
+  box.innerHTML = '<div class="load">Caricamento progetti...</div>';
 
   const { data, error } = await db
     .from('progetti_tecnici')
-    .select('id, titolo, tipologia, descrizione_tecnica, stato, creato_il, clienti(ragione_sociale)')
-    .eq('stato', 'in_verifica_tecnica')
-    .order('creato_il', { ascending: false });
+    .select(`
+      id,
+      titolo,
+      tipologia,
+      descrizione_tecnica,
+      stato,
+      creato_il,
+      aggiornato_il,
+      clienti(ragione_sociale)
+    `)
+    .order('aggiornato_il', { ascending: false });
 
   if (error) {
     box.innerHTML =
@@ -317,52 +324,136 @@ async function loadVerificheTecniche() {
     return;
   }
 
-  if (!data || data.length === 0) {
+  const progetti = data || [];
+
+  const daVerificare = progetti.filter(function(progetto) {
+    return progetto.stato === 'in_verifica_tecnica';
+  });
+
+  const storico = progetti.filter(function(progetto) {
+    return [
+      'da_integrare',
+      'in_preventivazione',
+      'inviato_a_commerciale',
+      'pronto_per_preventivo'
+    ].includes(progetto.stato);
+  });
+
+  if (!daVerificare.length && !storico.length) {
     box.innerHTML =
-      '<div class="empty">Nessun progetto tecnico da verificare.</div>';
+      '<div class="empty">Nessun progetto tecnico disponibile.</div>';
     return;
   }
 
-  box.innerHTML = data.map(function(progetto) {
-    const cliente = progetto.clienti?.ragione_sociale || 'Cliente non disponibile';
+  function dataItaliana(data) {
+    if (!data) return '—';
+
+    return new Date(data).toLocaleDateString('it-IT', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  }
+
+  function cardProgetto(progetto, storicoProgetto) {
+    const cliente =
+      progetto.clienti?.ragione_sociale || 'Cliente non disponibile';
+
+    const stato = {
+      da_integrare: {
+        testo: 'Rimandato al rappresentante per integrazione',
+        classe: 'bwarn'
+      },
+      in_preventivazione: {
+        testo: 'Inviato al commerciale · in preventivazione',
+        classe: 'bok'
+      },
+      inviato_a_commerciale: {
+        testo: 'Inviato al commerciale',
+        classe: 'bok'
+      },
+      pronto_per_preventivo: {
+        testo: 'Pronto per preventivo',
+        classe: 'bok'
+      }
+    }[progetto.stato] || {
+      testo: progetto.stato || 'Stato non definito',
+      classe: 'bgray'
+    };
 
     return `
       <div class="card" style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
           <div>
             <div style="font-size:15px;font-weight:700">
-              ${esc(progetto.titolo)}
+              ${esc(progetto.titolo || 'Progetto tecnico')}
             </div>
 
             <div style="font-size:12px;color:var(--m);margin-top:4px">
-              ${esc(cliente)} · ${esc(progetto.tipologia)}
+              ${esc(cliente)} · ${esc(progetto.tipologia || 'Tipologia non indicata')}
             </div>
           </div>
 
-          <span class="bx bblue">In verifica tecnica</span>
+          <span class="bx ${storicoProgetto ? stato.classe : 'bblue'}">
+            ${storicoProgetto ? esc(stato.testo) : 'In verifica tecnica'}
+          </span>
         </div>
-<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-  <button
-    class="btn sm"
-    onclick="openProgettoDetail('${progetto.id}')">
-    Apri progetto
-  </button>
 
-  <button
-    class="btn sm p"
-    onclick="apriVerificaTecnica('${progetto.id}')">
-    🔧 Gestisci verifica
-  </button>
-</div>
         <div style="font-size:13px;white-space:pre-wrap;margin-top:10px">
-          ${esc(progetto.descrizione_tecnica)}
+          ${esc(progetto.descrizione_tecnica || 'Nessuna descrizione disponibile')}
         </div>
 
         <div style="font-size:12px;color:var(--m);margin-top:10px">
-          Inviato il ${new Date(progetto.creato_il).toLocaleDateString('it-IT')}
+          ${storicoProgetto ? 'Ultimo aggiornamento' : 'Ricevuto'}:
+          ${esc(dataItaliana(progetto.aggiornato_il || progetto.creato_il))}
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <button
+            class="btn sm"
+            onclick="openProgettoDetail('${progetto.id}')"
+          >
+            Apri progetto
+          </button>
+
+          ${!storicoProgetto ? `
+            <button
+              class="btn sm p"
+              onclick="apriVerificaTecnica('${progetto.id}')"
+            >
+              🔧 Gestisci verifica
+            </button>
+          ` : ''}
         </div>
       </div>
     `;
-  }).join('');
-}
+  }
 
+  box.innerHTML = `
+    <div class="rap-section">
+      🔧 Da verificare
+      <span style="color:var(--m)">(${daVerificare.length})</span>
+    </div>
+
+    ${
+      daVerificare.length
+        ? daVerificare.map(function(progetto) {
+            return cardProgetto(progetto, false);
+          }).join('')
+        : '<div class="empty">Nessun progetto da verificare.</div>'
+    }
+
+    <div class="rap-section" style="margin-top:28px">
+      🕘 Storico progetti inviati
+      <span style="color:var(--m)">(${storico.length})</span>
+    </div>
+
+    ${
+      storico.length
+        ? storico.map(function(progetto) {
+            return cardProgetto(progetto, true);
+          }).join('')
+        : '<div class="empty">Nessun progetto inviato dall’ingegnere.</div>'
+    }
+  `;
+}

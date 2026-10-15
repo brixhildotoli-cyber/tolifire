@@ -17,6 +17,20 @@ apriImportPresidi = async function() {
       <div id="import-presidi-destinazione" class="card">
         <div class="f"><label>Cliente destinatario di tutto il CSV</label><select id="import-presidi-cliente"><option value="">Seleziona cliente...</option></select></div>
         <div class="f"><label>Sede destinataria di tutto il CSV</label><select id="import-presidi-sede" disabled><option value="">Seleziona prima il cliente...</option></select></div>
+        <div class="f">
+  <label>Tipologia del CSV *</label>
+  <select id="import-presidi-tipo">
+    <option value="">Seleziona tipologia...</option>
+    <option value="porte">Porte REI e/o uscite di emergenza</option>
+    <option value="porta_rei">Solo porte REI</option>
+    <option value="uscita_emergenza">Solo uscite di emergenza</option>
+    <option value="estintore">Estintori</option>
+    <option value="manichetta">Manichette</option>
+  </select>
+  <div class="hint">
+    Il CSV può contenere solo le tipologie compatibili con la scelta.
+  </div>
+</div>
         <div>Per i file di Pisa: GT Auto SRL → Ospedaletto. I presidi di Livorno rimangono separati.</div>
       </div>`);
     ge('import-presidi-cliente').addEventListener('change',caricaSediImportPresidi);
@@ -27,6 +41,10 @@ apriImportPresidi = async function() {
   ge('import-presidi-cliente').disabled = true;
   ge('import-presidi-sede').innerHTML = '<option value="">Seleziona prima il cliente...</option>';
   ge('import-presidi-sede').disabled = true;
+  ge('import-presidi-tipo').addEventListener(
+  'change',
+  invalidaImportPresidiSede
+);
   invalidaImportPresidiSede();
   const versione = importSediPresidi.versione;
   const {data,error} = await db.from('clienti').select('id,ragione_sociale,piva').is('eliminato_il',null).order('ragione_sociale');
@@ -75,6 +93,22 @@ async function preparaImportPresidiPerSede(testo) {
   );
 
   const cicloManutenzione = v('import-presidi-ciclo');
+  const gruppoTipo = v('import-presidi-tipo');
+
+const tipiAmmessiPerGruppo = {
+  porte: ['porta_rei', 'uscita_emergenza'],
+  porta_rei: ['porta_rei'],
+  uscita_emergenza: ['uscita_emergenza'],
+  estintore: ['estintore'],
+  manichetta: ['manichetta']
+};
+
+const tipiAmmessi = tipiAmmessiPerGruppo[gruppoTipo];
+
+if (!tipiAmmessi) {
+  toast('Seleziona la tipologia del CSV prima di caricare il file.', 'err');
+  return;
+}
   const clienteScelto = v('import-presidi-cliente');
   const sedeScelta = v('import-presidi-sede');
   const versione = importSediPresidi.versione;
@@ -190,6 +224,12 @@ async function preparaImportPresidiPerSede(testo) {
         'Tipo e matricola sono obbligatori';
       return risultato;
     }
+
+    if (!tipiAmmessi.includes(tipo)) {
+  risultato.messaggio =
+    'La tipologia della riga non corrisponde al tipo scelto nel menu';
+  return risultato;
+}
 
   let clientiCompatibili = (clienti || []).filter(cliente => cliente.id === clienteScelto);
 
