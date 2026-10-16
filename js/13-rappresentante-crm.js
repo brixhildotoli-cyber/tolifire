@@ -495,6 +495,7 @@ async function apriProgettoDaIntegrareDaDashboard(progettoId) {
     `)
     .eq('id', progettoId)
     .eq('rappresentante_id', ME.id)
+    .is('integrazione_letta_rappresentante_il', null)
     .eq('stato', 'da_integrare')
     .single();
 
@@ -506,26 +507,17 @@ async function apriProgettoDaIntegrareDaDashboard(progettoId) {
     return;
   }
 
-  const chiaveLetti = `progetti_da_integrare_letti_${ME.id}`;
-  const versione = [
-    progetto.id,
-    progetto.aggiornato_il || '',
-    progetto.nota_integrazione || progetto.nota_verifica_tecnica || ''
-  ].join('|');
+ const { error: erroreLettura } = await db.rpc(
+  'marca_integrazione_letta_rappresentante',
+  { p_progetto_id: progettoId }
+);
 
-  let giaLetti = [];
-  try {
-    const salvati = JSON.parse(localStorage.getItem(chiaveLetti) || '[]');
-    giaLetti = Array.isArray(salvati) ? salvati : [];
-  } catch {
-    giaLetti = [];
-  }
-
-  if (!giaLetti.includes(versione)) {
-    giaLetti.push(versione);
-    localStorage.setItem(chiaveLetti, JSON.stringify(giaLetti));
-  }
-
+if (erroreLettura) {
+  console.warn(
+    'Impossibile segnare la notifica come letta:',
+    erroreLettura.message
+  );
+}
   // Rimuove subito soltanto la notifica cliccata.
   const notifica = ge(`rap-progetto-notifica-${progettoId}`);
   if (notifica) notifica.remove();

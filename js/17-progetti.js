@@ -1086,6 +1086,7 @@ async function inviaIntegrazioneCommerciale() {
       stato: nuovoStato,
       nota_integrazione: nota,
       integrazione_richiesta_da: ROLE, 
+      integrazione_letta_rappresentante_il: null,
       aggiornato_il: new Date().toISOString()
     })
     .eq('id', progettoId)
