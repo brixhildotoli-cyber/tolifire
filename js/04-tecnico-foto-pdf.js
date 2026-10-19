@@ -433,6 +433,7 @@ async function stampaRelazionePorteREI(schedaId) {
 
 // ── GESTIONE PRESIDI DAL TECNICO ─────────────────────────────
 function apriAggiungiPresidioTec() {
+  ricordaPosizionePagina();
   var cliId = v('tc1');
   if(!cliId) { toast('Seleziona prima il cliente','err'); return; }
   // Usa il modal presidio esistente con cliente preimpostato

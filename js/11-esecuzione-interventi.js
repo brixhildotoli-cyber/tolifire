@@ -232,7 +232,24 @@ function togglePresidioDetail(el) {
   if(detail) detail.style.display = el.checked ? 'block' : 'none';
 }
 
-function buildRiep(){const ce=ge('tc1'),cn=ce.options[ce.selectedIndex]?.text||'—';const te=ge('tc5'),tn=te.options[te.selectedIndex]?.text||'—';const done=document.querySelectorAll('.ci input:checked').length,total=document.querySelectorAll('.ci input').length;ge('triepilogo').innerHTML=`<div style="display:flex;flex-direction:column;gap:8px;font-size:13px"><div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Cliente</span><strong>${cn}</strong></div><div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Tecnico</span><strong>${tn}</strong></div><div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Data</span><strong>${fd(v('tc3'))}</strong></div><div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Tipo</span><strong>${tl(v('tc2'))}</strong></div><div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Check-list</span><strong>${done}/${total} completate</strong></div><div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Esito</span><strong>${v('tc13').replace(/_/g,' ')}</strong></div>${v('tc14')==='true'?'<div><span class="bx berr">⚠ Intervento straordinario richiesto</span></div>':''}</div>`;}
+function buildRiep(){const ce=ge('tc1'),cn=ce.options[ce.selectedIndex]?.text||'—';const te=ge('tc5'),tn=te.options[te.selectedIndex]?.text||'—';
+  const done=document.querySelectorAll('.ci input:checked')
+  .length,total=document.querySelectorAll('.ci input')
+  .length;ge('triepilogo')
+  .innerHTML=`<div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+  <div style="display:flex;justify-content:space-between">
+  <span style="color:var(--m)">Cliente</span><strong>${cn}</strong></div>
+  <div style="display:flex;justify-content:space-between">
+  <span style="color:var(--m)">Tecnico</span><strong>${tn}</strong></div>
+  <div style="display:flex;justify-content:space-between">
+  <span style="color:var(--m)">Data</span><strong>${fd(v('tc3'))}</strong></div>
+  <div style="display:flex;justify-content:space-between">
+  <span style="color:var(--m)">Tipo</span><strong>${tl(v('tc2'))}</strong>
+  </div><div style="display:flex;justify-content:space-between">
+  <span style="color:var(--m)">Check-list</span><strong>${done}/${total} completate</strong>
+  </div><div style="display:flex;justify-content:space-between">
+  <span style="color:var(--m)">Esito</span><strong>${v('tc13').replace(/_/g,' ')}</strong>
+  </div>${v('tc14')==='true'?'<div><span class="bx berr">⚠ Intervento straordinario richiesto</span></div>':''}</div>`;}
 
 async function salvaInt(){
   const cid=v('tc1'),tid=v('tc5'),di=v('tc3');if(!cid||!di){toast('Dati mancanti','err');return;}

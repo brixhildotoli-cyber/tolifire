@@ -339,28 +339,11 @@ const { data: progettiDaIntegrare, error: erroreProgetti } = await db
   `)
   .eq('stato', 'da_integrare')
   .eq('rappresentante_id', ME.id)
+  .is('integrazione_letta_rappresentante_il', null)
   .order('aggiornato_il', { ascending: false });
 
 if (boxProgetti) {
-  const chiaveLetti = `progetti_da_integrare_letti_${ME.id}`;
-
-  let giaLetti = [];
-  try {
-    const salvati = JSON.parse(localStorage.getItem(chiaveLetti) || '[]');
-    giaLetti = Array.isArray(salvati) ? salvati : [];
-  } catch {
-    giaLetti = [];
-  }
-
-  const nuovi = (progettiDaIntegrare || []).filter(function(progetto) {
-    const versione = [
-      progetto.id,
-      progetto.aggiornato_il || '',
-      progetto.nota_integrazione || progetto.nota_verifica_tecnica || ''
-    ].join('|');
-
-    return !giaLetti.includes(versione);
-  });
+  const nuovi = progettiDaIntegrare || [];
 
   if (erroreProgetti || !nuovi.length) {
     boxProgetti.innerHTML = '';
