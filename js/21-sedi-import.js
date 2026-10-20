@@ -26,6 +26,7 @@ apriImportPresidi = async function() {
     <option value="uscita_emergenza">Solo uscite di emergenza</option>
     <option value="estintore">Estintori</option>
     <option value="manichetta">Manichette</option>
+    <option value="naspo">Naspi</option>
   </select>
   <div class="hint">
     Il CSV può contenere solo le tipologie compatibili con la scelta.
@@ -100,7 +101,10 @@ const tipiAmmessiPerGruppo = {
   porta_rei: ['porta_rei'],
   uscita_emergenza: ['uscita_emergenza'],
   estintore: ['estintore'],
-  manichetta: ['manichetta']
+  manichetta: ['manichetta'],
+  naspo: ['naspo'],
+  evacuatori_fumi: ['evacuatori-fumi'],
+  idrante: ['idrante']
 };
 
 const tipiAmmessi = tipiAmmessiPerGruppo[gruppoTipo];

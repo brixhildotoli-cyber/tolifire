@@ -55,7 +55,8 @@ const TIPI_PRESIDI=[
   'pompa_antincendio',
   'centrale_rivelazione',
   'sprinkler',
-  'uscita_emergenza'
+  'uscita_emergenza',
+  'evacuatore_fumi'
 ];
 
 const TIPI_LABEL={
@@ -68,7 +69,8 @@ const TIPI_LABEL={
   pompa_antincendio:'⚙️ Pompa antincendio',
   centrale_rivelazione:'🖥 Centrale rivelazione',
   sprinkler:'🌧 Sprinkler',
-  uscita_emergenza:'🚪 Uscite emergenza'
+  uscita_emergenza:'🚪 Uscite emergenza',
+  evacuatore_fumi: '🌫️ Evacuatori fumo',
 };
 const PERIO_OPT=['mensile','bimestrale','trimestrale','quadrimestrale','semestrale','annuale','biennale'];
 const PERIO_MESI={mensile:1,bimestrale:2,trimestrale:3,quadrimestrale:4,semestrale:6,annuale:12,biennale:24};
@@ -134,6 +136,7 @@ const CKL_PRESIDIO = {
   idrante: ['Verifica integrità cassetta','Verifica manichetta','Verifica lance e raccordi','Verifica valvola intercettazione','Test apertura valvola','Verifica segnaletica'],
   naspo: ['Verifica integrità cassetta','Verifica manichetta','Verifica raccordi e lance','Verifica valvola','Verifica segnaletica'],
   luce_emergenza: ['Verifica accensione','Test autonomia','Verifica illuminazione vie fuga','Verifica segnaletica','Verifica fissaggio'],
+  evacuatore_fumi: ['Controllo apertura','Lubrificazione cerniere','Verifica bomboletta CO₂','Verifica scadenza bomboletta CO₂'],
 };
 
 const WFS=['firmata','approvata','inviata_cliente','da_fatturare','fatturata'];

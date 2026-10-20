@@ -220,3 +220,116 @@ dati: r.datiSchedaManichetta
     await loadPresidi();
   } finally {bottone.disabled=false;}
 };
+const preparaImportPresidiPrimaNaspi = preparaImportPresidi;
+
+preparaImportPresidi = async function(testo) {
+  await preparaImportPresidiPrimaNaspi(testo);
+
+  righeImportPresidi.forEach(function(riga) {
+    if (!riga.valido || riga.payload?.tipo !== 'naspo') return;
+
+    const annoTesto = String(riga.anno_scadenza || '').trim();
+
+    if (annoTesto && !/^\d{4}$/.test(annoTesto)) {
+      riga.valido = false;
+      riga.messaggio = 'Anno scadenza naspo non valido';
+      return;
+    }
+
+    riga.payload.anno_scadenza = annoTesto
+      ? Number(annoTesto)
+      : null;
+
+    const senzaControllo =
+      !riga.payload.data_ultimo_controllo &&
+      !String(riga.stato || '').trim() &&
+      !String(riga.esito_verifica || '').trim();
+
+    if (senzaControllo) {
+      riga.payload.anno_manutenzione = null;
+      riga.payload.ciclo_manutenzione = 'non_assegnato';
+      riga.payload.periodicita_mesi = null;
+      riga.payload.data_prossimo_controllo = null;
+      riga.payload.stato = null;
+      riga.azione = 'Naspo non assegnato';
+      riga.messaggio =
+        'Nessuna manutenzione indicata: inserito nel periodo Non assegnato';
+    }
+  });
+
+  renderAnteprimaImportPresidi();
+};
+
+const confermaImportPresidiPrimaNaspi = confermaImportPresidi;
+
+confermaImportPresidi = async function() {
+  const valide = righeImportPresidi.filter(function(riga) {
+    return riga.valido;
+  });
+
+  const soloNaspiNonAssegnati =
+    valide.length > 0 &&
+    valide.every(function(riga) {
+      return (
+        riga.payload?.tipo === 'naspo' &&
+        riga.payload?.ciclo_manutenzione === 'non_assegnato'
+      );
+    });
+
+  if (!soloNaspiNonAssegnati) {
+    return confermaImportPresidiPrimaNaspi();
+  }
+
+  if (!gestisceStoricoPresidi()) {
+    toast('Importazione riservata a titolare e capo tecnico.', 'err');
+    return;
+  }
+
+  if (!confirm(
+    `Importare ${valide.length} naspi nel periodo Non assegnato?`
+  )) {
+    return;
+  }
+
+  const bottone = ge('import-presidi-conferma');
+  bottone.disabled = true;
+
+  let creati = 0;
+  let giaPresenti = 0;
+  const errori = [];
+
+  for (const riga of valide) {
+    try {
+      if (riga.presidioEsistenteId) {
+        giaPresenti++;
+        continue;
+      }
+
+      const { error } = await db
+        .from('impianti')
+        .insert(riga.payload);
+
+      if (error) throw error;
+
+      creati++;
+    } catch (errore) {
+      errori.push(`Riga ${riga.numeroRiga}: ${errore.message}`);
+    }
+  }
+
+  bottone.disabled = false;
+
+  ge('import-presidi-riepilogo').textContent =
+    `Naspi inseriti: ${creati}. ` +
+    `Già presenti: ${giaPresenti}. ` +
+    errori.join(' · ');
+
+  if (!errori.length) {
+    closeM('m-import-presidi');
+    toast('Naspi importati nel periodo Non assegnato.', 'ok');
+  } else {
+    toast('Importazione completata con alcuni errori.', 'err');
+  }
+
+  await loadPresidi();
+};
