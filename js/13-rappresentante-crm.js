@@ -58,23 +58,10 @@ async function loadCalendarioDisponibilitaRappresentante() {
 
   titolo.textContent = nomeMese.charAt(0).toUpperCase() + nomeMese.slice(1);
 
-  const { data, error } = await db
-    .from('ordini_lavoro')
-    .select(`
-      id,
-      data_pianificata,
-      fascia_oraria,
-      stato,
-      tecnico_id,
-      utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)
-    `)
-    .is('eliminato_il', null)
-    .not('tecnico_id', 'is', null)
-    .gte('data_pianificata', primoGiorno)
-    .lte('data_pianificata', ultimoGiorno)
-    .neq('stato', 'annullato')
-    .order('data_pianificata')
-    .order('fascia_oraria');
+  // Con le policy per ruolo (sql/09) il rappresentante legge da ordini_lavoro
+  // solo gli interventi dei suoi clienti: la disponibilità di tutto il team
+  // arriva dalla RPC impegni_tecnici_dashboard (solo data, fascia, tecnico).
+  const { data, error } = await leggiImpegniTeamMese(primoGiorno, ultimoGiorno);
 
   if (error) {
     calendario.innerHTML =
@@ -86,7 +73,47 @@ async function loadCalendarioDisponibilitaRappresentante() {
     return;
   }
 
-  const impegni = data || [];
+  rapDisegnaCalendarioImpegni(data || [], nomeMese, calendario, lista);
+}
+
+// Impegni del team nel periodo, nello stesso formato della vecchia query su
+// ordini_lavoro. Se la RPC non risponde resta la lettura diretta.
+async function leggiImpegniTeamMese(dal, al) {
+  const rpc = await db.rpc('impegni_tecnici_dashboard', { p_dal: dal, p_al: al });
+
+  if (!rpc.error) {
+    return {
+      data: (rpc.data || []).map(function(r) {
+        return {
+          data_pianificata: r.data,
+          fascia_oraria: r.fascia,
+          utenti: { nome: r.tecnico, cognome: '' }
+        };
+      }),
+      error: null
+    };
+  }
+
+  return await db
+    .from('ordini_lavoro')
+    .select(`
+      id,
+      data_pianificata,
+      fascia_oraria,
+      stato,
+      tecnico_id,
+      utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)
+    `)
+    .is('eliminato_il', null)
+    .not('tecnico_id', 'is', null)
+    .gte('data_pianificata', dal)
+    .lte('data_pianificata', al)
+    .neq('stato', 'annullato')
+    .order('data_pianificata')
+    .order('fascia_oraria');
+}
+
+function rapDisegnaCalendarioImpegni(impegni, nomeMese, calendario, lista) {
   const perData = {};
 
   impegni.forEach(function(impegno) {

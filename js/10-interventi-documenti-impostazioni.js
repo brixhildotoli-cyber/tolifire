@@ -57,7 +57,16 @@ if (ROLE === 'rappresentante') {
   query = query.eq('rappresentante_id', ME.id);
 }
 
-const { data, error } = await query;
+// Tecnico: con le policy per ruolo (sql/08) in "clienti" vede solo i clienti
+// dei suoi interventi; per la tendina "nuovo intervento" usa la RPC che dà solo
+// id e ragione sociale di tutti. Se la RPC non esiste ancora resta la lettura diretta.
+let risTecnico = null;
+if (ROLE === 'tecnico') {
+  risTecnico = await db.rpc('elenco_clienti_base');
+  if (risTecnico.error) risTecnico = null;
+}
+
+const { data, error } = risTecnico || await query;
   if(error){console.warn('loadCS:',error.message);return;}
   CLIS=data||[];
   ['tc1','mo1','mpcl'].forEach(id=>{const el=ge(id);if(!el)return;const cur=el.value;el.innerHTML='<option value="">Seleziona cliente...</option>'+(data||[]).map(c=>`<option value="${c.id}">${esc(c.ragione_sociale)}</option>`).join('');if(cur)el.value=cur;});

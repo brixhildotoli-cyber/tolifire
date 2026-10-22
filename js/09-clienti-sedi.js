@@ -1274,17 +1274,29 @@ function addSede() {
 
 function removeSede(i){pendingSedi.splice(i,1);renderSediList();}
 
+// Sedi per le tendine degli interventi. Il tecnico, con le policy per ruolo
+// (sql/08), legge da sedi_cliente solo i clienti dei suoi interventi: per un
+// intervento nuovo usa la RPC con solo tipo, nome e indirizzo.
+// Se la RPC non esiste ancora resta la lettura diretta.
+async function leggiSediTendina(cid){
+  if(ROLE==='tecnico'){
+    const r=await db.rpc('elenco_sedi_cliente',{p_cliente_id:cid});
+    if(!r.error) return r;
+  }
+  return await db.from('sedi_cliente').select('id,tipo,nome,via,civico,citta').eq('cliente_id',cid).order('tipo');
+}
+
 async function loadSediForOdl(){
   const cid=v('mo1');const sel=ge('mo-sede');
   if(!cid){sel.innerHTML='<option value="">Sede principale / da definire</option>';return;}
-  const {data}=await db.from('sedi_cliente').select('id,tipo,nome,via,civico,citta').eq('cliente_id',cid).order('tipo');
+  const {data}=await leggiSediTendina(cid);
   sel.innerHTML='<option value="">Sede principale (indirizzo cliente)</option>'+(data||[]).map(s=>`<option value="${s.id}">${(s.tipo||'sede').toUpperCase()}${s.nome?' — '+esc(s.nome):''}: ${esc(s.via||'')} ${esc(s.civico||'')} ${s.citta?'('+esc(s.citta)+')':''}</option>`).join('');
 }
 
 async function loadSediTec(){
   const cid=v('tc1');const sel=ge('tc1-sede');
   if(!cid){sel.innerHTML='<option value="">Sede principale / da definire</option>';return;}
-  const {data}=await db.from('sedi_cliente').select('id,tipo,nome,via,civico,citta').eq('cliente_id',cid).order('tipo');
+  const {data}=await leggiSediTendina(cid);
   sel.innerHTML='<option value="">Sede principale (indirizzo cliente)</option>'+(data||[]).map(s=>`<option value="${s.id}">${(s.tipo||'sede').toUpperCase()}${s.nome?' — '+esc(s.nome):''}: ${esc(s.via||'')} ${esc(s.civico||'')} ${s.citta?'('+esc(s.citta)+')':''}</option>`).join('');
 }
 
