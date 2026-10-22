@@ -2,3 +2,6 @@
 *.log
 gestione-task/
 .claude/
+# sql/ (schema, policy, backup) vive in un repository privato separato: vedi README
+sql/
+*.dump

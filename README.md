@@ -75,3 +75,11 @@ I moduli in `js/` sono caricati da `index.html` con `defer`, nell'ordine numeric
 ## Stato del progetto
 
 Il gestionale è in evoluzione. Le modifiche vanno testate prima in locale e poi pubblicate sul branch destinato a GitHub Pages.
+
+## Cartella `sql/` (repository privato)
+
+`sql/` contiene lo schema del database, le policy RLS, le funzioni RPC e la
+procedura di backup (`sql/BACKUP.md`). È un **repository git separato e privato**
+ed è esclusa da questo repository tramite `.gitignore`, perché questo viene
+pubblicato con GitHub Pages. Per lavorarci: `cd sql` e usare git normalmente.
+I backup con dati dei clienti non vanno in nessuno dei due repository.
