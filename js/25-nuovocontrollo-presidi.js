@@ -32,6 +32,7 @@ async function eseguiNuovoControllo(id) {
 <option value="febbraio_agosto" ${ciclo === 'febbraio_agosto' ? 'selected' : ''}>
   Luglio – Dicembre
 </option>
+      </select></div>
       <div class="f"><label>Riferimento della nuova scheda</label><select id="nc-semestre"><option value="1" ${target.mese<7?'selected':''}>Prima verifica del periodo</option><option value="2" ${target.mese>=7?'selected':''}>Seconda verifica del periodo</option></select></div></div>
       <div class="f"><label>Data effettiva dell’intervento *</label><input id="nc-data" type="date"></div>
       ${['porta_rei','uscita_emergenza'].includes(p.tipo)?'<div class="f"><label>Prossimo controllo — 6 mesi</label><input id="nc-prossima" type="date" readonly></div>':'<div class="fr"><div class="f"><label>Prossimo controllo, se noto</label><input id="nc-prossima" type="date"></div><div class="f"><label>Scadenza, data precisa se nota</label><input id="nc-scadenza" type="date" value="'+esc(d.data_scadenza_collaudo||'')+'"></div><div class="f"><label>Scadenza solo anno, se nota</label><input id="nc-anno-scadenza" type="number" min="1900" max="2200" value="'+esc(d.anno_scadenza||'')+'"></div></div>'}

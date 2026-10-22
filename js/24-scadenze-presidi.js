@@ -73,8 +73,8 @@ apriEditorSchedaPresidio=function(indice,riporta) {
   ge('sp-data').closest('.f').insertAdjacentHTML('beforebegin',`<div class="fr">
     <div class="f"><label>Anno di riferimento</label><input id="sc-anno" type="number" min="1900" max="2200" value="${next.anno}"></div>
     <div class="f"><label>Gruppo fisso</label><select id="sc-ciclo">
-   <option value="gennaio_luglio">Gennaio – Giugno</option>
-<option value="febbraio_agosto">Luglio – Dicembre</option>
+   <option value="gennaio_luglio" ${c==='gennaio_luglio'?'selected':''}>Gennaio – Giugno</option>
+<option value="febbraio_agosto" ${c==='febbraio_agosto'?'selected':''}>Luglio – Dicembre</option>
     </select></div>
     <div class="f"><label>Semestre</label><select id="sc-semestre"><option value="1" ${next.semestre===1?'selected':''}>1° semestre</option><option value="2" ${next.semestre===2?'selected':''}>2° semestre</option></select></div></div>`);
 };
