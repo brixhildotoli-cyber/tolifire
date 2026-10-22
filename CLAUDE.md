@@ -68,8 +68,16 @@ confirm_user_email, impegni_tecnici_dashboard,
 marca_preventivo_letto_rappresentante, marca_preventivo_letto_titolare,
 salva_esito_verifica, salva_bozza_verifica, elimina_scheda_storico,
 nuovo_intervento_manichetta, salva_riporto_presidio.
-Client pubblico `dbPublic` (portale clienti) legge: clienti, sedi_cliente,
-documenti_cliente, ddt.
+Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
+Sono gli accessi che le policy RLS per il portale dovranno permettere
+(F1.1), sempre filtrati sul cliente del portale (`cliente_id`):
+- LETTURE (select): clienti, sedi_cliente, documenti_cliente
+  (solo `visibile_cliente=true`), ddt, schede_lavoro, ticket_clienti
+  (con join in lettura su ordini_lavoro: data_pianificata, stato,
+  fascia_oraria).
+- SCRITTURE (insert): documenti_cliente, ticket_clienti, ticket_allegati.
+- STORAGE: bucket documenti-clienti (upload e createSignedUrl),
+  bucket ticket-allegati (upload).
 
 ## Mappa ruoli: organigramma → gestionale
 Da "Roadmap gestionale TOLI Fire" (gestione-task/ROADMAP.md). Si tengono i
@@ -160,7 +168,8 @@ TITOLARE
 - Vede tutto. KPI complete e affidabili (la struttura costa 1000 €/giorno).
 
 CONTABILE
-- Dashboard, workflow, documenti, catalogo.
+- Dashboard, workflow, fatture, documenti, catalogo (come da
+  `PAGINE_RUOLO.contabile`).
 
 INGEGNERE
 - Verifiche tecniche sui progetti, schede rilievo, certificati.
