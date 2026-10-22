@@ -1,17 +1,122 @@
 # Toli Fire — Gestionale Antincendio
 
 ## Cos'è
-Gestionale per azienda di antincendio. Frontend: file unico `index.html`
-(~5750 righe, HTML/CSS/JS vanilla). Backend: Supabase (Postgres + Auth + API).
+Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
+file unico: `index.html` (markup) + `style.css` + moduli `js/00-…25-*.js`
+caricati in ordine 00–18, poi 20–25, infine `19-init.js` (dettagli in
+README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
 sono critiche.
 
+Branch: `sviluppo` = lavoro; `gestionale_new` = branch pubblicato su GitHub
+Pages (il sito usato dai dipendenti: solo merge provati). `main` locale e
+remoto divergono: non toccarli.
+Cartella `sql/`: repository git SEPARATO e PRIVATO
+(brixhildotoli-cyber/tolifire-sql), escluso dal repo pubblico via
+.gitignore. Contiene lo schema esportato dalla produzione (`sql/schema/`:
+tabelle, vincoli, trigger, policy RLS, storage, permessi, 45 funzioni),
+le query di estrazione (nell'editor Supabase girano solo dentro funzioni
+`pg_temp`), gli export in `sql/output/` e `sql/BACKUP.md` (procedura di
+backup OBBLIGATORIA prima di ogni modifica allo schema).
+Persone: al terminale lavora Erika (programmatrice); le conferme spettano
+a Toli (titolare).
+
 ## Tabelle Supabase
+Fonte: export produzione `sql/output/00-schema.csv` e
+`sql/output/01-conteggio-2026-10-22.csv` (57 tabelle in `public`) +
+ricerca di `.from('...')` in `js/` e `index.html` (38 tabelle usate dal
+frontend). Aggiornare questo elenco a ogni nuova tabella.
+
+Usate dal frontend — anagrafiche e manutenzione:
 clienti, sedi_cliente, impianti, ordini_lavoro, schede_lavoro, schede_foto,
-sopralluoghi, relazioni_tecniche, richieste_modifica_odl, ticket_clienti,
-ticket_allegati, documenti_cliente, ddt, ddt_righe, prodotti_catalogo,
-cicli_pianificati, clienti_periodicita, impostazioni, utenti
+schede_presidi, schede_manichette, sopralluoghi, relazioni_tecniche,
+richieste_modifica_odl, ticket_clienti, ticket_allegati, documenti_cliente,
+ddt, ddt_righe, prodotti_catalogo, cicli_pianificati, clienti_periodicita,
+calendario_personale, impostazioni, utenti
+
+Usate dal frontend — area commerciale (preventivi, progetti, fornitori, CRM):
+- preventivi, preventivi_voci, preventivi_certificati
+- progetti_tecnici, progetti_tecnici_allegati, progetti_tecnici_fornitori,
+  progetti_tecnici_schede, progetti_tecnici_storico
+- fornitori, fornitore_tipologie, preventivi_fornitori (offerte/richieste
+  ai fornitori), preventivi_fornitori_allegati
+- pipeline_crm (trattative), lead_sito, appuntamenti_commerciali
+
+Usate dal frontend — fatturazione:
+fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
+il modulo Fatture è in costruzione, vedi sotto)
+
+Presenti nel DB ma NON usate dal frontend (19, al 22/10/2026):
+ads_crm_nuovi_contatti, ads_crm_qualificazioni, calendario_slot, contratti,
+fatture_righe, fatture_scadenze, indirizzi_cliente, listini, notifiche,
+periodicita_presidi, portale_clienti, preventivi_righe,
+preventivi_schede_tecniche, riba_presentazioni, riba_righe, ruoli,
+solleciti, verbali, verifiche_presidi.
+Nota: le tabelle del modulo Fatture (fatture_righe, fatture_scadenze,
+riba_presentazioni, riba_righe, solleciti) esistono già in produzione
+(0 righe): prima di eseguire la Fase 1 del modulo, confrontare lo schema
+reale in `sql/schema/` con l'SQL preparato. Non cancellare le tabelle non
+usate senza conferma di Toli.
+
+Bucket Storage usati dal frontend: documenti-clienti, foto-interventi,
+preventivi-documenti, progetti-tecnici, ticket-allegati,
+certificati-preventivi.
+
+RPC chiamate dal frontend (`db.rpc`): marca_ritardi_pendenti,
+confirm_user_email, impegni_tecnici_dashboard,
+marca_preventivo_letto_rappresentante, marca_preventivo_letto_titolare,
+salva_esito_verifica, salva_bozza_verifica, elimina_scheda_storico,
+nuovo_intervento_manichetta, salva_riporto_presidio.
+Client pubblico `dbPublic` (portale clienti) legge: clienti, sedi_cliente,
+documenti_cliente, ddt.
+
+## Mappa ruoli: organigramma → gestionale
+Da "Roadmap gestionale TOLI Fire" (gestione-task/ROADMAP.md). Si tengono i
+codici attuali di `utenti.ruolo`; se ne aggiunge uno solo (capo_operativo).
+Cambiano solo le etichette in interfaccia (Fase 3), mai il codice.
+
+| Figura (organigramma) | Ruolo nel gestionale | Cosa fa già | Da fare |
+|---|---|---|---|
+| Direzione | titolare | Vede tutto | — |
+| Commerciale (cliente, approvazione, ordini) | rappresentante | Trattative, progetti, riceve il PDF del preventivo | Accettazione, anticipo, ordini (Fasi 4–6) |
+| Ingegnere | ingegnere | Verifiche tecniche, schede rilievo, certificati | Aggiungerlo al form nuovo utente (Fase 2) |
+| Acquisti | commerciale | Richieste ai fornitori, scelta fornitore, preventivo | Consumabili e noli dal cantiere (Fase 6) |
+| Reparto Tecnico e squadre | tecnico | Esegue gli interventi, scheda di lavoro | Giornale di cantiere (Fase 8), audit presidi (Fase 10) |
+| Capo Operativo | manca | — | Nuovo ruolo capo_operativo (Fase 3) |
+| Responsabile Service | capo_tecnico | Pianifica gli interventi | Contratti e appuntamenti (Fase 10) |
+| Segreteria | segreteria | Interventi da pianificare, documenti | Anticipi, faldone, appuntamenti, chiusura |
+| Programmazione e controllo | titolare (accesso completo) | — | — |
+| Contabile (esterno all'organigramma) | contabile | Fatturazione | — |
+| Subappaltatori | non sono utenti | — | Anagrafica con documenti (Fase 7) |
+
+Decisione D1 (aperta, spetta a Toli): il ruolo rappresentante oggi è anche
+quello degli agenti esterni. Va scelto se il Commerciale interno usa
+rappresentante o un ruolo suo. Finché non si decide, la Fase 4 usa
+rappresentante.
+
+Pagine consentite oggi per ruolo (`PAGINE_RUOLO`,
+js/02-portale-navigazione.js; controllo in `canAccessPage`):
+- titolare: dashboard, calendario, piano-mensile, trattative,
+  preventivi-titolare, preventivo-detail, progetti-da-preventivare, presidi,
+  workflow, interventi, clienti, documenti, fatture, catalogo, impostazioni,
+  cliente-detail, progetto-detail, fornitore-detail, tecnico, sopralluogo
+- capo_tecnico: dashboard, calendario, calendario-team, piano-mensile,
+  presidi, interventi, tecnico, clienti, documenti, cliente-detail
+- segreteria: dashboard, calendario, workflow, presidi, interventi, tecnico,
+  clienti, documenti, fatture, catalogo, cliente-detail, fornitore-detail
+- contabile: dashboard, workflow, fatture, documenti, catalogo
+- tecnico: dashboard, calendario-tec, tecnico, documenti
+- commerciale: dashboard, progetti-da-preventivare, preventivi, fornitori,
+  fornitore-detail, preventivo-detail, clienti, documenti, progetto-detail,
+  fatture, catalogo, cliente-detail, info
+- rappresentante: dashboard, dashboard-rapp, calendario-appuntamenti,
+  clienti, progetti, presidi, trattative, preventivi-rapp, cliente-detail,
+  progetto-detail, catalogo, info
+- ingegnere: dashboard, calendario-ingegnere, verifiche-tecniche,
+  documenti, certificati-ingegnere, progetto-detail, cliente-detail, info,
+  + clienti (aggiunta subito dopo la definizione, sola consultazione)
+- capo_operativo: da creare (Fase 3)
 
 ## Ruoli e cosa fa ciascuno (campo `ruolo` in `utenti`)
 
@@ -57,6 +162,14 @@ TITOLARE
 CONTABILE
 - Dashboard, workflow, documenti, catalogo.
 
+INGEGNERE
+- Verifiche tecniche sui progetti, schede rilievo, certificati.
+- Consulta clienti e schede cliente senza modificarli.
+- Oggi non selezionabile nel form nuovo utente (da correggere in Fase 2).
+
+CAPO_OPERATIVO (da creare, Fase 3)
+- Capo Operativo dei cantieri: vede le commesse dalla Fase 5 in poi.
+
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
 - Riutilizzare le helper esistenti: `ge`, `v`, `toast`, `fd`, `openM`,
@@ -69,7 +182,11 @@ CONTABILE
 ## SICUREZZA
 I permessi vivono SOLO nel frontend (`canAccessPage`, `PAGINE_RUOLO`,
 `if(ROLE===...)`): aggirabili da console. La protezione vera = Row Level
-Security su Supabase. Stato RLS: DA VERIFICARE come primo passo.
+Security su Supabase. Stato RLS: dall'export del 22/10/2026
+(`sql/schema/04-rls-policy.sql`) risulta ATTIVA su tutte le 57 tabelle;
+le policy vanno ancora verificate una per una (task F1.1).
+Problema noto: `public.confirm_user_email` è SECURITY DEFINER ed
+eseguibile da `anon`.
 
 ## Autonomia di Claude Code
 PUÒ fare da solo: refactoring, CSS, bug fix, nuove funzioni UI, riordino
