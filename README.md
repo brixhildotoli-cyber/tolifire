@@ -21,7 +21,7 @@ L'icona nella schermata Home apre comunque il gestionale via Internet. La connes
 
 Questa procedura la esegue chi amministra il repository GitHub.
 
-1. Verifica di aver salvato e inviato (`push`) sul branch da pubblicare i file `index.html`, `style.css` e `app.js`.
+1. Verifica di aver salvato e inviato (`push`) sul branch da pubblicare i file `index.html`, `style.css`, `manifest.webmanifest`, la cartella `assets/` e tutti i moduli della cartella `js/` (da `00-librerie.js` a `25-nuovocontrollo-presidi.js`).
 2. Apri il repository GitHub `brixhildotoli-cyber/tolifire`.
 3. Vai in **Settings** > **Pages**.
 4. In **Build and deployment**, seleziona **Deploy from a branch**.
@@ -63,10 +63,14 @@ Poi apri [http://localhost:8080](http://localhost:8080).
 ## Struttura essenziale
 
 ```text
-index.html   interfaccia e modali
-style.css    grafica e responsive
-app.js       logica frontend e chiamate Supabase
+index.html             interfaccia e modali; carica i moduli js/ in ordine
+style.css              grafica e responsive
+manifest.webmanifest   installazione come app (Aggiungi a Home)
+assets/                immagini e icone
+js/00-*.js … js/25-*.js  logica frontend e chiamate Supabase, divisa in moduli
 ```
+
+I moduli in `js/` sono caricati da `index.html` con `defer`, nell'ordine numerico da `00-librerie.js` a `18-preventivi.js`, poi le estensioni da `20-storico-presidi.js` a `25-nuovocontrollo-presidi.js` e per ultimo `19-init.js` (avvio). Le estensioni 20–25 possono ridefinire funzioni dei moduli precedenti: l'ordine di caricamento va rispettato.
 
 ## Stato del progetto
 

@@ -32,6 +32,10 @@ function etichettaCicloStorico(ciclo) {
     febbraio_agosto: 'Luglio – Dicembre'
   }[ciclo] || 'Gruppo non assegnato';
 }
+function periodoScheda(s) {
+  if (s.dati?.tipo === 'manichetta') return s.data_intervento ? 'Intervento del '+fd(s.data_intervento) : 'Scheda documentale — data non indicata';
+  return `${nomeCicloScheda(s.ciclo)} · ${Number(s.mese) < 7 ? '1°' : '2°'} semestre ${s.anno}`;
+}
 function periodoSuccessivo(s) {
   return { ciclo: s.ciclo, anno: Number(s.anno) + (Number(s.mese) >= 7 ? 1 : 0),
            mese: Number(s.mese) < 7 ? Number(s.mese) + 6 : Number(s.mese) - 6 };
