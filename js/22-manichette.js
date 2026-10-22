@@ -332,4 +332,82 @@ confermaImportPresidi = async function() {
   }
 
   await loadPresidi();
+
+};
+// ── Estintori: import nelle normali schede semestrali ──
+
+function annoDaCsvEstintore(valore, etichetta) {
+  const testo = String(valore || '').trim();
+
+  if (!testo) return null;
+
+  if (!/^\d{4}$/.test(testo)) {
+    throw new Error(etichetta + ' non valido: usa un anno di quattro cifre');
+  }
+
+  return Number(testo);
+}
+
+const preparaImportPresidiPrimaEstintori = preparaImportPresidi;
+
+preparaImportPresidi = async function(testo) {
+  await preparaImportPresidiPrimaEstintori(testo);
+
+  righeImportPresidi.forEach(function(riga) {
+    const eAnagraficaEstintore =
+      riga.valido &&
+      riga.payload?.tipo === 'estintore' &&
+      (
+        String(riga.anno_pross_ric || '').trim() ||
+        String(riga.anno_scadenza_collaudo || '').trim() ||
+        String(riga.manutenzione_mese || '').trim()
+      ) &&
+      !String(riga.data_verifica || riga.ultima_verifica || '').trim();
+
+    if (!eAnagraficaEstintore) return;
+
+    try {
+      const annoRevisione = annoDaCsvEstintore(
+        riga.anno_pross_ric,
+        'Anno prossima revisione'
+      );
+
+      const annoCollaudo = annoDaCsvEstintore(
+        riga.anno_scadenza_collaudo,
+        'Anno scadenza collaudo'
+      );
+
+      const note = [
+        riga.note || '',
+        annoRevisione ? 'Prossima revisione: ' + annoRevisione : '',
+        annoCollaudo ? 'Scadenza collaudo: ' + annoCollaudo : '',
+        riga.targa ? 'Targa: ' + riga.targa : '',
+        riga.manutenzione_mese
+          ? 'Mese manutenzione indicato: ' + riga.manutenzione_mese
+          : '',
+        riga.origine_cliente
+          ? 'Origine: ' + riga.origine_cliente
+          : ''
+      ].filter(Boolean).join(' · ');
+
+      // Mantiene anno e gruppo semestrale scelti nell’import.
+      riga.payload.anno_scadenza = annoCollaudo;
+      riga.payload.data_scadenza_collaudo = null;
+      riga.payload.data_ultimo_controllo = null;
+      riga.payload.data_prossimo_controllo = null;
+      riga.payload.periodicita_mesi = null;
+      riga.payload.stato = null;
+      riga.payload.esito_verifica = null;
+      riga.payload.note = note || null;
+
+      riga.azione = 'Scheda semestre';
+      riga.messaggio =
+        'Anagrafica estintore: nessun controllo registrato';
+    } catch (errore) {
+      riga.valido = false;
+      riga.messaggio = errore.message;
+    }
+  });
+
+  renderAnteprimaImportPresidi();
 };

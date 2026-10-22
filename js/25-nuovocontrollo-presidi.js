@@ -24,7 +24,14 @@ async function eseguiNuovoControllo(id) {
     ge('nc-contenuto').innerHTML=`<h2>Esegui nuovo controllo</h2><p><b>${esc(p.clienti?.ragione_sociale||'')}</b> · ${esc(p.sede_label||p.ubicazione||'')}<br>${tpl(p.tipo)} · ${esc(p.matricola||'')} · Progressivo ${esc(p.numero_progressivo||'—')}</p>
       <p>X e note provengono dall’ultima scheda. Confermale o modificale dopo il controllo.</p>
       <div class="fr"><div class="f"><label>Anno della cartella di destinazione</label><input id="nc-anno" type="number" min="2020" max="2100" value="${target.anno}"></div>
-      <div class="f"><label>Periodo già presente in Vista cartelle</label><select id="nc-ciclo" ${manichetta?'':'disabled'}><option value="gennaio_luglio" ${ciclo==='gennaio_luglio'?'selected':''}>Gennaio–Luglio</option><option value="febbraio_agosto" ${ciclo==='febbraio_agosto'?'selected':''}>Febbraio–Agosto</option></select></div>
+      <div class="f"><label>Periodo già presente in Vista cartelle</label><select id="nc-ciclo" ${manichetta?'':'disabled'}>
+      <option value="gennaio_luglio" ${ciclo === 'gennaio_luglio' ? 'selected' : ''}>
+  Gennaio – Giugno
+</option>
+
+<option value="febbraio_agosto" ${ciclo === 'febbraio_agosto' ? 'selected' : ''}>
+  Luglio – Dicembre
+</option>
       <div class="f"><label>Riferimento della nuova scheda</label><select id="nc-semestre"><option value="1" ${target.mese<7?'selected':''}>Prima verifica del periodo</option><option value="2" ${target.mese>=7?'selected':''}>Seconda verifica del periodo</option></select></div></div>
       <div class="f"><label>Data effettiva dell’intervento *</label><input id="nc-data" type="date"></div>
       ${['porta_rei','uscita_emergenza'].includes(p.tipo)?'<div class="f"><label>Prossimo controllo — 6 mesi</label><input id="nc-prossima" type="date" readonly></div>':'<div class="fr"><div class="f"><label>Prossimo controllo, se noto</label><input id="nc-prossima" type="date"></div><div class="f"><label>Scadenza, data precisa se nota</label><input id="nc-scadenza" type="date" value="'+esc(d.data_scadenza_collaudo||'')+'"></div><div class="f"><label>Scadenza solo anno, se nota</label><input id="nc-anno-scadenza" type="number" min="1900" max="2200" value="'+esc(d.anno_scadenza||'')+'"></div></div>'}

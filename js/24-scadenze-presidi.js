@@ -12,7 +12,7 @@ function oggiScadenze() {
 function chiediRiferimentoManichette() {
   const anno=prompt('Anno di riferimento dello storico:',String(new Date().getFullYear()));
   if(anno===null)return null;
-  const ciclo=prompt('Gruppo fisso: 1 = Gennaio–Luglio; 2 = Febbraio–Agosto','1');
+  const ciclo=prompt('Gruppo fisso: 1 = Gennaio–Giugno; 2 = Luglio–Dicembre','1');
   if(ciclo===null)return null;
   const semestre=prompt('Semestre di riferimento: 1 oppure 2','1');
   if(semestre===null)return null;
@@ -72,7 +72,10 @@ apriEditorSchedaPresidio=function(indice,riporta) {
   const next=riporta&&d.riferimento_anno?{anno:a+(sem===2?1:0),semestre:sem===1?2:1}:{anno:a,semestre:sem};
   ge('sp-data').closest('.f').insertAdjacentHTML('beforebegin',`<div class="fr">
     <div class="f"><label>Anno di riferimento</label><input id="sc-anno" type="number" min="1900" max="2200" value="${next.anno}"></div>
-    <div class="f"><label>Gruppo fisso</label><select id="sc-ciclo"><option value="gennaio_luglio" ${c==='gennaio_luglio'?'selected':''}>Gennaio–Luglio</option><option value="febbraio_agosto" ${c==='febbraio_agosto'?'selected':''}>Febbraio–Agosto</option></select></div>
+    <div class="f"><label>Gruppo fisso</label><select id="sc-ciclo">
+   <option value="gennaio_luglio">Gennaio – Giugno</option>
+<option value="febbraio_agosto">Luglio – Dicembre</option>
+    </select></div>
     <div class="f"><label>Semestre</label><select id="sc-semestre"><option value="1" ${next.semestre===1?'selected':''}>1° semestre</option><option value="2" ${next.semestre===2?'selected':''}>2° semestre</option></select></div></div>`);
 };
 const salvaPrimaScadenze=salvaSchedaPresidio;

@@ -111,8 +111,21 @@ function renderPC(data) {
     return;
   }
 
-  const scheda = function(p) {
-    return `
+ const scheda = function(p) {
+  const nota = String(p.note || '');
+
+  const datoNota = function(etichetta) {
+    return (
+      nota.match(
+        new RegExp(
+          '(?:^|·\\s*)' + etichetta + ':\\s*([^·\\n]+)',
+          'i'
+        )
+      ) || []
+    )[1]?.trim() || '';
+  };
+
+  return `
       <div class="pc">
         <div style="position:absolute;top:12px;right:12px">
           ${si2(p.stato)}
@@ -146,12 +159,26 @@ function renderPC(data) {
             </span>
           </div>
 
-          ${p.tipo === 'estintore' ? `
-            <div style="display:flex;justify-content:space-between">
-              <span style="color:var(--m)">Agente</span>
-              <span>${al2(p.modello) || '—'} ${p.marca || ''}</span>
-            </div>
-          ` : ''}
+         ${p.tipo === 'estintore' ? `
+  <div style="display:flex;justify-content:space-between">
+    <span style="color:var(--m)">Mese manutenzione</span>
+    <span>${esc(datoNota('Mese manutenzione indicato') || '—')}</span>
+  </div>
+
+  <div style="display:flex;justify-content:space-between">
+    <span style="color:var(--m)">Prossima revisione</span>
+    <span>${esc(datoNota('Prossima revisione') || '—')}</span>
+  </div>
+
+  <div style="display:flex;justify-content:space-between">
+    <span style="color:var(--m)">Scadenza collaudo</span>
+    <span>
+      ${p.data_scadenza_collaudo
+        ? fd(p.data_scadenza_collaudo)
+        : esc(String(p.anno_scadenza || datoNota('Scadenza collaudo') || '—'))}
+    </span>
+  </div>
+` : ''}
 
           ${p.tipo === 'porta_rei' ? `
             <div style="display:flex;justify-content:space-between">
@@ -449,6 +476,7 @@ async function apriSchedaPresidio(id) {
   ricordaPosizionePagina();
   openM('m-scheda-presidio');
 
+
   ge('msp-titolo').textContent = 'Scheda presidio';
   ge('msp-contenuto').innerHTML = '<div class="load">Caricamento...</div>';
 
@@ -531,6 +559,20 @@ const rigaVuota = function(voce) {
     `;
   };
 
+const notePresidio = String(p.note || '');
+
+const prossimaRevisione = (
+  notePresidio.match(
+    /(?:Prossima revisione|PROSS\.\s*RIC\.)\s*:\s*([^·;\n]+)/i
+  ) || []
+)[1]?.trim() || '';
+
+const meseManutenzione = (
+  notePresidio.match(
+    /(?:Mese manutenzione indicato|Manutenzione mese)\s*:\s*([^·;\n]+)/i
+  ) || []
+)[1]?.trim() || '';
+
   ge('msp-titolo').textContent =
     `Scheda presidio · ${p.matricola || 'senza matricola'}`;
 
@@ -551,10 +593,20 @@ ${p.tipo === 'manichetta'
         ${campo('Ubicazione', p.ubicazione)}
         ${campo('Piano', p.piano)}
         ${campo('Locale / area', p.locale)}
-        ${campo('Periodicità', p.periodicita_mesi ? `${p.periodicita_mesi} mesi` : '')}
-        ${campo('Ultima verifica', p.data_ultimo_controllo ? fd(p.data_ultimo_controllo) : '')}
-        ${campo('Prossima verifica', p.data_prossimo_controllo ? fd(p.data_prossimo_controllo) : '')}
-        ${campo(
+       ${campo('Periodicità', p.periodicita_mesi ? `${p.periodicita_mesi} mesi` : '')}
+
+${p.tipo === 'estintore'
+  ? campo('Mese manutenzione', meseManutenzione)
+  : ''}
+
+${campo('Ultima verifica', p.data_ultimo_controllo ? fd(p.data_ultimo_controllo) : '')}
+    ${campo('Prossima verifica', p.data_prossimo_controllo ? fd(p.data_prossimo_controllo) : '')}
+
+${p.tipo === 'estintore'
+  ? campo('Prossima revisione', prossimaRevisione)
+  : ''}
+
+${campo(
   p.tipo === 'manichetta' ? 'Scadenza' : 'Scadenza collaudo',
   p.data_scadenza_collaudo
     ? fd(p.data_scadenza_collaudo)
@@ -970,9 +1022,15 @@ function tipoImportPresidio(valore) {
     luce_emergenza: 'luce_emergenza',
     luci_emergenza: 'luce_emergenza',
 
+    evacuatore_fumi: 'evacuatore_fumi',
+evacuatori_fumo: 'evacuatore_fumi',
+evacuatore_di_fumo: 'evacuatore_fumi',
+evacuatori_di_fumo: 'evacuatore_fumi',
+
     pompa_antincendio: 'pompa_antincendio',
     centrale_rivelazione: 'centrale_rivelazione',
     sprinkler: 'sprinkler'
+    
   };
 
   return mappa[tipo] || '';

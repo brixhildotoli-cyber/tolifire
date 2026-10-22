@@ -438,16 +438,29 @@ function renderPC(data) {
   const filtroAttivo = data.length < PA.length;
 
   const etichettaPeriodo = function(anno, ciclo) {
-    const cicloLabel = {
-      gennaio_luglio: 'Gennaio – Luglio',
-      febbraio_agosto: 'Febbraio – Agosto'
-    }[ciclo] || 'Periodo non assegnato';
+  const cicloLabel = {
+  gennaio_luglio: 'Gennaio – Giugno',
+  febbraio_agosto: 'Luglio – Dicembre'
+}[ciclo] || 'Periodo non assegnato';
 
     return anno ? `${cicloLabel} ${anno}` : cicloLabel;
   };
 
-  const scheda = function(p) {
-    return `
+ const scheda = function(p) {
+  const nota = String(p.note || '');
+
+  const datoNota = function(etichetta) {
+    return (
+      nota.match(
+        new RegExp(
+          '(?:^|[·;]\\s*|\\.\\s*)' + etichetta + ':\\s*([^·;\\n]+)',
+          'i'
+        )
+      ) || []
+    )[1]?.trim() || '';
+  };
+
+  return `
       <div class="pc">
         <div style="position:absolute;top:12px;right:12px">
           ${si2(p.stato)}
@@ -487,6 +500,78 @@ function renderPC(data) {
               <span>${al2(p.modello) || '—'} ${p.marca || ''}</span>
             </div>
           ` : ''}
+          ${p.tipo === 'estintore' ? `
+<div style="
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  padding:6px 8px;
+  margin:3px 0;
+  background:#fff4d6;
+  border:1px solid #e7b651;
+  border-radius:6px;
+">
+  <span style="font-weight:700;color:#8a4b00">
+    📅 Mese manutenzione
+  </span>
+
+  <strong style="color:#8a4b00">
+    ${esc(
+      datoNota('Mese manutenzione indicato') ||
+      datoNota('Manutenzione mese') ||
+      '—'
+    )}
+  </strong>
+</div>
+
+ <div style="
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  padding:6px 8px;
+  margin:3px 0;
+  background:#e8f3ff;
+  border:1px solid #72aee6;
+  border-radius:6px;
+">
+  <span style="font-weight:700;color:#145a9b">
+    🔄 Prossima revisione
+  </span>
+
+  <strong style="color:#145a9b">
+    ${esc(datoNota('Prossima revisione') || datoNota('PROSS. RIC.') || '—')}
+  </strong>
+</div>
+
+<div style="
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  padding:6px 8px;
+  margin:3px 0;
+  background:#fff0f0;
+  border:1px solid #e48a8a;
+  border-radius:6px;
+">
+  <span style="font-weight:700;color:#a32020">
+    ⏳ Scadenza collaudo
+  </span>
+
+  <strong style="color:#a32020">
+    ${p.data_scadenza_collaudo
+      ? fd(p.data_scadenza_collaudo)
+      : esc(String(
+          p.anno_scadenza ||
+          datoNota('Scadenza collaudo') ||
+          datoNota('SCAD. COLL.') ||
+          '—'
+        ))}
+  </strong>
+</div>
+` : ''}
 
           ${p.tipo === 'porta_rei' ? `
             <div style="display:flex;justify-content:space-between">

@@ -1,13 +1,36 @@
 // Estensione caricata dopo 18-preventivi.js e prima di 19-init.js.
-const storicoPresidi = { impianto: null, schede: [], utenti: [], anagrafica: null, richiesta: 0 };
-const mesiSchede = {1:'Gennaio',2:'Febbraio',7:'Luglio',8:'Agosto'};
-function gestisceStoricoPresidi() { return ['titolare','capo_tecnico'].includes(ROLE); }
-function nomeCicloScheda(ciclo) {
-  return {gennaio_luglio:'Gennaio–Luglio',febbraio_agosto:'Febbraio–Agosto'}[ciclo] || 'Gruppo non assegnato';
+const storicoPresidi = {
+  impianto: null,
+  schede: [],
+  utenti: [],
+  anagrafica: null,
+  richiesta: 0
+};
+
+// I mesi effettivi delle verifiche restano distanziati di 6 mesi.
+const mesiSchede = {
+  1: 'Gennaio',
+  2: 'Febbraio',
+  7: 'Luglio',
+  8: 'Agosto'
+};
+
+function gestisceStoricoPresidi() {
+  return ['titolare', 'capo_tecnico'].includes(ROLE);
 }
-function periodoScheda(s) {
-  if (s.dati?.tipo === 'manichetta') return s.data_intervento ? 'Intervento del '+fd(s.data_intervento) : 'Scheda documentale — data non indicata';
-  return `${nomeCicloScheda(s.ciclo)} · ${Number(s.mese) < 7 ? '1°' : '2°'} semestre ${s.anno}`;
+
+function nomeCicloScheda(ciclo) {
+  return {
+    gennaio_luglio: 'Gennaio – Giugno',
+    febbraio_agosto: 'Luglio – Dicembre'
+  }[ciclo] || 'Gruppo non assegnato';
+}
+
+function etichettaCicloStorico(ciclo) {
+  return {
+    gennaio_luglio: 'Gennaio – Giugno',
+    febbraio_agosto: 'Luglio – Dicembre'
+  }[ciclo] || 'Gruppo non assegnato';
 }
 function periodoSuccessivo(s) {
   return { ciclo: s.ciclo, anno: Number(s.anno) + (Number(s.mese) >= 7 ? 1 : 0),
