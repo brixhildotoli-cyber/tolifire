@@ -263,7 +263,6 @@ async function portaleCaricaTicket() {
           '<div style="font-size:12px;color:var(--m);margin-top:3px">'+(tipi[t.tipo]||t.tipo)+' · '+dt+'</div>' +
           (esc(t.descrizione) ? '<div style="font-size:13px;color:var(--t);margin-top:6px">'+esc(t.descrizione)+'</div>' : '') +
           schedInfo +
-          (esc(t.note_interne) ? '<div style="font-size:12px;color:var(--m);margin-top:8px;padding:8px;background:var(--bg);border-radius:6px">💬 <em>'+esc(t.note_interne)+'</em></div>' : '') +
         '</div>' +
         '<span style="white-space:nowrap;font-size:12px;font-weight:600;color:'+(statiCol[t.stato]||'var(--m)')+'">'+( stati[t.stato]||t.stato)+'</span>' +
       '</div></div>';

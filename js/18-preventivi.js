@@ -4053,6 +4053,37 @@ async function salvaCertificatoPreventivo(origine, file, certificatoId) {
     letto_ingegnere_il: null
   };
 
+  // Sostituzione: il file vecchio si cancella PRIMA di aggiornare la riga.
+  // Dopo, le policy dello storage (certificati_storage_select) non lo
+  // farebbero più vedere al commerciale e resterebbe orfano. Se poi
+  // l'aggiornamento fallisce, il PDF vecchio viene ricaricato.
+  let vecchioPdf = null;
+
+  if (esistente?.storage_path) {
+    const { data: scaricato } = await db.storage
+      .from('certificati-preventivi')
+      .download(esistente.storage_path);
+
+    vecchioPdf = scaricato || null;
+
+    const { data: rimossi, error: erroreRimozione } = await db.storage
+      .from('certificati-preventivi')
+      .remove([esistente.storage_path]);
+
+    if (erroreRimozione || (vecchioPdf && !(rimossi || []).length)) {
+      await db.storage
+        .from('certificati-preventivi')
+        .remove([percorso]);
+
+      return {
+        ok: false,
+        messaggio: 'Impossibile eliminare il PDF precedente: ' +
+          (erroreRimozione?.message || 'permessi insufficienti') +
+          '. Il certificato non è stato sostituito.'
+      };
+    }
+  }
+
   let erroreSalvataggio;
 
   if (esistente) {
@@ -4075,16 +4106,26 @@ async function salvaCertificatoPreventivo(origine, file, certificatoId) {
       .from('certificati-preventivi')
       .remove([percorso]);
 
+    let ripristino = '';
+
+    if (vecchioPdf) {
+      const { error: erroreRipristino } = await db.storage
+        .from('certificati-preventivi')
+        .upload(esistente.storage_path, vecchioPdf, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: 'application/pdf'
+        });
+
+      if (erroreRipristino) {
+        ripristino = ' Attenzione: il PDF precedente non è stato ripristinato, ricarica il certificato.';
+      }
+    }
+
     return {
       ok: false,
-      messaggio: `Errore salvataggio certificato: ${erroreSalvataggio.message}`
+      messaggio: `Errore salvataggio certificato: ${erroreSalvataggio.message}.${ripristino}`
     };
-  }
-
-  if (esistente?.storage_path) {
-    await db.storage
-      .from('certificati-preventivi')
-      .remove([esistente.storage_path]);
   }
 
   return {
