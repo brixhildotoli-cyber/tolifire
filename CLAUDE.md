@@ -68,6 +68,7 @@ confirm_user_email, impegni_tecnici_dashboard,
 marca_preventivo_letto_rappresentante, marca_preventivo_letto_titolare,
 salva_esito_verifica, salva_bozza_verifica, elimina_scheda_storico,
 nuovo_intervento_manichetta, salva_riporto_presidio.
+Dopo sql/18 (F2.3, da eseguire): marca_certificato_letto_ingegnere.
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
 Sono gli accessi che le policy RLS per il portale dovranno permettere
 (F1.1), sempre filtrati sul cliente del portale (`cliente_id`):
@@ -182,7 +183,7 @@ CONTABILE
 INGEGNERE
 - Verifiche tecniche sui progetti, schede rilievo, certificati.
 - Consulta clienti e schede cliente senza modificarli.
-- Oggi non selezionabile nel form nuovo utente (da correggere in Fase 2).
+- Selezionabile nel form nuovo utente (F2.3, sviluppo 085ce7d).
 
 CAPO_OPERATIVO (da creare, Fase 3)
 - Capo Operativo dei cantieri: vede le commesse dalla Fase 5 in poi.
