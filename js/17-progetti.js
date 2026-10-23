@@ -1189,7 +1189,20 @@ async function confermaCommercialePreventivo() {
   if (bottone) bottone.disabled = false;
 }
 
+// Evita due bozze dallo stesso progetto con un doppio clic veloce:
+// finché un avvio è in corso, gli altri clic sullo stesso progetto sono ignorati.
+const _avvioPreventivoInCorso = new Set();
 async function avviaPreventivo(progettoId, commercialeScelto) {
+  if (_avvioPreventivoInCorso.has(progettoId)) return;
+  _avvioPreventivoInCorso.add(progettoId);
+  try {
+    return await _avviaPreventivo(progettoId, commercialeScelto);
+  } finally {
+    _avvioPreventivoInCorso.delete(progettoId);
+  }
+}
+
+async function _avviaPreventivo(progettoId, commercialeScelto) {
   const paginaPreventivi =
     ROLE === 'titolare'
       ? 'preventivi-titolare'
