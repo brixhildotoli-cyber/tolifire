@@ -151,7 +151,10 @@ async function portaleUploadFiles(files) {
     var statoEl = ge('pup-stato-'+i);
     if(statoEl) statoEl.textContent = '⏳ Caricamento...';
 
-    var safeName = f.name.replace(/[^a-zA-Z0-9._\-àáèéìíòóùú ]/g, '_');
+    // F2.3 — lo storage rifiuta chiavi con accenti e spazi ("Invalid key"):
+    // via gli accenti (NFD), spazi e caratteri non ammessi diventano '-'
+    var safeName = f.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'file';
     var path = _portaleCliId + '/cliente/' + Date.now() + '_' + safeName;
 
     var up = await dbPublic.storage.from('documenti-clienti').upload(path, f, {

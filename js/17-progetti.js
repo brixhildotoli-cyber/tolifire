@@ -1187,7 +1187,7 @@ async function avviaPreventivo(progettoId) {
   const scadenza = new Date();
   scadenza.setDate(scadenza.getDate() + 30);
 
-    let commercialeDestinatarioId = ME.id;
+  let commercialeDestinatarioId = ME.id;
 
   if (ROLE === 'titolare') {
     const { data: commerciali, error: erroreCommerciali } = await db
@@ -1211,7 +1211,9 @@ async function avviaPreventivo(progettoId) {
     .from('preventivi')
     .insert({
       cliente_id: progetto.cliente_id,
-     commerciale_id: ME.id,
+      // F2.3 — se avvia il titolare, il preventivo va al commerciale trovato
+      // sopra (prima veniva salvato il titolare come commerciale)
+      commerciale_id: commercialeDestinatarioId,
       rappresentante_id: progetto.rappresentante_id || null,
       progetto_tecnico_id: progetto.id,
       tipo: 'fornitura_e_posa',

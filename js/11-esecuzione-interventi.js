@@ -189,7 +189,8 @@ async function loadPC(){
 
   // Raggruppa per sede poi per tipo
   var bySede2 = {'': {label:'Sede principale', items:[]}};
-  sediList.forEach(function(s){ bySede2[s.id]={label:(s.tipo||'')+ ' — '+(esc(s.indirizzo)||'')+(esc(s.citta)?', '+esc(s.citta):''), items:[]}; });
+  // F2.3 — le sedi hanno via/civico/città (non "indirizzo"), sia dalla RPC sia dalla lettura diretta
+  sediList.forEach(function(s){ var indS=[s.via,s.civico].filter(Boolean).join(' '); bySede2[s.id]={label:esc((s.tipo||'').toUpperCase())+(s.nome?' — '+esc(s.nome):'')+': '+(esc(indS)||'—')+(s.citta?', '+esc(s.citta):''), items:[]}; });
   pp.forEach(function(p){ var k=p.sede_id||''; if(!bySede2[k]) bySede2[k]={label:'Sede N/D',items:[]}; bySede2[k].items.push(p); });
 
   var hasMultiSede = sediList.length > 0;
@@ -444,7 +445,7 @@ async function salvaInt(){
     var noteP = ge('note-'+pid) ? ge('note-'+pid).value.trim() : null;
     await db.from('impianti').update({
       data_ultimo_controllo:di,
-      data_prossimo_controllo:d.toISOString().split('T')[0],
+      data_prossimo_controllo:dataLocaleISO(d),
       stato: nuovoStato,
       note: noteP || null
     }).eq('id',pid);

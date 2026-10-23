@@ -3773,6 +3773,13 @@ function cardCertificatoPreventivo(certificato, origine) {
     ? `<span class="badge green">✓ Inviato all’ingegnere il ${formatoDataOraCertificato(certificato.inviato_il)}</span>`
     : `<span class="badge yellow">Da inviare all’ingegnere</span>`;
 
+  // F2.3 — il commerciale (e il titolare) vede se l'ingegnere l'ha aperto
+  const statoLettura = !certificato.inviato_il
+    ? ''
+    : certificato.letto_ingegnere_il
+      ? ` <span class="badge green">👁 Letto dall’ingegnere il ${formatoDataOraCertificato(certificato.letto_ingegnere_il)}</span>`
+      : ` <span class="badge yellow">Non ancora letto dall’ingegnere</span>`;
+
   const inputId = `certificato-file-${certificato.id}`;
 
   return `
@@ -3780,7 +3787,7 @@ function cardCertificatoPreventivo(certificato, origine) {
       <b>${titolo}</b>
 
       <div style="margin-top:8px">
-        ${statoInvio}
+        ${statoInvio}${statoLettura}
       </div>
 
       <p style="margin:12px 0 4px">
@@ -4009,7 +4016,7 @@ async function salvaCertificatoPreventivo(origine, file, certificatoId) {
 
   const { data: preventivo } = await db
     .from('preventivi')
-    .select('numero, clienti(ragione_sociale)')
+    .select('numero, commerciale_id, clienti(ragione_sociale)')
     .eq('id', currentPreventivoId)
     .single();
 
@@ -4020,27 +4027,20 @@ async function salvaCertificatoPreventivo(origine, file, certificatoId) {
   const percorso =
     `${currentPreventivoId}/${origine}/${Date.now()}_${nomeSicuro}`;
 
-  const { error: erroreUpload } = await db.storage
-    .from('certificati-preventivi')
-    .upload(percorso, file, {
-      cacheControl: '3600',
-      upsert: false,
-      contentType: 'application/pdf'
-    });
-
-  if (erroreUpload) {
-    return {
-      ok: false,
-      messaggio: `Errore caricamento PDF: ${erroreUpload.message}`
-    };
-  }
+  // F2.3 — Il certificato del commerciale resta intestato al commerciale:
+  // quello già registrato; se manca, chi carica (se è il commerciale) oppure,
+  // se sostituisce il titolare, il commerciale del preventivo (mai il titolare).
+  const commercialeCertificato = origine === 'commerciale'
+    ? (
+        esistente?.commerciale_id ||
+        (ROLE === 'commerciale' ? utente.id : (preventivo?.commerciale_id || null))
+      )
+    : null;
 
   const datiCertificato = {
     preventivo_id: currentPreventivoId,
     origine,
-    commerciale_id: origine === 'commerciale'
-      ? (esistente?.commerciale_id || utente.id)
-      : null,
+    commerciale_id: commercialeCertificato,
     preventivo_numero: preventivo?.numero || null,
     cliente_nome: preventivo?.clienti?.ragione_sociale || null,
     nome_file: file.name,
@@ -4053,74 +4053,93 @@ async function salvaCertificatoPreventivo(origine, file, certificatoId) {
     letto_ingegnere_il: null
   };
 
-  // Sostituzione: il file vecchio si cancella PRIMA di aggiornare la riga.
-  // Dopo, le policy dello storage (certificati_storage_select) non lo
-  // farebbero più vedere al commerciale e resterebbe orfano. Se poi
-  // l'aggiornamento fallisce, il PDF vecchio viene ricaricato.
+  // F2.3 — Ordine pensato per non perdere il certificato valido e per non
+  // lasciare PDF orfani nel bucket. Il commerciale vede (e quindi può
+  // cancellare) solo il file indicato nella riga del certificato
+  // (certificati_storage_select): un PDF caricato prima di aggiornare la
+  // riga, se qualcosa va storto, non lo potrebbe più togliere.
+  //   1. copia del PDF vecchio (se la lettura fallisce ci si ferma: niente
+  //      è stato toccato);
+  //   2. cancellazione del PDF vecchio (se negata ci si ferma);
+  //   3. riga aggiornata/creata con il percorso nuovo;
+  //   4. caricamento del PDF nuovo.
+  // A ogni errore si torna com'era (riga e PDF vecchio).
   let vecchioPdf = null;
 
   if (esistente?.storage_path) {
-    const { data: scaricato } = await db.storage
+    const { data: scaricato, error: erroreLettura } = await db.storage
       .from('certificati-preventivi')
       .download(esistente.storage_path);
 
-    vecchioPdf = scaricato || null;
-
-    const { data: rimossi, error: erroreRimozione } = await db.storage
-      .from('certificati-preventivi')
-      .remove([esistente.storage_path]);
-
-    if (erroreRimozione || (vecchioPdf && !(rimossi || []).length)) {
-      await db.storage
-        .from('certificati-preventivi')
-        .remove([percorso]);
-
+    if (erroreLettura && !fileNonTrovatoCertificato(erroreLettura)) {
       return {
         ok: false,
-        messaggio: 'Impossibile eliminare il PDF precedente: ' +
-          (erroreRimozione?.message || 'permessi insufficienti') +
-          '. Il certificato non è stato sostituito.'
+        messaggio: 'Impossibile leggere il PDF precedente: ' +
+          (erroreLettura.message || 'errore sconosciuto') +
+          '. Il certificato non è stato sostituito, riprova.'
       };
+    }
+
+    vecchioPdf = scaricato || null;
+
+    if (vecchioPdf) {
+      const { data: rimossi, error: erroreRimozione } = await db.storage
+        .from('certificati-preventivi')
+        .remove([esistente.storage_path]);
+
+      if (erroreRimozione || !(rimossi || []).length) {
+        return {
+          ok: false,
+          messaggio: 'Impossibile eliminare il PDF precedente: ' +
+            (erroreRimozione?.message || 'permessi insufficienti') +
+            '. Il certificato non è stato sostituito.'
+        };
+      }
     }
   }
 
-  let erroreSalvataggio;
+  async function ripristinaVecchioPdf() {
+    if (!vecchioPdf) return '';
+
+    const { error: erroreRipristino } = await db.storage
+      .from('certificati-preventivi')
+      .upload(esistente.storage_path, vecchioPdf, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: 'application/pdf'
+      });
+
+    return erroreRipristino
+      ? ' Attenzione: il PDF precedente non è stato ripristinato, ricarica il certificato.'
+      : '';
+  }
+
+  let erroreSalvataggio = null;
+  let idCertificato = esistente?.id || null;
 
   if (esistente) {
     const risposta = await db
       .from('preventivi_certificati')
       .update(datiCertificato)
-      .eq('id', esistente.id);
+      .eq('id', esistente.id)
+      .select('id');
 
-    erroreSalvataggio = risposta.error;
+    erroreSalvataggio = risposta.error ||
+      (!(risposta.data || []).length ? { message: 'permessi insufficienti' } : null);
   } else {
     const risposta = await db
       .from('preventivi_certificati')
-      .insert(datiCertificato);
+      .insert(datiCertificato)
+      .select('id')
+      .single();
 
-    erroreSalvataggio = risposta.error;
+    erroreSalvataggio = risposta.error ||
+      (!risposta.data ? { message: 'certificato non creato' } : null);
+    idCertificato = risposta.data?.id || null;
   }
 
   if (erroreSalvataggio) {
-    await db.storage
-      .from('certificati-preventivi')
-      .remove([percorso]);
-
-    let ripristino = '';
-
-    if (vecchioPdf) {
-      const { error: erroreRipristino } = await db.storage
-        .from('certificati-preventivi')
-        .upload(esistente.storage_path, vecchioPdf, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: 'application/pdf'
-        });
-
-      if (erroreRipristino) {
-        ripristino = ' Attenzione: il PDF precedente non è stato ripristinato, ricarica il certificato.';
-      }
-    }
+    const ripristino = await ripristinaVecchioPdf();
 
     return {
       ok: false,
@@ -4128,10 +4147,69 @@ async function salvaCertificatoPreventivo(origine, file, certificatoId) {
     };
   }
 
+  const { error: erroreUpload } = await db.storage
+    .from('certificati-preventivi')
+    .upload(percorso, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: 'application/pdf'
+    });
+
+  if (erroreUpload) {
+    // La riga torna com'era (o sparisce, se era nuova), poi il PDF vecchio.
+    let erroreRiga;
+
+    if (esistente) {
+      const datiPrecedenti = {};
+
+      Object.keys(datiCertificato).forEach(function(campo) {
+        datiPrecedenti[campo] = esistente[campo] ?? null;
+      });
+
+      const risposta = await db
+        .from('preventivi_certificati')
+        .update(datiPrecedenti)
+        .eq('id', esistente.id);
+
+      erroreRiga = risposta.error;
+    } else if (idCertificato) {
+      const risposta = await db
+        .from('preventivi_certificati')
+        .delete()
+        .eq('id', idCertificato);
+
+      erroreRiga = risposta.error;
+    }
+
+    const ripristino = await ripristinaVecchioPdf();
+    const avvisoRiga = erroreRiga
+      ? ' Attenzione: il certificato è rimasto senza PDF, ricaricalo.'
+      : '';
+
+    return {
+      ok: false,
+      messaggio: `Errore caricamento PDF: ${erroreUpload.message}.${avvisoRiga}${ripristino}`
+    };
+  }
+
   return {
     ok: true,
     sostituito: !!esistente
   };
+}
+
+// F2.3 — l'errore di lettura dallo storage indica un file che non c'è
+// (già sparito): in quel caso la sostituzione può procedere.
+function fileNonTrovatoCertificato(errore) {
+  if (!errore) return false;
+
+  const stato = String(
+    errore.statusCode || errore.status || errore.originalError?.status || ''
+  );
+
+  return stato === '404' ||
+    errore.error === 'not_found' ||
+    /not.?found|non trovato/i.test(errore.message || '');
 }
 
 async function caricaCertificatoPreventivo(origine, certificatoId) {
@@ -4252,6 +4330,23 @@ async function apriCertificatoPreventivo(certificatoId) {
   }
 
   window.open(data.signedUrl, '_blank', 'noopener');
+
+  // F2.3 — quando l'ingegnere apre il certificato si segna "letto
+  // dall'ingegnere" (solo la prima volta). L'ingegnere non può modificare
+  // preventivi_certificati: lo fa la RPC marca_certificato_letto_ingegnere
+  // (sql/18). Se la RPC non c'è ancora, il PDF si apre lo stesso.
+  if (ROLE === 'ingegnere' && !certificato.letto_ingegnere_il) {
+    const { error: erroreLettura } = await db.rpc(
+      'marca_certificato_letto_ingegnere',
+      { p_certificato_id: certificatoId }
+    );
+
+    if (erroreLettura) {
+      console.warn('Lettura certificato non registrata (serve sql/18):', erroreLettura.message);
+    } else if (ge('certificati-ingegnere-lista')) {
+      await loadCertificatiIngegnere();
+    }
+  }
 }
 
 async function loadCertificatiIngegnere() {
@@ -4286,6 +4381,9 @@ async function loadCertificatiIngegnere() {
           <p><b>Origine:</b> ${certificato.origine === 'commerciale' ? 'Commerciale' : 'Titolare'}</p>
           <p><b>File:</b> ${esc(certificato.nome_file)}</p>
           <p class="muted">Inviato il ${formatoDataOraCertificato(certificato.inviato_il)}</p>
+          ${certificato.letto_ingegnere_il
+            ? `<p class="muted">Aperto da te il ${formatoDataOraCertificato(certificato.letto_ingegnere_il)}</p>`
+            : '<p><span class="badge yellow">Nuovo</span></p>'}
 
           <button
             class="btn primary"

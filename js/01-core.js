@@ -149,6 +149,10 @@ const WFL={firmata:'🔴 Firmata dal tecnico',approvata:'🟡 Approvata da segre
 function ge(id){return document.getElementById(id);}
 function v(id){const el=ge(id);return el?el.value:'';}
 function toast(msg,type='ok'){const t=ge('toast');t.textContent=msg;t.className='toast on '+type;setTimeout(()=>t.classList.remove('on'),4000);}
+// F2.3 — data AAAA-MM-GG nel fuso del dispositivo (ora italiana). Da usare
+// al posto di toISOString().split('T')[0], che usa l'ora UTC: tra mezzanotte
+// e le 2 darebbe il giorno prima.
+function dataLocaleISO(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function fd(d){if(!d)return'—';try{return new Date(d+'T00:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});}catch(e){return d;}}
 // Escape HTML per dati provenienti dal DB o dall'utente prima dell'interpolazione in innerHTML.
 function esc(s){return String(s??'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -256,7 +260,7 @@ async function boot(ud){
   ge('nusr').textContent=esc(ud.nome)+' — Esci';ge('nrole').textContent=(ud.ruolo==='informatico'?'Informatico':ud.ruolo);
   ge('ddate').textContent=new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   buildNav();buildSB();
-  const today=new Date().toISOString().split('T')[0];const now=new Date();
+  const today=dataLocaleISO();const now=new Date();
   ge('tc3').value=today;ge('mo3').value=today;
   ge('tc4').value=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
  const caricamentiBase = [loadCS(), loadImp()];

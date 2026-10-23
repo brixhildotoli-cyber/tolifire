@@ -415,7 +415,7 @@ async function preloadFromOdl() {
       _tcPrecaricatoDaOdl = false;
       ['tc1','tc5','tc6'].forEach(function(id){ var el = ge(id); if(el) el.value = ''; });
       var tipoR = ge('tc2'); if(tipoR) tipoR.value = 'ordinario_programmato';
-      var dataR = ge('tc3'); if(dataR) dataR.value = new Date().toISOString().split('T')[0];
+      var dataR = ge('tc3'); if(dataR) dataR.value = dataLocaleISO();
       // Tutto sincrono (niente await): non si sovrappone a un precaricamento in corso
       var sedeR = ge('tc1-sede'); if(sedeR) sedeR.innerHTML = '<option value="">Sede principale / da definire</option>';
       var infoR = ge('tec-odl-info'); if(infoR) { infoR.style.display = 'none'; infoR.innerHTML = ''; }
