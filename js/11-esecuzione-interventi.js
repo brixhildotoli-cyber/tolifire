@@ -277,16 +277,64 @@ async function salvaInt(){
   const btn=ge('savebtn');btn.disabled=true;btn.textContent='Salvataggio...';
   const chkDone=[];document.querySelectorAll('.ci input:checked').forEach(cb=>{chkDone.push(cb.nextElementSibling.textContent);});
   const chkTxt=chkDone.length?'CHECK-LIST:\n'+chkDone.map(t=>'✓ '+t).join('\n'):null;
-  const sedeId=v('tc1-sede')||null;const {data:odl,error:e1}=await db.from('ordini_lavoro').insert({cliente_id:cid,tipo:v('tc2'),tecnico_id:tid||null,data_pianificata:di,stato:'completato',note_per_tecnico:v('tc6')||null,sede_id:sedeId}).select().single();
-  if(e1){toast(e1.code==='42501'?'Non hai i permessi per registrare questo intervento: scegli come tecnico te stesso o un collega tecnico.':'Errore intervento: '+e1.message,'err');btn.disabled=false;btn.textContent='Salva e chiudi intervento ✓';return;}
+  const sedeId=v('tc1-sede')||null;
+  const riattivaBtn=function(){btn.disabled=false;btn.textContent='Salva e chiudi intervento ✓';};
+  // F2.1 — Se è stato scelto un intervento assegnato (tendina "Intervento
+  // assegnato"), si chiude QUELLO: niente ordine nuovo, niente doppioni nel
+  // calendario. Il ciclo del Piano mensile collegato passa a "eseguito".
+  // Senza intervento scelto (intervento estemporaneo) si crea un ordine nuovo
+  // già completato, come prima.
+  const odlSelId=v('tc-odl')||null;
+  let odl=null, odlPrima=null;
+  if(odlSelId){
+    const rPrima=await db.from('ordini_lavoro').select('id,cliente_id,tipo,tecnico_id,data_pianificata,stato,sede_id,note_per_tecnico').eq('id',odlSelId).maybeSingle();
+    odlPrima=rPrima.data;
+    if(rPrima.error||!odlPrima){toast('Non trovo l\'intervento selezionato: ricarica la pagina e riprova.','err');riattivaBtn();return;}
+    if(odlPrima.stato==='completato'){toast('Questo intervento risulta già chiuso: ricarica la pagina.','err');riattivaBtn();return;}
+    if(odlPrima.cliente_id!==cid){toast('Il cliente non corrisponde all\'intervento selezionato: rimetti il cliente dell\'intervento oppure togli la scelta in "Intervento assegnato".','err');riattivaBtn();return;}
+    // Il tecnico non può passare a un collega un intervento assegnato a lui
+    // (policy ordini_lavoro: modifica solo dei propri): lo riassegna il capo tecnico.
+    if(ROLE==='tecnico' && tid && tid!==odlPrima.tecnico_id){toast('Questo intervento è assegnato a te: per intestarlo a un collega chiedi al capo tecnico di riassegnarlo.','err');riattivaBtn();return;}
+    // Se il tecnico non è riuscito a svolgerlo, l'intervento resta aperto
+    // (non diventa "completato") così resta in calendario da ripianificare;
+    // la scheda con il motivo viene comunque registrata.
+    const agg={tipo:v('tc2')||odlPrima.tipo,tecnico_id:tid||odlPrima.tecnico_id||null,data_pianificata:di,sede_id:sedeId||odlPrima.sede_id||null};
+    if(!impossibilitato) agg.stato='completato';
+    if(v('tc6')) agg.note_per_tecnico=v('tc6');
+    // Il filtro sullo stato evita di chiudere due volte lo stesso intervento
+    // (es. salvato da due telefoni): se nel frattempo è stato chiuso non torna nulla.
+    let qUpd=db.from('ordini_lavoro').update(agg).eq('id',odlSelId);
+    qUpd=odlPrima.stato?qUpd.eq('stato',odlPrima.stato):qUpd.is('stato',null);
+    const rUpd=await qUpd.select().maybeSingle();
+    if(rUpd.error){toast(rUpd.error.code==='42501'?'Non hai i permessi per chiudere questo intervento.':'Errore intervento: '+rUpd.error.message,'err');riattivaBtn();return;}
+    if(!rUpd.data){toast('Non è stato possibile chiudere l\'intervento (già chiuso o non assegnato a te): ricarica la pagina.','err');riattivaBtn();return;}
+    odl=rUpd.data;
+  } else {
+    const rIns=await db.from('ordini_lavoro').insert({cliente_id:cid,tipo:v('tc2'),tecnico_id:tid||null,data_pianificata:di,stato:'completato',note_per_tecnico:v('tc6')||null,sede_id:sedeId}).select().single();
+    if(rIns.error){toast(rIns.error.code==='42501'?'Non hai i permessi per registrare questo intervento: scegli come tecnico te stesso o un collega tecnico.':'Errore intervento: '+rIns.error.message,'err');riattivaBtn();return;}
+    odl=rIns.data;
+  }
   const straord=v('tc14')==='true';
-  const {data:schedaData,error:e2}=await db.from('schede_lavoro').insert({odl_id:odl.id,tecnico_id:tid||ME.id,cliente_id:cid,data_intervento:di,ora_inizio:v('tc4')||null,ora_fine:v('tc17')||null,lavori_eseguiti:chkTxt?chkTxt+'\n\n'+(v('tc10')||''):v('tc10')||null,anomalie_rilevate:v('tc12')||null,
+  const {data:schedaData,error:e2}=await db.from('schede_lavoro').insert({odl_id:odl.id,tecnico_id:tid||odl.tecnico_id||ME.id,cliente_id:cid,data_intervento:di,ora_inizio:v('tc4')||null,ora_fine:v('tc17')||null,lavori_eseguiti:chkTxt?chkTxt+'\n\n'+(v('tc10')||''):v('tc10')||null,anomalie_rilevate:v('tc12')||null,
       esito: impossibilitato ? 'non_completato' : v('tc13'),
       note_interne: relazioneDettaglio ? '[RELAZIONE TECNICA]\n'+relazioneDettaglio+(relazioneRacc?'\n\nRACCOMANDAZIONI: '+relazioneRacc:'') : null,
       impossibilitato: impossibilitato || false,
       motivo_impossibilitato: motivoImp,intervento_straordinario_richiesto:straord,urgenza_straordinario:straord?v('tc15'):null,descrizione_intervento_necessario:straord?v('tc16'):null,nome_firmatario:v('tc18')||null,stato:'firmata'}).select().single();
   var scheda = schedaData || {};
-  if(e2){toast('Errore scheda: '+e2.message,'err');btn.disabled=false;btn.textContent='Salva e chiudi intervento ✓';return;}
+  if(e2){
+    // Scheda non salvata: l'intervento scelto torna com'era (resta da eseguire)
+    if(odlPrima){
+      await db.from('ordini_lavoro').update({stato:odlPrima.stato,tipo:odlPrima.tipo,tecnico_id:odlPrima.tecnico_id,data_pianificata:odlPrima.data_pianificata,sede_id:odlPrima.sede_id,note_per_tecnico:odlPrima.note_per_tecnico}).eq('id',odlPrima.id);
+    }
+    toast('Errore scheda: '+e2.message,'err');riattivaBtn();return;
+  }
+  // Ciclo del Piano mensile collegato -> eseguito. Lo fa anche il trigger
+  // sql/17 (necessario per il tecnico, che non può modificare i cicli);
+  // qui è un tentativo in più per i ruoli che pianificano: un errore non blocca.
+  if(odlPrima && !impossibilitato){
+    const rCic=await db.from('cicli_pianificati').update({stato:'eseguito'}).eq('odl_id',odl.id).eq('stato','pianificato');
+    if(rCic.error) console.warn('Ciclo pianificato non aggiornato dal sito (ci pensa il trigger sql/17):',rCic.error.message);
+  }
   // Aggiorna presidi selezionati con stato e note specifici
   const pch=document.querySelectorAll('#pcl input[type=checkbox]:checked');
   for(const cb of pch){
@@ -308,8 +356,9 @@ async function salvaInt(){
     toast('⏳ Caricamento foto...','ok');
     await uploadFotoIntervento(odl.id, scheda.id || odl.id);
   }
-  toast('✅ Intervento salvato! Scheda inviata in segreteria.','ok');
-  ['tc1','tc5','tc6','tc10','tc12','tc16','tc17','tc18','tc-relaz-lavori','tc-relaz-racc','tc-imp-motivo'].forEach(id=>{const el=ge(id);if(el)el.value='';});
+  toast(odlPrima&&impossibilitato?'✅ Scheda salvata. L\'intervento resta aperto da ripianificare.':'✅ Intervento salvato! Scheda inviata in segreteria.','ok');
+  var infoOdl = ge('tec-odl-info'); if(infoOdl){infoOdl.style.display='none';infoOdl.innerHTML='';}
+  ['tc-odl','tc1','tc5','tc6','tc10','tc12','tc16','tc17','tc18','tc-relaz-lavori','tc-relaz-racc','tc-imp-motivo'].forEach(id=>{const el=ge(id);if(el)el.value='';});
   var impCb = ge('tc-impossibilitato'); if(impCb){impCb.checked=false; toggleImpossibilitato();}
   var relBox = ge('tc-relazione-box'); if(relBox) relBox.style.display='none';
   tnav(0);gotoPage('dashboard');document.querySelectorAll('.nb')[0]?.classList.add('on');document.querySelectorAll('.nb').forEach((t,i)=>{if(i>0)t.classList.remove('on');});
