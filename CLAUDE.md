@@ -82,26 +82,29 @@ Sono gli accessi che le policy RLS per il portale dovranno permettere
 ## Mappa ruoli: organigramma → gestionale
 Da "Roadmap gestionale TOLI Fire" (gestione-task/ROADMAP.md). Si tengono i
 codici attuali di `utenti.ruolo`; se ne aggiunge uno solo (capo_operativo).
+Esiste anche `informatico` (Erika Pistolesi): accesso completo come il
+titolare (decisione di Erika del 23/10, da confermare da Toli in F1.4).
 Cambiano solo le etichette in interfaccia (Fase 3), mai il codice.
 
 | Figura (organigramma) | Ruolo nel gestionale | Cosa fa già | Da fare |
 |---|---|---|---|
 | Direzione | titolare | Vede tutto | — |
-| Commerciale (cliente, approvazione, ordini) | rappresentante | Trattative, progetti, riceve il PDF del preventivo | Accettazione, anticipo, ordini (Fasi 4–6) |
+| Commerciale verso il cliente (cliente, approvazione, ordini) | rappresentante | Trattative, progetti, riceve il PDF del preventivo | Accettazione, anticipo, ordini (Fasi 4–6) |
 | Ingegnere | ingegnere | Verifiche tecniche, schede rilievo, certificati | Aggiungerlo al form nuovo utente (Fase 2) |
-| Acquisti | commerciale | Richieste ai fornitori, scelta fornitore, preventivo | Consumabili e noli dal cantiere (Fase 6) |
+| Acquisti | commerciale (la parte acquisti) | Richieste ai fornitori, scelta fornitore, preventivo | Consumabili e noli dal cantiere (Fase 6) |
 | Reparto Tecnico e squadre | tecnico | Esegue gli interventi, scheda di lavoro | Giornale di cantiere (Fase 8), audit presidi (Fase 10) |
 | Capo Operativo | manca | — | Nuovo ruolo capo_operativo (Fase 3) |
 | Responsabile Service | capo_tecnico | Pianifica gli interventi | Contratti e appuntamenti (Fase 10) |
 | Segreteria | segreteria | Interventi da pianificare, documenti | Anticipi, faldone, appuntamenti, chiusura |
 | Programmazione e controllo | titolare (accesso completo) | — | — |
 | Contabile (esterno all'organigramma) | contabile | Fatturazione | — |
+| Informatico (esterno all'organigramma) | informatico | Accesso completo come il titolare | — |
 | Subappaltatori | non sono utenti | — | Anagrafica con documenti (Fase 7) |
 
-Decisione D1 (aperta, spetta a Toli): il ruolo rappresentante oggi è anche
-quello degli agenti esterni. Va scelto se il Commerciale interno usa
-rappresentante o un ruolo suo. Finché non si decide, la Fase 4 usa
-rappresentante.
+Decisione D1 (chiusa da Erika il 23/10, da confermare da Toli in F1.4):
+il "commerciale" verso il cliente è il ruolo rappresentante (anche per gli
+agenti esterni); il ruolo commerciale è la parte acquisti. Non si
+sovrappongono e non serve un ruolo nuovo. La Fase 4 usa rappresentante.
 
 Pagine consentite oggi per ruolo (`PAGINE_RUOLO`,
 js/02-portale-navigazione.js; controllo in `canAccessPage`):
@@ -124,6 +127,9 @@ js/02-portale-navigazione.js; controllo in `canAccessPage`):
 - ingegnere: dashboard, calendario-ingegnere, verifiche-tecniche,
   documenti, certificati-ingegnere, progetto-detail, cliente-detail, info,
   + clienti (aggiunta subito dopo la definizione, sola consultazione)
+- informatico: come titolare (in js/01-core.js `boot` ROLE diventa
+  'titolare', etichetta "Informatico"; lato DB `ruolo_corrente()` in
+  sql/07 restituisce 'titolare')
 - capo_operativo: da creare (Fase 3)
 
 ## Ruoli e cosa fa ciascuno (campo `ruolo` in `utenti`)
@@ -141,6 +147,8 @@ RAPPRESENTANTE
 - Preventivi limitati a 3.000 € (sopra tale soglia passa al commerciale).
 
 COMMERCIALE
+- È la parte acquisti (decisione D1): il commerciale verso il cliente è il
+  rappresentante.
 - Preventiva i lavori sopra i 3.000 €.
 - Segue i fornitori, richiede preventivi ai fornitori.
 - Aggiorna il catalogo prezzi.

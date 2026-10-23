@@ -1536,7 +1536,10 @@ async function salvaSchopralluogo() {
     var exRes = await db.from('clienti').select('id').ilike('ragione_sociale', rag).maybeSingle();
     if(exRes.data) { clienteId = exRes.data.id; }
     else {
-      var ncRes = await db.from('clienti').insert({ragione_sociale:rag,tipo_attivita:v('sl-attivita'),referente_nome:v('sl-ref')||null,referente_telefono:v('sl-tel')||null,stato:'prospect'}).select().single();
+      var nuovoCli = {ragione_sociale:rag,tipo_attivita:v('sl-attivita'),referente_nome:v('sl-ref')||null,referente_telefono:v('sl-tel')||null,stato:'prospect'};
+      // Il cliente inserito dal rappresentante è suo (policy sql/08 clienti_inserimento).
+      if(ROLE === 'rappresentante') nuovoCli.rappresentante_id = ME.id;
+      var ncRes = await db.from('clienti').insert(nuovoCli).select().single();
       if(ncRes.error) throw ncRes.error;
       clienteId = ncRes.data.id;
     }

@@ -266,9 +266,10 @@ function buildRiep(){const ce=ge('tc1'),cn=ce.options[ce.selectedIndex]?.text||'
   </div>${v('tc14')==='true'?'<div><span class="bx berr">⚠ Intervento straordinario richiesto</span></div>':''}</div>`;}
 
 async function salvaInt(){
-  // Il tecnico registra solo interventi a suo nome (campo tecnico nascosto;
-  // le policy per ruolo, sql/09, non gli permettono di intestarli ad altri).
-  const cid=v('tc1'),tid=(ROLE==='tecnico'?ME.id:v('tc5')),di=v('tc3');if(!cid||!di){toast('Dati mancanti','err');return;}
+  // Il tecnico può intestare l'intervento anche a un collega tecnico o capo
+  // tecnico (decisione di Erika del 23/10, da confermare da Toli in F1.4;
+  // policy sql/09 ordini_lavoro_inserimento). Se non sceglie nessuno, è lui.
+  const cid=v('tc1'),tid=(v('tc5')||(ROLE==='tecnico'?ME.id:'')),di=v('tc3');if(!cid||!di){toast('Dati mancanti','err');return;}
   var impossibilitato = ge('tc-impossibilitato') && ge('tc-impossibilitato').checked;
   var motivoImp = impossibilitato ? v('tc-imp-motivo').trim() : null;
   var relazioneDettaglio = v('tc-relaz-lavori') || null;
@@ -277,7 +278,7 @@ async function salvaInt(){
   const chkDone=[];document.querySelectorAll('.ci input:checked').forEach(cb=>{chkDone.push(cb.nextElementSibling.textContent);});
   const chkTxt=chkDone.length?'CHECK-LIST:\n'+chkDone.map(t=>'✓ '+t).join('\n'):null;
   const sedeId=v('tc1-sede')||null;const {data:odl,error:e1}=await db.from('ordini_lavoro').insert({cliente_id:cid,tipo:v('tc2'),tecnico_id:tid||null,data_pianificata:di,stato:'completato',note_per_tecnico:v('tc6')||null,sede_id:sedeId}).select().single();
-  if(e1){toast(e1.code==='42501'?'Non hai i permessi per registrare questo intervento: puoi salvare solo interventi a tuo nome.':'Errore intervento: '+e1.message,'err');btn.disabled=false;btn.textContent='Salva e chiudi intervento ✓';return;}
+  if(e1){toast(e1.code==='42501'?'Non hai i permessi per registrare questo intervento: scegli come tecnico te stesso o un collega tecnico.':'Errore intervento: '+e1.message,'err');btn.disabled=false;btn.textContent='Salva e chiudi intervento ✓';return;}
   const straord=v('tc14')==='true';
   const {data:schedaData,error:e2}=await db.from('schede_lavoro').insert({odl_id:odl.id,tecnico_id:tid||ME.id,cliente_id:cid,data_intervento:di,ora_inizio:v('tc4')||null,ora_fine:v('tc17')||null,lavori_eseguiti:chkTxt?chkTxt+'\n\n'+(v('tc10')||''):v('tc10')||null,anomalie_rilevate:v('tc12')||null,
       esito: impossibilitato ? 'non_completato' : v('tc13'),

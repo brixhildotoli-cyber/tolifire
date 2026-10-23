@@ -520,12 +520,14 @@ async function calcolaPresidiSede(cliId, sedeId, containerId){
   el.innerHTML = html;
 }
 
-// Nasconde campo tecnico per il ruolo tecnico (esegue lui stesso)
+// Campo tecnico visibile per tutti: il tecnico propone sé stesso ma può
+// scegliere un collega (decisione di Erika del 23/10, da confermare da Toli
+// in F1.4). Il nome della funzione resta per non toccare i punti che la chiamano.
 function nascondiCampoTecnico() {
   var f = ge('tc5-field');
-  if(f) f.style.display = ROLE === 'tecnico' ? 'none' : '';
-  // Imposta automaticamente ME come tecnico
+  if(f) f.style.display = '';
+  // Imposta automaticamente ME come tecnico, se non è già scelto qualcuno
   var sel = ge('tc5');
-  if(sel && ROLE === 'tecnico') sel.value = ME.id;
+  if(sel && ROLE === 'tecnico' && !sel.value) sel.value = ME.id;
 }
 

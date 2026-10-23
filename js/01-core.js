@@ -245,9 +245,13 @@ async function doLogin(){
 async function doLogout(){await db.auth.signOut();location.reload();}
 
 async function boot(ud){
-  ME=ud;ROLE=ud.ruolo;
+  // L'informatico ha accesso completo, uguale al titolare (decisione di Erika
+  // del 23/10, da confermare da Toli in F1.4): unico punto di normalizzazione,
+  // così PAGINE_RUOLO, canAccessPage e i controlli ROLE==='titolare' valgono
+  // anche per lui. ME.ruolo resta quello vero. Lato DB: sql/07 ruolo_corrente().
+  ME=ud;ROLE=(ud.ruolo==='informatico'?'titolare':ud.ruolo);
   ge('lp').style.display='none';ge('nav').classList.add('on');ge('app').style.display='block';
-  ge('nusr').textContent=esc(ud.nome)+' — Esci';ge('nrole').textContent=ud.ruolo;
+  ge('nusr').textContent=esc(ud.nome)+' — Esci';ge('nrole').textContent=(ud.ruolo==='informatico'?'Informatico':ud.ruolo);
   ge('ddate').textContent=new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   buildNav();buildSB();
   const today=new Date().toISOString().split('T')[0];const now=new Date();
