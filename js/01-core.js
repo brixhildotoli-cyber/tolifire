@@ -1,10 +1,14 @@
 const SU='https://syjbpxtkcsazpynyvoss.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5amJweHRrY3NhenB5bnl2b3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDA4NTAsImV4cCI6MjA5MDg3Njg1MH0.mzsJpMSNck7lOYJZZM_TdDXRCSGsBB2Zt0-5mcvujmA';
 const db=supabase.createClient(SU,SK,{auth:{persistSession:true,autoRefreshToken:true,storage:window.localStorage}});
-// Client pubblico per portale cliente (nessun login richiesto)
+// Client pubblico per portale cliente (nessun login richiesto).
+// Il codice segreto del link (?portale=<codice>) viaggia nell'intestazione
+// x-portale-token: le policy dello storage lo usano per riconoscere il
+// cliente (sql/13 e sql/14). I dati passano dalle RPC portale_*.
+const PORTALE_TOKEN=new URLSearchParams(window.location.search).get('portale')||'';
 const dbPublic=supabase.createClient(SU,SK,{
   auth:{persistSession:false,autoRefreshToken:false},
-  global:{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}
+  global:{headers:{'apikey':SK,'Authorization':'Bearer '+SK,'x-portale-token':PORTALE_TOKEN}}
 });
 
 let ME=null,ROLE=null,CLIS=[],UTENTI=[],ODLS=[],PA=[],PF=[];

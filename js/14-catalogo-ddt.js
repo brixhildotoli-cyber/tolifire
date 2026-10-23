@@ -388,20 +388,28 @@ async function saveDdt() {
   }
 }
 
-async function stampaDDT(ddtId) {
+// datiPortale: {ddt, righe} già letti dal portale clienti con la RPC
+// portale_ddt (js/02 scaricaDDTPortale); senza, legge dal database.
+async function stampaDDT(ddtId, datiPortale) {
   try {
     await caricaLibreriePDF();
-    // Carica dati DDT
-    var res = await db.from('ddt')
-      .select('id, numero, data_emissione, causale, note, luogo_consegna, clienti(ragione_sociale, piva, codice_fiscale, indirizzo_fattura, citta_fattura, cap_fattura, citta), ordini_lavoro(numero)')
-      .eq('id', ddtId).single();
-    if(res.error) throw res.error;
-    var ddt = res.data;
+    var ddt, righe;
+    if(datiPortale) {
+      ddt = datiPortale.ddt;
+      righe = datiPortale.righe || [];
+    } else {
+      // Carica dati DDT
+      var res = await db.from('ddt')
+        .select('id, numero, data_emissione, causale, note, luogo_consegna, clienti(ragione_sociale, piva, codice_fiscale, indirizzo_fattura, citta_fattura, cap_fattura, citta), ordini_lavoro(numero)')
+        .eq('id', ddtId).single();
+      if(res.error) throw res.error;
+      ddt = res.data;
 
-    // Carica righe
-    var res2 = await db.from('ddt_righe').select('*').eq('ddt_id', ddtId).order('id');
-    if(res2.error) throw res2.error;
-    var righe = res2.data || [];
+      // Carica righe
+      var res2 = await db.from('ddt_righe').select('*').eq('ddt_id', ddtId).order('id');
+      if(res2.error) throw res2.error;
+      righe = res2.data || [];
+    }
 
     var { jsPDF } = window.jspdf;
     var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });

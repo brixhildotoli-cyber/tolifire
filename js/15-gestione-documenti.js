@@ -237,10 +237,23 @@ async function eliminaDocumentoCliente(id, path) {
 
 // ── PORTALE CLIENTE (pagina pubblica) ────────────────────────
 // La segreteria può condividere un link diretto al cliente
-function copiaLinkCliente(cliId) {
-  var url = window.location.origin + window.location.pathname + '?portale=' + cliId;
+// Il link contiene un codice segreto del cliente (portale_clienti.token),
+// generato dal database (RPC portale_link_cliente, solo titolare e
+// segreteria). nuovo=true: crea un codice nuovo e il link vecchio smette
+// subito di funzionare (da usare se il link è finito a chi non deve).
+async function copiaLinkCliente(cliId, nuovo) {
+  if(!cliId) return;
+  if(nuovo && !confirm('Creare un nuovo link per questo cliente? Il link inviato finora smetterà di funzionare.')) return;
+  var r = await db.rpc('portale_link_cliente', {p_cliente_id: cliId, p_nuovo: !!nuovo});
+  if(r.error || !r.data) {
+    toast('Errore link cliente: ' + (r.error ? r.error.message : 'codice non generato'), 'err');
+    return;
+  }
+  var url = window.location.origin + window.location.pathname + '?portale=' + encodeURIComponent(r.data);
   navigator.clipboard.writeText(url).then(function() {
-    toast('✅ Link copiato! Invialo al cliente.', 'ok');
+    toast(nuovo ? '✅ Nuovo link copiato! Il vecchio non funziona più.' : '✅ Link copiato! Invialo al cliente.', 'ok');
+  }, function() {
+    prompt('Copia il link e invialo al cliente:', url);
   });
 }
 

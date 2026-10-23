@@ -1,14 +1,19 @@
-// Check portale cliente (URL ?portale=cliId — accesso pubblico senza login)
-// Variabile globale portale
-var _portaleCliId = null;
+// Check portale cliente (URL ?portale=<codice segreto> — accesso pubblico senza login)
+// Il codice è generato dal gestionale (Scheda cliente > Link cliente) e
+// salvato in portale_clienti. I dati arrivano SOLO dalle RPC portale_*
+// (sql/13), che restituiscono i dati del cliente collegato al codice.
+// Variabili globali portale
+var _portaleCliId = null;   // id cliente restituito dal database (cartella dei file)
 var _portaleTipo = null;
 var _portaleFiles = [];
 
+function portaleLinkNonValido() {
+  var el = ge('portale-lista-docs');
+  if(el) el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--m)">Link non valido o non più attivo.<br><span style="font-size:12px">Contatta Toli Fire per ricevere un nuovo link.</span></div>';
+}
+
 async function checkPortaleCliente() {
-  var params = new URLSearchParams(window.location.search);
-  var cliId = params.get('portale');
-  if(!cliId) return false;
-  _portaleCliId = cliId;
+  if(!PORTALE_TOKEN) return false;
 
   // Mostra solo il portale
   ge('lp').style.display = 'none';
@@ -17,18 +22,20 @@ async function checkPortaleCliente() {
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});
   var pg = ge('pg-portale-cliente'); if(pg) pg.classList.add('on');
 
-  // Carica dati cliente
-  var rc = await dbPublic.from('clienti').select('ragione_sociale').eq('id', cliId).single();
-  if(rc.data) {
-    ge('portale-nome').textContent = rc.data.ragione_sociale;
+  // Carica dati cliente e sedi (solo quelli del cliente del link)
+  var rc = await dbPublic.rpc('portale_cliente', {p_token: PORTALE_TOKEN});
+  if(rc.error || !rc.data) {
+    portaleLinkNonValido();
+    return true;
   }
+  _portaleCliId = rc.data.cliente_id;
+  ge('portale-nome').textContent = rc.data.ragione_sociale || '';
 
-  // Carica sedi per il form
-  var rs = await dbPublic.from('sedi_cliente').select('*').eq('cliente_id', cliId).order('tipo');
+  // Sedi per il form
   var sediSel = ge('portale-sede');
-  if(sediSel && rs.data) {
+  if(sediSel) {
     sediSel.innerHTML = '<option value="">— Sede principale —</option>' +
-      rs.data.map(function(s){
+      (rc.data.sedi || []).map(function(s){
         var addr = (s.tipo||'').toUpperCase() + (s.nome?' — '+s.nome:'') + ': ' + (s.via||'') + ' ' + (s.civico||'') + (s.citta?' ('+s.citta+')':'');
         return '<option value="'+s.id+'">'+addr+'</option>';
       }).join('');
@@ -56,32 +63,17 @@ function portaleTab(tab) {
 async function portaleCaricaDocs() {
   var el = ge('portale-lista-docs');
   if(!el) return;
-  if(!_portaleCliId) _portaleCliId = new URLSearchParams(window.location.search).get('portale');
-  if(!_portaleCliId) { el.innerHTML = '<div class="empty">Errore: ricarica la pagina</div>'; return; }
+  if(!_portaleCliId) { portaleLinkNonValido(); return; }
   el.innerHTML = '<div class="load">Caricamento...</div>';
 
-  // Documenti caricati dalla segreteria
-  var rd = await dbPublic.from('documenti_cliente')
-    .select('*').eq('cliente_id', _portaleCliId)
-    .eq('visibile_cliente', true).order('caricato_il', {ascending:false});
-
-  // DDT del cliente
-  var rddt = await dbPublic.from('ddt')
-    .select('id,numero,data_emissione,causale')
-    .eq('cliente_id', _portaleCliId)
-    .order('data_emissione', {ascending:false}).limit(20);
-
-  // Schede lavoro del cliente
-  var rsl = await dbPublic.from('schede_lavoro')
-    .select('id,numero,data_intervento,esito,stato')
-    .eq('cliente_id', _portaleCliId)
-    .in('stato',['inviata_cliente','da_fatturare','fatturata'])
-    .order('data_intervento', {ascending:false}).limit(20);
+  // Documenti visibili al cliente, DDT e rapporti di intervento (RPC)
+  var r = await dbPublic.rpc('portale_documenti', {p_token: PORTALE_TOKEN});
+  if(r.error || !r.data) { portaleLinkNonValido(); return; }
 
   var html = '';
 
   // Sezione documenti caricati
-  var docs = rd.data || [];
+  var docs = r.data.documenti || [];
   if(docs.length) {
     html += '<div style="font-size:13px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">📁 Documenti</div>';
     html += docs.map(function(d) {
@@ -96,7 +88,7 @@ async function portaleCaricaDocs() {
   }
 
   // Sezione DDT
-  var ddts = rddt.data || [];
+  var ddts = r.data.ddt || [];
   if(ddts.length) {
     html += '<div style="font-size:13px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 10px">📦 Documenti di trasporto</div>';
     html += ddts.map(function(d) {
@@ -110,7 +102,7 @@ async function portaleCaricaDocs() {
   }
 
   // Sezione schede lavoro
-  var sls = rsl.data || [];
+  var sls = r.data.schede || [];
   if(sls.length) {
     html += '<div style="font-size:13px;font-weight:700;color:var(--m);text-transform:uppercase;letter-spacing:.04em;margin:20px 0 10px">🔧 Rapporti di intervento</div>';
     html += sls.map(function(s) {
@@ -138,8 +130,7 @@ function portaleHandleDrop(event) {
 }
 
 async function portaleUploadFiles(files) {
-  if(!_portaleCliId) _portaleCliId = new URLSearchParams(window.location.search).get('portale');
-  if(!_portaleCliId) { alert('Errore: ricarica la pagina'); return; }
+  if(!_portaleCliId) { alert('Link non valido: contatta Toli Fire'); return; }
 
   var fileArr = Array.from(files);
   var queue = ge('portale-upload-queue');
@@ -174,20 +165,24 @@ async function portaleUploadFiles(files) {
       continue;
     }
 
-    // Salva metadati
+    // Salva metadati (RPC: cliente e nota li decide il database)
     var tipo = f.type.startsWith('video/') ? 'Video' :
                f.type.startsWith('image/') ? 'Foto' :
                f.type.includes('pdf') ? 'PDF' : 'Documento';
 
-    await dbPublic.from('documenti_cliente').insert({
-      cliente_id: _portaleCliId,
-      nome_file: f.name,
-      tipo_documento: tipo,
-      storage_path: path,
-      dimensione: f.size,
-      note: 'Caricato dal cliente',
-      visibile_cliente: true
+    var reg = await dbPublic.rpc('portale_registra_documento', {
+      p_token: PORTALE_TOKEN,
+      p_nome_file: f.name,
+      p_tipo_documento: tipo,
+      p_storage_path: path,
+      p_dimensione: f.size
     });
+
+    if(reg.error) {
+      if(statoEl) statoEl.innerHTML = '<span style="color:var(--r)">❌ Errore</span>';
+      console.error('Registrazione file:', reg.error);
+      continue;
+    }
 
     if(statoEl) statoEl.innerHTML = '<span style="color:var(--g)">✅ Caricato</span>';
   }
@@ -200,18 +195,17 @@ async function portaleUploadFiles(files) {
 }
 
 async function portaleCaricaMieiFile() {
-  if(!_portaleCliId) _portaleCliId = new URLSearchParams(window.location.search).get('portale');
   var el = ge('portale-miei-file');
   if(!el) return;
   el.innerHTML = '<div class="load">Caricamento...</div>';
 
-  var r = await dbPublic.from('documenti_cliente')
-    .select('*')
-    .eq('cliente_id', _portaleCliId)
-    .eq('note', 'Caricato dal cliente')
-    .order('caricato_il', {ascending: false});
+  var r = await dbPublic.rpc('portale_documenti', {p_token: PORTALE_TOKEN});
+  if(r.error || !r.data) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--r);font-size:13px">Link non valido: contatta Toli Fire</div>';
+    return;
+  }
 
-  var docs = r.data || [];
+  var docs = r.data.miei_file || [];
 
   if(!docs.length) {
     el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--m);font-size:13px">Nessun file caricato ancora</div>';
@@ -234,16 +228,9 @@ async function portaleCaricaMieiFile() {
 async function portaleCaricaTicket() {
   var el = ge('portale-lista-ticket');
   if(!el) return;
-  // Recupera ID dal URL se non in memoria
-  if(!_portaleCliId) {
-    _portaleCliId = new URLSearchParams(window.location.search).get('portale');
-  }
-  if(!_portaleCliId) { el.innerHTML = '<div class="empty">Errore: cliente non identificato</div>'; return; }
+  if(!_portaleCliId) { el.innerHTML = '<div class="empty">Link non valido: contatta Toli Fire</div>'; return; }
   el.innerHTML = '<div class="load">Caricamento richieste...</div>';
-  var r = await dbPublic.from('ticket_clienti')
-    .select('*, ordini_lavoro(data_pianificata,stato,fascia_oraria)')
-    .eq('cliente_id', _portaleCliId)
-    .order('creato_il', {ascending:false});
+  var r = await dbPublic.rpc('portale_ticket', {p_token: PORTALE_TOKEN});
   if(r.error) { el.innerHTML = '<div style="color:var(--r);padding:20px">Errore: '+r.error.message+'</div>'; return; }
   var tickets = r.data || [];
   if(!tickets.length) {
@@ -308,9 +295,7 @@ function mostraAnteprima(input) {
 }
 
 async function inviaTicketPortale() {
-  // Recupera ID dal URL se non in memoria
-  if(!_portaleCliId) _portaleCliId = new URLSearchParams(window.location.search).get('portale');
-  if(!_portaleCliId) { ge('portale-invio-stato').textContent = '⚠️ Errore: ricarica la pagina'; return; }
+  if(!_portaleCliId) { ge('portale-invio-stato').textContent = '⚠️ Link non valido: contatta Toli Fire'; return; }
   if(!_portaleTipo) { ge('portale-invio-stato').textContent = '⚠️ Seleziona il tipo di richiesta'; return; }
   var titolo = ge('portale-titolo').value.trim();
   if(!titolo) { ge('portale-invio-stato').textContent = '⚠️ Inserisci un oggetto'; return; }
@@ -319,20 +304,15 @@ async function inviaTicketPortale() {
   btn.disabled = true; btn.textContent = '⏳ Invio...';
   ge('portale-invio-stato').textContent = '';
 
-  // Determina reparto destinatario
-  var assegnato = _portaleTipo === 'preventivo' ? 'commerciale' :
-                  _portaleTipo === 'intervento' ? 'capo_tecnico' : 'segreteria';
-
-  var r = await dbPublic.from('ticket_clienti').insert({
-    cliente_id: _portaleCliId,
-    sede_id: ge('portale-sede').value || null,
-    tipo: _portaleTipo,
-    titolo: titolo,
-    descrizione: ge('portale-desc').value || null,
-    assegnato_a: assegnato,
-    stato: 'aperto',
-    priorita: 'normale'
-  }).select().single();
+  // Reparto destinatario, stato e priorità li decide il database
+  // (preventivo -> commerciale, intervento -> capo_tecnico, segnalazione -> segreteria)
+  var r = await dbPublic.rpc('portale_invia_ticket', {
+    p_token: PORTALE_TOKEN,
+    p_tipo: _portaleTipo,
+    p_titolo: titolo,
+    p_descrizione: ge('portale-desc').value || null,
+    p_sede_id: ge('portale-sede').value || null
+  });
 
   if(r.error) {
     ge('portale-invio-stato').innerHTML = '<div style="color:var(--r);padding:10px;background:var(--rl,#fef2f2);border-radius:var(--rs)">❌ Errore invio: ' + r.error.message + '<br><small>Riprova o contatta direttamente Toli Fire</small></div>';
@@ -340,14 +320,17 @@ async function inviaTicketPortale() {
     return;
   }
 
-  // Upload allegati
+  // Upload allegati (r.data = id della nuova richiesta)
+  var ticketId = r.data;
+  var erroriAllegati = 0;
   for(var i=0; i<_portaleFiles.length; i++) {
     var f = _portaleFiles[i];
-    var path = _portaleCliId + '/tickets/' + r.data.id + '/' + f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    var path = _portaleCliId + '/tickets/' + ticketId + '/' + f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
     var up = await dbPublic.storage.from('ticket-allegati').upload(path, f);
-    if(!up.error) {
-      await dbPublic.from('ticket_allegati').insert({ticket_id:r.data.id, nome_file:f.name, storage_path:path});
-    }
+    var reg = up.error ? up : await dbPublic.rpc('portale_registra_allegato_ticket', {
+      p_token: PORTALE_TOKEN, p_ticket_id: ticketId, p_nome_file: f.name, p_storage_path: path
+    });
+    if(reg.error) { erroriAllegati++; console.error('Allegato richiesta:', reg.error); }
   }
 
   // Reset form
@@ -356,14 +339,17 @@ async function inviaTicketPortale() {
   selPortaleTipo(null); _portaleTipo=null;
   btn.disabled=false; btn.textContent='📤 Invia richiesta';
 
-  ge('portale-invio-stato').innerHTML = '<div style="background:var(--gl);color:var(--g);padding:12px;border-radius:var(--rs);font-weight:600">✅ Richiesta inviata! Ti risponderemo al più presto.</div>';
+  ge('portale-invio-stato').innerHTML = '<div style="background:var(--gl);color:var(--g);padding:12px;border-radius:var(--rs);font-weight:600">✅ Richiesta inviata! Ti risponderemo al più presto.' +
+    (erroriAllegati ? '<br><span style="color:var(--r);font-weight:400">⚠️ ' + erroriAllegati + ' allegati non caricati: inviali a Toli Fire per email.</span>' : '') + '</div>';
   // Ricarica subito i ticket in background
   await portaleCaricaTicket();
   setTimeout(function(){ portaleTab('ticket'); }, 1500);
 }
 
 async function scaricaDDTPortale(ddtId) {
-  await stampaDDT(ddtId);
+  var r = await dbPublic.rpc('portale_ddt', {p_token: PORTALE_TOKEN, p_ddt_id: ddtId});
+  if(r.error || !r.data) { alert('DDT non disponibile. Contatta Toli Fire.'); return; }
+  await stampaDDT(ddtId, r.data);
 }
 
 async function scaricaPortale(path, nomeFile) {

@@ -56,6 +56,11 @@ if (paginaAttuale && paginaAttuale !== 'cliente-detail') {
           : 'none';
   }
 
+  const btnLinkNuovo = ge('cli-det-link-nuovo');
+  if (btnLinkNuovo && btnLinkCliente) {
+    btnLinkNuovo.style.display = btnLinkCliente.style.display;
+  }
+
   if (btnNuovoProgetto) {
     btnNuovoProgetto.style.display =
       schedaSolaLettura ? 'none' : '';
