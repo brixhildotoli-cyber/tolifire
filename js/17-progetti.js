@@ -1119,7 +1119,77 @@ async function inviaIntegrazioneCommerciale() {
 }
 
 
-async function avviaPreventivo(progettoId) {
+// F2.3 — finestra per il titolare quando ci sono più commerciali attivi.
+// Predefinito: il commerciale dell'ultimo preventivo creato tra quelli
+// in elenco; altrimenti il primo in ordine alfabetico.
+async function apriSceltaCommercialePreventivo(progettoId, commerciali) {
+  const ids = commerciali.map(function(c) { return c.id; });
+  let predefinitoId = commerciali[0].id;
+
+  const { data: ultimi } = await db
+    .from('preventivi')
+    .select('commerciale_id')
+    .in('commerciale_id', ids)
+    .order('creato_il', { ascending: false })
+    .limit(1);
+
+  if (ultimi && ultimi.length && ultimi[0].commerciale_id) {
+    predefinitoId = ultimi[0].commerciale_id;
+  }
+
+  let finestra = ge('m-scegli-commerciale');
+  if (!finestra) {
+    finestra = document.createElement('div');
+    finestra.className = 'mbg';
+    finestra.id = 'm-scegli-commerciale';
+    document.body.appendChild(finestra);
+  }
+
+  finestra.innerHTML = `
+    <div class="modal" style="max-width:420px">
+      <button class="x" onclick="closeM('m-scegli-commerciale')">×</button>
+      <h3>A quale commerciale assegnare il preventivo?</h3>
+      <input type="hidden" id="msc-progetto-id" value="${esc(progettoId)}">
+      <div class="f">
+        <label>Commerciale *</label>
+        <select id="msc-commerciale">
+          ${commerciali.map(function(c) {
+            const nome = ((c.nome || '') + ' ' + (c.cognome || '')).trim() || 'Senza nome';
+            return '<option value="' + esc(c.id) + '"' +
+              (c.id === predefinitoId ? ' selected' : '') + '>' +
+              esc(nome) + '</option>';
+          }).join('')}
+        </select>
+      </div>
+      <div class="ma">
+        <button class="btn" onclick="closeM('m-scegli-commerciale')">Annulla</button>
+        <button class="btn p" id="msc-conferma" onclick="confermaCommercialePreventivo()">Avvia preventivo</button>
+      </div>
+    </div>
+  `;
+
+  openM('m-scegli-commerciale');
+}
+
+async function confermaCommercialePreventivo() {
+  const progettoId = v('msc-progetto-id');
+  const commercialeId = v('msc-commerciale');
+
+  if (!progettoId || !commercialeId) {
+    toast('Scegli un commerciale', 'err');
+    return;
+  }
+
+  const bottone = ge('msc-conferma');
+  if (bottone) bottone.disabled = true;
+
+  closeM('m-scegli-commerciale');
+  await avviaPreventivo(progettoId, commercialeId);
+
+  if (bottone) bottone.disabled = false;
+}
+
+async function avviaPreventivo(progettoId, commercialeScelto) {
   const paginaPreventivi =
     ROLE === 'titolare'
       ? 'preventivi-titolare'
@@ -1190,21 +1260,42 @@ async function avviaPreventivo(progettoId) {
   let commercialeDestinatarioId = ME.id;
 
   if (ROLE === 'titolare') {
-    const { data: commerciali, error: erroreCommerciali } = await db
-      .from('utenti')
-      .select('id')
-      .eq('ruolo', 'commerciale')
-      .limit(2);
+    // F2.3 — solo commerciali attivi: con uno si usa quello, con più
+    // di uno sceglie il titolare (finestra m-scegli-commerciale).
+    if (commercialeScelto) {
+      commercialeDestinatarioId = commercialeScelto;
+    } else {
+      const { data: commerciali, error: erroreCommerciali } = await db
+        .from('utenti')
+        .select('id, nome, cognome')
+        .eq('ruolo', 'commerciale')
+        .eq('attivo', true)
+        .order('cognome')
+        .order('nome');
 
-    if (erroreCommerciali || commerciali?.length !== 1) {
-      toast(
-        'Impossibile assegnare il preventivo: serve un solo profilo commerciale.',
-        'err'
-      );
-      return;
+      if (erroreCommerciali) {
+        toast(
+          'Errore lettura commerciali: ' + erroreCommerciali.message,
+          'err'
+        );
+        return;
+      }
+
+      if (!commerciali || !commerciali.length) {
+        toast(
+          'Nessun commerciale attivo: serve almeno un utente attivo con ruolo Commerciale per avviare il preventivo.',
+          'err'
+        );
+        return;
+      }
+
+      if (commerciali.length > 1) {
+        await apriSceltaCommercialePreventivo(progettoId, commerciali);
+        return;
+      }
+
+      commercialeDestinatarioId = commerciali[0].id;
     }
-
-    commercialeDestinatarioId = commerciali[0].id;
   }
 
   const { data: preventivo, error: erroreCreazione } = await db
