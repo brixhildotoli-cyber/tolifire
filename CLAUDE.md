@@ -201,10 +201,18 @@ CAPO_OPERATIVO (da creare, Fase 3)
 I permessi vivono SOLO nel frontend (`canAccessPage`, `PAGINE_RUOLO`,
 `if(ROLE===...)`): aggirabili da console. La protezione vera = Row Level
 Security su Supabase. Stato RLS: dall'export del 22/10/2026
-(`sql/schema/04-rls-policy.sql`) risulta ATTIVA su tutte le 57 tabelle;
-le policy vanno ancora verificate una per una (task F1.1).
-Problema noto: `public.confirm_user_email` è SECURITY DEFINER ed
-eseguibile da `anon`.
+(`sql/schema/04-rls-policy.sql`) risulta ATTIVA su tutte le 57 tabelle,
+ma con policy larghe (verifica in `sql/REPORT-RLS.md`, F1.1).
+Eseguiti in produzione il 23/10: 03 e 04 (tappi anon: niente letture
+senza login, RPC chiuse ad anon, compreso `confirm_user_email`), 04b,
+16, 18.
+Stato al 23/10/2026: PRONTO PER L'ATTIVAZIONE (F1.4, confermato da
+Toli). Policy per ruolo, portale con link segreto e regole dei file
+(07, 13, 14, 08, 09, 10, 12, 11, 17) e pubblicazione del sito vanno
+eseguite seguendo `sql/F1.4-ATTIVAZIONE.md` (ordine, prove per ruolo,
+rollback), provata in locale per intero con rollback. Finché non è
+eseguita valgono ancora le policy larghe: un tecnico da console legge
+tutti i clienti. Da segnare "attiva" dopo l'esecuzione.
 
 ## Autonomia di Claude Code
 PUÒ fare da solo: refactoring, CSS, bug fix, nuove funzioni UI, riordino
