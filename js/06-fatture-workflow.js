@@ -78,11 +78,14 @@ async function loadWorkflow(){
     document.querySelectorAll('#pg-workflow .tc').forEach(function(t){t.classList.remove('on');});
     var wfd = ge('wf-d'); if(wfd) wfd.classList.add('on');
   }
+  // F2.2 — Le schede di interventi non completati (impossibilitato) restano
+  // fuori dal workflow segreteria/contabilità, anche quelle salvate come
+  // 'firmata' prima di questa modifica: le gestisce il capo tecnico.
   const stati=['firmata','approvata','inviata_cliente','da_fatturare','fatturata'];
   const ids=['list-f','list-a','list-i','list-d','list-t'];
   const cnts=['cnt-f','cnt-a','cnt-i','cnt-d'];
   for(let i=0;i<stati.length;i++){
-    const {data}=await db.from('schede_lavoro').select('*,clienti(ragione_sociale),utenti!schede_lavoro_tecnico_id_fkey(nome,cognome),ordini_lavoro(tipo)').eq('stato',stati[i]).is('eliminato_il',null).order('aggiornato_il',{ascending:false});
+    const {data}=await db.from('schede_lavoro').select('*,clienti(ragione_sociale),utenti!schede_lavoro_tecnico_id_fkey(nome,cognome),ordini_lavoro(tipo)').eq('stato',stati[i]).not('impossibilitato','is',true).is('eliminato_il',null).order('aggiornato_il',{ascending:false});
     if(cnts[i]&&ge(cnts[i]))ge(cnts[i]).textContent=data?.length?`(${data.length})`:'';
     const el=ge(ids[i]);if(!el)continue;
     if(!data?.length){el.innerHTML='<div class="empty">Nessuna scheda in questo stato</div>';continue;}

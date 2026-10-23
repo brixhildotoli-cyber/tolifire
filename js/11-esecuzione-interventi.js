@@ -313,6 +313,13 @@ async function caricaMotiviRiprogrammare(odlIds){
   return mappa;
 }
 
+// F2.2 — Le schede "non completate" (impossibilitato = true) non vanno alla
+// segreteria né alla contabilità: le vedono solo chi pianifica (capo tecnico,
+// titolare/informatico) e il tecnico. Usata da Documenti e Scheda cliente.
+function vedeSchedeNonCompletate(){
+  return ROLE === 'titolare' || ROLE === 'capo_tecnico' || ROLE === 'tecnico';
+}
+
 // Riquadro con il motivo, per chi pianifica (capo tecnico / Resp. Service).
 function boxRiprogrammare(info){
   if(!info) return '';
@@ -389,7 +396,13 @@ async function salvaInt(){
       esito: impossibilitato ? 'non_completato' : v('tc13'),
       note_interne: relazioneDettaglio ? '[RELAZIONE TECNICA]\n'+relazioneDettaglio+(relazioneRacc?'\n\nRACCOMANDAZIONI: '+relazioneRacc:'') : null,
       impossibilitato: impossibilitato || false,
-      motivo_impossibilitato: motivoImp,intervento_straordinario_richiesto:straord,urgenza_straordinario:straord?v('tc15'):null,descrizione_intervento_necessario:straord?v('tc16'):null,nome_firmatario:v('tc18')||null,stato:'firmata'}).select().single();
+      motivo_impossibilitato: motivoImp,intervento_straordinario_richiesto:straord,urgenza_straordinario:straord?v('tc15'):null,descrizione_intervento_necessario:straord?v('tc16'):null,nome_firmatario:v('tc18')||null,
+      // F2.2 (decisione di Erika del 23/10, da confermare da Toli in F1.4) —
+      // la scheda di un intervento NON completato non va alla segreteria: resta
+      // 'bozza' (stato già previsto dal database) e quindi fuori da "Da
+      // approvare", fatturazione e contatori. La vedono capo tecnico e titolare
+      // come motivo da riprogrammare (caricaMotiviRiprogrammare).
+      stato: impossibilitato ? 'bozza' : 'firmata'}).select().single();
   var scheda = schedaData || {};
   if(e2){
     // Scheda non salvata: l'intervento scelto torna com'era (resta da eseguire)
@@ -515,10 +528,13 @@ async function saveOdl(){
   const payload={cliente_id:cid,tipo,data_pianificata:data,fascia_oraria:v('mo4')||null,tecnico_id:v('mo5')||null,note_per_tecnico:v('mo6')||null,sede_id:sede||null,materiali_da_portare:v('mo-materiali')||null,note_capo_tecnico:v('mo-note-cap')||null};
   let error, newOdlId = null;
   if(editId) {
-    // F2.2 — Il capo tecnico che assegna (tecnico + data) un intervento "da
-    // pianificare" (anche da riprogrammare) lo rende "pianificato", come fa il
-    // trascinamento nel calendario (ctDrop); prima restava "da pianificare".
-    if(ROLE === 'capo_tecnico' && window._moStatoOrig === 'da_pianificare' && payload.tecnico_id) payload.stato = 'pianificato';
+    // F2.2 — Chi pianifica (capo tecnico, titolare/informatico, segreteria) e
+    // assegna tecnico + data a un intervento "da pianificare" (anche da
+    // riprogrammare) lo rende "pianificato", come fa il trascinamento nel
+    // calendario (ctDrop); prima restava "da pianificare". Policy ordini_lavoro
+    // (produzione odl_update e sql/09): modifica permessa a questi ruoli.
+    var puoPianificare = ROLE === 'capo_tecnico' || ROLE === 'titolare' || ROLE === 'segreteria';
+    if(puoPianificare && window._moStatoOrig === 'da_pianificare' && payload.tecnico_id && payload.data_pianificata) payload.stato = 'pianificato';
     const r = await db.from('ordini_lavoro').update(payload).eq('id',editId);
     error = r.error;
   } else {

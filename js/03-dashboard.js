@@ -61,8 +61,8 @@ async function loadDash(){
   if(ROLE==='tecnico') qOdl = qOdl.eq('tecnico_id', ME.id);
   const [o,wf,fat,c]=await Promise.all([
     qOdl,
-    db.from('schede_lavoro').select('id',{count:'exact'}).is('eliminato_il',null).eq('stato','firmata'),
-    db.from('schede_lavoro').select('id',{count:'exact'}).is('eliminato_il',null).eq('stato','da_fatturare'),
+    db.from('schede_lavoro').select('id',{count:'exact'}).is('eliminato_il',null).eq('stato','firmata').not('impossibilitato','is',true),
+    db.from('schede_lavoro').select('id',{count:'exact'}).is('eliminato_il',null).eq('stato','da_fatturare').not('impossibilitato','is',true),
     db.from('clienti').select('id',{count:'exact'}).is('eliminato_il',null).eq('stato','attivo'),
   ]);
   ge('ds1').textContent=o.count||0;
@@ -525,8 +525,8 @@ async function loadDashTitolare(){
     Q('clienti').eq('stato','attivo'),
     Q('clienti').gte('creato_il',range.startTs).lt('creato_il',range.endTs),
     Q('utenti').eq('ruolo','tecnico').eq('attivo',true),
-    Q('schede_lavoro').eq('stato','firmata'),
-    Q('schede_lavoro').eq('stato','da_fatturare')
+    Q('schede_lavoro').eq('stato','firmata').not('impossibilitato','is',true),
+    Q('schede_lavoro').eq('stato','da_fatturare').not('impossibilitato','is',true)
   ])).map(function(s){ return s.status === 'fulfilled' ? s.value : { error: s.reason, count: 0 }; });
 
   function num(r){ return (!r || r.error) ? '—' : (r.count || 0); }
@@ -670,14 +670,14 @@ async function loadDashSegreteriaPg(){
     rApprovare, rFatturare, rDaPianif, rRichMod,
     rPresidiScad, rPresidi30, rCliAtt, rInviate
   ] = (await Promise.allSettled([
-    Q('schede_lavoro').eq('stato','firmata'),
-    Q('schede_lavoro').eq('stato','da_fatturare'),
+    Q('schede_lavoro').eq('stato','firmata').not('impossibilitato','is',true),
+    Q('schede_lavoro').eq('stato','da_fatturare').not('impossibilitato','is',true),
     Q('ordini_lavoro').eq('stato','da_pianificare'),
     Q('richieste_modifica_odl').eq('stato','in_attesa'),
     Q('impianti').lt('data_prossimo_controllo',oggiStr),
     Q('impianti').gte('data_prossimo_controllo',oggiStr).lte('data_prossimo_controllo',in30Str),
     Q('clienti').eq('stato','attivo'),
-    Q('schede_lavoro').eq('stato','inviata_cliente')
+    Q('schede_lavoro').eq('stato','inviata_cliente').not('impossibilitato','is',true)
   ])).map(function(s){ return s.status === 'fulfilled' ? s.value : { error: s.reason, count: 0 }; });
 
   function num(r){ return (!r || r.error) ? '—' : (r.count || 0); }

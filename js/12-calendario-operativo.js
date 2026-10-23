@@ -275,6 +275,7 @@ async function loadStoricoInterventiTecnico() {
       anomalie_rilevate,
       esito,
       stato,
+      impossibilitato,
       creato_il,
       clienti(ragione_sociale),
       ordini_lavoro(tipo)
@@ -310,11 +311,17 @@ async function loadStoricoInterventiTecnico() {
     const tipo =
       tl(scheda.ordini_lavoro?.tipo || '') || 'Intervento';
 
-    const stato = scheda.stato === 'firmata'
+    // F2.2 — scheda di un intervento non completato: non va in segreteria,
+    // l'intervento torna da pianificare al capo tecnico
+    const stato = scheda.impossibilitato
+      ? 'Non completato — torna al capo tecnico'
+      : scheda.stato === 'firmata'
       ? 'Inviata alla segreteria'
       : (WFL[scheda.stato] || scheda.stato || '—');
 
-    const classeStato = scheda.stato === 'firmata'
+    const classeStato = scheda.impossibilitato
+      ? 'berr'
+      : scheda.stato === 'firmata'
       ? 'bblue'
       : scheda.stato === 'approvata'
         ? 'bok'

@@ -312,10 +312,14 @@ if (!erroreClienteAggiornato && clienteAggiornato) {
       </div>
     `;
 
-  const { data: schede } = await db
+  // F2.2 — le schede non completate (impossibilitato) non arrivano a
+  // segreteria, contabilità e commerciale (vedeSchedeNonCompletate, js/11)
+  let qSchedeCli = db
     .from('schede_lavoro')
     .select('*, utenti!schede_lavoro_tecnico_id_fkey(nome,cognome)')
-    .eq('cliente_id', id)
+    .eq('cliente_id', id);
+  if (!vedeSchedeNonCompletate()) qSchedeCli = qSchedeCli.not('impossibilitato', 'is', true);
+  const { data: schede } = await qSchedeCli
     .order('creato_il', { ascending: false })
     .limit(20);
 
@@ -343,7 +347,7 @@ if (!erroreClienteAggiornato && clienteAggiornato) {
                   <td>${esc(s.utenti ? s.utenti.nome + ' ' + s.utenti.cognome : '—')}</td>
                   <td>${fd(s.data_intervento)}</td>
                   <td>${s.esito ? be(s.esito) : '—'}</td>
-                  <td>${bs(s.stato)}</td>
+                  <td>${s.impossibilitato ? '<span class="bx berr">Non completata</span>' : bs(s.stato)}</td>
                   <td>
                     <button class="btn sm" onclick="openScheda('${s.id}')">
                       Vedi
