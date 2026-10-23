@@ -211,8 +211,8 @@ Toli). Policy per ruolo, portale con link segreto e regole dei file
 (07, 13, 14, 08, 09, 10, 12, 11, 17) e pubblicazione del sito vanno
 eseguite seguendo `sql/F1.4-ATTIVAZIONE.md` (ordine, prove per ruolo,
 rollback), provata in locale per intero con rollback. Finché non è
-eseguita valgono ancora le policy larghe: un tecnico da console legge
-tutti i clienti. Da segnare "attiva" dopo l'esecuzione.
+eseguita valgono ancora le policy precedenti. Da segnare "attiva" dopo
+l'esecuzione.
 
 ## Autonomia di Claude Code
 PUÒ fare da solo: refactoring, CSS, bug fix, nuove funzioni UI, riordino
