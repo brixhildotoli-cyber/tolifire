@@ -265,6 +265,24 @@ function buildRiep(){const ce=ge('tc1'),cn=ce.options[ce.selectedIndex]?.text||'
   <span style="color:var(--m)">Esito</span><strong>${v('tc13').replace(/_/g,' ')}</strong>
   </div>${v('tc14')==='true'?'<div><span class="bx berr">⚠ Intervento straordinario richiesto</span></div>':''}</div>`;}
 
+// F2.1 — Avviso che resta a video finché l'utente non preme "Ho capito"
+// (non si chiude cliccando fuori). corpoHtml deve essere già passato da esc().
+function mostraAvvisoBloccante(titolo, corpoHtml){
+  var id='m-avviso-bloccante';
+  var el=ge(id);
+  if(!el){
+    el=document.createElement('div');el.className='mbg';el.id=id;
+    el._mbgListener=function(){}; // niente chiusura al click fuori
+    document.body.appendChild(el);
+  }
+  el.innerHTML='<div class="modal" style="max-width:440px">'+
+    '<div class="mh" style="color:var(--r)">⚠ '+esc(titolo)+'</div>'+
+    '<div style="font-size:14px">'+corpoHtml+'</div>'+
+    '<div style="margin-top:16px;text-align:right"><button class="btn p" onclick="closeM(\'m-avviso-bloccante\')">Ho capito</button></div>'+
+    '</div>';
+  openM(id);
+}
+
 async function salvaInt(){
   // Il tecnico può intestare l'intervento anche a un collega tecnico o capo
   // tecnico (decisione di Erika del 23/10, da confermare da Toli in F1.4;
@@ -324,9 +342,23 @@ async function salvaInt(){
   if(e2){
     // Scheda non salvata: l'intervento scelto torna com'era (resta da eseguire)
     if(odlPrima){
-      await db.from('ordini_lavoro').update({stato:odlPrima.stato,tipo:odlPrima.tipo,tecnico_id:odlPrima.tecnico_id,data_pianificata:odlPrima.data_pianificata,sede_id:odlPrima.sede_id,note_per_tecnico:odlPrima.note_per_tecnico}).eq('id',odlPrima.id);
+      const rRip=await db.from('ordini_lavoro').update({stato:odlPrima.stato,tipo:odlPrima.tipo,tecnico_id:odlPrima.tecnico_id,data_pianificata:odlPrima.data_pianificata,sede_id:odlPrima.sede_id,note_per_tecnico:odlPrima.note_per_tecnico}).eq('id',odlPrima.id).select('id');
+      if(rRip.error||!rRip.data||!rRip.data.length){
+        // Ripristino fallito: l'intervento risulta chiuso senza scheda. Avviso
+        // persistente (finestra da chiudere a mano), non un toast che sparisce.
+        const ceR=ge('tc1'),cliR=(ceR&&ceR.options[ceR.selectedIndex])?ceR.options[ceR.selectedIndex].text:'—';
+        const msgR='La scheda non è stata salvata e l\'intervento è rimasto segnato come completato: avvisa il capo tecnico.';
+        console.error('F2.1 ripristino intervento fallito',odlPrima.id,rRip.error);
+        mostraAvvisoBloccante('Intervento da sistemare',
+          '<p style="margin:0 0 10px">'+esc(msgR)+'</p>'+
+          '<p style="margin:0 0 6px"><strong>Cliente:</strong> '+esc(cliR)+'</p>'+
+          '<p style="margin:0 0 6px"><strong>Data pianificata:</strong> '+esc(fd(odlPrima.data_pianificata))+'</p>'+
+          '<p style="margin:0 0 6px"><strong>Data esecuzione indicata:</strong> '+esc(fd(di))+'</p>'+
+          '<p style="margin:10px 0 0;color:var(--m);font-size:12px">Errore scheda: '+esc(e2.message)+(rRip.error?' — errore ripristino: '+esc(rRip.error.message):'')+'</p>');
+        toast(msgR,'err');riattivaBtn();return;
+      }
     }
-    toast('Errore scheda: '+e2.message,'err');riattivaBtn();return;
+    toast('Errore scheda: '+e2.message+'. L\'intervento è rimasto aperto: riprova.','err');riattivaBtn();return;
   }
   // Ciclo del Piano mensile collegato -> eseguito. Lo fa anche il trigger
   // sql/17 (necessario per il tecnico, che non può modificare i cicli);
@@ -357,6 +389,7 @@ async function salvaInt(){
     await uploadFotoIntervento(odl.id, scheda.id || odl.id);
   }
   toast(odlPrima&&impossibilitato?'✅ Scheda salvata. L\'intervento resta aperto da ripianificare.':'✅ Intervento salvato! Scheda inviata in segreteria.','ok');
+  _tcPrecaricatoDaOdl = false;
   var infoOdl = ge('tec-odl-info'); if(infoOdl){infoOdl.style.display='none';infoOdl.innerHTML='';}
   ['tc-odl','tc1','tc5','tc6','tc10','tc12','tc16','tc17','tc18','tc-relaz-lavori','tc-relaz-racc','tc-imp-motivo'].forEach(id=>{const el=ge(id);if(el)el.value='';});
   var impCb = ge('tc-impossibilitato'); if(impCb){impCb.checked=false; toggleImpossibilitato();}

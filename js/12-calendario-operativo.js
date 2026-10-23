@@ -375,6 +375,10 @@ async function loadOdlTecnico() {
     .in('stato', ['da_pianificare','pianificato'])
     .order('data_pianificata');
   var odls = res.data || [];
+  // F2.1 — Ricaricando l'elenco si mantiene l'intervento già scelto; se non c'è
+  // più (chiuso o riassegnato) i campi precompilati si svuotano (preloadFromOdl),
+  // altrimenti il salvataggio creerebbe un doppione.
+  var scelto = sel.value;
   sel.innerHTML = '<option value="">— Seleziona OdL o compila manualmente —</option>' +
     odls.map(function(o) {
       var cli = o.clienti && o.clienti.ragione_sociale ? o.clienti.ragione_sociale : '—';
@@ -383,16 +387,40 @@ async function loadOdlTecnico() {
       var tipo = {ordinario_programmato:'Manutenzione',ordinario_chiamata:'Su chiamata',straordinario:'Straordinario',corso:'Corso'}[o.tipo] || o.tipo || '';
       return '<option value="' + o.id + '">' + fd(o.data_pianificata) + fascia + ' — ' + cli + ' — ' + tipo + '</option>';
     }).join('');
+  if(scelto && odls.some(function(o){ return o.id === scelto; })) sel.value = scelto;
+  else if(_tcPrecaricatoDaOdl) preloadFromOdl();
 }
 
+// true quando i campi di "Esegui intervento" sono stati compilati da un
+// intervento assegnato (tendina tc-odl): serve a svuotarli se la scelta si toglie.
+var _tcPrecaricatoDaOdl = false;
 async function preloadFromOdl() {
   var odlId = v('tc-odl');
-  if(!odlId) return;
+  if(!odlId) {
+    // F2.1 — Tolta la scelta dell'intervento assegnato: si svuotano i campi
+    // che erano stati precompilati da quell'intervento, così il salvataggio
+    // non crea un doppione dell'intervento pianificato (che resterebbe aperto).
+    // Chi vuole un intervento estemporaneo ricompila cliente e data.
+    if(_tcPrecaricatoDaOdl) {
+      _tcPrecaricatoDaOdl = false;
+      ['tc1','tc5','tc6'].forEach(function(id){ var el = ge(id); if(el) el.value = ''; });
+      var tipoR = ge('tc2'); if(tipoR) tipoR.value = 'ordinario_programmato';
+      var dataR = ge('tc3'); if(dataR) dataR.value = new Date().toISOString().split('T')[0];
+      // Tutto sincrono (niente await): non si sovrappone a un precaricamento in corso
+      var sedeR = ge('tc1-sede'); if(sedeR) sedeR.innerHTML = '<option value="">Sede principale / da definire</option>';
+      var infoR = ge('tec-odl-info'); if(infoR) { infoR.style.display = 'none'; infoR.innerHTML = ''; }
+      toast('Intervento assegnato tolto: campi svuotati. Per un intervento non pianificato scegli cliente e data.', 'ok');
+    }
+    return;
+  }
   var res = await db.from('ordini_lavoro')
     .select('cliente_id,tipo,data_pianificata,tecnico_id,note_per_tecnico,sede_id,materiali_da_portare,note_capo_tecnico,clienti(ragione_sociale,referente_telefono)')
     .eq('id', odlId).single();
   var o = res.data;
   if(!o) return;
+  // Se nel frattempo la scelta è cambiata, non sovrascrivere i campi
+  if(v('tc-odl') !== odlId) return;
+  _tcPrecaricatoDaOdl = true;
   var cliSel = ge('tc1'); if(cliSel) cliSel.value = o.cliente_id || '';
   var tipoSel = ge('tc2'); if(tipoSel) tipoSel.value = o.tipo || 'ordinario_programmato';
   var dataSel = ge('tc3'); if(dataSel) dataSel.value = o.data_pianificata || '';
