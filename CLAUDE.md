@@ -272,7 +272,10 @@ una sessione e l'altra.
    o una Edge Function Supabase che le crea automaticamente al passaggio
    di una scheda firmata. Se non esiste, va costruita.
 
-4. **Stato intervento 'da riprogrammare'** — quando un tecnico non
+4. **Stato intervento 'da riprogrammare'** — FATTO in F2.2 (sviluppo
+   6692e3b, 5773535): il non completato torna `da_pianificare` senza data,
+   motivo visibile al capo tecnico, scheda in `bozza` fuori dalla
+   segreteria. Descrizione originale: quando un tecnico non
    riesce a completare o svolgere un intervento pianificato (imprevisto,
    lavoro non finito, cliente assente), deve poterlo segnalare e
    l'intervento torna automaticamente in coda "da pianificare" per
