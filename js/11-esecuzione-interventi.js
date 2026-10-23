@@ -159,18 +159,32 @@ async function loadSediPresidio(cliId, selectedSedeId) {
 async function loadPC(){
   ricordaPosizionePagina();
   const cid=v('tc1');if(!cid){ge('pcl').innerHTML='<div class="empty">Seleziona un cliente</div>';return;}
-  const [{data:pp},{data:perio}]=await Promise.all([
-    db.from('impianti').select('*').eq('cliente_id',cid).order('tipo').order('matricola'),
-    db.from('clienti_periodicita').select('*').eq('cliente_id',cid).maybeSingle()
-  ]);
+  // Tecnico: con le policy per ruolo (sql/08) legge impianti, periodicità e
+  // sedi solo dei clienti dei suoi interventi; per un intervento compilato a
+  // mano su un altro cliente usa la RPC parco_presidi_cliente (sql/07).
+  // Se la RPC non esiste ancora resta la lettura diretta.
+  let pp=null, perio=null, sediList=null;
+  if(ROLE==='tecnico'){
+    const r=await db.rpc('parco_presidi_cliente',{p_cliente_id:cid});
+    if(!r.error && r.data){pp=r.data.impianti||[];perio=r.data.periodicita||null;sediList=r.data.sedi||[];}
+  }
+  if(!pp){
+    const [{data:ppDir},{data:perioDir}]=await Promise.all([
+      db.from('impianti').select('*').eq('cliente_id',cid).order('tipo').order('matricola'),
+      db.from('clienti_periodicita').select('*').eq('cliente_id',cid).maybeSingle()
+    ]);
+    pp=ppDir; perio=perioDir;
+  }
   const el=ge('pcl');
   if(!pp?.length){
     el.innerHTML='<div class="empty">Nessun presidio censito.<br><button class="btn p sm" style="margin-top:8px" onclick="apriAggiungiPresidioTec()">+ Aggiungi primo presidio</button></div>';
     return;
   }
-  // Carica sedi del cliente
-  var sediRes = await db.from('sedi_cliente').select('id,tipo,nome,via,civico,citta').eq('cliente_id',cid).order('tipo');
-  var sediList = sediRes.data || [];
+  // Carica sedi del cliente (se non sono già arrivate dalla RPC)
+  if(!sediList){
+    var sediRes = await db.from('sedi_cliente').select('id,tipo,nome,via,civico,citta').eq('cliente_id',cid).order('tipo');
+    sediList = sediRes.data || [];
+  }
   var sediMap2 = {}; sediList.forEach(function(s){sediMap2[s.id]=s;});
 
   // Raggruppa per sede poi per tipo
@@ -252,7 +266,9 @@ function buildRiep(){const ce=ge('tc1'),cn=ce.options[ce.selectedIndex]?.text||'
   </div>${v('tc14')==='true'?'<div><span class="bx berr">⚠ Intervento straordinario richiesto</span></div>':''}</div>`;}
 
 async function salvaInt(){
-  const cid=v('tc1'),tid=v('tc5'),di=v('tc3');if(!cid||!di){toast('Dati mancanti','err');return;}
+  // Il tecnico registra solo interventi a suo nome (campo tecnico nascosto;
+  // le policy per ruolo, sql/09, non gli permettono di intestarli ad altri).
+  const cid=v('tc1'),tid=(ROLE==='tecnico'?ME.id:v('tc5')),di=v('tc3');if(!cid||!di){toast('Dati mancanti','err');return;}
   var impossibilitato = ge('tc-impossibilitato') && ge('tc-impossibilitato').checked;
   var motivoImp = impossibilitato ? v('tc-imp-motivo').trim() : null;
   var relazioneDettaglio = v('tc-relaz-lavori') || null;
@@ -261,7 +277,7 @@ async function salvaInt(){
   const chkDone=[];document.querySelectorAll('.ci input:checked').forEach(cb=>{chkDone.push(cb.nextElementSibling.textContent);});
   const chkTxt=chkDone.length?'CHECK-LIST:\n'+chkDone.map(t=>'✓ '+t).join('\n'):null;
   const sedeId=v('tc1-sede')||null;const {data:odl,error:e1}=await db.from('ordini_lavoro').insert({cliente_id:cid,tipo:v('tc2'),tecnico_id:tid||null,data_pianificata:di,stato:'completato',note_per_tecnico:v('tc6')||null,sede_id:sedeId}).select().single();
-  if(e1){toast('Errore intervento: '+e1.message,'err');btn.disabled=false;btn.textContent='Salva e chiudi intervento ✓';return;}
+  if(e1){toast(e1.code==='42501'?'Non hai i permessi per registrare questo intervento: puoi salvare solo interventi a tuo nome.':'Errore intervento: '+e1.message,'err');btn.disabled=false;btn.textContent='Salva e chiudi intervento ✓';return;}
   const straord=v('tc14')==='true';
   const {data:schedaData,error:e2}=await db.from('schede_lavoro').insert({odl_id:odl.id,tecnico_id:tid||ME.id,cliente_id:cid,data_intervento:di,ora_inizio:v('tc4')||null,ora_fine:v('tc17')||null,lavori_eseguiti:chkTxt?chkTxt+'\n\n'+(v('tc10')||''):v('tc10')||null,anomalie_rilevate:v('tc12')||null,
       esito: impossibilitato ? 'non_completato' : v('tc13'),
