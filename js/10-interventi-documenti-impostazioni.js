@@ -1,18 +1,22 @@
 // ── INTERVENTI ────────────────────────────────────────────────
-async function loadOdl(){const {data}=await db.from('ordini_lavoro').select('*,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)').is('eliminato_il',null).order('data_pianificata',{ascending:false});ODLS=data||[];renderO(ODLS);}
+async function loadOdl(){const {data}=await db.from('ordini_lavoro').select('*,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)').is('eliminato_il',null).order('data_pianificata',{ascending:false});ODLS=data||[];
+  // F2.2 — motivo degli interventi tornati in coda perché non completati
+  _motiviRiprog=await caricaMotiviRiprogrammare(ODLS.filter(o=>o.stato==='da_pianificare').map(o=>o.id));
+  renderO(ODLS);}
+var _motiviRiprog={};
 function renderO(data){const tb=ge('otbody');if(!data.length){tb.innerHTML='<tr><td colspan="7"><div class="empty">Nessun intervento</div></td></tr>';return;}tb.innerHTML=data.map(o=>`<tr>
     <td style="color:var(--m)">#${o.numero||'—'}</td>
     <td><strong>${esc(o.clienti?.ragione_sociale||'—')}</strong></td>
     <td>${tl(o.tipo)}</td>
     <td>${o.utenti?esc(o.utenti.nome+' '+o.utenti.cognome):'<span style="color:var(--r)">Non assegnato</span>'}</td>
     <td>${fd(o.data_pianificata)||'<span style="color:var(--a)">Da pianificare</span>'}</td>
-    <td>${bs(o.stato)}</td>
+    <td>${bs(o.stato)}${o.stato==='da_pianificare'&&_motiviRiprog[o.id]?boxRiprogrammare(_motiviRiprog[o.id]):''}</td>
     <td style="display:flex;gap:6px">
       ${(ROLE==='titolare'||ROLE==='capo_tecnico'||ROLE==='segreteria')?`<button class="btn sm" onclick="openEditOdl('${o.id}')">✏️ Modifica</button>`:''}
       ${(ROLE==='titolare'||ROLE==='capo_tecnico')?`<button class="btn sm" style="color:var(--r)" onclick="eliminaOdl('${o.id}')">🗑️</button>`:''}
     </td>
   </tr>`).join('');}
-function filterO(){const q=v('osearch').toLowerCase(),s=v('ofilt');renderO(ODLS.filter(o=>(!q||(o.clienti?.ragione_sociale||'').toLowerCase().includes(q))&&(!s||o.stato===s)));}
+function filterO(){const q=v('osearch').toLowerCase(),s=v('ofilt');renderO(ODLS.filter(o=>(!q||(o.clienti?.ragione_sociale||'').toLowerCase().includes(q))&&(!s||(s==='da_riprogrammare'?(o.stato==='da_pianificare'&&!!_motiviRiprog[o.id]):o.stato===s))));}
 
 // ── DOCUMENTI ─────────────────────────────────────────────────
 async function loadDocs(){

@@ -370,11 +370,14 @@ async function loadOdlTecnico() {
   if(!sel) return;
   nascondiCampoTecnico();
   var res = await db.from('ordini_lavoro')
-    .select('id,numero,tipo,data_pianificata,fascia_oraria,note_per_tecnico,clienti(ragione_sociale,referente_telefono)')
+    .select('id,numero,tipo,stato,data_pianificata,fascia_oraria,note_per_tecnico,clienti(ragione_sociale,referente_telefono)')
     .eq('tecnico_id', ME.id)
     .in('stato', ['da_pianificare','pianificato'])
     .order('data_pianificata');
-  var odls = res.data || [];
+  // F2.2 — Un intervento "da pianificare" senza data è tornato in coda
+  // (non completato, da riprogrammare): lo ripianifica il capo tecnico, quindi
+  // non si propone al tecnico finché non ha di nuovo una data.
+  var odls = (res.data || []).filter(function(o){ return o.stato === 'pianificato' || o.data_pianificata; });
   // F2.1 — Ricaricando l'elenco si mantiene l'intervento già scelto; se non c'è
   // più (chiuso o riassegnato) i campi precompilati si svuotano (preloadFromOdl),
   // altrimenti il salvataggio creerebbe un doppione.

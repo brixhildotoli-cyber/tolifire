@@ -256,6 +256,25 @@ async function loadPianificazioneMensile(anno, mese) {
   _pianoOdls = rOdl.data || [];
   var cicli = rCicli.data || [];
 
+  // F2.2 — Cicli del mese il cui intervento è tornato in coda "da
+  // pianificare" (il tecnico non l'ha completato): l'intervento non ha più
+  // una data, quindi non compare tra i "già schedulati". Si mostrano a parte
+  // con il motivo, per ripianificarli.
+  var idsRiprog = [];
+  cicli.forEach(function(c){
+    if(c.odl_id && idsRiprog.indexOf(c.odl_id) === -1 && !_pianoOdls.some(function(o){ return o.id === c.odl_id; })) idsRiprog.push(c.odl_id);
+  });
+  var odlRiprog = [], motiviRiprog = {};
+  if(idsRiprog.length){
+    var rRip = await db.from('ordini_lavoro')
+      .select('id,numero,tipo,stato,tecnico_id,cliente_id,clienti(ragione_sociale)')
+      .in('id', idsRiprog)
+      .eq('stato','da_pianificare')
+      .is('eliminato_il', null);
+    odlRiprog = rRip.data || [];
+    motiviRiprog = await caricaMotiviRiprogrammare(odlRiprog.map(function(o){ return o.id; }));
+  }
+
   var tecOpt = '<option value="">— Nessun tecnico —</option>' +
     _pianoTecnici.map(function(t){return '<option value="'+t.id+'">'+esc(t.nome)+' '+esc(t.cognome)+'</option>';}).join('');
 
@@ -286,6 +305,26 @@ async function loadPianificazioneMensile(anno, mese) {
           '<div><label style="font-size:11px;color:var(--m)">Tecnico</label>' +
             '<select id="pt-'+cliId+'" style="width:100%;font-size:13px">'+tecOpt+'</select></div>' +
           '<button class="btn p" style="white-space:nowrap" onclick="schedulaOdl(\"'+cliId+'\",\"'+meseStr+'\")">✅ Schedula</button>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  if(odlRiprog.length) {
+    html += '<div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--r);margin:20px 0 12px">↻ Da riprogrammare ('+odlRiprog.length+')</div>';
+    html += odlRiprog.map(function(o){
+      var cli = o.clienti?.ragione_sociale||'—';
+      var tecOpts = '<option value="">— Nessun tecnico —</option>' +
+        _pianoTecnici.map(function(t){return '<option value="'+t.id+'"'+(o.tecnico_id===t.id?' selected':'')+'>'+esc(t.nome)+' '+esc(t.cognome)+'</option>';}).join('');
+      return '<div class="card" style="margin-bottom:10px;border-left:3px solid var(--r)">' +
+        '<div style="font-size:14px;font-weight:600;margin-bottom:2px">'+esc(cli)+'</div>' +
+        '<div style="font-size:11px;color:var(--m)">OdL #'+esc(o.numero||'—')+' · '+bs(o.stato)+'</div>' +
+        boxRiprogrammare(motiviRiprog[o.id]) +
+        '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-top:10px">' +
+          '<div><label style="font-size:11px;color:var(--m)">Nuova data</label>' +
+            '<input type="date" id="prd-'+o.id+'" style="width:100%;font-size:13px"></div>' +
+          '<div><label style="font-size:11px;color:var(--m)">Tecnico</label>' +
+            '<select id="prt-'+o.id+'" style="width:100%;font-size:13px">'+tecOpts+'</select></div>' +
+          '<button class="btn p" style="white-space:nowrap" data-id="'+o.id+'" data-mese="'+meseStr+'" onclick="riprogrammaOdlPiano(this.dataset.id,this.dataset.mese)">✅ Ripianifica</button>' +
         '</div></div>';
     }).join('');
   }
@@ -338,6 +377,24 @@ async function schedulaOdl(cliId, meseAnno) {
   var parts = meseAnno.split('-');
   await loadPianificazioneMensile(parseInt(parts[0]), parseInt(parts[1]));
   if(ROLE==='capo_tecnico') await loadDashCapoTecnico();
+}
+
+// F2.2 — Ripianifica dal Piano mensile un intervento tornato in coda
+// (non completato dal tecnico): nuova data + tecnico → "pianificato".
+async function riprogrammaOdlPiano(odlId, meseAnno) {
+  var data = v('prd-'+odlId);
+  var tecId = v('prt-'+odlId);
+  if(!data) { toast('Inserisci la nuova data', 'err'); return; }
+  if(!tecId) { toast('Scegli il tecnico', 'err'); return; }
+  var r = await db.from('ordini_lavoro')
+    .update({ data_pianificata: data, tecnico_id: tecId, stato: 'pianificato' })
+    .eq('id', odlId).eq('stato', 'da_pianificare')
+    .select('id');
+  if(r.error) { toast('Errore: '+r.error.message,'err'); return; }
+  if(!r.data || !r.data.length) { toast('Intervento già ripianificato o modificato: ricarico il piano.','err'); }
+  else toast('✅ Intervento ripianificato', 'ok');
+  var parts = meseAnno.split('-');
+  await loadPianificazioneMensile(parseInt(parts[0]), parseInt(parts[1]));
 }
 
 async function aggiornaOdlPiano(odlId, campo, valore) {

@@ -35,6 +35,17 @@ async function openEditOdl(id) {
   // Modalità: capo_tecnico su un da_pianificare → 'assign'; altrimenti 'edit'
   var mode = (ROLE === 'capo_tecnico' && o.stato === 'da_pianificare') ? 'assign' : 'edit';
   setModalMode(mode);
+  window._moStatoOrig = o.stato;
+  // F2.2 — Intervento tornato in coda perché il tecnico non l'ha completato:
+  // mostra il motivo a chi lo ripianifica.
+  var boxRip = ge('mo-riprogrammare');
+  if(boxRip){
+    boxRip.style.display = 'none'; boxRip.innerHTML = '';
+    if(o.stato === 'da_pianificare'){
+      var motivi = await caricaMotiviRiprogrammare([o.id]);
+      if(motivi[o.id]){ boxRip.innerHTML = boxRiprogrammare(motivi[o.id]); boxRip.style.display = 'block'; }
+    }
+  }
   if(ge('modal-odl-title') && ge('modal-odl-title').firstChild){
     ge('modal-odl-title').firstChild.nodeValue = (mode === 'assign' ? 'Assegna intervento #' : 'Modifica intervento #') + (o.numero||'') + ' ';
   }

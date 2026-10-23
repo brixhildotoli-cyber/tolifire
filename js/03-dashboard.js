@@ -837,6 +837,8 @@ async function ctLoadListaDaPianificare(){
     el.innerHTML = '<div class="ct-empty">🎉 Nessun intervento da pianificare</div>';
     return;
   }
+  // F2.2 — interventi tornati in coda perché il tecnico non li ha completati
+  var motivi = await caricaMotiviRiprogrammare(odls.map(function(o){ return o.id; }));
   el.innerHTML = odls.map(function(o){
     var urg = '';
     if(o.in_ritardo_il) urg = 'urg-ritardo';
@@ -846,12 +848,14 @@ async function ctLoadListaDaPianificare(){
     var tipoCls = {ordinario_programmato:'tipo-ord',ordinario_chiamata:'tipo-chi',straordinario:'tipo-str',corso:'tipo-cor'}[o.tipo] || 'tipo-ord';
     var tags = '<span class="ct-odl-tag '+tipoCls+'">'+esc(tipoLabel)+'</span>';
     if(o.in_ritardo_il) tags += '<span class="ct-odl-tag in-ritardo">⏰ In ritardo</span>';
+    if(motivi[o.id]){ urg = 'urg-ritardo'; tags += '<span class="ct-odl-tag in-ritardo">↻ Da riprogrammare</span>'; }
     var note = o.note_per_tecnico || o.materiali_da_portare;
     return '<div class="ct-odl-card '+urg+'" draggable="true" data-odl="'+o.id+'" ondragstart="ctDragStart(event)" ondragend="ctDragEnd(event)">' +
       '<div class="bar"></div>' +
       '<div class="ct-odl-cli">'+(o.numero?'#'+esc(o.numero)+' · ':'')+esc(cli)+'</div>' +
       '<div class="ct-odl-meta">'+tags+(o.fascia_oraria?' · '+esc(o.fascia_oraria):'')+'</div>' +
       (note ? '<div class="ct-odl-meta" style="margin-top:4px;font-style:italic">📝 '+esc(String(note).substring(0,80))+(String(note).length>80?'…':'')+'</div>' : '') +
+      boxRiprogrammare(motivi[o.id]) +
     '</div>';
   }).join('');
 }

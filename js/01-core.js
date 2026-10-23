@@ -163,6 +163,8 @@ function openM(id){
     var editId = ge('mcli-odl-id');
     if(!editId || !editId.value) {
       if(ge('modal-odl-title')) ge('modal-odl-title').textContent='Nuovo intervento';
+      // F2.2 — niente riquadro "da riprogrammare" su un intervento nuovo
+      var boxRip = ge('mo-riprogrammare'); if(boxRip){ boxRip.style.display='none'; boxRip.innerHTML=''; }
     }
   }
   var el = ge(id);

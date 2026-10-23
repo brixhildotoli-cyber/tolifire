@@ -283,6 +283,47 @@ function mostraAvvisoBloccante(titolo, corpoHtml){
   openM(id);
 }
 
+// F2.2 — Interventi "da riprogrammare": ordini tornati in coda "da
+// pianificare" perché il tecnico ha segnato "Non ho potuto completare
+// l'intervento". Non c'è uno stato nuovo nel database: l'ordine torna
+// 'da_pianificare' (così code, KPI e calendari lo contano come da pianificare)
+// e il motivo si legge dalla scheda di lavoro collegata (schede_lavoro con
+// impossibilitato = true). Restituisce { odl_id: {motivo, data, n} } con il
+// motivo più recente e quante volte non è stato completato.
+async function caricaMotiviRiprogrammare(odlIds){
+  var mappa = {};
+  var ids = (odlIds || []).filter(Boolean);
+  if(!ids.length) return mappa;
+  // a blocchi di 100 per non allungare troppo l'indirizzo della richiesta
+  var righe = [];
+  for(var i = 0; i < ids.length; i += 100){
+    var r = await db.from('schede_lavoro')
+      .select('odl_id,motivo_impossibilitato,data_intervento,creato_il')
+      .in('odl_id', ids.slice(i, i+100))
+      .eq('impossibilitato', true)
+      .is('eliminato_il', null);
+    if(r.error){ console.warn('Motivi da riprogrammare non caricati:', r.error.message); return mappa; }
+    righe = righe.concat(r.data || []);
+  }
+  righe.sort(function(a,b){ return String(b.creato_il||'').localeCompare(String(a.creato_il||'')); });
+  righe.forEach(function(s){
+    if(!mappa[s.odl_id]) mappa[s.odl_id] = {motivo: s.motivo_impossibilitato || '', data: s.data_intervento, n: 0};
+    mappa[s.odl_id].n++;
+  });
+  return mappa;
+}
+
+// Riquadro con il motivo, per chi pianifica (capo tecnico / Resp. Service).
+function boxRiprogrammare(info){
+  if(!info) return '';
+  return '<div style="background:var(--rl,#fef2f2);border-left:3px solid var(--r);padding:8px 10px;border-radius:var(--rs);margin-top:6px;font-size:12px">' +
+    '<strong style="color:var(--r)">↻ Da riprogrammare</strong>' +
+    (info.n > 1 ? ' <span style="color:var(--m)">(non completato '+info.n+' volte)</span>' : '') +
+    '<br><span style="color:var(--m)">Tentativo del '+esc(fd(info.data))+' — motivo del tecnico:</span> ' +
+    esc(info.motivo || '—') +
+    '</div>';
+}
+
 async function salvaInt(){
   // Il tecnico può intestare l'intervento anche a un collega tecnico o capo
   // tecnico (decisione di Erika del 23/10, da confermare da Toli in F1.4;
@@ -290,6 +331,7 @@ async function salvaInt(){
   const cid=v('tc1'),tid=(v('tc5')||(ROLE==='tecnico'?ME.id:'')),di=v('tc3');if(!cid||!di){toast('Dati mancanti','err');return;}
   var impossibilitato = ge('tc-impossibilitato') && ge('tc-impossibilitato').checked;
   var motivoImp = impossibilitato ? v('tc-imp-motivo').trim() : null;
+  if(impossibilitato && !motivoImp){toast('Devi indicare il motivo per cui non hai potuto completare','err');return;}
   var relazioneDettaglio = v('tc-relaz-lavori') || null;
   var relazioneRacc = v('tc-relaz-racc') || null;
   const btn=ge('savebtn');btn.disabled=true;btn.textContent='Salvataggio...';
@@ -313,11 +355,18 @@ async function salvaInt(){
     // Il tecnico non può passare a un collega un intervento assegnato a lui
     // (policy ordini_lavoro: modifica solo dei propri): lo riassegna il capo tecnico.
     if(ROLE==='tecnico' && tid && tid!==odlPrima.tecnico_id){toast('Questo intervento è assegnato a te: per intestarlo a un collega chiedi al capo tecnico di riassegnarlo.','err');riattivaBtn();return;}
-    // Se il tecnico non è riuscito a svolgerlo, l'intervento resta aperto
-    // (non diventa "completato") così resta in calendario da ripianificare;
-    // la scheda con il motivo viene comunque registrata.
+    // F2.2 — Se il tecnico non è riuscito a svolgerlo, l'intervento NON
+    // diventa "completato": torna in coda "da pianificare" senza data, così il
+    // capo tecnico lo ripianifica (lista "Da pianificare", Piano mensile). Il
+    // tecnico resta quello di prima (le regole del database non gli permettono
+    // di togliersi dall'intervento); il motivo sta nella scheda salvata qui
+    // sotto (impossibilitato / motivo_impossibilitato).
     const agg={tipo:v('tc2')||odlPrima.tipo,tecnico_id:tid||odlPrima.tecnico_id||null,data_pianificata:di,sede_id:sedeId||odlPrima.sede_id||null};
-    if(!impossibilitato) agg.stato='completato';
+    if(impossibilitato){
+      agg.stato='da_pianificare';
+      agg.data_pianificata=null;
+      agg.in_ritardo_il=null;
+    } else agg.stato='completato';
     if(v('tc6')) agg.note_per_tecnico=v('tc6');
     // Il filtro sullo stato evita di chiudere due volte lo stesso intervento
     // (es. salvato da due telefoni): se nel frattempo è stato chiuso non torna nulla.
@@ -328,7 +377,10 @@ async function salvaInt(){
     if(!rUpd.data){toast('Non è stato possibile chiudere l\'intervento (già chiuso o non assegnato a te): ricarica la pagina.','err');riattivaBtn();return;}
     odl=rUpd.data;
   } else {
-    const rIns=await db.from('ordini_lavoro').insert({cliente_id:cid,tipo:v('tc2'),tecnico_id:tid||null,data_pianificata:di,stato:'completato',note_per_tecnico:v('tc6')||null,sede_id:sedeId}).select().single();
+    // F2.2 — Intervento estemporaneo non completato: nasce già in coda "da
+    // pianificare" (senza data) invece che "completato", per non contarlo
+    // tra gli interventi fatti e farlo ripianificare al capo tecnico.
+    const rIns=await db.from('ordini_lavoro').insert({cliente_id:cid,tipo:v('tc2'),tecnico_id:tid||null,data_pianificata:impossibilitato?null:di,stato:impossibilitato?'da_pianificare':'completato',note_per_tecnico:v('tc6')||null,sede_id:sedeId}).select().single();
     if(rIns.error){toast(rIns.error.code==='42501'?'Non hai i permessi per registrare questo intervento: scegli come tecnico te stesso o un collega tecnico.':'Errore intervento: '+rIns.error.message,'err');riattivaBtn();return;}
     odl=rIns.data;
   }
@@ -347,7 +399,9 @@ async function salvaInt(){
         // Ripristino fallito: l'intervento risulta chiuso senza scheda. Avviso
         // persistente (finestra da chiudere a mano), non un toast che sparisce.
         const ceR=ge('tc1'),cliR=(ceR&&ceR.options[ceR.selectedIndex])?ceR.options[ceR.selectedIndex].text:'—';
-        const msgR='La scheda non è stata salvata e l\'intervento è rimasto segnato come completato: avvisa il capo tecnico.';
+        const msgR=impossibilitato
+          ?'La scheda non è stata salvata e l\'intervento è rimasto in coda "da pianificare" senza il motivo: avvisa il capo tecnico.'
+          :'La scheda non è stata salvata e l\'intervento è rimasto segnato come completato: avvisa il capo tecnico.';
         console.error('F2.1 ripristino intervento fallito',odlPrima.id,rRip.error);
         mostraAvvisoBloccante('Intervento da sistemare',
           '<p style="margin:0 0 10px">'+esc(msgR)+'</p>'+
@@ -388,7 +442,7 @@ async function salvaInt(){
     toast('⏳ Caricamento foto...','ok');
     await uploadFotoIntervento(odl.id, scheda.id || odl.id);
   }
-  toast(odlPrima&&impossibilitato?'✅ Scheda salvata. L\'intervento resta aperto da ripianificare.':'✅ Intervento salvato! Scheda inviata in segreteria.','ok');
+  toast(impossibilitato?'✅ Scheda salvata. L\'intervento torna in coda "da pianificare" con il tuo motivo: lo ripianifica il capo tecnico.':'✅ Intervento salvato! Scheda inviata in segreteria.','ok');
   _tcPrecaricatoDaOdl = false;
   var infoOdl = ge('tec-odl-info'); if(infoOdl){infoOdl.style.display='none';infoOdl.innerHTML='';}
   ['tc-odl','tc1','tc5','tc6','tc10','tc12','tc16','tc17','tc18','tc-relaz-lavori','tc-relaz-racc','tc-imp-motivo'].forEach(id=>{const el=ge(id);if(el)el.value='';});
@@ -407,6 +461,12 @@ function setModalMode(mode){
   if(!m) return;
   m.classList.remove('mode-create','mode-edit','mode-assign','mode-tecnico-self');
   m.classList.add('mode-' + mode);
+  // F2.2 — il riquadro "da riprogrammare" vale solo per l'intervento aperto
+  // da openEditOdl: per un intervento nuovo si svuota.
+  if(mode === 'create' || mode === 'tecnico-self'){
+    var boxRip = ge('mo-riprogrammare'); if(boxRip){ boxRip.style.display='none'; boxRip.innerHTML=''; }
+    window._moStatoOrig = null;
+  }
   var btn = ge('mo-btn-save');
   var title = ge('modal-odl-title');
   if(mode === 'assign'){
@@ -455,6 +515,10 @@ async function saveOdl(){
   const payload={cliente_id:cid,tipo,data_pianificata:data,fascia_oraria:v('mo4')||null,tecnico_id:v('mo5')||null,note_per_tecnico:v('mo6')||null,sede_id:sede||null,materiali_da_portare:v('mo-materiali')||null,note_capo_tecnico:v('mo-note-cap')||null};
   let error, newOdlId = null;
   if(editId) {
+    // F2.2 — Il capo tecnico che assegna (tecnico + data) un intervento "da
+    // pianificare" (anche da riprogrammare) lo rende "pianificato", come fa il
+    // trascinamento nel calendario (ctDrop); prima restava "da pianificare".
+    if(ROLE === 'capo_tecnico' && window._moStatoOrig === 'da_pianificare' && payload.tecnico_id) payload.stato = 'pianificato';
     const r = await db.from('ordini_lavoro').update(payload).eq('id',editId);
     error = r.error;
   } else {
