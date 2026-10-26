@@ -215,12 +215,14 @@ Capo Operativo = capo_tecnico.
 | 11 | capo_tecnico | Esegue il cantiere: report fotografici, cronoprogramma, % avanzamento, performance operai | segreteria |
 | 12 | segreteria | Corretta messa in opera, fatture, chiusura della commessa | cliente |
 
-Passo 1, blocco soglia (F3.3): il progetto ha un "Importo stimato" (€,
-imponibile; colonna `progetti_tecnici.importo_stimato`, sql/21 da
-eseguire dopo sql/20). Sopra `impostazioni.soglia_lavoro_grande`, o con
-importo vuoto se la soglia c'è, "Invia al commerciale" è bloccato finché
-l'ingegnere non approva la verifica tecnica (js/17; lato DB trigger
-`trg_blocca_lavoro_grande_senza_ingegnere`).
+Passo 1, soglia lavoro grande (F3.3, decisione di Erika del 26/10): il
+passaggio all'ingegnere lo decide il rappresentante, nessun blocco. Il
+progetto ha un "Importo stimato" (€, imponibile; colonna
+`progetti_tecnici.importo_stimato`, sql/21-importo-stimato-progetti da
+eseguire dopo sql/20). Sopra `impostazioni.soglia_lavoro_grande` compare
+solo un avviso giallo ("valuta l'invio all'ingegnere"); "Invia al
+commerciale" resta sempre possibile. Importo o soglia vuoti: nessun
+avviso (js/17).
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
