@@ -191,7 +191,6 @@ function bs(s){const m={da_pianificare:'<span class="bx bgray">Da pianificare</s
 // Badge per stato_pagamento di fatture/scadenze
 function bsPag(s){const m={da_pagare:'<span class="bx bgray">Da pagare</span>',in_riba:'<span class="bx bblue">In RIBA</span>',pagata:'<span class="bx bok">Pagata</span>',parzialmente_pagata:'<span class="bx bwarn">Parz. pagata</span>',insoluta:'<span class="bx berr">Insoluta</span>',sollecitata:'<span class="bx berr">Sollecitata</span>',aperta:'<span class="bx bgray">Aperta</span>'};return m[s]||`<span class="bx bgray">${s||'—'}</span>`;}
 function be(e){const m={conforme:'<span class="bx bok">Conforme</span>',conforme_osservazioni:'<span class="bx bwarn">Con osservazioni</span>',non_conforme:'<span class="bx berr">Non conforme</span>',non_conforme_urgente:'<span class="bx berr">URGENTE</span>',non_completato:'<span class="bx berr">Non completato</span>'};return m[e]||`<span class="bx bgray">${e||'—'}</span>`;}
-function bc(s){return{attivo:'<span class="bx bok">Attivo</span>',prospect:'<span class="bx bblue">Prospect</span>',sospeso:'<span class="bx bwarn">Sospeso</span>',perso:'<span class="bx bgray">Perso</span>'}[s]||`<span class="bx bgray">${s||'—'}</span>`;}
 function ir(l,v2){return `<div style="padding:8px;background:var(--bg);border-radius:var(--rs)"><div style="font-size:11px;color:var(--m);margin-bottom:2px">${l}</div><div style="font-size:13px;font-weight:500">${esc(v2||'—')}</div></div>`;}
 
 // ── AUTH ──────────────────────────────────────────────────────

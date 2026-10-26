@@ -30,8 +30,6 @@ function mostraInfoSede() {
   }
 }
 
-async function loadAddrTec(){const cid=v('tc1');if(!cid)return;}
-
 function tnav(n){for(let i=0;i<5;i++){ge('ts'+i).classList.toggle('on',i===n);ge('tsb'+i).style.background=i===n?'rgba(255,255,255,.9)':i<n?'rgba(255,255,255,.6)':'rgba(255,255,255,.3)';}ge('tsl').textContent=TL[n];if(n===1)buildCKL();if(n===3)loadPC();if(n===4)buildRiep();}
 function tnext(from){
   if(from===0&&!v('tc1')){toast('Seleziona un cliente','err');return;}
@@ -53,56 +51,6 @@ function tgChk(id){const cb=ge('cb'+id);if(cb){cb.checked=!cb.checked;ge('cw'+id
 function updCKP(){const all=document.querySelectorAll('.ci input'),done=document.querySelectorAll('.ci input:checked'),pct=all.length?Math.round(done.length/all.length*100):0;const pf=ge('cpf');if(pf){pf.style.width=pct+'%';ge('cpb').className='pb'+(pct<50?' e':pct<100?' w':'');ge('cpc').textContent=done.length+' / '+all.length+' completati';}}
 
 
-
-function renderPresidiPerSede(pp) {
-  var el = ge('cd-presidi-content');
-  if(!el) return;
-  if(!pp || !pp.length) { el.innerHTML='<div class="empty">Nessun presidio censito.</div>'; return; }
-
-  // Raggruppa per sede
-  var bySede = {'__principale': {label:'Sede principale', items:[]}};
-  pp.forEach(function(p){
-    var key = p.sede_id || '__principale';
-    if(!bySede[key]) {
-      var s = p.sedi_cliente;
-      bySede[key] = {
-        label: s ? (s.tipo||'') + ' — ' + (esc(s.indirizzo)||'') + (esc(s.citta)?', '+esc(s.citta):'') : 'Sede',
-        items: []
-      };
-    }
-    bySede[key].items.push(p);
-  });
-
-  var html = '';
-  Object.keys(bySede).forEach(function(key) {
-    var gruppo = bySede[key];
-    if(!gruppo.items.length) return;
-    html += '<div style="margin-bottom:20px">' +
-      '<div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--m);margin-bottom:10px;display:flex;align-items:center;gap:6px">' +
-        '<span>📍</span><span>'+gruppo.label+'</span>' +
-        '<span style="background:var(--bg);border-radius:20px;padding:1px 8px;font-size:11px">'+gruppo.items.length+' presidi</span>' +
-      '</div>' +
-      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">' +
-      gruppo.items.map(function(p){
-        return '<div class="pc">' +
-          '<div style="position:absolute;top:12px;right:12px">'+si2(p.stato)+'</div>' +
-          '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--m);margin-bottom:4px">'+tpl(p.tipo)+'</div>' +
-          '<div style="font-size:14px;font-weight:600;margin-bottom:2px">'+(esc(p.matricola)||'—')+'</div>' +
-          '<div style="font-size:12px;display:flex;flex-direction:column;gap:4px">' +
-            '<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ubicazione</span><span>'+(esc(p.ubicazione)||'—')+'</span></div>' +
-            '<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Ult. verifica</span><span>'+fd(p.data_ultimo_controllo)+'</span></div>' +
-            '<div style="display:flex;justify-content:space-between"><span style="color:var(--m)">Prossima</span><span class="'+sc(p.data_prossimo_controllo)+'">'+fd(p.data_prossimo_controllo)+'</span></div>' +
-          '</div>' +
-          '<div style="display:flex;gap:6px;margin-top:10px">' +
-            ((ROLE==='titolare'||ROLE==='capo_tecnico'||ROLE==='segreteria') ? '<button class="btn sm" data-pid="'+p.id+'" onclick="editP(this.dataset.pid)">✏️</button>' : '') +
-            ((ROLE==='titolare'||ROLE==='capo_tecnico') ? '<button class="btn sm" style="color:var(--r)" data-pid="'+p.id+'" onclick="eliminaPresidio(this.dataset.pid)">🗑️</button>' : '') +
-          '</div>' +
-        '</div>';
-      }).join('') +
-      '</div></div>';
-  });
-  el.innerHTML = html;
-}
 
 
 async function loadSediPresidio(cliId, selectedSedeId) {

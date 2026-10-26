@@ -1054,23 +1054,6 @@ citta.startsWith(q)
   });
 }
 
-function openEditCli(id) {
-  ricordaPosizionePagina();
-  // Carica dati e apri modal cliente in modifica
-  var cli = CLIS.find(function(c) { return c.id === id; });
-  if(!cli) { toast('Cliente non trovato', 'err'); return; }
-  ge('mcli-title').textContent = 'Modifica cliente';
-  ge('mc-edit-id').value = id;
-  // Precompila campi base
-  var fields = {mc1:'ragione_sociale',mc2:'referente_nome',mc2b:'referente_cognome',mc3:'referente_telefono',mc4:'referente_email',mc5:'piva',mc6:'codice_fiscale',mc9:'note_commerciali'};
-  Object.keys(fields).forEach(function(elId) {
-    var el = ge(elId); if(el) el.value = cli[fields[elId]]||'';
-  });
-  if(ge('mc7')) ge('mc7').value = esc(cli.tipo_attivita)||'ufficio';
-  if(ge('mc8')) ge('mc8').value = cli.stato||'attivo';
-  openM('m-cli');
-}
-
 function openNewCli(){
 
   if (!puoModificareClienti()) {
@@ -1414,10 +1397,6 @@ async function loadSediDetail(cliId){
   </div>`).join('');
 }
 
-
-// ── TECNICO: impossibilitato + relazione tecnica ──────────────
-// (toggleImpossibilitato / mostraRelazioneBox / mostraInfoSede / loadAddrTec
-//  definite piu' in basso — questa prima copia era dead code)
 
 async function saveCli(){
   const rag=v('mc1').trim();if(!rag){toast('Inserisci la ragione sociale','err');return;}

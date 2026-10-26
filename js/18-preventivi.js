@@ -6516,31 +6516,6 @@ async function loadLeadSito() {
   }).join("");
 }
 
-async function salvaAssegnazioneLeadSito(leadId) {
-  const select = document.getElementById(`assegna-lead-${leadId}`);
-  const assegnatoA = select?.value;
-
-  if (!assegnatoA) {
-    alert("Scegli prima il titolare o un rappresentante.");
-    return;
-  }
-
-  const { error } = await db
-    .from("lead_sito")
-    .update({
-      assegnato_a: assegnatoA,
-      assegnato_il: new Date().toISOString(),
-    })
-    .eq("id", leadId);
-
-  if (error) {
-    alert(`Errore assegnazione: ${error.message}`);
-    return;
-  }
-
-  await loadLeadSito();
-}
-
 async function convertiLeadSito(leadId) {
   const lead = leadSitoCache.find((item) => item.id === leadId);
 
@@ -6720,34 +6695,6 @@ async function caricaAvvisiLeadAssegnate() {
       <span class="chev">›</span>
     </button>
   `;
-}
-
-function toggleLeadAssegnateRapp() {
-  const dettaglio = ge("rap-lead-assegnate-dettaglio");
-
-  if (!dettaglio) return;
-
-  dettaglio.style.display =
-    dettaglio.style.display === "none" ? "block" : "none";
-}
-
-function leadAvvisoEsc(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;",
-  }[char]));
-}
-
-function leadAvvisoData(value) {
-  if (!value) return "—";
-
-  return new Date(value).toLocaleString("it-IT", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
 }
 
 async function assegnaEInviaLeadSito(leadId) {
