@@ -857,6 +857,7 @@ async function caricaPromemoriaAnticipiRappresentante() {
       id,
       numero,
       stato,
+      cliente_id,
       rappresentante_id,
       totale_imponibile,
       iva_perc,
@@ -902,9 +903,11 @@ async function caricaPromemoriaAnticipiRappresentante() {
     return 'Da ' + giorni + (giorni === 1 ? ' giorno' : ' giorni');
   }
 
-  const titolo = anticipi.length === 1
+  // Conta i clienti distinti (un cliente può avere più preventivi in attesa).
+  const nClienti = new Set(anticipi.map(function(p) { return p.cliente_id; })).size;
+  const titolo = nClienti === 1
     ? 'Ricorda l\'anticipo a 1 cliente'
-    : `Ricorda l'anticipo a ${anticipi.length} clienti`;
+    : `Ricorda l'anticipo a ${nClienti} clienti`;
 
   const righe = anticipi.map(function(p) {
     const ivaPerc = Number(p.iva_perc ?? 22);
