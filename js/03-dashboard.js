@@ -7,6 +7,7 @@ async function loadDash(){
   var ctSec = ge('dash-capo-tecnico-pg');
   var ingSec = ge('dash-ingegnere-pg');
   var comSec = ge('dash-commerciale-pg');
+  var coSec = ge('dash-capo-operativo-pg');
   var dsSec = ge('dash-standard');
 
   function showOnly(sec) {
@@ -16,6 +17,7 @@ async function loadDash(){
     if (ctSec) ctSec.style.display = sec === 'capo_tecnico' ? 'block' : 'none';
     if (ingSec) ingSec.style.display = sec === 'ingegnere' ? 'block' : 'none';
     if (comSec) comSec.style.display = sec === 'commerciale' ? 'block' : 'none';
+    if (coSec) coSec.style.display = sec === 'capo_operativo' ? 'block' : 'none';
     if (dsSec) dsSec.style.display = sec === 'standard' ? 'block' : 'none';
   }
 
@@ -50,6 +52,11 @@ async function loadDash(){
   if (ROLE === 'ingegnere') {
     showOnly('ingegnere');
     await loadDashIngegnere();
+    return;
+  }
+  if (ROLE === 'capo_operativo') {
+    showOnly('capo_operativo');
+    await loadDashCapoOperativo();
     return;
   }
 
@@ -112,6 +119,76 @@ async function loadDash(){
     window._ticketRefreshTimer = setInterval(function(){ loadDashTicket(); }, 60000);
   }
 }
+// F3.1 — Dashboard base del Capo Operativo (cantieri).
+// Le commesse arrivano con la Fase 5: per ora mostra, in sola lettura, i
+// lavori straordinari in programma (i più vicini a un cantiere) e il
+// numero dei clienti attivi. Se la lettura degli interventi non è
+// concessa dal database (sql/20, blocco 2), le liste restano vuote.
+async function loadDashCapoOperativo() {
+  const adesso = new Date();
+  const ora = adesso.getHours();
+  const saluto = ora < 14 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
+
+  ge('co-greet-nome').textContent = saluto + (ME?.nome ? ', ' + ME.nome : '');
+  ge('co-greet-data').textContent = adesso.toLocaleDateString('it-IT', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  });
+
+  const oggi = dataLocaleISO(adesso);
+  const fra14 = new Date(adesso);
+  fra14.setDate(fra14.getDate() + 14);
+  const al = dataLocaleISO(fra14);
+
+  const [clientiRes, programmaRes, daPianificareRes] = await Promise.all([
+    db.from('clienti')
+      .select('id', { count: 'exact', head: true })
+      .is('eliminato_il', null)
+      .eq('stato', 'attivo'),
+
+    db.from('ordini_lavoro')
+      .select('id,numero,data_pianificata,fascia_oraria,stato,cliente_id,indirizzo_intervento,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(nome,cognome)', { count: 'exact' })
+      .is('eliminato_il', null)
+      .eq('tipo', 'straordinario')
+      .eq('stato', 'pianificato')
+      .gte('data_pianificata', oggi)
+      .lte('data_pianificata', al)
+      .order('data_pianificata', { ascending: true })
+      .limit(10),
+
+    db.from('ordini_lavoro')
+      .select('id', { count: 'exact', head: true })
+      .is('eliminato_il', null)
+      .eq('tipo', 'straordinario')
+      .eq('stato', 'da_pianificare')
+  ]);
+
+  ge('co-k-clienti').textContent = clientiRes.count || 0;
+  ge('co-k-programma').textContent = programmaRes.count || 0;
+  ge('co-k-dapianificare').textContent = daPianificareRes.count || 0;
+
+  const lavori = programmaRes.data || [];
+  ge('co-lavori-lista').innerHTML = lavori.length
+    ? `<div class="rap-list-card">${
+        lavori.map(o => `
+          <div class="rap-sopr-card" style="margin:0 0 8px;cursor:pointer" onclick="openClienteDetail('${esc(o.cliente_id)}')">
+            <div class="body">
+              <div class="cli">🏗️ ${esc(o.clienti?.ragione_sociale || 'Cliente non indicato')}</div>
+              <div class="meta">
+                ${fd(o.data_pianificata)}${o.fascia_oraria ? ' · ' + esc(o.fascia_oraria) : ''}
+                · ${esc(o.utenti ? o.utenti.nome + ' ' + o.utenti.cognome : 'Tecnico non assegnato')}
+                ${o.indirizzo_intervento ? '<br>📍 ' + esc(o.indirizzo_intervento) : ''}
+              </div>
+            </div>
+          </div>
+        `).join('')
+      }</div>`
+    : `<div class="rap-list-card">
+        <div class="tit-empty">Nessun lavoro straordinario pianificato nei prossimi 14 giorni.</div>
+      </div>`;
+}
+
 async function loadDashIngegnere() {
   const adesso = new Date();
   const ora = adesso.getHours();
