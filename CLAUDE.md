@@ -206,13 +206,12 @@ ma con policy larghe (verifica in `sql/REPORT-RLS.md`, F1.1).
 Eseguiti in produzione il 23/10: 03 e 04 (tappi anon: niente letture
 senza login, RPC chiuse ad anon, compreso `confirm_user_email`), 04b,
 16, 18.
-Stato al 23/10/2026: PRONTO PER L'ATTIVAZIONE (F1.4, confermato da
-Toli). Policy per ruolo, portale con link segreto e regole dei file
-(07, 13, 14, 08, 09, 10, 12, 11, 17) e pubblicazione del sito vanno
-eseguite seguendo `sql/F1.4-ATTIVAZIONE.md` (ordine, prove per ruolo,
-rollback), provata in locale per intero con rollback. Finché non è
-eseguita valgono ancora le policy precedenti. Da segnare "attiva" dopo
-l'esecuzione.
+Stato al 26/10/2026: RLS ATTIVA in produzione (F1.4, confermata da
+Toli, eseguita seguendo `sql/F1.4-ATTIVAZIONE.md`): policy per ruolo
+(07-12), controllo del ruolo nelle RPC (11), portale con link segreto
+(13), regole dei file per cartella (14), trigger Piano mensile (17).
+Schema aggiornato in `sql/schema/` (export del 26/10). Ogni nuova
+tabella o funzione deve nascere con le sue policy e il suo rollback.
 
 ## Autonomia di Claude Code
 PUÒ fare da solo: refactoring, CSS, bug fix, nuove funzioni UI, riordino
