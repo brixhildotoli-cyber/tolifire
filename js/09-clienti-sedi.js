@@ -181,7 +181,7 @@ if (!erroreClienteAggiornato && clienteAggiornato) {
 
   const { data: presidi } = await db
     .from('impianti')
-    .select('*, sedi_cliente(id,tipo,indirizzo,citta)')
+    .select('*, sedi_cliente(id,tipo,via,civico,citta)')
     .eq('cliente_id', id)
     .order('tipo')
     .order('matricola');
@@ -224,7 +224,7 @@ if (!erroreClienteAggiornato && clienteAggiornato) {
               ${
                 p.sedi_cliente
                   ? `<div style="font-size:11px;color:var(--b);margin-bottom:4px">
-                       📍 ${p.sedi_cliente.tipo || ''} ${esc(p.sedi_cliente.indirizzo || '')}
+                       📍 ${p.sedi_cliente.tipo || ''} ${esc([p.sedi_cliente.via, p.sedi_cliente.civico].filter(Boolean).join(' '))}
                      </div>`
                   : ''
               }
