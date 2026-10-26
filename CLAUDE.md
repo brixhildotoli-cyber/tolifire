@@ -292,3 +292,19 @@ una sessione e l'altra.
    stato (o un meccanismo equivalente, es. trigger che riporta a
    `da_pianificare` quando il tecnico segna "non completato" sulla
    scheda di lavoro).
+
+5. **Da F2.4 (risposte di Erika del 26/10)** — lavori nuovi emersi
+   dall'analisi del codice non usato (CODICE-MORTO.md §8):
+   - D3: far funzionare il riquadro "Impegni del team tecnico" nella
+     dashboard del rappresentante (oggi id duplicato, resta su
+     "Caricamento..."; `loadImpegniTeamAnonimi` in js/13 mai chiamata).
+   - D4: pulsante "Elimina attività" nel calendario dell'ingegnere
+     (`eliminaAttivitaIngegnere` esiste ma non è collegata).
+   - D5: i preventivi passano dall'approvazione del titolare prima
+     dell'invio (`inviaPreventivoPerApprovazione`, stato
+     `in_attesa_approvazione`, oggi non collegata).
+   - D7: costruire le schede di manutenzione ordinaria del tecnico
+     (`apriManutenzioneOrdinaria`/`salvaManutenzioneOrdinaria` chiamate da
+     index.html ma mai scritte: oggi il bottone non fa nulla).
+   - D6: `ricordaPosizionePagina` è solo nella copia morta di renderPC
+     (js/07): rimetterla nella versione usata (js/09).
