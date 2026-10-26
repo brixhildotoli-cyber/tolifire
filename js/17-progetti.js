@@ -1154,10 +1154,10 @@ async function apriSceltaCommercialePreventivo(progettoId, commerciali) {
   finestra.innerHTML = `
     <div class="modal" style="max-width:420px">
       <button class="x" onclick="closeM('m-scegli-commerciale')">×</button>
-      <h3>A chi degli Acquisti assegnare il preventivo?</h3>
+      <h3>A quale commerciale assegnare il preventivo?</h3>
       <input type="hidden" id="msc-progetto-id" value="${esc(progettoId)}">
       <div class="f">
-        <label>Acquisti *</label>
+        <label>Commerciale *</label>
         <select id="msc-commerciale">
           ${commerciali.map(function(c) {
             const nome = ((c.nome || '') + ' ' + (c.cognome || '')).trim() || 'Senza nome';

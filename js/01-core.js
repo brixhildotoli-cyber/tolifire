@@ -78,15 +78,14 @@ const TIPI_LABEL={
 };
 const PERIO_OPT=['mensile','bimestrale','trimestrale','quadrimestrale','semestrale','annuale','biennale'];
 const PERIO_MESI={mensile:1,bimestrale:2,trimestrale:3,quadrimestrale:4,semestrale:6,annuale:12,biennale:24};
-// Etichette dei ruoli in interfaccia, allineate all'organigramma (F3.2).
-// I codici di utenti.ruolo NON cambiano (decisione D1): "Commerciale" verso
-// il cliente = rappresentante, "Acquisti" = commerciale, il Capo Operativo e
-// il Responsabile Service sono il capo_tecnico, l'informatico è come il titolare.
+// Etichette dei ruoli in interfaccia (F3.2): servono solo a non mostrare i
+// codici grezzi di utenti.ruolo, che NON cambiano (decisione D1). Decisione
+// 26/10: "Rappresentante" e "Commerciale" restano i nomi visibili.
 const ETICHETTE_RUOLO={
   titolare:'Titolare',
   informatico:'Informatico',
-  rappresentante:'Commerciale',
-  commerciale:'Acquisti',
+  rappresentante:'Rappresentante',
+  commerciale:'Commerciale',
   ingegnere:'Ingegnere',
   capo_tecnico:'Capo tecnico',
   tecnico:'Tecnico',

@@ -544,7 +544,7 @@ async function caricaAvvisoProgettiDaPreventivareCommerciale() {
   }
 
     // Mostra solo i progetti che NON hanno ancora un preventivo reale collegato.
-  const idsProgetti = (data || []).map(function(progetto) {
+  const idsProgetti = (progetti || []).map(function(progetto) {
     return progetto.id;
   });
 
@@ -575,12 +575,12 @@ async function caricaAvvisoProgettiDaPreventivareCommerciale() {
       .filter(Boolean)
   );
 
-  const progettiDaPreventivare = (data || []).filter(function(progetto) {
+  const progettiDaPreventivare = (progetti || []).filter(function(progetto) {
     return !progettiConPreventivo.has(progetto.id);
   });
 
 
-  const nuovi = (progetti || []).filter(function(progetto) {
+  const nuovi = progettiDaPreventivare.filter(function(progetto) {
     return !giaLetti.has(progetto.id);
   });
 

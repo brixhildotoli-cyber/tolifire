@@ -608,7 +608,10 @@ async function accettaSopralluogo(soprId){
   }
   openM('m-odl');
 }
-async function saveImp(){const {error}=await db.from('impostazioni').update({ragione_sociale:v('si1')||null,indirizzo:v('si2')||null,cap:v('si3')||null,citta:v('si4')||null,piva:v('si5')||null,telefono:v('si6')||null,email:v('si7')||null}).eq('id',1);if(error){toast('Errore: '+error.message,'err');return;}toast('Dati aziendali salvati ✓','ok');loadImp();}
+async function saveImp(){
+  // Senza dati caricati i campi sono vuoti: salvare azzererebbe i dati aziendali (F3.2).
+  if(typeof IMPOSTAZIONI==='undefined'||!IMPOSTAZIONI){toast('Dati aziendali non caricati, ricarica la pagina','err');return;}
+  const {error}=await db.from('impostazioni').update({ragione_sociale:v('si1')||null,indirizzo:v('si2')||null,cap:v('si3')||null,citta:v('si4')||null,piva:v('si5')||null,telefono:v('si6')||null,email:v('si7')||null}).eq('id',1);if(error){toast('Errore: '+error.message,'err');return;}toast('Dati aziendali salvati ✓','ok');loadImp();}
 
 async function saveUser(){
   const nome=v('mu1').trim(),cognome=v('mu2').trim(),email=v('mu3').trim(),pwd=v('mu4'),ruolo=v('mu6');
