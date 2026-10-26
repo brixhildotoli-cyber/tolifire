@@ -111,7 +111,7 @@ async function loadTeam(){
   if(!data?.length){el.innerHTML='<div class="empty">Nessun utente</div>';return;}
   el.innerHTML=`<table><thead><tr><th>Nome</th><th>Ruolo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${data.map(u=>`<tr>
     <td><strong>${esc(u.nome)} ${esc(u.cognome)}</strong><br><span style="font-size:11px;color:var(--m)">${esc(u.email)}</span></td>
-    <td><span class="bx bblue">${u.ruolo}</span></td>
+    <td><span class="bx bblue">${esc(etichettaRuolo(u.ruolo))}</span></td>
     <td>${u.attivo?'<span class="bx bok">Attivo</span>':'<span class="bx bgray">Inattivo</span>'}</td>
     <td style="display:flex;gap:6px">
       <button class="btn sm" onclick="toggleAttivoUtente('${u.id}',${u.attivo})">${u.attivo?'⏸️ Disattiva':'▶️ Riattiva'}</button>
@@ -124,5 +124,53 @@ async function loadImp(){
   if(esc(data.ragione_sociale)){ge('nc').textContent=esc(data.ragione_sociale).split(' ')[0];document.title=esc(data.ragione_sociale)+' — Gestionale';}
   const fs=['ragione_sociale','indirizzo','cap','citta','piva','telefono','email'];const is=['si1','si2','si3','si4','si5','si6','si7'];
   fs.forEach((f,i)=>{const el=ge(is[i]);if(el&&data[f])el.value=data[f];});
+  IMPOSTAZIONI=data;
+  mostraSoglie();
+}
+
+// Soglie e tariffe (F3.2): modificabili dal titolare (policy impo_update:
+// solo titolare, e informatico che il DB tratta come titolare).
+// soglia_lavoro_grande e giorni_preavviso_rinnovo arrivano con sql/20: finché
+// le colonne non esistono i due campi restano disattivati e non si salvano.
+let IMPOSTAZIONI=null;
+const CAMPI_SOGLIE=[
+  {col:'soglia_lavoro_grande',id:'si-soglia-lavoro-grande',intero:false,max:null},
+  {col:'giorni_preavviso_rinnovo',id:'si-preavviso-rinnovo',intero:true,max:365},
+  {col:'tariffa_oraria_standard',id:'si-tariffa-oraria',intero:false,max:null,obbligatorio:true}
+];
+function mostraSoglie(){
+  if(!ge('si-tariffa-oraria'))return;
+  const data=IMPOSTAZIONI||{};
+  let mancanti=0;
+  CAMPI_SOGLIE.forEach(c=>{
+    const el=ge(c.id);if(!el)return;
+    const presente=Object.prototype.hasOwnProperty.call(data,c.col);
+    el.disabled=!presente;
+    if(!presente)mancanti++;
+    el.value=(presente&&data[c.col]!==null&&data[c.col]!==undefined)?data[c.col]:'';
+  });
+  const nota=ge('si-soglie-nota');
+  if(nota)nota.style.display=mancanti?'block':'none';
+}
+async function saveSoglie(){
+  if(ROLE!=='titolare'){toast('Solo il titolare può modificare soglie e tariffe','err');return;}
+  if(!IMPOSTAZIONI){toast('Impostazioni non caricate, ricarica la pagina','err');return;}
+  const upd={};
+  for(const c of CAMPI_SOGLIE){
+    if(!Object.prototype.hasOwnProperty.call(IMPOSTAZIONI,c.col))continue;
+    const testo=String(v(c.id)).trim().replace(',','.');
+    if(testo===''&&c.obbligatorio){toast('La tariffa oraria standard è obbligatoria','err');ge(c.id).focus();return;}
+    if(testo===''){upd[c.col]=null;continue;}
+    const n=Number(testo);
+    if(!isFinite(n)||n<0){toast('Valore non valido: usa un numero positivo','err');ge(c.id).focus();return;}
+    if(c.intero&&!Number.isInteger(n)){toast('I giorni di preavviso devono essere un numero intero','err');ge(c.id).focus();return;}
+    if(c.max!==null&&n>c.max){toast('Massimo '+c.max+' giorni di preavviso','err');ge(c.id).focus();return;}
+    upd[c.col]=n;
+  }
+  const {data,error}=await db.from('impostazioni').update(upd).eq('id',1).select();
+  if(error){toast('Errore: '+error.message,'err');return;}
+  if(!data||!data.length){toast('Modifica non salvata: permesso negato','err');return;}
+  toast('Soglie e tariffe salvate ✓','ok');
+  loadImp();
 }
 

@@ -2026,6 +2026,14 @@
         <div class="f"><label>Email</label><input type="email" id="si7"></div>
         <button class="btn p" onclick="saveImp()">Salva</button>
       </div>
+      <div class="card" style="margin-top:14px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:14px">Soglie e tariffe</div>
+        <div class="f"><label>Soglia "lavoro grande" (€, imponibile)</label><input type="number" id="si-soglia-lavoro-grande" min="0" step="100" placeholder="Nessuna soglia"><div style="font-size:11px;color:var(--m);margin-top:4px">Sopra questo importo il lavoro passa dall'Ingegnere. Vuoto = nessuna soglia.</div></div>
+        <div class="f"><label>Preavviso rinnovo contratti di manutenzione (giorni)</label><input type="number" id="si-preavviso-rinnovo" min="0" max="365" step="1"><div style="font-size:11px;color:var(--m);margin-top:4px">Quanti giorni prima della scadenza segnalare il rinnovo.</div></div>
+        <div class="f"><label>Tariffa oraria standard manodopera (€/ora)</label><input type="number" id="si-tariffa-oraria" min="0" step="0.50"><div style="font-size:11px;color:var(--m);margin-top:4px">Usata per calcolare la manodopera dalle ore della scheda di lavoro.</div></div>
+        <div class="al2 i" id="si-soglie-nota" style="display:none">Alcuni campi sono disattivati: si attivano dopo l'aggiornamento del database.</div>
+        <button class="btn p" onclick="saveSoglie()">Salva soglie</button>
+      </div>
     </div>
     <div>
       <div class="card">
@@ -2052,7 +2060,7 @@
     <div
       class="card guida-ruolo"
       id="guida-rappresentante"
-      data-titolo="Guida pratica — Rappresentante"
+      data-titolo="Guida pratica — Commerciale"
       style="display:none"
     >
       <h3>🎯 Come usare il gestionale nel lavoro quotidiano</h3>
@@ -2256,10 +2264,10 @@
 <div
   class="card guida-ruolo"
   id="guida-commerciale"
-  data-titolo="Guida pratica — Commerciale"
+  data-titolo="Guida pratica — Acquisti"
   style="display:none"
 >
-  <h3>🧾 Come usare il gestionale — Commerciale</h3>
+  <h3>🧾 Come usare il gestionale — Acquisti</h3>
 
   <p>
     Il tuo ruolo è trasformare il progetto tecnico ricevuto in una richiesta
@@ -2725,7 +2733,7 @@
 
       <select id="mic-destinatario">
         <option value="ingegnere">Ufficio tecnico / ingegnere</option>
-        <option value="rappresentante">Rappresentante</option>
+        <option value="rappresentante">Commerciale</option>
       </select>
     </div>
 
@@ -3351,7 +3359,7 @@
   <div class="fr"><div class="f"><label>Nome *</label><input type="text" id="mu1"></div><div class="f"><label>Cognome *</label><input type="text" id="mu2"></div></div>
   <div class="f"><label>Email *</label><input type="email" id="mu3"></div>
   <div class="f"><label>Password *</label><input type="password" id="mu4" placeholder="Min 6 caratteri"></div>
-  <div class="f"><label>Ruolo *</label><select id="mu6"><option value="tecnico">Tecnico</option><option value="capo_tecnico">Capo Tecnico</option><option value="segreteria">Segreteria</option><option value="commerciale">Commerciale</option><option value="ingegnere">Ingegnere</option><option value="rappresentante">Rappresentante</option><option value="contabile">Contabile</option><option value="informatico">Informatico</option></select></div>
+  <div class="f"><label>Ruolo *</label><select id="mu6"><option value="tecnico">Tecnico</option><option value="capo_tecnico">Capo tecnico (Responsabile Service e Capo Operativo)</option><option value="segreteria">Segreteria</option><option value="rappresentante">Commerciale (rapporto con il cliente, anche agenti esterni)</option><option value="commerciale">Acquisti (fornitori e preventivi)</option><option value="ingegnere">Ingegnere</option><option value="contabile">Contabile</option><option value="informatico">Informatico</option></select></div>
   <div style="display:flex;gap:8px;margin-top:16px"><button class="btn" onclick="closeM('m-user')">Annulla</button><button class="btn p" onclick="saveUser()">Crea utente</button></div>
 </div></div>
 

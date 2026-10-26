@@ -78,6 +78,22 @@ const TIPI_LABEL={
 };
 const PERIO_OPT=['mensile','bimestrale','trimestrale','quadrimestrale','semestrale','annuale','biennale'];
 const PERIO_MESI={mensile:1,bimestrale:2,trimestrale:3,quadrimestrale:4,semestrale:6,annuale:12,biennale:24};
+// Etichette dei ruoli in interfaccia, allineate all'organigramma (F3.2).
+// I codici di utenti.ruolo NON cambiano (decisione D1): "Commerciale" verso
+// il cliente = rappresentante, "Acquisti" = commerciale, il Capo Operativo e
+// il Responsabile Service sono il capo_tecnico, l'informatico è come il titolare.
+const ETICHETTE_RUOLO={
+  titolare:'Titolare',
+  informatico:'Informatico',
+  rappresentante:'Commerciale',
+  commerciale:'Acquisti',
+  ingegnere:'Ingegnere',
+  capo_tecnico:'Capo tecnico',
+  tecnico:'Tecnico',
+  segreteria:'Segreteria',
+  contabile:'Contabile'
+};
+function etichettaRuolo(codice){return ETICHETTE_RUOLO[codice]||codice||'';}
 
 const NAV={
   titolare:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'preventivi-titolare',l:'🧾 Preventivi'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'workflow',l:'📋 Da gestire'},{id:'interventi',l:'🔧 Interventi'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'},{id:'impostazioni',l:'Impostazioni'}],
@@ -230,7 +246,7 @@ async function boot(ud){
   // anche per lui. ME.ruolo resta quello vero. Lato DB: sql/07 ruolo_corrente().
   ME=ud;ROLE=(ud.ruolo==='informatico'?'titolare':ud.ruolo);
   ge('lp').style.display='none';ge('nav').classList.add('on');ge('app').style.display='block';
-  ge('nusr').textContent=esc(ud.nome)+' — Esci';ge('nrole').textContent=(ud.ruolo==='informatico'?'Informatico':ud.ruolo);
+  ge('nusr').textContent=esc(ud.nome)+' — Esci';ge('nrole').textContent=etichettaRuolo(ud.ruolo);
   ge('ddate').textContent=new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   buildNav();buildSB();
   const today=dataLocaleISO();const now=new Date();

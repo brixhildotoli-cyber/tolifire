@@ -4378,7 +4378,7 @@ async function loadCertificatiIngegnere() {
         <div class="card">
           <h3>Preventivo n. ${certificato.preventivo_numero || '—'}</h3>
           <p><b>Cliente:</b> ${esc(certificato.cliente_nome || '—')}</p>
-          <p><b>Origine:</b> ${certificato.origine === 'commerciale' ? 'Commerciale' : 'Titolare'}</p>
+          <p><b>Origine:</b> ${certificato.origine === 'commerciale' ? 'Acquisti' : 'Titolare'}</p>
           <p><b>File:</b> ${esc(certificato.nome_file)}</p>
           <p class="muted">Inviato il ${formatoDataOraCertificato(certificato.inviato_il)}</p>
           ${certificato.letto_ingegnere_il
