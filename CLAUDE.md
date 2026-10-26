@@ -95,7 +95,7 @@ Cambiano solo le etichette in interfaccia (Fase 3), mai il codice.
 | Ingegnere | ingegnere | Verifiche tecniche, schede rilievo, certificati | Aggiungerlo al form nuovo utente (Fase 2) |
 | Acquisti | commerciale (la parte acquisti) | Richieste ai fornitori, scelta fornitore, preventivo | Consumabili e noli dal cantiere (Fase 6) |
 | Reparto Tecnico e squadre | tecnico | Esegue gli interventi, scheda di lavoro | Giornale di cantiere (Fase 8), audit presidi (Fase 10) |
-| Capo Operativo | capo_tecnico (nessun ruolo nuovo, decisione 26/10) | Commesse e cantieri li gestisce il capo tecnico; in sua assenza lo sostituisce uno dei tecnici | Definire come si attiva il sostituto |
+| Capo Operativo | capo_tecnico (nessun ruolo nuovo, decisione 26/10) | Pianifica gli interventi | Passi 8 e 11 del flusso commessa (documenti, consumabili e noli, cantiere); in sua assenza lo sostituisce un tecnico (modalità da definire) |
 | Responsabile Service | capo_tecnico | Pianifica gli interventi | Contratti e appuntamenti (Fase 10) |
 | Segreteria | segreteria | Interventi da pianificare, documenti | Anticipi, faldone, appuntamenti, chiusura |
 | Programmazione e controllo | titolare (accesso completo) | — | — |
@@ -185,9 +185,30 @@ INGEGNERE
 - Consulta clienti e schede cliente senza modificarli.
 - Selezionabile nel form nuovo utente (F2.3, sviluppo 085ce7d).
 
-CAPO_OPERATIVO: non esiste (decisione del 26/10). Le commesse (Fase 5 in
-poi) le gestisce il CAPO_TECNICO; in sua assenza lo sostituisce uno dei
-tecnici sotto di lui (modalità del sostituto da definire).
+CAPO_OPERATIVO: non è un ruolo a sé (decisione del 26/10). Il Capo
+Operativo del flusso commessa è il CAPO_TECNICO (passi 8 e 11); in sua
+assenza lo sostituisce uno dei tecnici sotto di lui. La commessa NON la
+apre il capo tecnico: nasce dall'approvazione del preventivo (passo 5).
+
+## Flusso della commessa (documento interno TOLI, 12 passaggi)
+Nomi del documento → ruolo nel gestionale: Commerciale = rappresentante,
+Acquisti = commerciale, Ingegnere = ingegnere, Segreteria = segreteria,
+Capo Operativo = capo_tecnico.
+
+| # | Chi (ruolo) | Cosa fa | Passa a |
+|---|---|---|---|
+| 1 | rappresentante | Riceve la chiamata del cliente e raccoglie i dati della richiesta | ingegnere (lavori grandi) o commerciale |
+| 2 | ingegnere | Solo lavori grandi: dà i dati esatti per il preventivo o li integra | commerciale |
+| 3 | commerciale | Prepara il pacchetto per i fornitori. Dubbi → reparto tecnico, che con il rappresentante sente il cliente | fornitori |
+| 4 | commerciale | Sceglie il fornitore e redige il preventivo con i tempi di consegna | rappresentante |
+| 5 | rappresentante | Contratta e fa approvare il preventivo; tempi sentiti fornitori e capo tecnico. **Qui nasce la commessa** | segreteria (se anticipo) |
+| 6 | segreteria | Se c'è anticipo: emette la fattura e verifica l'accredito; il rappresentante lo ricorda nei giorni seguenti. **Senza accredito il preventivo non è approvato: la commessa si ferma** | rappresentante (via libera) |
+| 7 | rappresentante | Ordina tutto, comunica le date di arrivo e gira tutta la documentazione | capo_tecnico |
+| 8 | capo_tecnico | Esamina i documenti e chiede consumabili e noli mancanti | commerciale |
+| 9 | commerciale | Procura consumabili e noli e comunica le date di arrivo | capo_tecnico |
+| 10 | segreteria | Chiama il cliente e detta le date di inizio lavori; documenti dipendenti e subappalti; prepara il faldone | capo_tecnico (faldone) |
+| 11 | capo_tecnico | Esegue il cantiere: report fotografici, cronoprogramma, % avanzamento, performance operai | segreteria |
+| 12 | segreteria | Corretta messa in opera, fatture, chiusura della commessa | cliente |
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
