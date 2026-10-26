@@ -246,6 +246,15 @@ if (
     return;
   }
 
+  const bloccatiSoglia = await progettiBloccatiPerSoglia(progettiClienteDati);
+
+  if (
+    richiestaId !== richiestaProgettiCliente ||
+    currentCliId !== clienteRichiestoId
+  ) {
+    return;
+  }
+
   lista.innerHTML = progettiClienteDati.map(function(p) {
     const stato = {
       bozza: 'Bozza',
@@ -262,6 +271,7 @@ if (
     'bozza',
     'da_integrare',
     'pronto_per_preventivo'].includes(p.stato);
+    const bloccatoSoglia = inviaCommerciale && bloccatiSoglia.has(p.id);
 
     return '<div class="card" style="margin-bottom:10px">' +
       '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
@@ -280,6 +290,11 @@ if (
       '<div style="font-size:13px;white-space:pre-wrap;margin-top:10px">' +
         esc(p.descrizione_tecnica) +
       '</div>' +
+      (bloccatoSoglia
+        ? '<div class="al2 w" style="margin-top:10px">🔒 ' +
+            esc(testoBloccoSoglia(p)) +
+          '</div>'
+        : '') +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
  '<button class="btn sm" onclick="openProgettoDetail(\'' + p.id + '\')">' +
   'Apri' +
@@ -295,9 +310,15 @@ if (
     '</button>'
   : '') +
 
-(inviaCommerciale
+(inviaCommerciale && !bloccatoSoglia
   ? '<button class="btn sm info" onclick="inviaProgettoAlCommerciale(\'' + p.id + '\')">' +
       '📤 Invia al commerciale' +
+    '</button>'
+  : '') +
+
+(bloccatoSoglia
+  ? '<button class="btn sm" disabled title="' + esc(testoBloccoSoglia(p)) + '">' +
+      '🔒 Invia al commerciale' +
     '</button>'
   : '') +
 
@@ -325,6 +346,7 @@ async function apriNuovoProgetto() {
   ge('mp-file-extra').value = '';
   anteprimaFileProgetto();
 
+  await mostraImportoProgetto(null);
   await caricaAllegatiProgetto(null);
 
   openM('m-progetto');
@@ -350,6 +372,7 @@ async function modificaProgetto(id) {
   ge('mp-file-extra').value = '';
   anteprimaFileProgetto();
 
+  await mostraImportoProgetto(progetto);
   await caricaAllegatiProgetto(id);
 
   openM('m-progetto');
@@ -421,6 +444,25 @@ const authUserId = authData.user.id;
       descrizione_tecnica: descrizione,
       materiali_note: v('mp-materiali').trim() || null
     };
+
+    // F3.3: importo stimato (solo se la colonna esiste, sql/21).
+    if (await controllaColonnaImportoProgetto()) {
+      const testoImporto = String(v('mp-importo')).trim().replace(',', '.');
+
+      if (testoImporto === '') {
+        payload.importo_stimato = null;
+      } else {
+        const importo = Number(testoImporto);
+
+        if (!isFinite(importo) || importo < 0) {
+          toast('Importo stimato non valido: usa un numero positivo', 'err');
+          ge('mp-importo').focus();
+          return;
+        }
+
+        payload.importo_stimato = Math.round(importo * 100) / 100;
+      }
+    }
 
     let progettoId = id;
 
@@ -651,7 +693,170 @@ async function inviaProgettoAUfficioTecnico(progettoId) {
   await loadPaginaProgetti();
 }
 
+// ── F3.3 — SOGLIA "LAVORO GRANDE": PRIMA L'INGEGNERE ──────────
+// Soglia: impostazioni.soglia_lavoro_grande (sql/20, letta da loadImp in
+// IMPOSTAZIONI). Importo: progetti_tecnici.importo_stimato (sql/21, che
+// crea anche il blocco lato database). Finché manca una delle due colonne
+// non si blocca niente (il database non saprebbe controllarlo).
+// Sopra soglia, o con importo non indicato, il progetto arriva al
+// commerciale solo dopo l'approvazione della verifica tecnica.
+let colonnaImportoProgetto = null; // null = non ancora controllato
+
+async function controllaColonnaImportoProgetto() {
+  if (colonnaImportoProgetto !== null) return colonnaImportoProgetto;
+
+  const { error } = await db
+    .from('progetti_tecnici')
+    .select('importo_stimato')
+    .limit(1);
+
+  if (!error) {
+    colonnaImportoProgetto = true;
+  } else if (
+    error.code === '42703' ||
+    /importo_stimato/.test(error.message || '')
+  ) {
+    colonnaImportoProgetto = false;
+  } else {
+    return false; // errore di rete: si riprova la prossima volta
+  }
+
+  return colonnaImportoProgetto;
+}
+
+function sogliaLavoroGrande() {
+  if (typeof IMPOSTAZIONI === 'undefined' || !IMPOSTAZIONI) return null;
+  const soglia = IMPOSTAZIONI.soglia_lavoro_grande;
+  if (soglia === null || soglia === undefined || soglia === '') return null;
+  const numero = Number(soglia);
+  return isFinite(numero) ? numero : null;
+}
+
+function formatoEuroSoglia(importo) {
+  return Number(importo).toLocaleString('it-IT', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }) + ' €';
+}
+
+// true se il progetto deve passare dall'Ingegnere prima del commerciale.
+function progettoSopraSoglia(progetto) {
+  const soglia = sogliaLavoroGrande();
+  if (soglia === null || colonnaImportoProgetto !== true) return false;
+  if (
+    progetto.importo_stimato === null ||
+    progetto.importo_stimato === undefined
+  ) {
+    return true;
+  }
+  return Number(progetto.importo_stimato) > soglia;
+}
+
+// Progetti (tra quelli indicati) con una verifica tecnica già approvata:
+// nello storico c'è il passaggio da in_verifica_tecnica a preventivazione.
+async function progettiVerificatiDaIngegnere(idProgetti) {
+  const verificati = new Set();
+  if (!idProgetti.length) return verificati;
+
+  const { data, error } = await db
+    .from('progetti_tecnici_storico')
+    .select('progetto_id')
+    .in('progetto_id', idProgetti)
+    .eq('stato_precedente', 'in_verifica_tecnica')
+    .in('stato_successivo', ['pronto_per_preventivo', 'in_preventivazione']);
+
+  if (error) {
+    console.warn('Storico progetti non leggibile:', error.message);
+    return verificati;
+  }
+
+  (data || []).forEach(function(riga) {
+    verificati.add(riga.progetto_id);
+  });
+
+  return verificati;
+}
+
+// Elenco degli id dei progetti da bloccare (sopra soglia, mai verificati).
+async function progettiBloccatiPerSoglia(progetti) {
+  await controllaColonnaImportoProgetto();
+  const candidati = (progetti || []).filter(progettoSopraSoglia);
+  if (!candidati.length) return new Set();
+
+  const verificati = await progettiVerificatiDaIngegnere(
+    candidati.map(function(p) { return p.id; })
+  );
+
+  return new Set(
+    candidati
+      .filter(function(p) { return !verificati.has(p.id); })
+      .map(function(p) { return p.id; })
+  );
+}
+
+function testoBloccoSoglia(progetto) {
+  const soglia = sogliaLavoroGrande();
+  const motivo =
+    progetto.importo_stimato === null || progetto.importo_stimato === undefined
+      ? 'Importo stimato non indicato'
+      : 'Importo stimato ' + formatoEuroSoglia(progetto.importo_stimato) +
+        ' sopra la soglia di ' + formatoEuroSoglia(soglia);
+  return motivo +
+    ': prima serve la verifica dell’Ingegnere (Invia a ufficio tecnico).';
+}
+
+// Campo "Importo stimato" nel modal del progetto: visibile solo se la
+// colonna esiste (sql/21).
+async function mostraImportoProgetto(progetto) {
+  const box = ge('mp-importo-box');
+  const campo = ge('mp-importo');
+  if (!box || !campo) return;
+
+  const presente = await controllaColonnaImportoProgetto();
+  box.style.display = presente ? 'block' : 'none';
+  campo.value =
+    presente && progetto &&
+    progetto.importo_stimato !== null &&
+    progetto.importo_stimato !== undefined
+      ? progetto.importo_stimato
+      : '';
+
+  const nota = ge('mp-importo-nota');
+  if (nota) {
+    const soglia = sogliaLavoroGrande();
+    nota.textContent = soglia === null
+      ? 'Nessuna soglia impostata: il progetto può andare direttamente al commerciale.'
+      : 'Sopra ' + formatoEuroSoglia(soglia) +
+        ', o se lo lasci vuoto, il progetto passa prima dall’Ingegnere.';
+  }
+}
+
 async function inviaProgettoAlCommerciale(progettoId) {
+  await controllaColonnaImportoProgetto();
+
+  if (colonnaImportoProgetto === true && sogliaLavoroGrande() !== null) {
+    const { data: progetto, error: erroreProgetto } = await db
+      .from('progetti_tecnici')
+      .select('id, importo_stimato')
+      .eq('id', progettoId)
+      .single();
+
+    if (erroreProgetto || !progetto) {
+      toast(
+        'Errore lettura progetto: ' + (erroreProgetto?.message || ''),
+        'err'
+      );
+      return;
+    }
+
+    const bloccati = await progettiBloccatiPerSoglia([progetto]);
+
+    if (bloccati.has(progetto.id)) {
+      toast(testoBloccoSoglia(progetto), 'err');
+      return;
+    }
+  }
+
   if (!confirm('Inviare il progetto al commerciale per il preventivo?')) {
     return;
   }
@@ -675,7 +880,13 @@ aggiornato_il: new Date().toISOString()
     .eq('id', progettoId);
 
   if (error) {
-    toast('Errore invio: ' + error.message, 'err');
+    // Il blocco del database (sql/21) spiega già il motivo.
+    toast(
+      /Ingegnere/.test(error.message || '')
+        ? error.message
+        : 'Errore invio: ' + error.message,
+      'err'
+    );
     return;
   }
 
@@ -713,6 +924,8 @@ async function loadPaginaProgetti() {
       '<div class="empty">Nessun progetto tecnico creato.</div>';
     return;
   }
+
+  const bloccatiSoglia = await progettiBloccatiPerSoglia(data);
 
   const configurazioneStati = {
   bozza: {
@@ -777,6 +990,8 @@ async function loadPaginaProgetti() {
       p.stato === 'da_integrare' ||
       p.stato === 'pronto_per_preventivo';
 
+    const bloccatoSoglia = puoInviareCommerciale && bloccatiSoglia.has(p.id);
+
     const nota = p.nota_integrazione || p.nota_verifica_tecnica;
 
     const autoreNota =
@@ -807,6 +1022,12 @@ async function loadPaginaProgetti() {
         <div style="font-size:13px;white-space:pre-wrap;margin-top:10px">
           ${esc(p.descrizione_tecnica || 'Nessuna descrizione inserita.')}
         </div>
+
+        ${bloccatoSoglia ? `
+          <div class="al2 w" style="margin:10px 0">
+            🔒 ${esc(testoBloccoSoglia(p))}
+          </div>
+        ` : ''}
 
         ${nota ? `
           <div class="al2 i" style="margin:10px 0">
@@ -839,12 +1060,22 @@ async function loadPaginaProgetti() {
             </button>
           ` : ''}
 
-          ${puoInviareCommerciale ? `
+          ${puoInviareCommerciale && !bloccatoSoglia ? `
             <button
               class="btn sm info"
               onclick="inviaProgettoAlCommerciale('${p.id}')"
             >
               📤 Invia al commerciale
+            </button>
+          ` : ''}
+
+          ${bloccatoSoglia ? `
+            <button
+              class="btn sm"
+              disabled
+              title="${esc(testoBloccoSoglia(p))}"
+            >
+              🔒 Invia al commerciale
             </button>
           ` : ''}
 
@@ -3074,6 +3305,7 @@ async function apriProgettoDaElenco(id) {
   ge('mp-file').value = '';
   ge('mp-file-extra').value = '';
 
+  await mostraImportoProgetto(progetto);
   await caricaAllegatiProgetto(progetto.id);
 
   openM('m-progetto');

@@ -215,6 +215,13 @@ Capo Operativo = capo_tecnico.
 | 11 | capo_tecnico | Esegue il cantiere: report fotografici, cronoprogramma, % avanzamento, performance operai | segreteria |
 | 12 | segreteria | Corretta messa in opera, fatture, chiusura della commessa | cliente |
 
+Passo 1, blocco soglia (F3.3): il progetto ha un "Importo stimato" (€,
+imponibile; colonna `progetti_tecnici.importo_stimato`, sql/21 da
+eseguire dopo sql/20). Sopra `impostazioni.soglia_lavoro_grande`, o con
+importo vuoto se la soglia c'è, "Invia al commerciale" è bloccato finché
+l'ingegnere non approva la verifica tecnica (js/17; lato DB trigger
+`trg_blocca_lavoro_grande_senza_ingegnere`).
+
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
 - Riutilizzare le helper esistenti: `ge`, `v`, `toast`, `fd`, `openM`,
