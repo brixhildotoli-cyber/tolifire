@@ -46,7 +46,7 @@ Livelli di confidenza:
 | 1.1 | `toggleNavMobile` | js/01-core.js:94-105 | js/02-portale-navigazione.js:369-379 | identiche (diff: solo una riga vuota con spazi) |
 | 1.2 | `chiudiNavMobile` | js/01-core.js:107-117 | js/02-portale-navigazione.js:381-391 | identiche |
 | 1.3 | `etichettaCicloStorico` | js/20-storico-presidi.js:29-34 | `nomeCicloScheda` js/20-storico-presidi.js:22-27 | corpo identico (diff vuoto), mai chiamata: è un doppione con altro nome |
-| 1.4 | `renderPC` (cartelle presidi) | js/07-presidi.js:92-401 | js/09-clienti-sedi.js:425-907 (poi estesa da 23 e 25) | **diverse**: la 09 è più recente (periodo, agente estintore, filtro note). La 07 ha in più solo `ricordaPosizionePagina()` in testa (vedi §6, domanda D6) |
+| 1.4 | `renderPC` (cartelle presidi) | js/07-presidi.js:92-401 | js/09-clienti-sedi.js:425-907 (poi estesa da 23 e 25) | **diverse**: la 09 è più recente (periodo, agente estintore, filtro note). La 07 ha in più solo `ricordaPosizionePagina()` in testa (vedi §8, domanda D6) |
 | 1.5 | `renderPS` (scadenze) | js/07-presidi.js:408-414 | js/24-scadenze-presidi.js:138-219 (poi estesa da 25) | la 24 la sostituisce senza richiamarla |
 | 1.6 | `leggiFileImportPresidi` | js/07-presidi.js:1101-1140 | js/21-sedi-import.js:73-87 (poi estesa da 22) | la 21 la sostituisce senza richiamarla |
 | 1.7 | `preparaImportPresidi` | js/07-presidi.js:1142-1403 | js/21-sedi-import.js:88 `preparaImportPresidi = preparaImportPresidiPerSede` (poi estesa 3 volte da 22) | la 07 è richiamata solo dalla versione 20 (riga 1.8), che a sua volta è scavalcata dalla 21 |
