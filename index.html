@@ -1009,7 +1009,7 @@
   </div>
 
   <div class="al2 i" style="margin-bottom:16px">
-    Qui puoi solo aprire o scaricare il PDF da inviare al cliente.
+    Qui apri o scarichi il PDF da inviare al cliente.
     Prezzi interni, margini e modifiche restano riservati.
   </div>
 
@@ -2760,6 +2760,58 @@
         onclick="inviaIntegrazioneCommerciale()"
       >
         ↩ Invia richiesta
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- F4.1 — ESITO DEL PREVENTIVO (accettato / rifiutato dal cliente) -->
+<div class="mbg" id="m-esito-preventivo">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-esito-preventivo')">×</button>
+
+    <h3 id="mep-titolo">Esito del preventivo</h3>
+
+    <input type="hidden" id="mep-preventivo-id">
+    <input type="hidden" id="mep-esito">
+
+    <div id="mep-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:12px"></div>
+
+    <div id="mep-box-accettazione" style="display:none">
+      <div class="al2 i" style="margin-bottom:12px">
+        Per segnare il preventivo come accettato devi allegare il
+        <b>preventivo firmato</b> dal cliente oppure la <b>mail di approvazione</b>
+        (PDF, foto, oppure file della mail .eml / .msg; massimo 15 MB).
+      </div>
+
+      <div class="f">
+        <label>Allegato di accettazione *</label>
+        <input
+          type="file"
+          id="mep-allegato"
+          accept="application/pdf,.pdf,image/*,.eml,.msg,message/rfc822"
+          onchange="aggiornaBottoneEsitoPreventivo()"
+        >
+      </div>
+    </div>
+
+    <div id="mep-box-rifiuto" style="display:none">
+      <div class="f">
+        <label>Motivo del rifiuto *</label>
+        <textarea
+          id="mep-motivo"
+          rows="4"
+          placeholder="Es.: prezzo troppo alto, ha scelto un altro fornitore, lavoro rinviato al prossimo anno..."
+          oninput="aggiornaBottoneEsitoPreventivo()"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-esito-preventivo')">Annulla</button>
+      <button class="btn p" id="mep-conferma" disabled onclick="salvaEsitoPreventivo()">
+        Conferma
       </button>
     </div>
   </div>

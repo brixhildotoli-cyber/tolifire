@@ -80,6 +80,7 @@ async function openPreventivoDetail(preventivoId) {
   ge('pvd-stato').textContent = {
     bozza: 'Bozza',
     inviato: 'Inviato',
+    inviato_a_rappresentante: 'Inviato al rappresentante',
     accettato: 'Accettato',
     rifiutato: 'Rifiutato',
     scaduto: 'Scaduto'
@@ -118,6 +119,8 @@ async function openPreventivoDetail(preventivoId) {
         ${esc(preventivo.note)}
       </div>
     ` : ''}
+
+${cardEsitoPreventivo(preventivo)}
 
 ${ROLE === 'titolare' ? `
   <div class="card" style="margin-top:16px;border-left:4px solid var(--g)">
@@ -5370,12 +5373,18 @@ async function caricaEInviaPdfEsternoTitolare() {
 
   const { data: preventivo, error: errorePreventivo } = await db
     .from('preventivi')
-    .select('id,numero,cliente_id')
+    .select('id,numero,cliente_id,stato')
     .eq('id', currentPreventivoId)
     .single();
 
   if (errorePreventivo || !preventivo) {
     toast('Preventivo non trovato', 'err');
+    return;
+  }
+
+  // F4.1: un preventivo con l'esito del cliente già registrato non si rimanda.
+  if (['accettato', 'rifiutato'].includes(preventivo.stato)) {
+    toast('Il cliente ha già dato l\'esito di questo preventivo: non si può rimandare', 'err');
     return;
   }
 
@@ -5518,6 +5527,7 @@ const { data: preventivo, error: errorePreventivo } = await db
   id,
   numero,
   cliente_id,
+  stato,
   preventivo_cliente_pdf_path
 `)
   .eq('id', currentPreventivoId)
@@ -5529,6 +5539,12 @@ const { data: preventivo, error: errorePreventivo } = await db
       (errorePreventivo?.message || 'preventivo non trovato'),
       'err'
     );
+    return;
+  }
+
+  // F4.1: un preventivo con l'esito del cliente già registrato non si rimanda.
+  if (['accettato', 'rifiutato'].includes(preventivo.stato)) {
+    toast('Il cliente ha già dato l\'esito di questo preventivo: non si può rimandare', 'err');
     return;
   }
 
@@ -7022,4 +7038,368 @@ async function apriLeadAssegnateDaDashboardRapp() {
   }
 
   gotoPage("trattative");
+}
+
+
+// =====================================================================
+// F4.1 — ESITO DEL PREVENTIVO: accettato / rifiutato dal cliente
+// Passo 5 del flusso della commessa: il rappresentante (o il titolare,
+// mai obbligatorio) registra l'esito. Per accettare serve l'allegato
+// (preventivo firmato o mail di approvazione), per rifiutare il motivo.
+// Il database lo impone (sql/22: trigger trg_preventivi_esito e funzioni
+// accetta_preventivo / rifiuta_preventivo). Senza sql/22 i bottoni non
+// compaiono e il sito funziona come prima.
+// =====================================================================
+
+const STATI_ATTESA_ESITO_PREVENTIVO = ['inviato_a_rappresentante', 'inviato'];
+const ESITO_PREVENTIVO_MAX_MB = 15;
+let esitoPreventivoDisponibile = null;
+
+// true se sql/22 è stato eseguito (esiste la colonna dell'allegato).
+async function verificaEsitoPreventivoDisponibile() {
+  if (esitoPreventivoDisponibile !== null) return esitoPreventivoDisponibile;
+
+  const { error } = await db
+    .from('preventivi')
+    .select('allegato_accettazione_path')
+    .limit(1);
+
+  if (!error) {
+    esitoPreventivoDisponibile = true;
+  } else if (/allegato_accettazione_path|column|colonna/i.test(error.message || '')) {
+    esitoPreventivoDisponibile = false;
+  } else {
+    // Errore di rete o altro: non decidere ora, riprova la prossima volta.
+    return false;
+  }
+
+  return esitoPreventivoDisponibile;
+}
+
+function puoRegistrareEsitoPreventivo() {
+  return ROLE === 'rappresentante' || ROLE === 'titolare';
+}
+
+function bottoniEsitoPreventivo(preventivo) {
+  if (!puoRegistrareEsitoPreventivo()) return '';
+  if (!STATI_ATTESA_ESITO_PREVENTIVO.includes(preventivo.stato)) return '';
+
+  const numero = esc(String(preventivo.numero || ''));
+
+  return `
+    <button
+      class="btn sm p"
+      onclick="apriEsitoPreventivo('${preventivo.id}', 'accettato', '${numero}')"
+    >
+      ✅ Accettato dal cliente
+    </button>
+    <button
+      class="btn sm"
+      style="color:var(--r)"
+      onclick="apriEsitoPreventivo('${preventivo.id}', 'rifiutato', '${numero}')"
+    >
+      ❌ Rifiutato dal cliente
+    </button>
+  `;
+}
+
+function nomeChiHaRegistratoEsito(utenteId) {
+  if (!utenteId) return '';
+  if (ME && utenteId === ME.id) return 'te';
+  const u = (UTENTI || []).find(function(x) { return x.id === utenteId; });
+  return u ? ((u.nome || '') + ' ' + (u.cognome || '')).trim() : '';
+}
+
+function dataOraEsitoPreventivo(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleString('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+// Riepilogo dell'esito già registrato (accettato o rifiutato).
+function riepilogoEsitoPreventivo(preventivo) {
+  if (!['accettato', 'rifiutato'].includes(preventivo.stato)) return '';
+
+  const accettato = preventivo.stato === 'accettato';
+  const quando = dataOraEsitoPreventivo(preventivo.esito_registrato_il);
+  const chi = nomeChiHaRegistratoEsito(preventivo.esito_registrato_da);
+  const dettaglio = [
+    quando ? 'il ' + quando : '',
+    chi ? 'da ' + chi : ''
+  ].filter(Boolean).join(' ');
+
+  return `
+    <div class="al2 ${accettato ? 'ok' : 'e'}" style="margin-top:10px">
+      <b>${accettato ? '✅ Accettato dal cliente' : '❌ Rifiutato dal cliente'}</b>
+      ${dettaglio ? `<span style="font-size:12px"> · registrato ${esc(dettaglio)}</span>` : ''}
+      ${!accettato && preventivo.motivo_rifiuto ? `
+        <div style="margin-top:6px;white-space:pre-wrap">Motivo: ${esc(preventivo.motivo_rifiuto)}</div>
+      ` : ''}
+      ${accettato && preventivo.allegato_accettazione_path ? `
+        <div style="margin-top:8px">
+          <button
+            class="btn sm"
+            onclick="apriAllegatoPreventivoFornitore('${esc(preventivo.allegato_accettazione_path)}')"
+          >
+            📎 ${esc(preventivo.allegato_accettazione_nome || 'Allegato di accettazione')}
+          </button>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+// Card per la scheda del preventivo (titolare e commerciale).
+function cardEsitoPreventivo(preventivo) {
+  // Colonne di sql/22 assenti: niente card.
+  if (!preventivo || !('allegato_accettazione_path' in preventivo)) return '';
+
+  const inAttesa = STATI_ATTESA_ESITO_PREVENTIVO.includes(preventivo.stato);
+  const esito = riepilogoEsitoPreventivo(preventivo);
+
+  if (!inAttesa && !esito) return '';
+
+  return `
+    <div class="card" style="margin-top:16px;border-left:4px solid var(--b)">
+      <div style="font-size:14px;font-weight:700">
+        🤝 Esito del cliente
+      </div>
+
+      ${inAttesa ? `
+        <div style="font-size:12px;color:var(--m);margin:6px 0 10px">
+          In attesa della risposta del cliente. Di norma la registra il rappresentante.
+          Per accettare serve il preventivo firmato o la mail di approvazione.
+        </div>
+        ${puoRegistrareEsitoPreventivo() ? `
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${bottoniEsitoPreventivo(preventivo)}
+          </div>
+        ` : ''}
+      ` : esito}
+    </div>
+  `;
+}
+
+function apriEsitoPreventivo(preventivoId, esito, numero) {
+  if (!puoRegistrareEsitoPreventivo()) {
+    toast('Solo il rappresentante o il titolare possono registrare l\'esito', 'err');
+    return;
+  }
+
+  const accetta = esito === 'accettato';
+
+  ge('mep-preventivo-id').value = preventivoId;
+  ge('mep-esito').value = esito;
+  ge('mep-titolo').textContent = accetta
+    ? '✅ Preventivo accettato dal cliente'
+    : '❌ Preventivo rifiutato dal cliente';
+  ge('mep-sottotitolo').textContent = numero
+    ? 'Preventivo n. ' + numero
+    : '';
+
+  ge('mep-box-accettazione').style.display = accetta ? '' : 'none';
+  ge('mep-box-rifiuto').style.display = accetta ? 'none' : '';
+  ge('mep-allegato').value = '';
+  ge('mep-motivo').value = '';
+
+  const bottone = ge('mep-conferma');
+  bottone.textContent = accetta ? '✅ Conferma accettazione' : '❌ Conferma rifiuto';
+  bottone.className = accetta ? 'btn p' : 'btn warn';
+
+  aggiornaBottoneEsitoPreventivo();
+  openM('m-esito-preventivo');
+}
+
+// Il bottone di conferma resta bloccato finché manca l'allegato (o il motivo).
+function aggiornaBottoneEsitoPreventivo() {
+  const bottone = ge('mep-conferma');
+  if (!bottone) return;
+
+  const esito = v('mep-esito');
+  const pronto = esito === 'accettato'
+    ? !!ge('mep-allegato')?.files?.[0]
+    : v('mep-motivo').trim().length > 0;
+
+  bottone.disabled = !pronto;
+}
+
+function messaggioErroreEsitoPreventivo(error) {
+  const testo = error?.message || '';
+
+  if (/3\.000/.test(testo)) {
+    return 'Preventivo sopra 3.000 €: per ora l\'esito lo registra il titolare. Avvisalo.';
+  }
+
+  return testo || 'errore sconosciuto';
+}
+
+async function salvaEsitoPreventivo() {
+  if (!puoRegistrareEsitoPreventivo()) return;
+
+  const preventivoId = v('mep-preventivo-id');
+  const esito = v('mep-esito');
+  const bottone = ge('mep-conferma');
+
+  if (!preventivoId || !['accettato', 'rifiutato'].includes(esito)) return;
+
+  if (esito === 'rifiutato') {
+    const motivo = v('mep-motivo').trim();
+
+    if (!motivo) {
+      toast('Scrivi il motivo del rifiuto', 'err');
+      return;
+    }
+
+    bottone.disabled = true;
+
+    const { error } = await db.rpc('rifiuta_preventivo', {
+      p_preventivo_id: preventivoId,
+      p_motivo: motivo
+    });
+
+    if (error) {
+      bottone.disabled = false;
+      toast('Rifiuto non registrato: ' + messaggioErroreEsitoPreventivo(error), 'err');
+      return;
+    }
+
+    closeM('m-esito-preventivo');
+    toast('Preventivo segnato come rifiutato', 'ok');
+    await aggiornaDopoEsitoPreventivo(preventivoId);
+    return;
+  }
+
+  // Accettazione: allegato obbligatorio.
+  const file = ge('mep-allegato')?.files?.[0];
+
+  if (!file) {
+    toast('Allega il preventivo firmato o la mail di approvazione', 'err');
+    aggiornaBottoneEsitoPreventivo();
+    return;
+  }
+
+  if (file.size > ESITO_PREVENTIVO_MAX_MB * 1024 * 1024) {
+    toast('L\'allegato supera il limite di ' + ESITO_PREVENTIVO_MAX_MB + ' MB', 'err');
+    return;
+  }
+
+  const tipoAmmesso =
+    file.type === 'application/pdf' ||
+    /^image\//.test(file.type || '') ||
+    file.type === 'message/rfc822' ||
+    /\.(pdf|eml|msg|jpe?g|png|heic|webp)$/i.test(file.name);
+
+  if (!tipoAmmesso) {
+    toast('Allega un PDF, una foto o il file della mail (.eml / .msg)', 'err');
+    return;
+  }
+
+  bottone.disabled = true;
+
+  // Stesso schema di percorso degli altri caricamenti del bucket.
+  const nomeSicuro = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const percorso =
+    preventivoId +
+    '/accettazione/' +
+    Date.now() +
+    '_' +
+    nomeSicuro;
+
+  const { error: erroreUpload } = await db.storage
+    .from('preventivi-documenti')
+    .upload(percorso, file, {
+      contentType: file.type || 'application/octet-stream',
+      upsert: false
+    });
+
+  if (erroreUpload) {
+    bottone.disabled = false;
+    toast('Errore caricamento allegato: ' + erroreUpload.message, 'err');
+    return;
+  }
+
+  const { data: nuovoStato, error } = await db.rpc('accetta_preventivo', {
+    p_preventivo_id: preventivoId,
+    p_allegato_path: percorso,
+    p_allegato_nome: file.name
+  });
+
+  if (error) {
+    await db.storage.from('preventivi-documenti').remove([percorso]);
+    bottone.disabled = false;
+    toast('Accettazione non registrata: ' + messaggioErroreEsitoPreventivo(error), 'err');
+    return;
+  }
+
+  closeM('m-esito-preventivo');
+
+  // F4.2 (aggancio): con l'anticipo il database restituirà
+  // 'in_attesa_anticipo' e il preventivo passerà alla segreteria.
+  toast(
+    nuovoStato === 'in_attesa_anticipo'
+      ? 'Preventivo accettato: in attesa dell\'anticipo'
+      : 'Preventivo segnato come accettato',
+    'ok'
+  );
+
+  await aggiornaDopoEsitoPreventivo(preventivoId);
+}
+
+async function aggiornaDopoEsitoPreventivo(preventivoId) {
+  if (ROLE === 'rappresentante') {
+    await loadPreventiviRappresentante();
+    return;
+  }
+
+  if (currentPreventivoId === preventivoId && ge('pg-preventivo-detail')?.classList.contains('on')) {
+    await openPreventivoDetail(preventivoId);
+  }
+}
+
+// Elenco "Esiti registrati" nella pagina I miei preventivi del rappresentante.
+async function htmlEsitiRegistratiRappresentante() {
+  const { data, error } = await db
+    .from('preventivi')
+    .select(`
+      id,
+      numero,
+      stato,
+      esito_registrato_il,
+      esito_registrato_da,
+      motivo_rifiuto,
+      allegato_accettazione_path,
+      allegato_accettazione_nome,
+      clienti!inner(ragione_sociale, rappresentante_id)
+    `)
+    .in('stato', ['accettato', 'rifiutato'])
+    .eq('clienti.rappresentante_id', ME.id)
+    .not('esito_registrato_il', 'is', null)
+    .order('esito_registrato_il', { ascending: false })
+    .limit(20);
+
+  if (error || !data?.length) return '';
+
+  return `
+    <div style="font-size:14px;font-weight:700;margin:22px 0 10px">
+      Esiti registrati (ultimi 20)
+    </div>
+    ${data.map(function(preventivo) {
+      return `
+        <div class="card" style="margin-bottom:10px">
+          <div style="font-size:14px;font-weight:700">
+            Preventivo n. ${esc(String(preventivo.numero || '—'))}
+          </div>
+          <div style="font-size:13px;margin-top:2px">
+            ${esc(preventivo.clienti?.ragione_sociale || 'Cliente')}
+          </div>
+          ${riepilogoEsitoPreventivo(preventivo)}
+        </div>
+      `;
+    }).join('')}
+  `;
 }

@@ -546,11 +546,18 @@ async function loadPreventiviRappresentante() {
 
   box.innerHTML = '<div class="load">Caricamento preventivi...</div>';
 
+  // F4.1: bottoni dell'esito solo se sql/22 è stato eseguito (js/18).
+  const esitoDisponibile = await verificaEsitoPreventivoDisponibile();
+  const esitiRegistrati = esitoDisponibile
+    ? await htmlEsitiRegistratiRappresentante()
+    : '';
+
   const { data: preventivi, error } = await db
     .from('preventivi')
     .select(`
       id,
       numero,
+      stato,
       preventivo_cliente_pdf_path,
       pdf_esterno_titolare_path,
 pdf_esterno_titolare_nome,
@@ -581,11 +588,19 @@ pdf_esterno_titolare_nome,
       <div class="empty">
         Nessun preventivo ricevuto al momento.
       </div>
-    `;
+    ` + esitiRegistrati;
     return;
   }
 
-  box.innerHTML = preventivi.map(function(preventivo) {
+  const avvisoEsito = esitoDisponibile ? `
+    <div class="al2 i" style="margin-bottom:12px">
+      Quando il cliente risponde, registra l'esito. Per segnare
+      <b>Accettato</b> serve il preventivo firmato o la mail di approvazione;
+      per <b>Rifiutato</b> serve il motivo.
+    </div>
+  ` : '';
+
+  box.innerHTML = avvisoEsito + preventivi.map(function(preventivo) {
     const dataInvio = preventivo.inviato_a_rappresentante_il
       ? new Date(preventivo.inviato_a_rappresentante_il)
           .toLocaleString('it-IT', {
@@ -627,10 +642,11 @@ pdf_esterno_titolare_nome,
           <button class="btn sm" onclick="rinviaPreventivoAlCommercialeDalRappresentante('${preventivo.id}')">
   ↩ Rinvio al commerciale
 </button>
+          ${esitoDisponibile ? bottoniEsitoPreventivo(preventivo) : ''}
         </div>
       </div>
     `;
-  }).join('');
+  }).join('') + esitiRegistrati;
 }
 
 async function apriPdfPreventivoRappresentante(preventivoId) {

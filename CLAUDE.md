@@ -69,6 +69,7 @@ marca_preventivo_letto_rappresentante, marca_preventivo_letto_titolare,
 salva_esito_verifica, salva_bozza_verifica, elimina_scheda_storico,
 nuovo_intervento_manichetta, salva_riporto_presidio.
 Dopo sql/18 (F2.3, da eseguire): marca_certificato_letto_ingegnere.
+Dopo sql/22 (F4.1, da eseguire): accetta_preventivo, rifiuta_preventivo.
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
 Sono gli accessi che le policy RLS per il portale dovranno permettere
 (F1.1), sempre filtrati sul cliente del portale (`cliente_id`):
@@ -226,6 +227,19 @@ eseguire dopo sql/20). Sopra `impostazioni.soglia_lavoro_grande` compare
 solo un avviso giallo ("valuta l'invio all'ingegnere"); "Invia al
 commerciale" resta sempre possibile. Importo o soglia vuoti: nessun
 avviso (js/17).
+
+Passo 5, esito del cliente (F4.1, sql/22-esito-preventivo da eseguire):
+il rappresentante (o il titolare) segna il preventivo "Accettato dal
+cliente" (allegato obbligatorio: preventivo firmato o mail di
+approvazione, bucket preventivi-documenti, cartella
+`<id preventivo>/accettazione/`) o "Rifiutato dal cliente" (motivo
+obbligatorio). Il database lo impone (trigger trg_preventivi_esito, RPC
+accetta_preventivo / rifiuta_preventivo, che restituiscono il nuovo
+stato: aggancio per F4.2, 'in_attesa_anticipo'). Il trigger della soglia
+3.000 € blocca anche il solo cambio di stato fatto da un rappresentante:
+sopra 3.000 € l'esito lo registra il titolare finché Toli non decide su
+sql/23-soglia-3k-solo-importo (proposta). Pagina I miei preventivi
+(js/13) e scheda preventivo (js/18, `cardEsitoPreventivo`).
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
