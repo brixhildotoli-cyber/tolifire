@@ -92,7 +92,9 @@ Nomi visibili nel gestionale (decisione 26/10): "Rappresentante" e
 "Commerciale" restano così (NON "Commerciale"/"Acquisti" del flusso
 appeso in ufficio); le etichette servono solo a non mostrare codici grezzi
 (es. "Capo tecnico"). Soglia 3.000 € del rappresentante: resta fissa nel
-DB (trigger e policy di sql/10), non configurabile.
+DB (trigger e policy di sql/10), non configurabile. Vale per CREARE o
+ALZARE l'importo: l'esito del cliente (accettato/rifiutato) lo registra
+il rappresentante anche sopra 3.000 € (decisione 26/10, sql/23).
 
 | Figura (organigramma) | Ruolo nel gestionale | Cosa fa già | Da fare |
 |---|---|---|---|
