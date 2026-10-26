@@ -2926,6 +2926,38 @@
 </div>
 
 
+<!-- F4.3 — RIFIUTO PER ANTICIPO NON VERSATO (segreteria e titolare; solo con sql/25) -->
+<div class="mbg" id="m-rifiuto-anticipo">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-rifiuto-anticipo')">×</button>
+
+    <h3>❌ Rifiuta: anticipo non versato</h3>
+
+    <input type="hidden" id="mra-preventivo-id">
+
+    <div id="mra-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div id="mra-fattura" class="al2 i" style="margin-bottom:12px"></div>
+
+    <div class="f">
+      <label>Motivo del rifiuto *</label>
+      <textarea id="mra-motivo" rows="3" oninput="aggiornaBottoneRifiutoAnticipo()"></textarea>
+    </div>
+    <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px;font-weight:400;margin-top:4px">
+      <input type="checkbox" id="mra-conferma-check" onchange="aggiornaBottoneRifiutoAnticipo()" style="margin-top:3px">
+      Confermo che il cliente non ha versato l'anticipo
+    </label>
+    <div class="al2 w" style="margin-top:12px">
+      Il preventivo diventa <b>rifiutato</b>: esce dagli anticipi da fatturare e la
+      commessa non parte. Solo il titolare potrà poi cambiarne lo stato.
+    </div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-rifiuto-anticipo')">Annulla</button>
+      <button class="btn p" id="mra-conferma" disabled onclick="salvaRifiutoAnticipoNonVersato()">❌ Conferma rifiuto</button>
+    </div>
+  </div>
+</div>
+
 <!-- FORNITORE -->
 <div class="mbg" id="m-fornitore">
   <div class="modal">

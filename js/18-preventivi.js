@@ -3251,7 +3251,7 @@ async function usaQuotazioneFornitoreNelPreventivo(selezioneId) {
     quantita: 1,
     costo_unitario: costo,
     prezzo_unitario: prezzoCliente,
-    fornitore_preventivo_id: selezioneId,
+    preventivo_fornitore_id: selezioneId,
     aggiornato_il: new Date().toISOString()
   };
 
@@ -7252,6 +7252,7 @@ function riepilogoEsitoPreventivo(preventivo) {
       ${!accettato && preventivo.motivo_rifiuto ? `
         <div style="margin-top:6px;white-space:pre-wrap">Motivo: ${esc(preventivo.motivo_rifiuto)}</div>
       ` : ''}
+      ${!accettato ? htmlFatturaAnticipoPreventivo(preventivo) : ''}
       ${accettato && preventivo.allegato_accettazione_path ? `
         <div style="margin-top:8px">
           <button
@@ -7952,6 +7953,7 @@ async function loadAnticipiDaFatturare() {
       Preventivi accettati dal cliente con anticipo: emetti la fattura d'anticipo,
       registrala qui, poi segna l'accredito quando l'hai verificato sul conto.
       Senza accredito il preventivo non è approvato e la commessa non parte.
+      Se il cliente non versa l'anticipo usa "Rifiuta: anticipo non versato".
       Dal più vecchio.
     </div>
   ` + anticipi.map(function(p) {
@@ -8085,6 +8087,20 @@ function htmlFatturaAnticipoPreventivo(p) {
   const chiAccredito = nomeChiHaRegistratoEsito(p.anticipo_accredito_verificato_da);
   const puo = p.stato === 'in_attesa_anticipo' && puoRegistrareAccreditoAnticipo();
 
+  // Rifiutato per anticipo non versato: resta solo il riferimento alla
+  // fattura d'anticipo eventualmente registrata.
+  if (p.stato === 'rifiutato') {
+    if (!fattura) return '';
+    return `
+      <div style="margin-top:8px;font-size:12px;line-height:1.6">
+        🧾 Fattura d'anticipo registrata prima del rifiuto:
+        <b>n. ${esc(p.anticipo_fattura_numero)}</b> del ${esc(fd(p.anticipo_fattura_data))}
+        · ${esc(euroPreventivo(p.anticipo_fattura_importo))} + IVA
+        ${chiFattura ? ' · registrata da ' + esc(chiFattura) : ''}
+      </div>
+    `;
+  }
+
   return `
     <div style="margin-top:8px;font-size:12px;line-height:1.6">
       <div>
@@ -8114,6 +8130,13 @@ function htmlFatturaAnticipoPreventivo(p) {
           onclick="apriAnticipoSegreteria('${p.id}', 'accredito')"
         >
           ✅ Accredito verificato
+        </button>
+        <button
+          class="btn sm"
+          style="color:var(--r)"
+          onclick="apriRifiutoAnticipoNonVersato('${p.id}')"
+        >
+          ❌ Rifiuta: anticipo non versato
         </button>
       </div>
     ` : ''}
@@ -8314,4 +8337,103 @@ async function aggiornaDopoAnticipoSegreteria(preventivoId) {
   if (currentPreventivoId === preventivoId && ge('pg-preventivo-detail')?.classList.contains('on')) {
     await openPreventivoDetail(preventivoId);
   }
+}
+
+// ---- Cliente che non versa l'anticipo -----------------------------------
+// Decisione di Erika del 26/10: un preventivo in attesa dell'anticipo può
+// essere portato a 'rifiutato' solo dalla segreteria o dal titolare, con
+// un motivo obbligatorio (sql/25: rifiuta_per_anticipo_non_versato). La
+// fattura d'anticipo eventualmente registrata resta salvata.
+
+const MOTIVO_ANTICIPO_NON_VERSATO = 'Anticipo non versato';
+
+async function apriRifiutoAnticipoNonVersato(preventivoId) {
+  if (!puoRegistrareAccreditoAnticipo()) {
+    toast('Solo la segreteria o il titolare possono rifiutare per anticipo non versato', 'err');
+    return;
+  }
+
+  if (!(await verificaFatturaAnticipoDisponibile())) {
+    toast('Funzione non ancora attiva sul database (manca sql/25)', 'err');
+    return;
+  }
+
+  const { data: p, error } = await db
+    .from('preventivi')
+    .select('id, numero, stato, anticipo_fattura_numero, anticipo_fattura_data, clienti(ragione_sociale)')
+    .eq('id', preventivoId)
+    .single();
+
+  if (error || !p) {
+    toast('Preventivo non caricato: ' + (error?.message || 'non trovato'), 'err');
+    return;
+  }
+
+  if (p.stato !== 'in_attesa_anticipo') {
+    toast('Il preventivo non è più in attesa dell\'anticipo', 'err');
+    await aggiornaDopoAnticipoSegreteria(preventivoId);
+    return;
+  }
+
+  ge('mra-preventivo-id').value = p.id;
+  ge('mra-sottotitolo').textContent =
+    'Preventivo n. ' + (p.numero || '—') + ' · ' + (p.clienti?.ragione_sociale || 'Cliente');
+  ge('mra-fattura').innerHTML = p.anticipo_fattura_numero
+    ? 'La fattura d\'anticipo <b>n. ' + esc(p.anticipo_fattura_numero) + '</b> del ' +
+      esc(fd(p.anticipo_fattura_data)) + ' resta registrata sul preventivo: ' +
+      'se va annullata, serve una nota di credito (fuori dal gestionale).'
+    : 'Nessuna fattura d\'anticipo registrata.';
+  ge('mra-motivo').value = MOTIVO_ANTICIPO_NON_VERSATO;
+  ge('mra-conferma-check').checked = false;
+
+  aggiornaBottoneRifiutoAnticipo();
+  openM('m-rifiuto-anticipo');
+}
+
+function aggiornaBottoneRifiutoAnticipo() {
+  const bottone = ge('mra-conferma');
+  if (!bottone) return;
+  bottone.disabled = !v('mra-motivo').trim() || !ge('mra-conferma-check')?.checked;
+}
+
+async function salvaRifiutoAnticipoNonVersato() {
+  if (!puoRegistrareAccreditoAnticipo()) return;
+
+  const preventivoId = v('mra-preventivo-id');
+  const motivo = v('mra-motivo').trim();
+  const bottone = ge('mra-conferma');
+
+  if (!preventivoId) return;
+
+  if (!motivo) {
+    toast('Indica il motivo del rifiuto', 'err');
+    return;
+  }
+
+  if (!ge('mra-conferma-check')?.checked) {
+    toast('Conferma che il cliente non ha versato l\'anticipo', 'err');
+    return;
+  }
+
+  if (!confirm('Confermi il rifiuto? Il preventivo diventa rifiutato e la commessa non parte.')) {
+    return;
+  }
+
+  bottone.disabled = true;
+
+  const { error } = await db.rpc('rifiuta_per_anticipo_non_versato', {
+    p_preventivo_id: preventivoId,
+    p_motivo: motivo
+  });
+
+  if (error) {
+    bottone.disabled = false;
+    toast('Rifiuto non registrato: ' + (error.message || 'errore sconosciuto'), 'err');
+    return;
+  }
+
+  closeM('m-rifiuto-anticipo');
+  toast('Preventivo rifiutato: anticipo non versato', 'ok');
+
+  await aggiornaDopoAnticipoSegreteria(preventivoId);
 }
