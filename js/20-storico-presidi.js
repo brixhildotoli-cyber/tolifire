@@ -342,20 +342,6 @@ confermaImportPresidi = async function() {
   } finally { bottone.disabled = false; }
 };
 
-// L'anteprima descrive il nuovo comportamento: non viene più aggiornato lo storico.
-const preparaImportPresidiPrecedente = preparaImportPresidi;
-preparaImportPresidi = async function(testo) {
-  await preparaImportPresidiPrecedente(testo);
-  righeImportPresidi.forEach(r => {
-    if (!r.valido) return;
-    r.azione = 'Scheda semestre';
-    r.messaggio = r.presidioEsistenteId
-      ? 'Presidio esistente: aggiungo la scheda, senza sovrascrivere periodi già presenti'
-      : 'Nuovo presidio e relativa scheda semestrale';
-  });
-  renderAnteprimaImportPresidi();
-};
-
 
 async function registraSchedaGiaCaricata() {
   if (!gestisceStoricoPresidi() || !storicoPresidi.anagrafica) return;
