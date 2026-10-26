@@ -199,6 +199,9 @@ apre il capo tecnico: nasce dall'approvazione del preventivo (passo 5).
 Nomi del documento → ruolo nel gestionale: Commerciale = rappresentante,
 Acquisti = commerciale, Ingegnere = ingegnere, Segreteria = segreteria,
 Capo Operativo = capo_tecnico.
+Il titolare non compare nel flusso: può intervenire in qualunque passo
+(ha le funzioni di tutti), ma non è mai un passaggio obbligato
+(decisione del 26/10).
 
 | # | Chi (ruolo) | Cosa fa | Passa a |
 |---|---|---|---|
@@ -336,9 +339,11 @@ una sessione e l'altra.
      "Caricamento..."; `loadImpegniTeamAnonimi` in js/13 mai chiamata).
    - D4: pulsante "Elimina attività" nel calendario dell'ingegnere
      (`eliminaAttivitaIngegnere` esiste ma non è collegata).
-   - D5: i preventivi passano dall'approvazione del titolare prima
-     dell'invio (`inviaPreventivoPerApprovazione`, stato
-     `in_attesa_approvazione`, oggi non collegata).
+   - D5: CHIUSA (26/10) — nessuna approvazione obbligatoria del
+     titolare. Il titolare può fare tutto quello che fanno gli altri
+     ruoli e intervenire quando vuole, ma non è mai un passaggio
+     obbligato del flusso. `inviaPreventivoPerApprovazione` resta non
+     collegata (candidata a rimozione con conferma di Toli).
    - D7: costruire le schede di manutenzione ordinaria del tecnico
      (`apriManutenzioneOrdinaria`/`salvaManutenzioneOrdinaria` chiamate da
      index.html ma mai scritte: oggi il bottone non fa nulla).
