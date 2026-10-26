@@ -1126,16 +1126,22 @@ async function apriSceltaCommercialePreventivo(progettoId, commerciali) {
   const ids = commerciali.map(function(c) { return c.id; });
   let predefinitoId = commerciali[0].id;
 
-  const { data: ultimi } = await db
+  // Predefinito: il commerciale con più preventivi (quello che lavora
+  // davvero), non l'ultimo usato: un preventivo di prova fatto con il
+  // profilo di prova non deve diventare la scelta proposta.
+  const { data: usati } = await db
     .from('preventivi')
     .select('commerciale_id')
     .in('commerciale_id', ids)
-    .order('creato_il', { ascending: false })
-    .limit(1);
+    .limit(1000);
 
-  if (ultimi && ultimi.length && ultimi[0].commerciale_id) {
-    predefinitoId = ultimi[0].commerciale_id;
-  }
+  const conteggi = {};
+  (usati || []).forEach(function(p) {
+    if (p.commerciale_id) conteggi[p.commerciale_id] = (conteggi[p.commerciale_id] || 0) + 1;
+  });
+  ids.forEach(function(id) {
+    if ((conteggi[id] || 0) > (conteggi[predefinitoId] || 0)) predefinitoId = id;
+  });
 
   let finestra = ge('m-scegli-commerciale');
   if (!finestra) {
