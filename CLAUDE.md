@@ -87,6 +87,11 @@ codici attuali di `utenti.ruolo`. Il ruolo capo_operativo NON si crea
 Esiste anche `informatico` (Erika Pistolesi): accesso completo come il
 titolare (decisione di Erika del 23/10, da confermare da Toli in F1.4).
 Cambiano solo le etichette in interfaccia (Fase 3), mai il codice.
+Nomi visibili nel gestionale (decisione 26/10): "Rappresentante" e
+"Commerciale" restano così (NON "Commerciale"/"Acquisti" del flusso
+appeso in ufficio); le etichette servono solo a non mostrare codici grezzi
+(es. "Capo tecnico"). Soglia 3.000 € del rappresentante: resta fissa nel
+DB (trigger e policy di sql/10), non configurabile.
 
 | Figura (organigramma) | Ruolo nel gestionale | Cosa fa già | Da fare |
 |---|---|---|---|
