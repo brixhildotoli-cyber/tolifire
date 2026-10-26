@@ -405,14 +405,6 @@ function renderPT(data){
   tb.innerHTML=data.map(p=>`<tr><td>${tpl(p.tipo)}</td><td>${esc(p.clienti?.ragione_sociale||'—')}</td><td style="font-family:monospace;font-size:12px">${esc(p.matricola||'—')}</td><td>${esc(p.ubicazione||'—')}${esc(p.piano?' ('+p.piano+')':'')}</td><td>${fd(p.data_ultimo_controllo)}</td><td class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)} (${dd2(p.data_prossimo_controllo)})</td><td>${p.periodicita_mesi?p.periodicita_mesi+' mesi':'—'}</td><td>${si2(p.stato)} ${p.stato}</td><td>${(ROLE==='titolare'||ROLE==='capo_tecnico'||ROLE==='segreteria')?`<button class="btn sm" onclick="editP('${p.id}')">✏️</button>`:''}${(ROLE==='titolare'||ROLE==='capo_tecnico')?`<button class="btn sm" style="color:var(--r)" onclick="eliminaPresidio('${p.id}')">🗑️</button>`:''}</td></tr>`).join('');
 }
 
-function renderPS(data){
-  const in30=new Date(Date.now()+30*86400000),in90=new Date(Date.now()+90*86400000);
-  const u=data.filter(p=>p.data_prossimo_controllo&&new Date(p.data_prossimo_controllo+'T00:00:00')<=in30);
-  const pr=data.filter(p=>p.data_prossimo_controllo&&new Date(p.data_prossimo_controllo+'T00:00:00')>in30&&new Date(p.data_prossimo_controllo+'T00:00:00')<=in90);
-  const rl=(items,el)=>{if(!items.length){ge(el).innerHTML='<div class="empty" style="padding:20px">Nessuno ✅</div>';return;}ge(el).innerHTML=items.map(p=>`<div style="padding:10px;background:var(--bg);border-radius:var(--rs);margin-bottom:6px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-weight:500;font-size:13px">${esc(p.clienti?.ragione_sociale||'—')}</div><div style="font-size:12px;color:var(--m)">${tpl(p.tipo)} ${p.matricola?'— #'+esc(p.matricola):''}</div><div style="font-size:12px;color:var(--m)">${esc(p.ubicazione||'')}</div></div><div style="text-align:right"><div class="${sc(p.data_prossimo_controllo)}">${fd(p.data_prossimo_controllo)}</div><div style="font-size:11px;color:var(--m)">${dd2(p.data_prossimo_controllo)}</div>${p.periodicita_mesi?`<div style="font-size:10px;color:var(--m)">ogni ${p.periodicita_mesi} mesi</div>`:''}</div></div></div>`).join('');};
-  rl(u,'su');rl(pr,'sp2');
-}
-
 function switchPF() {
   const tipo = v('mptp');
 
