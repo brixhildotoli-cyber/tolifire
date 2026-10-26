@@ -300,6 +300,7 @@ async function loadDashRappresentante() {
   ricordaPosizionePagina();
   caricaAvvisiLeadAssegnate();
   caricaAvvisiPreventiviRappresentante();
+  caricaPromemoriaAnticipiRappresentante();
   var ora = new Date().getHours();
   var saluto = ora < 14 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
   var el;
@@ -828,6 +829,138 @@ async function apriPreventiviRappresentanteDaDashboard() {
       });
     })
   );
+}
+
+// F4.4 — Passo 6 del flusso: promemoria dell'anticipo al rappresentante
+// ("Commerciale" nel documento interno). Finché il preventivo è
+// 'in_attesa_anticipo' il rappresentante lo vede in dashboard e lo
+// ricorda al cliente; con l'accredito (stato 'accettato') o il rifiuto per
+// anticipo non versato sparisce da solo. Nessun dato nuovo: legge i
+// preventivi che le policy (sql/10) gli lasciano vedere (suoi o dei suoi
+// clienti). Senza sql/24 non compare nulla.
+async function caricaPromemoriaAnticipiRappresentante() {
+  if (ROLE !== 'rappresentante') return;
+
+  const box = ge('rap-promemoria-anticipi');
+  if (!box) return;
+
+  if (!(await verificaAnticipoPreventivoDisponibile())) {
+    box.innerHTML = '';
+    return;
+  }
+
+  const fatturaDisponibile = await verificaFatturaAnticipoDisponibile();
+
+  const { data, error } = await db
+    .from('preventivi')
+    .select(`
+      id,
+      numero,
+      stato,
+      rappresentante_id,
+      totale_imponibile,
+      iva_perc,
+      anticipo_richiesto,
+      anticipo_tipo,
+      anticipo_valore,
+      esito_registrato_il,
+      ${fatturaDisponibile ? 'anticipo_fattura_numero, anticipo_fattura_data, anticipo_fattura_importo, anticipo_accredito_data,' : ''}
+      clienti(ragione_sociale, rappresentante_id)
+    `)
+    .eq('stato', 'in_attesa_anticipo')
+    .order('esito_registrato_il', { ascending: true });
+
+  if (error) {
+    console.warn('Promemoria anticipi:', error.message);
+    box.innerHTML = '';
+    return;
+  }
+
+  // Solo i preventivi del rappresentante (come le policy di sql/10).
+  const anticipi = (data || []).filter(function(p) {
+    return p.rappresentante_id === ME.id || p.clienti?.rappresentante_id === ME.id;
+  });
+
+  if (!anticipi.length) {
+    box.innerHTML = '';
+    return;
+  }
+
+  const oggi = new Date();
+  oggi.setHours(0, 0, 0, 0);
+
+  function giorniDa(dataIso) {
+    if (!dataIso) return null;
+    const giorno = new Date(dataIso);
+    giorno.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.round((oggi - giorno) / 86400000));
+  }
+
+  function testoGiorni(giorni) {
+    if (giorni === null) return 'In attesa';
+    if (giorni === 0) return 'Da oggi';
+    return 'Da ' + giorni + (giorni === 1 ? ' giorno' : ' giorni');
+  }
+
+  const titolo = anticipi.length === 1
+    ? 'Ricorda l\'anticipo a 1 cliente'
+    : `Ricorda l'anticipo a ${anticipi.length} clienti`;
+
+  const righe = anticipi.map(function(p) {
+    const ivaPerc = Number(p.iva_perc ?? 22);
+    const imponibile = p.anticipo_fattura_importo ??
+      importoAnticipoPreventivo(p.anticipo_tipo, p.anticipo_valore, p.totale_imponibile);
+    const conIva = Math.round(Number(imponibile || 0) * (100 + ivaPerc)) / 100;
+    const fatturata = !!p.anticipo_fattura_numero;
+    const giorni = giorniDa(fatturata ? p.anticipo_fattura_data : p.esito_registrato_il);
+
+    const stato = fatturata
+      ? `<span class="bx bblue">Fattura n. ${esc(p.anticipo_fattura_numero)} del ${esc(fd(p.anticipo_fattura_data))}</span>`
+      : '<span class="bx bwarn">Fattura in preparazione (segreteria)</span>';
+
+    const cosaFare = fatturata
+      ? 'Fattura d\'anticipo emessa: ricorda al cliente di fare il bonifico.'
+      : 'La segreteria sta emettendo la fattura d\'anticipo: avvisa il cliente che arriverà.';
+
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:0.5px solid rgba(0,0,0,.05);font-size:13px;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600">
+            ${esc(p.clienti?.ragione_sociale || 'Cliente')}
+            <span style="color:var(--m);font-weight:400">· Preventivo n. ${esc(String(p.numero || '—'))}</span>
+          </div>
+          <div style="font-size:12px;margin-top:2px">
+            Anticipo: <b>${esc(euroPreventivo(conIva))}</b> IVA inclusa
+            <span style="color:var(--m)">(${esc(euroPreventivo(imponibile))} + IVA ${ivaPerc}%)</span>
+          </div>
+          <div style="font-size:12px;color:var(--m);margin-top:2px">${cosaFare}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+          ${stato}
+          <span class="bx bwarn">${testoGiorni(giorni)}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  box.innerHTML = `
+    <button
+      class="rap-primary"
+      style="background:#b45309;margin-top:14px"
+      onclick="gotoPage('preventivi-rapp')"
+    >
+      <span class="ico">⏳</span>
+      <span class="body">
+        <span class="title">${titolo}</span>
+        <span class="sub">
+          Senza accredito il preventivo non è approvato e la commessa non parte.
+          Il promemoria sparisce quando la segreteria verifica l'accredito.
+        </span>
+      </span>
+      <span class="chev">›</span>
+    </button>
+    <div class="rap-list-card" style="margin-top:8px">${righe}</div>
+  `;
 }
 
 async function caricaAvvisiPreventiviTitolare() {

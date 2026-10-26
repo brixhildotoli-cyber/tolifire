@@ -298,6 +298,15 @@ Decisioni di Erika del 26/10 (F4.3):
    m-rifiuto-anticipo (motivo precompilato e modificabile, conferma).
 I bottoni di fattura, accredito e rifiuto compaiono solo con sql/25.
 
+Passo 6, promemoria al rappresentante (F4.4, nessun SQL): nella sua
+dashboard (pg-dashboard-rapp, box `rap-promemoria-anticipi`, js/13
+`caricaPromemoriaAnticipiRappresentante`) il rappresentante vede i suoi
+preventivi in 'in_attesa_anticipo' (suoi o dei suoi clienti, come la
+policy preventivi_lettura di sql/10): importo dell'anticipo IVA inclusa,
+fattura d'anticipo emessa o in preparazione, giorni di attesa. Sparisce
+da solo con l'accredito (stato 'accettato') o con il rifiuto per
+anticipo non versato.
+
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
 - Riutilizzare le helper esistenti: `ge`, `v`, `toast`, `fd`, `openM`,
