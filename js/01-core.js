@@ -90,32 +90,6 @@ const NAV={
   ingegnere: [{id: 'dashboard', l: '📊 Dashboard'},{id: 'calendario-ingegnere', l: '📅 Calendario'},{id: 'verifiche-tecniche', l: '🔧 Verifiche'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'certificati-ingegnere', l:'📜 Certificati'},{id: 'documenti', l: '📄 Documenti'},{id: 'info', l: 'ℹ️ Info'}],
 };
 
-// NAV MOBILE
-function toggleNavMobile() {
-  
-  const nav = ge('nav');
-  const btn = ge('nav-toggle');
-
-  nav.classList.toggle('mobile-open');
-
-  const aperto = nav.classList.contains('mobile-open');
-  btn.setAttribute('aria-expanded', aperto ? 'true' : 'false');
-  btn.textContent = aperto ? '✕ Chiudi' : '☰ Menu';
-  ripristinaPosizionePagina();
-}
-
-function chiudiNavMobile() {
-  const nav = ge('nav');
-  const btn = ge('nav-toggle');
-
-  if (!nav || !btn) return;
-
-  nav.classList.remove('mobile-open');
-  btn.setAttribute('aria-expanded', 'false');
-  btn.textContent = '☰ Menu';
-  ripristinaPosizionePagina();
-}
-
 
 // Checklist operative per tipo intervento
 const CKL={

@@ -26,12 +26,6 @@ function nomeCicloScheda(ciclo) {
   }[ciclo] || 'Gruppo non assegnato';
 }
 
-function etichettaCicloStorico(ciclo) {
-  return {
-    gennaio_luglio: 'Gennaio – Giugno',
-    febbraio_agosto: 'Luglio – Dicembre'
-  }[ciclo] || 'Gruppo non assegnato';
-}
 function periodoScheda(s) {
   if (s.dati?.tipo === 'manichetta') return s.data_intervento ? 'Intervento del '+fd(s.data_intervento) : 'Scheda documentale — data non indicata';
   return `${nomeCicloScheda(s.ciclo)} · ${Number(s.mese) < 7 ? '1°' : '2°'} semestre ${s.anno}`;
