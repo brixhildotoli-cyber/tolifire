@@ -1588,6 +1588,7 @@ async function loadPreventivi() {
     in_attesa_approvazione: { testo: 'In attesa del titolare', classe: 'bwarn' },
     inviato_a_rappresentante: { testo: 'Inviato al rappresentante', classe: 'bok' },
     inviato: { testo: 'Inviato al cliente', classe: 'bok' },
+    in_attesa_anticipo: { testo: 'Accettato, in attesa anticipo', classe: 'bwarn' },
     accettato: { testo: 'Accettato', classe: 'bok' },
     rifiutato: { testo: 'Rifiutato', classe: 'berr' },
     scaduto: { testo: 'Scaduto', classe: 'bgray' }
@@ -1673,7 +1674,7 @@ async function loadPreventivi() {
   });
 
   const chiusi = preventivi.filter(function(p) {
-    return ['accettato', 'rifiutato', 'scaduto'].includes(p.stato);
+    return ['in_attesa_anticipo', 'accettato', 'rifiutato', 'scaduto'].includes(p.stato);
   });
 
   mostra(bozzeBox, bozze, 'Nessuna bozza da completare.');

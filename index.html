@@ -316,6 +316,13 @@
         <div class="kpi-card clickable" onclick="gotoPage('workflow')"><div class="kpi-icon">💜</div><div class="kpi-num" id="seg-k-fatturare">—</div><div class="kpi-label">Schede da fatturare → al contabile</div></div>
         <div class="kpi-card clickable" onclick="gotoPage('interventi')"><div class="kpi-icon">❓</div><div class="kpi-num" id="seg-k-dapianif">—</div><div class="kpi-label">Interventi da pianificare</div></div>
         <div class="kpi-card clickable" onclick="gotoPage('interventi')"><div class="kpi-icon">✏️</div><div class="kpi-num" id="seg-k-richmod">—</div><div class="kpi-label">Richieste modifica tecnici</div></div>
+        <div class="kpi-card clickable attention" id="seg-k-anticipi-card" style="display:none" onclick="ge('seg-anticipi-sezione')?.scrollIntoView({behavior:'smooth'})"><div class="kpi-icon">💶</div><div class="kpi-num" id="seg-k-anticipi">—</div><div class="kpi-label">Anticipi da fatturare</div></div>
+      </div>
+
+      <!-- F4.2 — compare solo con sql/24 eseguito -->
+      <div id="seg-anticipi-sezione" style="display:none">
+        <div class="tit-section">💶 Anticipi da fatturare</div>
+        <div id="seg-anticipi-lista"><div class="rap-list-card"><div class="tit-empty">⏳ Caricamento...</div></div></div>
       </div>
 
       <div class="tit-section">🎫 Richieste clienti aperte</div>
@@ -2793,6 +2800,54 @@
           accept="application/pdf,.pdf,image/*,.eml,.msg,message/rfc822"
           onchange="aggiornaBottoneEsitoPreventivo()"
         >
+      </div>
+
+      <!-- F4.2 — anticipo (compare solo con sql/24 eseguito) -->
+      <div id="mep-box-anticipo" style="display:none;margin-top:6px;padding-top:12px;border-top:1px solid var(--bo)">
+        <div class="f">
+          <label>Il cliente paga un anticipo prima dei lavori? *</label>
+          <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin-top:4px">
+            <label style="display:flex;gap:6px;align-items:center;cursor:pointer;font-weight:400">
+              <input type="radio" name="mep-anticipo" value="no" onchange="aggiornaAnticipoEsitoPreventivo()">
+              No, senza anticipo
+            </label>
+            <label style="display:flex;gap:6px;align-items:center;cursor:pointer;font-weight:400">
+              <input type="radio" name="mep-anticipo" value="si" onchange="aggiornaAnticipoEsitoPreventivo()">
+              Sì, con anticipo
+            </label>
+          </div>
+        </div>
+
+        <div id="mep-anticipo-dettaglio" class="g2" style="display:none">
+          <div class="f">
+            <label>Anticipo espresso in</label>
+            <select id="mep-anticipo-tipo" onchange="aggiornaAnticipoEsitoPreventivo()">
+              <option value="percentuale">% del totale imponibile</option>
+              <option value="importo">Importo in € (IVA esclusa)</option>
+            </select>
+          </div>
+          <div class="f">
+            <label>Valore *</label>
+            <input
+              type="number"
+              id="mep-anticipo-valore"
+              min="0"
+              step="0.01"
+              placeholder="Es. 30"
+              oninput="aggiornaAnticipoEsitoPreventivo()"
+            >
+          </div>
+        </div>
+
+        <div id="mep-anticipo-totale" style="font-size:12px;color:var(--m)"></div>
+        <div id="mep-anticipo-calcolo" style="font-size:13px;font-weight:600;margin-top:4px"></div>
+
+        <div class="al2 w" id="mep-anticipo-avviso" style="display:none;margin-top:10px">
+          Con l'anticipo il preventivo resta <b>in attesa dell'anticipo</b>: la
+          segreteria emette la fattura d'anticipo e verifica l'accredito. Ricorda
+          al cliente il pagamento nei giorni seguenti: senza accredito la commessa
+          non parte.
+        </div>
       </div>
     </div>
 

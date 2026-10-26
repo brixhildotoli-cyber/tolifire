@@ -243,6 +243,23 @@ sopra 3.000 € l'esito lo registra il titolare finché Toli non decide su
 sql/23-soglia-3k-solo-importo (proposta). Pagina I miei preventivi
 (js/13) e scheda preventivo (js/18, `cardEsitoPreventivo`).
 
+Passi 5-6, anticipo (F4.2, sql/24-anticipo-preventivo da eseguire dopo
+22 e 23): colonne `preventivi.anticipo_richiesto` (sì/no, vuoto = non
+indicato), `anticipo_tipo` ('percentuale' del totale imponibile o
+'importo' in € IVA esclusa), `anticipo_valore`. Il commerciale può
+indicarlo nell'editor del preventivo (sotto "Modalità di pagamento", che
+resta il testo del PDF); il rappresentante lo conferma o corregge nella
+finestra "Accettato dal cliente" (scelta sì/no obbligatoria). Con
+anticipo `accetta_preventivo` (nuova versione a 6 dati; quella a 3 usa
+i dati salvati) porta il preventivo in `in_attesa_anticipo` (nuovo stato
+nel vincolo preventivi_stato_check): da lì nessuno dal sito cambia
+stato finché F4.3 non registra fattura d'anticipo e accredito
+(segreteria e titolare; aggancio nel trigger trg_preventivi_esito). Dopo
+l'esito i dati dell'anticipo non si cambiano. Lista "Anticipi da
+fatturare" nella dashboard della segreteria (js/18
+`loadAnticipiDaFatturare`, chiamata da js/03). Senza sql/24 nulla di
+questo compare.
+
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
 - Riutilizzare le helper esistenti: `ge`, `v`, `toast`, `fd`, `openM`,

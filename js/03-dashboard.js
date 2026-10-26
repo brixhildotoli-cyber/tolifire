@@ -690,6 +690,9 @@ async function loadDashSegreteriaPg(){
   el = ge('seg-k-cli-attivi'); if(el) el.textContent = num(rCliAtt);
   el = ge('seg-k-inviate'); if(el) el.textContent = num(rInviate);
 
+  // F4.2: preventivi accettati con anticipo da fatturare (js/18, solo con sql/24)
+  try { await loadAnticipiDaFatturare(); } catch(e){ console.warn('loadAnticipiDaFatturare:', e); }
+
   // Ticket aperti assegnati alla segreteria (top 5)
   var rTk = await db.from('ticket_clienti')
     .select('id,titolo,priorita,tipo,creato_il,clienti(ragione_sociale)')

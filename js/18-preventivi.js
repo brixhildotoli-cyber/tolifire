@@ -81,6 +81,7 @@ async function openPreventivoDetail(preventivoId) {
     bozza: 'Bozza',
     inviato: 'Inviato',
     inviato_a_rappresentante: 'Inviato al rappresentante',
+    in_attesa_anticipo: 'Accettato, in attesa anticipo',
     accettato: 'Accettato',
     rifiutato: 'Rifiutato',
     scaduto: 'Scaduto'
@@ -3296,6 +3297,14 @@ async function usaQuotazioneFornitoreNelPreventivo(selezioneId) {
 let vociPreventivoDati = [];
 let notePreventivoCliente = '';
 let condizioniPagamentoPreventivo = '';
+// F4.2: dati dell'anticipo nell'editor (solo con sql/24 eseguito).
+let anticipoPreventivoEditor = {
+  disponibile: false,
+  bloccato: false,
+  richiesto: null,
+  tipo: 'percentuale',
+  valore: ''
+};
 let storicoUndoPreventivo = [];
 let vociEliminatePreventivo = [];
 let chiaveModificaPreventivo = '';
@@ -3695,6 +3704,8 @@ function disegnaVociPreventivo() {
     oninput="condizioniPagamentoPreventivo = this.value"
   >${esc(condizioniPagamentoPreventivo)}</textarea>
 </div>
+
+${htmlAnticipoEditorPreventivo(vendita)}
 
       <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--b)">
   <div style="font-size:14px;font-weight:700;margin-bottom:5px">
@@ -4424,9 +4435,14 @@ async function renderCostiPreventivo() {
     return;
   }
 
+  // F4.2: i campi dell'anticipo solo se sql/24 è stato eseguito.
+  const anticipoDisponibile = await verificaAnticipoPreventivoDisponibile();
+
     const { data: preventivo } = await db
     .from('preventivi')
-    .select('note,condizioni_pagamento')
+    .select(anticipoDisponibile
+      ? 'note,condizioni_pagamento,stato,anticipo_richiesto,anticipo_tipo,anticipo_valore'
+      : 'note,condizioni_pagamento')
     .eq('id', currentPreventivoId)
     .single();
 
@@ -4434,6 +4450,14 @@ async function renderCostiPreventivo() {
 
   condizioniPagamentoPreventivo =
   preventivo?.condizioni_pagamento || '';
+
+  anticipoPreventivoEditor = {
+    disponibile: anticipoDisponibile && !!preventivo,
+    bloccato: STATI_ESITO_PREVENTIVO.includes(preventivo?.stato),
+    richiesto: preventivo?.anticipo_richiesto ?? null,
+    tipo: preventivo?.anticipo_tipo || 'percentuale',
+    valore: preventivo?.anticipo_valore ?? ''
+  };
 
 vociPreventivoDati = data || [];
 storicoUndoPreventivo = [];
@@ -4554,15 +4578,36 @@ async function salvaVociPreventivo() {
     return totale + totaleVocePreventivo(voce, 'vendita');
   }, 0);
 
+  const datiPreventivo = {
+    totale_imponibile: totaleImponibile,
+    note: notePreventivoCliente.trim() || null,
+    condizioni_pagamento: condizioniPagamentoPreventivo.trim() || null,
+    aggiornato_il: new Date().toISOString()
+  };
+
+  // F4.2: anticipo (solo con sql/24 e finché il cliente non ha risposto).
+  if (anticipoPreventivoEditor.disponibile && !anticipoPreventivoEditor.bloccato) {
+    const anticipo = datiAnticipoValidi(
+      anticipoPreventivoEditor.richiesto,
+      anticipoPreventivoEditor.tipo,
+      anticipoPreventivoEditor.valore,
+      totaleImponibile,
+      true
+    );
+
+    if (anticipo.errore) {
+      toast(anticipo.errore, 'err');
+      return false;
+    }
+
+    datiPreventivo.anticipo_richiesto = anticipo.richiesto;
+    datiPreventivo.anticipo_tipo = anticipo.tipo;
+    datiPreventivo.anticipo_valore = anticipo.valore;
+  }
+
   const { error: erroreTotale } = await db
     .from('preventivi')
-    .update({
-      totale_imponibile: totaleImponibile,
-      note: notePreventivoCliente.trim() || null,
-      condizioni_pagamento: condizioniPagamentoPreventivo.trim() || null,
-      aggiornato_il: new Date().toISOString()
-      
-    })
+    .update(datiPreventivo)
     .eq('id', currentPreventivoId);
 
   if (erroreTotale) {
@@ -5383,7 +5428,7 @@ async function caricaEInviaPdfEsternoTitolare() {
   }
 
   // F4.1: un preventivo con l'esito del cliente già registrato non si rimanda.
-  if (['accettato', 'rifiutato'].includes(preventivo.stato)) {
+  if (STATI_ESITO_PREVENTIVO.includes(preventivo.stato)) {
     toast('Il cliente ha già dato l\'esito di questo preventivo: non si può rimandare', 'err');
     return;
   }
@@ -5543,7 +5588,7 @@ const { data: preventivo, error: errorePreventivo } = await db
   }
 
   // F4.1: un preventivo con l'esito del cliente già registrato non si rimanda.
-  if (['accettato', 'rifiutato'].includes(preventivo.stato)) {
+  if (STATI_ESITO_PREVENTIVO.includes(preventivo.stato)) {
     toast('Il cliente ha già dato l\'esito di questo preventivo: non si può rimandare', 'err');
     return;
   }
@@ -7052,6 +7097,8 @@ async function apriLeadAssegnateDaDashboardRapp() {
 // =====================================================================
 
 const STATI_ATTESA_ESITO_PREVENTIVO = ['inviato_a_rappresentante', 'inviato'];
+// Stati con l'esito del cliente già registrato (F4.2: in_attesa_anticipo).
+const STATI_ESITO_PREVENTIVO = ['in_attesa_anticipo', 'accettato', 'rifiutato'];
 const ESITO_PREVENTIVO_MAX_MB = 15;
 let esitoPreventivoDisponibile = null;
 
@@ -7123,9 +7170,10 @@ function dataOraEsitoPreventivo(iso) {
 
 // Riepilogo dell'esito già registrato (accettato o rifiutato).
 function riepilogoEsitoPreventivo(preventivo) {
-  if (!['accettato', 'rifiutato'].includes(preventivo.stato)) return '';
+  if (!STATI_ESITO_PREVENTIVO.includes(preventivo.stato)) return '';
 
-  const accettato = preventivo.stato === 'accettato';
+  const attesaAnticipo = preventivo.stato === 'in_attesa_anticipo';
+  const accettato = preventivo.stato === 'accettato' || attesaAnticipo;
   const quando = dataOraEsitoPreventivo(preventivo.esito_registrato_il);
   const chi = nomeChiHaRegistratoEsito(preventivo.esito_registrato_da);
   const dettaglio = [
@@ -7134,9 +7182,12 @@ function riepilogoEsitoPreventivo(preventivo) {
   ].filter(Boolean).join(' ');
 
   return `
-    <div class="al2 ${accettato ? 'ok' : 'e'}" style="margin-top:10px">
-      <b>${accettato ? '✅ Accettato dal cliente' : '❌ Rifiutato dal cliente'}</b>
+    <div class="al2 ${attesaAnticipo ? 'w' : (accettato ? 'ok' : 'e')}" style="margin-top:10px">
+      <b>${attesaAnticipo
+        ? '⏳ Accettato dal cliente · in attesa dell\'anticipo'
+        : (accettato ? '✅ Accettato dal cliente' : '❌ Rifiutato dal cliente')}</b>
       ${dettaglio ? `<span style="font-size:12px"> · registrato ${esc(dettaglio)}</span>` : ''}
+      ${accettato ? rigaAnticipoPreventivo(preventivo) : ''}
       ${!accettato && preventivo.motivo_rifiuto ? `
         <div style="margin-top:6px;white-space:pre-wrap">Motivo: ${esc(preventivo.motivo_rifiuto)}</div>
       ` : ''}
@@ -7185,7 +7236,7 @@ function cardEsitoPreventivo(preventivo) {
   `;
 }
 
-function apriEsitoPreventivo(preventivoId, esito, numero) {
+async function apriEsitoPreventivo(preventivoId, esito, numero) {
   if (!puoRegistrareEsitoPreventivo()) {
     toast('Solo il rappresentante o il titolare possono registrare l\'esito', 'err');
     return;
@@ -7211,6 +7262,9 @@ function apriEsitoPreventivo(preventivoId, esito, numero) {
   bottone.textContent = accetta ? '✅ Conferma accettazione' : '❌ Conferma rifiuto';
   bottone.className = accetta ? 'btn p' : 'btn warn';
 
+  // F4.2: anticipo sì/no (precompilato con quanto indicato dal commerciale).
+  await preparaAnticipoEsitoPreventivo(preventivoId, accetta);
+
   aggiornaBottoneEsitoPreventivo();
   openM('m-esito-preventivo');
 }
@@ -7222,7 +7276,7 @@ function aggiornaBottoneEsitoPreventivo() {
 
   const esito = v('mep-esito');
   const pronto = esito === 'accettato'
-    ? !!ge('mep-allegato')?.files?.[0]
+    ? !!ge('mep-allegato')?.files?.[0] && anticipoEsitoPronto()
     : v('mep-motivo').trim().length > 0;
 
   bottone.disabled = !pronto;
@@ -7299,6 +7353,14 @@ async function salvaEsitoPreventivo() {
     return;
   }
 
+  // F4.2: dati dell'anticipo (solo con sql/24 eseguito).
+  const anticipo = datiAnticipoEsitoPreventivo();
+
+  if (anticipo && anticipo.errore) {
+    toast(anticipo.errore, 'err');
+    return;
+  }
+
   bottone.disabled = true;
 
   // Stesso schema di percorso degli altri caricamenti del bucket.
@@ -7323,11 +7385,19 @@ async function salvaEsitoPreventivo() {
     return;
   }
 
-  const { data: nuovoStato, error } = await db.rpc('accetta_preventivo', {
+  const parametriAccettazione = {
     p_preventivo_id: preventivoId,
     p_allegato_path: percorso,
     p_allegato_nome: file.name
-  });
+  };
+
+  if (anticipo) {
+    parametriAccettazione.p_anticipo_richiesto = anticipo.richiesto;
+    parametriAccettazione.p_anticipo_tipo = anticipo.tipo;
+    parametriAccettazione.p_anticipo_valore = anticipo.valore;
+  }
+
+  const { data: nuovoStato, error } = await db.rpc('accetta_preventivo', parametriAccettazione);
 
   if (error) {
     await db.storage.from('preventivi-documenti').remove([percorso]);
@@ -7338,11 +7408,11 @@ async function salvaEsitoPreventivo() {
 
   closeM('m-esito-preventivo');
 
-  // F4.2 (aggancio): con l'anticipo il database restituirà
-  // 'in_attesa_anticipo' e il preventivo passerà alla segreteria.
+  // F4.2: con l'anticipo il database restituisce 'in_attesa_anticipo'
+  // e il preventivo compare alla segreteria in "Anticipi da fatturare".
   toast(
     nuovoStato === 'in_attesa_anticipo'
-      ? 'Preventivo accettato: in attesa dell\'anticipo'
+      ? 'Preventivo accettato: in attesa dell\'anticipo (passa alla segreteria per la fattura)'
       : 'Preventivo segnato come accettato',
     'ok'
   );
@@ -7363,6 +7433,8 @@ async function aggiornaDopoEsitoPreventivo(preventivoId) {
 
 // Elenco "Esiti registrati" nella pagina I miei preventivi del rappresentante.
 async function htmlEsitiRegistratiRappresentante() {
+  const anticipoDisponibile = await verificaAnticipoPreventivoDisponibile();
+
   const { data, error } = await db
     .from('preventivi')
     .select(`
@@ -7374,9 +7446,10 @@ async function htmlEsitiRegistratiRappresentante() {
       motivo_rifiuto,
       allegato_accettazione_path,
       allegato_accettazione_nome,
+      ${anticipoDisponibile ? 'totale_imponibile, anticipo_richiesto, anticipo_tipo, anticipo_valore,' : ''}
       clienti!inner(ragione_sociale, rappresentante_id)
     `)
-    .in('stato', ['accettato', 'rifiutato'])
+    .in('stato', STATI_ESITO_PREVENTIVO)
     .eq('clienti.rappresentante_id', ME.id)
     .not('esito_registrato_il', 'is', null)
     .order('esito_registrato_il', { ascending: false })
@@ -7402,4 +7475,476 @@ async function htmlEsitiRegistratiRappresentante() {
       `;
     }).join('')}
   `;
+}
+
+
+// =====================================================================
+// F4.2 — ANTICIPO DEL PREVENTIVO e lista "Anticipi da fatturare"
+// Passi 5 e 6 del flusso della commessa. Il commerciale può indicare
+// l'anticipo nel preventivo; il rappresentante lo conferma o lo corregge
+// quando il cliente accetta. Con l'anticipo il preventivo va
+// "in attesa anticipo" (sql/24) e compare alla segreteria: senza
+// accredito la commessa non parte. Senza sql/24 nulla di questo compare.
+// =====================================================================
+
+let anticipoPreventivoDisponibile = null;
+let anticipoEsitoAttivo = false;
+let anticipoEsitoNonCaricato = false;
+let anticipoEsitoTotale = 0;
+
+// true se sql/24 è stato eseguito (esiste la colonna anticipo_richiesto).
+async function verificaAnticipoPreventivoDisponibile() {
+  if (anticipoPreventivoDisponibile !== null) return anticipoPreventivoDisponibile;
+
+  const { error } = await db
+    .from('preventivi')
+    .select('anticipo_richiesto')
+    .limit(1);
+
+  if (!error) {
+    anticipoPreventivoDisponibile = true;
+  } else if (/anticipo_richiesto|column|colonna/i.test(error.message || '')) {
+    anticipoPreventivoDisponibile = false;
+  } else {
+    // Errore di rete o altro: non decidere ora, riprova la prossima volta.
+    return false;
+  }
+
+  return anticipoPreventivoDisponibile;
+}
+
+function numeroAnticipo(valore) {
+  if (valore === null || valore === undefined) return NaN;
+  const testo = String(valore).trim().replace(',', '.');
+  return testo === '' ? NaN : Number(testo);
+}
+
+// Importo dell'anticipo in EUR, IVA esclusa.
+function importoAnticipoPreventivo(tipo, valore, totaleImponibile) {
+  const numero = numeroAnticipo(valore);
+  if (!Number.isFinite(numero)) return 0;
+  if (tipo === 'percentuale') {
+    return Math.round(numeroPreventivo(totaleImponibile) * numero) / 100;
+  }
+  return numero;
+}
+
+function testoAnticipoPreventivo(tipo, valore, totaleImponibile) {
+  const numero = numeroAnticipo(valore);
+  if (!Number.isFinite(numero) || numero <= 0) return '';
+
+  const importo = euroPreventivo(importoAnticipoPreventivo(tipo, valore, totaleImponibile));
+
+  return tipo === 'percentuale'
+    ? numero.toLocaleString('it-IT') + '% del totale imponibile = ' + importo + ' + IVA'
+    : importo + ' + IVA';
+}
+
+// Riga "Anticipo: ..." nel riepilogo dell'esito (solo con sql/24).
+function rigaAnticipoPreventivo(preventivo) {
+  if (!preventivo || !('anticipo_richiesto' in preventivo)) return '';
+
+  if (preventivo.anticipo_richiesto !== true) {
+    return '<div style="margin-top:6px;font-size:12px">Senza anticipo</div>';
+  }
+
+  const testo = testoAnticipoPreventivo(
+    preventivo.anticipo_tipo,
+    preventivo.anticipo_valore,
+    preventivo.totale_imponibile
+  );
+
+  return `
+    <div style="margin-top:6px;font-size:13px">
+      Anticipo: <b>${esc(testo || 'indicato')}</b>
+      ${preventivo.stato === 'in_attesa_anticipo' ? `
+        <div style="font-size:12px;margin-top:2px">
+          La segreteria emette la fattura d'anticipo e verifica l'accredito:
+          finché non è accreditato la commessa non parte.
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+// Controlla e normalizza i dati dell'anticipo.
+// consentiNonIndicato: nell'editor del commerciale si può lasciare vuoto.
+function datiAnticipoValidi(richiesto, tipo, valore, totaleImponibile, consentiNonIndicato) {
+  if (richiesto === null || richiesto === undefined) {
+    return consentiNonIndicato
+      ? { richiesto: null, tipo: null, valore: null }
+      : { errore: 'Indica se il cliente paga un anticipo (sì o no)' };
+  }
+
+  if (richiesto === false) {
+    return { richiesto: false, tipo: null, valore: null };
+  }
+
+  if (!['percentuale', 'importo'].includes(tipo)) {
+    return { errore: 'Indica se l\'anticipo è una percentuale o un importo' };
+  }
+
+  const numero = numeroAnticipo(valore);
+
+  if (!Number.isFinite(numero) || numero <= 0) {
+    return { errore: 'Indica il valore dell\'anticipo (maggiore di zero)' };
+  }
+
+  const arrotondato = Math.round(numero * 100) / 100;
+
+  if (tipo === 'percentuale' && arrotondato > 100) {
+    return { errore: 'La percentuale dell\'anticipo non può superare 100' };
+  }
+
+  if (tipo === 'importo' && arrotondato > numeroPreventivo(totaleImponibile)) {
+    return {
+      errore: 'L\'anticipo supera il totale imponibile del preventivo (' +
+        euroPreventivo(totaleImponibile) + ')'
+    };
+  }
+
+  return { richiesto: true, tipo: tipo, valore: arrotondato };
+}
+
+// ---- Editor del preventivo (commerciale / titolare) ----------------------
+
+function htmlAnticipoEditorPreventivo(totaleImponibile) {
+  const a = anticipoPreventivoEditor;
+  if (!a.disponibile) return '';
+
+  const intestazione = `
+    <div style="font-size:14px;font-weight:700;margin-bottom:5px">
+      💶 Anticipo
+    </div>
+  `;
+
+  if (a.bloccato) {
+    return `
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--b)">
+        ${intestazione}
+        <div style="font-size:13px">
+          ${a.richiesto === true
+            ? 'Anticipo: <b>' + esc(testoAnticipoPreventivo(a.tipo, a.valore, totaleImponibile)) + '</b>'
+            : 'Senza anticipo'}
+        </div>
+        <div style="font-size:12px;color:var(--m);margin-top:4px">
+          Fissato quando il cliente ha risposto: non si cambia più.
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--b)">
+      ${intestazione}
+
+      <div style="font-size:12px;color:var(--m);margin-bottom:10px">
+        Facoltativo. Il cliente paga un anticipo prima dei lavori? Se lo indichi
+        qui, il rappresentante lo trova già compilato quando il cliente accetta
+        (e può correggerlo). Il testo delle modalità di pagamento qui sopra resta
+        quello del PDF.
+      </div>
+
+      <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin-bottom:10px">
+        <label style="display:flex;gap:6px;align-items:center;cursor:pointer">
+          <input
+            type="radio"
+            name="pvv-anticipo"
+            value="no"
+            ${a.richiesto === false ? 'checked' : ''}
+            onchange="impostaAnticipoEditor('richiesto', false)"
+          >
+          No, senza anticipo
+        </label>
+        <label style="display:flex;gap:6px;align-items:center;cursor:pointer">
+          <input
+            type="radio"
+            name="pvv-anticipo"
+            value="si"
+            ${a.richiesto === true ? 'checked' : ''}
+            onchange="impostaAnticipoEditor('richiesto', true)"
+          >
+          Sì, con anticipo
+        </label>
+      </div>
+
+      <div id="pvv-anticipo-dettaglio" class="g2" style="display:${a.richiesto === true ? 'grid' : 'none'}">
+        <div class="f">
+          <label>Anticipo espresso in</label>
+          <select onchange="impostaAnticipoEditor('tipo', this.value)">
+            <option value="percentuale" ${a.tipo === 'percentuale' ? 'selected' : ''}>% del totale imponibile</option>
+            <option value="importo" ${a.tipo === 'importo' ? 'selected' : ''}>Importo in € (IVA esclusa)</option>
+          </select>
+        </div>
+        <div class="f">
+          <label>Valore *</label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value="${esc(String(a.valore ?? ''))}"
+            placeholder="Es. 30"
+            oninput="impostaAnticipoEditor('valore', this.value)"
+          >
+        </div>
+      </div>
+
+      <div id="pvv-anticipo-calcolo" style="font-size:12px;color:var(--m)">
+        ${a.richiesto === true ? esc(testoAnticipoPreventivo(a.tipo, a.valore, totaleImponibile)) : ''}
+      </div>
+    </div>
+  `;
+}
+
+function impostaAnticipoEditor(campo, valore) {
+  if (anticipoPreventivoEditor.bloccato) return;
+
+  anticipoPreventivoEditor[campo] = valore;
+
+  const dettaglio = ge('pvv-anticipo-dettaglio');
+  if (dettaglio) {
+    dettaglio.style.display = anticipoPreventivoEditor.richiesto === true ? 'grid' : 'none';
+  }
+
+  const calcolo = ge('pvv-anticipo-calcolo');
+  if (calcolo) {
+    const totale = vociPreventivoDati.reduce(function(somma, voce) {
+      return somma + totaleVocePreventivo(voce, 'vendita');
+    }, 0);
+
+    calcolo.textContent = anticipoPreventivoEditor.richiesto === true
+      ? testoAnticipoPreventivo(anticipoPreventivoEditor.tipo, anticipoPreventivoEditor.valore, totale)
+      : '';
+  }
+}
+
+// ---- Finestra "Accettato dal cliente" (rappresentante / titolare) --------
+
+async function preparaAnticipoEsitoPreventivo(preventivoId, accetta) {
+  const box = ge('mep-box-anticipo');
+  anticipoEsitoAttivo = false;
+  anticipoEsitoNonCaricato = false;
+  anticipoEsitoTotale = 0;
+
+  if (!box) return;
+  box.style.display = 'none';
+
+  document.querySelectorAll('input[name="mep-anticipo"]').forEach(function(radio) {
+    radio.checked = false;
+  });
+  ge('mep-anticipo-tipo').value = 'percentuale';
+  ge('mep-anticipo-valore').value = '';
+
+  if (!accetta || !(await verificaAnticipoPreventivoDisponibile())) {
+    aggiornaAnticipoEsitoPreventivo();
+    return;
+  }
+
+  const { data: preventivo, error } = await db
+    .from('preventivi')
+    .select('totale_imponibile,anticipo_richiesto,anticipo_tipo,anticipo_valore')
+    .eq('id', preventivoId)
+    .single();
+
+  if (error || !preventivo) {
+    // Senza i dati non si può chiedere l'anticipo: conferma bloccata.
+    anticipoEsitoNonCaricato = true;
+    toast('Dati dell\'anticipo non caricati: chiudi e riapri la finestra', 'err');
+    return;
+  }
+
+  anticipoEsitoAttivo = true;
+  anticipoEsitoTotale = numeroPreventivo(preventivo.totale_imponibile);
+  box.style.display = '';
+
+  if (preventivo.anticipo_richiesto === true || preventivo.anticipo_richiesto === false) {
+    const scelta = document.querySelector(
+      'input[name="mep-anticipo"][value="' + (preventivo.anticipo_richiesto ? 'si' : 'no') + '"]'
+    );
+    if (scelta) scelta.checked = true;
+  }
+
+  if (preventivo.anticipo_tipo) ge('mep-anticipo-tipo').value = preventivo.anticipo_tipo;
+  if (preventivo.anticipo_valore !== null && preventivo.anticipo_valore !== undefined) {
+    ge('mep-anticipo-valore').value = preventivo.anticipo_valore;
+  }
+
+  ge('mep-anticipo-totale').textContent =
+    'Totale imponibile del preventivo: ' + euroPreventivo(anticipoEsitoTotale);
+
+  aggiornaAnticipoEsitoPreventivo();
+}
+
+function sceltaAnticipoEsito() {
+  const scelta = document.querySelector('input[name="mep-anticipo"]:checked');
+  if (!scelta) return null;
+  return scelta.value === 'si';
+}
+
+function aggiornaAnticipoEsitoPreventivo() {
+  const richiesto = sceltaAnticipoEsito();
+
+  const dettaglio = ge('mep-anticipo-dettaglio');
+  if (dettaglio) dettaglio.style.display = richiesto === true ? 'grid' : 'none';
+
+  const avviso = ge('mep-anticipo-avviso');
+  if (avviso) avviso.style.display = richiesto === true ? '' : 'none';
+
+  const calcolo = ge('mep-anticipo-calcolo');
+  if (calcolo) {
+    calcolo.textContent = richiesto === true
+      ? testoAnticipoPreventivo(v('mep-anticipo-tipo'), v('mep-anticipo-valore'), anticipoEsitoTotale)
+      : '';
+  }
+
+  aggiornaBottoneEsitoPreventivo();
+}
+
+function datiAnticipoEsitoPreventivo() {
+  if (anticipoEsitoNonCaricato) {
+    return { errore: 'Dati dell\'anticipo non caricati: chiudi e riapri la finestra' };
+  }
+  if (!anticipoEsitoAttivo) return null;
+
+  return datiAnticipoValidi(
+    sceltaAnticipoEsito(),
+    v('mep-anticipo-tipo'),
+    v('mep-anticipo-valore'),
+    anticipoEsitoTotale,
+    false
+  );
+}
+
+function anticipoEsitoPronto() {
+  const anticipo = datiAnticipoEsitoPreventivo();
+  return !anticipo || !anticipo.errore;
+}
+
+// ---- Dashboard segreteria: "Anticipi da fatturare" -----------------------
+
+async function loadAnticipiDaFatturare() {
+  const sezione = ge('seg-anticipi-sezione');
+  const box = ge('seg-anticipi-lista');
+  const kpi = ge('seg-k-anticipi');
+  const kpiCard = ge('seg-k-anticipi-card');
+
+  if (!box) return;
+
+  if (!(await verificaAnticipoPreventivoDisponibile())) {
+    if (sezione) sezione.style.display = 'none';
+    if (kpiCard) kpiCard.style.display = 'none';
+    return;
+  }
+
+  if (sezione) sezione.style.display = '';
+  if (kpiCard) kpiCard.style.display = '';
+
+  const { data, error } = await db
+    .from('preventivi')
+    .select(`
+      id,
+      numero,
+      tipo,
+      totale_imponibile,
+      iva_perc,
+      condizioni_pagamento,
+      anticipo_richiesto,
+      anticipo_tipo,
+      anticipo_valore,
+      esito_registrato_il,
+      esito_registrato_da,
+      allegato_accettazione_path,
+      allegato_accettazione_nome,
+      clienti(ragione_sociale, rappresentante_id)
+    `)
+    .eq('stato', 'in_attesa_anticipo')
+    .order('esito_registrato_il', { ascending: true });
+
+  if (error) {
+    if (kpi) kpi.textContent = '—';
+    box.innerHTML = '<div class="rap-list-card"><div class="tit-empty">Errore: ' + esc(error.message) + '</div></div>';
+    return;
+  }
+
+  const anticipi = data || [];
+  if (kpi) kpi.textContent = anticipi.length;
+
+  if (!anticipi.length) {
+    box.innerHTML = '<div class="rap-list-card"><div class="tit-empty">✅ Nessun anticipo da fatturare</div></div>';
+    return;
+  }
+
+  const oggi = new Date();
+  oggi.setHours(0, 0, 0, 0);
+
+  box.innerHTML = `
+    <div class="al2 w" style="margin-bottom:10px">
+      Preventivi accettati dal cliente con anticipo: emetti la fattura d'anticipo
+      e verifica l'accredito. Senza accredito il preventivo non è approvato e la
+      commessa non parte. Dal più vecchio.
+    </div>
+  ` + anticipi.map(function(p) {
+    const importo = importoAnticipoPreventivo(p.anticipo_tipo, p.anticipo_valore, p.totale_imponibile);
+    const ivaPerc = Number(p.iva_perc ?? 22);
+    const accettatoIl = p.esito_registrato_il ? new Date(p.esito_registrato_il) : null;
+    let giorni = null;
+
+    if (accettatoIl) {
+      const giorno = new Date(accettatoIl);
+      giorno.setHours(0, 0, 0, 0);
+      giorni = Math.round((oggi - giorno) / 86400000);
+    }
+
+    const rappresentante = nomeChiHaRegistratoEsito(p.clienti?.rappresentante_id);
+    const chi = nomeChiHaRegistratoEsito(p.esito_registrato_da);
+
+    return `
+      <div class="card" style="margin-bottom:10px;border-left:4px solid #EF9F27">
+        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <div style="min-width:0">
+            <div style="font-size:14px;font-weight:700">
+              Preventivo n. ${esc(String(p.numero || '—'))}
+              · ${esc(p.clienti?.ragione_sociale || 'Cliente')}
+            </div>
+            <div style="font-size:12px;color:var(--m);margin-top:3px">
+              ${esc(p.tipo || 'Preventivo')}
+              ${rappresentante ? ' · Rappresentante: ' + esc(rappresentante) : ''}
+            </div>
+          </div>
+          <span class="bx bwarn">
+            ${giorni === null ? 'In attesa' : (giorni === 0 ? 'Accettato oggi' : 'Da ' + giorni + (giorni === 1 ? ' giorno' : ' giorni'))}
+          </span>
+        </div>
+
+        <div class="g2" style="margin-top:10px">
+          ${irHtmlPreventivo('Anticipo da fatturare (IVA esclusa)', '<b>' + esc(euroPreventivo(importo)) + '</b>')}
+          ${irHtmlPreventivo('Con IVA ' + ivaPerc + '%', esc(euroPreventivo(Math.round(importo * (100 + ivaPerc)) / 100)))}
+          ${irHtmlPreventivo('Come richiesto', esc(testoAnticipoPreventivo(p.anticipo_tipo, p.anticipo_valore, p.totale_imponibile) || '—'))}
+          ${irHtmlPreventivo('Totale imponibile preventivo', esc(euroPreventivo(p.totale_imponibile)))}
+        </div>
+
+        ${p.condizioni_pagamento ? `
+          <div style="font-size:12px;margin-top:8px;white-space:pre-wrap">
+            <span style="color:var(--m)">Modalità di pagamento:</span> ${esc(p.condizioni_pagamento)}
+          </div>
+        ` : ''}
+
+        <div style="font-size:12px;color:var(--m);margin-top:8px">
+          Accettato ${accettatoIl ? 'il ' + esc(dataOraEsitoPreventivo(p.esito_registrato_il)) : ''}
+          ${chi ? ' · registrato da ' + esc(chi) : ''}
+        </div>
+
+        ${p.allegato_accettazione_path ? `
+          <div style="margin-top:10px">
+            <button
+              class="btn sm"
+              onclick="apriAllegatoPreventivoFornitore('${esc(p.allegato_accettazione_path)}')"
+            >
+              📎 ${esc(p.allegato_accettazione_nome || 'Preventivo firmato / mail di approvazione')}
+            </button>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
 }
