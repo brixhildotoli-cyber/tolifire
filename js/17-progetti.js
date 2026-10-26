@@ -430,8 +430,12 @@ const authUserId = authData.user.id;
       materiali_note: v('mp-materiali').trim() || null
     };
 
-    // F3.3: importo stimato (solo se la colonna esiste, sql/21).
-    if (await controllaColonnaImportoProgetto()) {
+    // F3.3: importo stimato (solo se la colonna esiste, sql/21) e solo se
+    // il campo era visibile: se all'apertura il controllo era fallito
+    // (campo nascosto e vuoto) non si deve cancellare l'importo già salvato.
+    const boxImporto = ge('mp-importo-box');
+    if (boxImporto && boxImporto.style.display !== 'none' &&
+        await controllaColonnaImportoProgetto()) {
       const testoImporto = String(v('mp-importo')).trim().replace(',', '.');
 
       if (testoImporto === '') {
