@@ -1,11 +1,13 @@
 # Codice morto — moduli `js/00-25` e `index.html`
 
-> **Solo analisi (F2.4, 26/10/2026, branch `sviluppo`).** Niente è stato
-> rimosso. Ogni rimozione richiede la conferma di Toli ("CONFERMATO DA
-> TOLI"), come da CLAUDE.md. Questo file sostituisce la versione
-> precedente, che si riferiva al vecchio `app.js` (non esiste più).
-> Le righe indicate valgono per il commit di questo file: se il codice
-> cambia prima della pulizia, rifare i controlli.
+> **Stato al 26/10/2026 (F2.4, branch `sviluppo`).** Toli ha confermato
+> (riferito da Erika il 26/10) i lotti **L1, L2a, L2b, L2c, L3, L4** e la
+> D2: sono stati **rimossi**, un commit per lotto (vedi §7). Le sezioni 1
+> e 2 restano come registro di ciò che è stato tolto: i numeri di riga
+> valgono per il commit 9a52c93 (prima della pulizia), non per il codice
+> attuale. **Non** confermati e quindi ancora nel codice: L5 (§3, domande
+> D3-D5) e L6 (§4, domanda D7), annotati come lavori nuovi in CLAUDE.md.
+> Il database non è stato toccato.
 
 ## Metodo
 
@@ -39,7 +41,7 @@ Livelli di confidenza:
 
 ---
 
-## 1. ALTA — Copie sovrascritte (la prima definizione non viene mai eseguita)
+## 1. ALTA — Copie sovrascritte (la prima definizione non viene mai eseguita) — RIMOSSE (L1, L2a, L2b, L2c)
 
 | # | Funzione | Copia morta | Copia viva | Esito `diff` / motivo |
 |---|---|---|---|---|
@@ -57,7 +59,7 @@ Attenzione per il lotto 2: 1.7 e 1.8 vanno tolte **insieme**. Se si
 togliesse solo la 07, la riga 20:352 (`const … = preparaImportPresidi;`)
 darebbe errore al caricamento e bloccherebbe tutto il modulo 20.
 
-## 2. ALTA — Funzioni mai chiamate (nessun richiamo, nemmeno da HTML)
+## 2. ALTA — Funzioni mai chiamate (nessun richiamo, nemmeno da HTML) — RIMOSSE (L3, L4)
 
 | # | Funzione | Posizione | Motivo / cosa la sostituisce |
 |---|---|---|---|
@@ -164,27 +166,43 @@ devono comparire errori rossi al caricamento.
 
 | Lotto | Contenuto | Righe circa | Prova (ruolo) |
 |---|---|---|---|
-| **L1** doppioni identici | 1.1, 1.2 (01-core.js:93-117, compreso il commento `// NAV MOBILE` se non serve più), 1.3 | 30 | da telefono o finestra stretta: aprire e chiudere il menu, cambiare pagina (qualsiasi ruolo). Titolare: Presidi → scheda → storico, etichette "Gennaio – Giugno" corrette |
-| **L2a** scadenze | 1.5 (07:408-414) | 7 | titolare: Presidi → scheda Scadenze, cartelle e date visibili |
-| **L2b** cartelle presidi | 1.4 (07:92-401) | 310 | titolare e capo tecnico: Presidi → cartelle per cliente, filtri, "Elimina tutto" della sottosezione, + Aggiungi |
-| **L2c** importazione CSV | 1.6, 1.7, 1.8, 1.9 (07:1101-1140, 07:1142-1403, 07:1450-1525, 20:351-363) — insieme | 405 | titolare: Presidi → Importa CSV, scelta cliente/sede/gruppo/tipologia, anteprima, conferma su un cliente di prova (estintori, poi manichette e naspi) |
-| **L3** funzioni orfane | 2.1-2.8 | 150 | titolare: scheda cliente (tab Presidi), modifica cliente; Lead dal sito: assegna e invia a un rappresentante. Rappresentante: dashboard |
-| **L4** vecchio "nuovo preventivo" | 2.9, 2.10, 2.11 | 200 | titolare: avvio preventivo da progetto (flusso F2.3); commerciale: Da preventivare → crea bozza |
-| **L5** solo dopo le risposte D3-D5 | 3.1 (+ riquadro index.html:958-970), 3.2, 3.3: togliere **oppure** collegare | — | dipende dalla decisione |
-| **L6** solo dopo D7 | 4.1/4.2: togliere bottone e modale **oppure** scrivere le funzioni | — | tecnico: scheda intervento, passo 1 |
+| **L1** doppioni identici — RIMOSSO `98eff12` | 1.1, 1.2 (01-core.js:93-117, compreso il commento `// NAV MOBILE` se non serve più), 1.3 | 30 | da telefono o finestra stretta: aprire e chiudere il menu, cambiare pagina (qualsiasi ruolo). Titolare: Presidi → scheda → storico, etichette "Gennaio – Giugno" corrette |
+| **L2a** scadenze — RIMOSSO `5a0b707` | 1.5 (07:408-414) | 7 | titolare: Presidi → scheda Scadenze, cartelle e date visibili |
+| **L2b** cartelle presidi — RIMOSSO `82062a4` | 1.4 (07:92-401) | 310 | titolare e capo tecnico: Presidi → cartelle per cliente, filtri, "Elimina tutto" della sottosezione, + Aggiungi |
+| **L2c** importazione CSV — RIMOSSO `af6cc34` | 1.6, 1.7, 1.8, 1.9 (07:1101-1140, 07:1142-1403, 07:1450-1525, 20:351-363) — insieme | 405 | titolare: Presidi → Importa CSV, scelta cliente/sede/gruppo/tipologia, anteprima, conferma su un cliente di prova (estintori, poi manichette e naspi) |
+| **L3** funzioni orfane — RIMOSSO `5ef744d` | 2.1-2.8 | 150 | titolare: scheda cliente (tab Presidi), modifica cliente; Lead dal sito: assegna e invia a un rappresentante. Rappresentante: dashboard |
+| **L4** vecchio "nuovo preventivo" — RIMOSSO `1e9149f` | 2.9, 2.10, 2.11 | 200 | titolare: avvio preventivo da progetto (flusso F2.3); commerciale: Da preventivare → crea bozza |
+| **L5** solo dopo le risposte D3-D5 — NON confermato, nel codice (CLAUDE.md D3-D5) | 3.1 (+ riquadro index.html:958-970), 3.2, 3.3: togliere **oppure** collegare | — | dipende dalla decisione |
+| **L6** solo dopo D7 — NON confermato, nel codice (CLAUDE.md D7) | 4.1/4.2: togliere bottone e modale **oppure** scrivere le funzioni | — | tecnico: scheda intervento, passo 1 |
 
 Totale L1-L4: circa 1.100 righe in meno, nessun cambiamento visibile.
 L'ordine consigliato è L1 → L2a → L2b → L2c → L3 → L4, un lotto per
 volta, ognuno provato prima di passare al successivo, e pubblicazione
 su `gestionale_new` solo dopo la prova di tutti.
 
+### Esito della rimozione (26/10/2026)
+
+Per ogni lotto, dopo il commit: `node --check` sui file toccati;
+`grep -rnw` dei nomi tolti in `js/` e `index.html` con zero risultati
+(per i doppioni di §1 resta, come previsto, la sola copia viva:
+`toggleNavMobile`/`chiudiNavMobile` in js/02, `renderPS` in js/24,
+`renderPC` in js/09, `leggiFileImportPresidi`/`preparaImportPresidi` in
+js/21, `confermaImportPresidi` in js/20, con le estensioni di §5 intatte);
+simulazione di caricamento dei 26 moduli nell'ordine reale con DOM e
+Supabase finti: zero errori di sintassi e di caricamento, nessun nuovo
+`onclick` senza funzione, nessun nuovo id mancante, perse solo le
+globali previste. Funzioni mai chiamate rimaste: solo le tre di §3.
+Ogni lotto si annulla con `git revert <hash>`. Restano da fare le prove
+in browser indicate nella colonna "Prova" prima della pubblicazione su
+`gestionale_new`.
+
 ## 8. Domande per Toli
 
-- **D1.** Confermi la rimozione dei lotti **L1, L2a, L2b, L2c, L3, L4**
+- **D1.** (RISPOSTA: confermati L1-L4, 26/10) Confermi la rimozione dei lotti **L1, L2a, L2b, L2c, L3, L4**
   (sezioni 1 e 2: copie mai eseguite e funzioni mai chiamate, nessun
   effetto visibile)? Basta rispondere "CONFERMATO DA TOLI: L1-L4", oppure
   indicare solo i lotti che vanno bene.
-- **D2.** Il vecchio modo di creare un preventivo (modale "Nuovo
+- **D2.** (RISPOSTA: sì, superato; rimosso in L4) Il vecchio modo di creare un preventivo (modale "Nuovo
   preventivo" con tipo, validità, sconto, IVA, note — voci 2.9-2.11) è
   definitivamente superato dall'avvio F2.3? Se sì va in L4, se no va
   ricollegato.
