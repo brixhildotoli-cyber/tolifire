@@ -69,6 +69,7 @@ async function openPreventivoDetail(preventivoId) {
 
   currentPreventivoId = preventivo.id;
   currentPreventivoProgettoId = preventivo.progetto_tecnico_id;
+  impostaBloccoVociPreventivo(preventivo.stato);
 
   const progetto = preventivo.progetti_tecnici;
   const cliente = preventivo.clienti?.ragione_sociale || 'Cliente non disponibile';
@@ -3192,6 +3193,12 @@ async function rimuoviFornitorePreventivo(selezioneId) {
 }
 
 async function usaQuotazioneFornitoreNelPreventivo(selezioneId) {
+  // F4.3: dopo l'esito del cliente le voci non si cambiano (solo il titolare).
+  if (vociPreventivoBloccate) {
+    toast('Il cliente ha già dato l\'esito: le voci del preventivo non si cambiano più', 'err');
+    return;
+  }
+
   const { data: selezione, error: erroreSelezione } = await db
     .from('preventivi_fornitori')
     .select(`
@@ -3305,6 +3312,10 @@ let anticipoPreventivoEditor = {
   tipo: 'percentuale',
   valore: ''
 };
+// F4.3: dopo l'esito del cliente (in attesa anticipo, accettato,
+// rifiutato) voci e totale non si cambiano, tranne che per il titolare.
+let esitoRegistratoEditorPreventivo = false;
+let vociPreventivoBloccate = false;
 let storicoUndoPreventivo = [];
 let vociEliminatePreventivo = [];
 let chiaveModificaPreventivo = '';
@@ -3759,6 +3770,45 @@ ${htmlAnticipoEditorPreventivo(vendita)}
 
     </div>
   `;
+
+  // F4.3: dopo l'esito del cliente l'editor è in sola lettura (non per il titolare).
+  if (vociPreventivoBloccate) {
+    bloccaEditorVociPreventivo(box);
+  } else if (esitoRegistratoEditorPreventivo) {
+    box.insertAdjacentHTML('afterbegin', `
+      <div class="al2 w" style="margin-bottom:14px">
+        Il cliente ha già dato l'esito di questo preventivo. Come titolare puoi
+        ancora cambiare voci e totale: con un anticipo in percentuale cambia anche
+        l'importo da fatturare.
+      </div>
+    `);
+  }
+}
+
+// F4.3 ---------------------------------------------------------------
+function impostaBloccoVociPreventivo(stato) {
+  esitoRegistratoEditorPreventivo = STATI_ESITO_PREVENTIVO.includes(stato);
+  vociPreventivoBloccate = esitoRegistratoEditorPreventivo && ROLE !== 'titolare';
+}
+
+// Sola lettura: campi disattivati, resta solo "Genera PDF cliente".
+function bloccaEditorVociPreventivo(box) {
+  box.querySelectorAll('input, select, textarea').forEach(function(campo) {
+    campo.disabled = true;
+  });
+
+  box.querySelectorAll('button').forEach(function(bottone) {
+    const azione = bottone.getAttribute('onclick') || '';
+    if (/generaPreventivoClientePDF/.test(azione)) return;
+    bottone.style.display = 'none';
+  });
+
+  box.insertAdjacentHTML('afterbegin', `
+    <div class="al2 w" style="margin-bottom:14px">
+      🔒 Il cliente ha già dato l'esito di questo preventivo: voci, totale e
+      condizioni non si cambiano più. Per una correzione rivolgiti al titolare.
+    </div>
+  `);
 }
 
 function formatoDataOraCertificato(data) {
@@ -4442,9 +4492,12 @@ async function renderCostiPreventivo() {
     .from('preventivi')
     .select(anticipoDisponibile
       ? 'note,condizioni_pagamento,stato,anticipo_richiesto,anticipo_tipo,anticipo_valore'
-      : 'note,condizioni_pagamento')
+      : 'note,condizioni_pagamento,stato')
     .eq('id', currentPreventivoId)
     .single();
+
+  // F4.3: stato aggiornato (l'esito può essere arrivato nel frattempo).
+  if (preventivo) impostaBloccoVociPreventivo(preventivo.stato);
 
   notePreventivoCliente = preventivo?.note || '';
 
@@ -4509,6 +4562,9 @@ function eliminaVocePreventivo(voceId) {
 }
 
 async function salvaVociPreventivo() {
+  // F4.3: dopo l'esito non si salva nulla (il PDF si rigenera dalle voci salvate).
+  if (vociPreventivoBloccate) return true;
+
   const vociNonValide = vociPreventivoDati.some(function(voce) {
     return !String(voce.descrizione || '').trim();
   });
@@ -5366,14 +5422,19 @@ disegnaFooterClausoleSuTutteLePagine();
     return;
   }
 
+  const datiPdf = {
+    totale_imponibile: totaleImponibile,
+    preventivo_cliente_pdf_path: storagePath,
+    preventivo_cliente_pdf_nome: nomeFile,
+    preventivo_cliente_pdf_generato_il: new Date().toISOString()
+  };
+
+  // F4.3: dopo l'esito il totale non si riscrive (lo cambia solo il titolare).
+  if (vociPreventivoBloccate) delete datiPdf.totale_imponibile;
+
   const { error: erroreAggiornamento } = await db
     .from('preventivi')
-    .update({
-      totale_imponibile: totaleImponibile,
-      preventivo_cliente_pdf_path: storagePath,
-      preventivo_cliente_pdf_nome: nomeFile,
-      preventivo_cliente_pdf_generato_il: new Date().toISOString()
-    })
+    .update(datiPdf)
     .eq('id', currentPreventivoId);
 
   if (erroreAggiornamento) {
@@ -7434,6 +7495,8 @@ async function aggiornaDopoEsitoPreventivo(preventivoId) {
 // Elenco "Esiti registrati" nella pagina I miei preventivi del rappresentante.
 async function htmlEsitiRegistratiRappresentante() {
   const anticipoDisponibile = await verificaAnticipoPreventivoDisponibile();
+  // F4.3: fattura d'anticipo e accredito (solo con sql/25).
+  const fatturaDisponibile = anticipoDisponibile && await verificaFatturaAnticipoDisponibile();
 
   const { data, error } = await db
     .from('preventivi')
@@ -7447,6 +7510,7 @@ async function htmlEsitiRegistratiRappresentante() {
       allegato_accettazione_path,
       allegato_accettazione_nome,
       ${anticipoDisponibile ? 'totale_imponibile, anticipo_richiesto, anticipo_tipo, anticipo_valore,' : ''}
+      ${fatturaDisponibile ? COLONNE_FATTURA_ANTICIPO + ',' : ''}
       clienti!inner(ragione_sociale, rappresentante_id)
     `)
     .in('stato', STATI_ESITO_PREVENTIVO)
@@ -7563,6 +7627,7 @@ function rigaAnticipoPreventivo(preventivo) {
           finché non è accreditato la commessa non parte.
         </div>
       ` : ''}
+      ${htmlFatturaAnticipoPreventivo(preventivo)}
     </div>
   `;
 }
@@ -7839,11 +7904,15 @@ async function loadAnticipiDaFatturare() {
   if (sezione) sezione.style.display = '';
   if (kpiCard) kpiCard.style.display = '';
 
+  // F4.3: fattura d'anticipo e accredito (solo con sql/25).
+  const fatturaDisponibile = await verificaFatturaAnticipoDisponibile();
+
   const { data, error } = await db
     .from('preventivi')
     .select(`
       id,
       numero,
+      stato,
       tipo,
       totale_imponibile,
       iva_perc,
@@ -7855,6 +7924,7 @@ async function loadAnticipiDaFatturare() {
       esito_registrato_da,
       allegato_accettazione_path,
       allegato_accettazione_nome,
+      ${fatturaDisponibile ? COLONNE_FATTURA_ANTICIPO + ',' : ''}
       clienti(ragione_sociale, rappresentante_id)
     `)
     .eq('stato', 'in_attesa_anticipo')
@@ -7870,7 +7940,7 @@ async function loadAnticipiDaFatturare() {
   if (kpi) kpi.textContent = anticipi.length;
 
   if (!anticipi.length) {
-    box.innerHTML = '<div class="rap-list-card"><div class="tit-empty">✅ Nessun anticipo da fatturare</div></div>';
+    box.innerHTML = '<div class="rap-list-card"><div class="tit-empty">✅ Nessun anticipo da fatturare o da accreditare</div></div>';
     return;
   }
 
@@ -7879,9 +7949,10 @@ async function loadAnticipiDaFatturare() {
 
   box.innerHTML = `
     <div class="al2 w" style="margin-bottom:10px">
-      Preventivi accettati dal cliente con anticipo: emetti la fattura d'anticipo
-      e verifica l'accredito. Senza accredito il preventivo non è approvato e la
-      commessa non parte. Dal più vecchio.
+      Preventivi accettati dal cliente con anticipo: emetti la fattura d'anticipo,
+      registrala qui, poi segna l'accredito quando l'hai verificato sul conto.
+      Senza accredito il preventivo non è approvato e la commessa non parte.
+      Dal più vecchio.
     </div>
   ` + anticipi.map(function(p) {
     const importo = importoAnticipoPreventivo(p.anticipo_tipo, p.anticipo_valore, p.totale_imponibile);
@@ -7911,9 +7982,16 @@ async function loadAnticipiDaFatturare() {
               ${rappresentante ? ' · Rappresentante: ' + esc(rappresentante) : ''}
             </div>
           </div>
-          <span class="bx bwarn">
-            ${giorni === null ? 'In attesa' : (giorni === 0 ? 'Accettato oggi' : 'Da ' + giorni + (giorni === 1 ? ' giorno' : ' giorni'))}
-          </span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start">
+            ${fatturaDisponibile ? `
+              <span class="bx ${p.anticipo_fattura_numero ? 'bblue' : 'bwarn'}">
+                ${p.anticipo_fattura_numero ? 'Fatturato · attende accredito' : 'Da fatturare'}
+              </span>
+            ` : ''}
+            <span class="bx bwarn">
+              ${giorni === null ? 'In attesa' : (giorni === 0 ? 'Accettato oggi' : 'Da ' + giorni + (giorni === 1 ? ' giorno' : ' giorni'))}
+            </span>
+          </div>
         </div>
 
         <div class="g2" style="margin-top:10px">
@@ -7934,6 +8012,8 @@ async function loadAnticipiDaFatturare() {
           ${chi ? ' · registrato da ' + esc(chi) : ''}
         </div>
 
+        ${htmlFatturaAnticipoPreventivo(p)}
+
         ${p.allegato_accettazione_path ? `
           <div style="margin-top:10px">
             <button
@@ -7947,4 +8027,291 @@ async function loadAnticipiDaFatturare() {
       </div>
     `;
   }).join('');
+}
+
+// =====================================================================
+// F4.3 — FATTURA D'ANTICIPO E ACCREDITO VERIFICATO
+// Passo 6 del flusso: la segreteria (o il titolare) registra la fattura
+// d'anticipo emessa (numero, data, importo) e poi l'accredito verificato
+// (data; chi = l'utente collegato). Con l'accredito il preventivo diventa
+// 'accettato': via libera al rappresentante. Il database lo impone
+// (sql/25: registra_fattura_anticipo, registra_accredito_anticipo e
+// trigger trg_preventivi_esito). La fattura non va nella tabella fatture
+// (modulo Fatture in costruzione): sul preventivo resta il riferimento.
+// Senza sql/25 i bottoni non compaiono.
+// =====================================================================
+
+const COLONNE_FATTURA_ANTICIPO =
+  'anticipo_fattura_numero, anticipo_fattura_data, anticipo_fattura_importo, ' +
+  'anticipo_fattura_registrata_da, anticipo_fattura_registrata_il, ' +
+  'anticipo_accredito_data, anticipo_accredito_verificato_da, anticipo_accredito_registrato_il';
+
+let fatturaAnticipoDisponibile = null;
+let anticipoSegreteriaTotale = 0;
+
+// true se sql/25 è stato eseguito (esiste la colonna anticipo_fattura_numero).
+async function verificaFatturaAnticipoDisponibile() {
+  if (fatturaAnticipoDisponibile !== null) return fatturaAnticipoDisponibile;
+
+  const { error } = await db
+    .from('preventivi')
+    .select('anticipo_fattura_numero')
+    .limit(1);
+
+  if (!error) {
+    fatturaAnticipoDisponibile = true;
+  } else if (/anticipo_fattura_numero|column|colonna/i.test(error.message || '')) {
+    fatturaAnticipoDisponibile = false;
+  } else {
+    // Errore di rete o altro: non decidere ora, riprova la prossima volta.
+    return false;
+  }
+
+  return fatturaAnticipoDisponibile;
+}
+
+function puoRegistrareAccreditoAnticipo() {
+  return ROLE === 'segreteria' || ROLE === 'titolare';
+}
+
+// Fattura d'anticipo e accredito: riepilogo per tutti, bottoni solo per
+// segreteria e titolare finché il preventivo è in attesa dell'anticipo.
+function htmlFatturaAnticipoPreventivo(p) {
+  if (!p || !('anticipo_fattura_numero' in p) || p.anticipo_richiesto !== true) return '';
+
+  const fattura = !!p.anticipo_fattura_numero;
+  const accredito = !!p.anticipo_accredito_data;
+  const chiFattura = nomeChiHaRegistratoEsito(p.anticipo_fattura_registrata_da);
+  const chiAccredito = nomeChiHaRegistratoEsito(p.anticipo_accredito_verificato_da);
+  const puo = p.stato === 'in_attesa_anticipo' && puoRegistrareAccreditoAnticipo();
+
+  return `
+    <div style="margin-top:8px;font-size:12px;line-height:1.6">
+      <div>
+        🧾 Fattura d'anticipo:
+        ${fattura
+          ? '<b>n. ' + esc(p.anticipo_fattura_numero) + '</b> del ' + esc(fd(p.anticipo_fattura_data)) +
+            ' · ' + esc(euroPreventivo(p.anticipo_fattura_importo)) + ' + IVA' +
+            (chiFattura ? ' · registrata da ' + esc(chiFattura) : '')
+          : '<b>non ancora registrata</b>'}
+      </div>
+      <div>
+        🏦 Accredito:
+        ${accredito
+          ? '<b>verificato</b> · accreditato il ' + esc(fd(p.anticipo_accredito_data)) +
+            (chiAccredito ? ' · verificato da ' + esc(chiAccredito) : '')
+          : '<b>non ancora verificato</b>'}
+      </div>
+    </div>
+    ${puo ? `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn sm${fattura ? '' : ' p'}" onclick="apriAnticipoSegreteria('${p.id}', 'fattura')">
+          ${fattura ? '✏️ Correggi fattura d\'anticipo' : '🧾 Registra fattura d\'anticipo'}
+        </button>
+        <button
+          class="btn sm${fattura ? ' p' : ''}"
+          ${fattura ? '' : 'disabled title="Registra prima la fattura d\'anticipo"'}
+          onclick="apriAnticipoSegreteria('${p.id}', 'accredito')"
+        >
+          ✅ Accredito verificato
+        </button>
+      </div>
+    ` : ''}
+  `;
+}
+
+async function apriAnticipoSegreteria(preventivoId, modo) {
+  if (!puoRegistrareAccreditoAnticipo()) {
+    toast('Solo la segreteria o il titolare registrano fattura d\'anticipo e accredito', 'err');
+    return;
+  }
+
+  if (!(await verificaFatturaAnticipoDisponibile())) {
+    toast('Funzione non ancora attiva sul database (manca sql/25)', 'err');
+    return;
+  }
+
+  const { data: p, error } = await db
+    .from('preventivi')
+    .select(`
+      id,
+      numero,
+      stato,
+      totale_imponibile,
+      iva_perc,
+      anticipo_richiesto,
+      anticipo_tipo,
+      anticipo_valore,
+      ${COLONNE_FATTURA_ANTICIPO},
+      clienti(ragione_sociale)
+    `)
+    .eq('id', preventivoId)
+    .single();
+
+  if (error || !p) {
+    toast('Preventivo non caricato: ' + (error?.message || 'non trovato'), 'err');
+    return;
+  }
+
+  if (p.stato !== 'in_attesa_anticipo') {
+    toast('Il preventivo non è più in attesa dell\'anticipo', 'err');
+    await aggiornaDopoAnticipoSegreteria(preventivoId);
+    return;
+  }
+
+  if (modo === 'accredito' && !p.anticipo_fattura_numero) {
+    toast('Registra prima la fattura d\'anticipo', 'err');
+    return;
+  }
+
+  const fattura = modo === 'fattura';
+  const atteso = importoAnticipoPreventivo(p.anticipo_tipo, p.anticipo_valore, p.totale_imponibile);
+  const oggi = dataLocaleISO();
+
+  anticipoSegreteriaTotale = numeroPreventivo(p.totale_imponibile);
+
+  ge('mas-preventivo-id').value = p.id;
+  ge('mas-modo').value = modo;
+  ge('mas-titolo').textContent = fattura
+    ? (p.anticipo_fattura_numero ? '✏️ Correggi la fattura d\'anticipo' : '🧾 Fattura d\'anticipo emessa')
+    : '✅ Accredito dell\'anticipo verificato';
+  ge('mas-sottotitolo').textContent =
+    'Preventivo n. ' + (p.numero || '—') + ' · ' + (p.clienti?.ragione_sociale || 'Cliente');
+
+  ge('mas-riepilogo').innerHTML = fattura
+    ? 'Anticipo richiesto: <b>' + esc(testoAnticipoPreventivo(p.anticipo_tipo, p.anticipo_valore, p.totale_imponibile) || '—') +
+      '</b><br>Totale imponibile del preventivo: ' + esc(euroPreventivo(p.totale_imponibile))
+    : 'Fattura d\'anticipo <b>n. ' + esc(p.anticipo_fattura_numero) + '</b> del ' + esc(fd(p.anticipo_fattura_data)) +
+      ': <b>' + esc(euroPreventivo(p.anticipo_fattura_importo)) + '</b> + IVA ' + Number(p.iva_perc ?? 22) + '%';
+
+  ge('mas-box-fattura').style.display = fattura ? '' : 'none';
+  ge('mas-box-accredito').style.display = fattura ? 'none' : '';
+
+  ge('mas-fattura-numero').value = p.anticipo_fattura_numero || '';
+  ge('mas-fattura-data').value = p.anticipo_fattura_data || oggi;
+  ge('mas-fattura-data').max = oggi;
+  ge('mas-fattura-importo').value = p.anticipo_fattura_importo ?? (Math.round(atteso * 100) / 100);
+  ge('mas-fattura-importo').dataset.atteso = String(Math.round(atteso * 100) / 100);
+
+  ge('mas-accredito-data').value = oggi;
+  ge('mas-accredito-data').max = oggi;
+  ge('mas-accredito-conferma').checked = false;
+
+  const bottone = ge('mas-conferma');
+  bottone.textContent = fattura ? '🧾 Salva fattura d\'anticipo' : '✅ Conferma accredito';
+
+  aggiornaBottoneAnticipoSegreteria();
+  openM('m-anticipo-segreteria');
+}
+
+// Controlla i dati della finestra: restituisce { errore } oppure i dati.
+function datiAnticipoSegreteria() {
+  const oggi = dataLocaleISO();
+
+  if (v('mas-modo') === 'fattura') {
+    const numero = v('mas-fattura-numero').trim();
+    const data = v('mas-fattura-data');
+    const importo = Math.round(numeroPreventivo(v('mas-fattura-importo')) * 100) / 100;
+
+    if (!numero) return { errore: 'Indica il numero della fattura d\'anticipo' };
+    if (!data) return { errore: 'Indica la data della fattura' };
+    if (data > oggi) return { errore: 'La data della fattura non può essere nel futuro' };
+    if (!(importo > 0)) return { errore: 'Indica l\'importo fatturato (maggiore di zero)' };
+    if (importo > Math.round(anticipoSegreteriaTotale * 100) / 100) {
+      return { errore: 'L\'importo supera il totale imponibile del preventivo (' + euroPreventivo(anticipoSegreteriaTotale) + ')' };
+    }
+
+    return { numero: numero, data: data, importo: importo };
+  }
+
+  const dataAccredito = v('mas-accredito-data');
+  if (!dataAccredito) return { errore: 'Indica la data dell\'accredito' };
+  if (dataAccredito > oggi) return { errore: 'La data dell\'accredito non può essere nel futuro' };
+  if (!ge('mas-accredito-conferma')?.checked) {
+    return { errore: 'Conferma di aver verificato l\'accredito sul conto' };
+  }
+
+  return { dataAccredito: dataAccredito };
+}
+
+function aggiornaBottoneAnticipoSegreteria() {
+  const bottone = ge('mas-conferma');
+  if (!bottone) return;
+
+  const dati = datiAnticipoSegreteria();
+  bottone.disabled = !!dati.errore;
+
+  // Avviso (non blocca) se l'importo è diverso dall'anticipo richiesto.
+  const avviso = ge('mas-fattura-avviso');
+  if (avviso && v('mas-modo') === 'fattura') {
+    const atteso = numeroPreventivo(ge('mas-fattura-importo')?.dataset.atteso);
+    const importo = numeroPreventivo(v('mas-fattura-importo'));
+    avviso.textContent = dati.errore
+      ? dati.errore
+      : (Math.abs(importo - atteso) >= 0.01
+          ? '⚠️ Diverso dall\'anticipo richiesto (' + euroPreventivo(atteso) + '): controlla prima di salvare.'
+          : 'Uguale all\'anticipo richiesto.');
+  }
+}
+
+async function salvaAnticipoSegreteria() {
+  if (!puoRegistrareAccreditoAnticipo()) return;
+
+  const preventivoId = v('mas-preventivo-id');
+  const modo = v('mas-modo');
+  const bottone = ge('mas-conferma');
+  const dati = datiAnticipoSegreteria();
+
+  if (!preventivoId) return;
+
+  if (dati.errore) {
+    toast(dati.errore, 'err');
+    return;
+  }
+
+  if (modo === 'accredito' && !confirm(
+    'Confermi l\'accredito dell\'anticipo? Il preventivo diventa accettato e non si torna indietro.'
+  )) {
+    return;
+  }
+
+  bottone.disabled = true;
+
+  const { error } = modo === 'fattura'
+    ? await db.rpc('registra_fattura_anticipo', {
+        p_preventivo_id: preventivoId,
+        p_numero: dati.numero,
+        p_data: dati.data,
+        p_importo: dati.importo
+      })
+    : await db.rpc('registra_accredito_anticipo', {
+        p_preventivo_id: preventivoId,
+        p_data_accredito: dati.dataAccredito
+      });
+
+  if (error) {
+    bottone.disabled = false;
+    toast((modo === 'fattura' ? 'Fattura non registrata: ' : 'Accredito non registrato: ') + (error.message || 'errore sconosciuto'), 'err');
+    return;
+  }
+
+  closeM('m-anticipo-segreteria');
+  toast(
+    modo === 'fattura'
+      ? 'Fattura d\'anticipo registrata. Quando l\'anticipo arriva sul conto segna "Accredito verificato"'
+      : 'Accredito registrato: preventivo accettato, via libera al rappresentante',
+    'ok'
+  );
+
+  await aggiornaDopoAnticipoSegreteria(preventivoId);
+}
+
+async function aggiornaDopoAnticipoSegreteria(preventivoId) {
+  if (ROLE === 'segreteria' || ge('seg-anticipi-lista')?.offsetParent) {
+    await loadAnticipiDaFatturare();
+  }
+
+  if (currentPreventivoId === preventivoId && ge('pg-preventivo-detail')?.classList.contains('on')) {
+    await openPreventivoDetail(preventivoId);
+  }
 }

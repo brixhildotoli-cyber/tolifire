@@ -69,6 +69,8 @@ marca_preventivo_letto_rappresentante, marca_preventivo_letto_titolare,
 salva_esito_verifica, salva_bozza_verifica, elimina_scheda_storico,
 nuovo_intervento_manichetta, salva_riporto_presidio.
 Dopo sql/18 (F2.3, da eseguire): marca_certificato_letto_ingegnere.
+Dopo sql/25 (F4.3, da eseguire): registra_fattura_anticipo,
+registra_accredito_anticipo.
 Dopo sql/22 (F4.1, da eseguire): accetta_preventivo, rifiuta_preventivo.
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
 Sono gli accessi che le policy RLS per il portale dovranno permettere
@@ -259,6 +261,30 @@ l'esito i dati dell'anticipo non si cambiano. Lista "Anticipi da
 fatturare" nella dashboard della segreteria (js/18
 `loadAnticipiDaFatturare`, chiamata da js/03). Senza sql/24 nulla di
 questo compare.
+
+Passo 6, fattura d'anticipo e accredito (F4.3, sql/25-fattura-anticipo-
+accredito da eseguire dopo 24): la segreteria (o il titolare) registra
+la fattura d'anticipo emessa (numero, data, importo IVA esclusa;
+correggibile finché manca l'accredito) e poi l'accredito verificato
+(data; chi = utente collegato). Con l'accredito il preventivo diventa
+`accettato` (via libera al rappresentante). RPC registra_fattura_anticipo
+e registra_accredito_anticipo; il trigger trg_preventivi_esito impone le
+stesse regole anche agli update diretti (aggancio F4.3 di sql/24). Scelta:
+la fattura d'anticipo NON va nella tabella fatture (modulo Fatture in
+costruzione): sul preventivo restano i riferimenti `anticipo_fattura_*` e
+`anticipo_accredito_*`, da collegare alla fattura vera quando il modulo
+emetterà gli anticipi. Bottoni nella lista "Anticipi da fatturare"
+(dashboard segreteria) e nella scheda preventivo (titolare); il
+riepilogo lo vedono tutti (js/18 `htmlFatturaAnticipoPreventivo`,
+finestra m-anticipo-segreteria). Da 'in_attesa_anticipo' si esce solo
+verso 'accettato' con l'accredito.
+Blocco dopo l'esito (decisione proposta a Erika, F4.3): in
+in_attesa_anticipo, accettato e rifiutato voci, totale, sconto e IVA non
+cambiano e lo stato non torna indietro, tranne che per il titolare
+(trigger trg_preventivi_voci_blocco + trg_preventivi_esito, sql/25);
+nel sito l'editor delle voci è in sola lettura (resta "Genera PDF
+cliente"). Il blocco nel sito vale già senza sql/25; i bottoni di
+fattura e accredito compaiono solo con sql/25.
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

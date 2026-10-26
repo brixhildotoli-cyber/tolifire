@@ -316,7 +316,7 @@
         <div class="kpi-card clickable" onclick="gotoPage('workflow')"><div class="kpi-icon">💜</div><div class="kpi-num" id="seg-k-fatturare">—</div><div class="kpi-label">Schede da fatturare → al contabile</div></div>
         <div class="kpi-card clickable" onclick="gotoPage('interventi')"><div class="kpi-icon">❓</div><div class="kpi-num" id="seg-k-dapianif">—</div><div class="kpi-label">Interventi da pianificare</div></div>
         <div class="kpi-card clickable" onclick="gotoPage('interventi')"><div class="kpi-icon">✏️</div><div class="kpi-num" id="seg-k-richmod">—</div><div class="kpi-label">Richieste modifica tecnici</div></div>
-        <div class="kpi-card clickable attention" id="seg-k-anticipi-card" style="display:none" onclick="ge('seg-anticipi-sezione')?.scrollIntoView({behavior:'smooth'})"><div class="kpi-icon">💶</div><div class="kpi-num" id="seg-k-anticipi">—</div><div class="kpi-label">Anticipi da fatturare</div></div>
+        <div class="kpi-card clickable attention" id="seg-k-anticipi-card" style="display:none" onclick="ge('seg-anticipi-sezione')?.scrollIntoView({behavior:'smooth'})"><div class="kpi-icon">💶</div><div class="kpi-num" id="seg-k-anticipi">—</div><div class="kpi-label">Anticipi da fatturare o accreditare</div></div>
       </div>
 
       <!-- F4.2 — compare solo con sql/24 eseguito -->
@@ -2867,6 +2867,60 @@
       <button class="btn p" id="mep-conferma" disabled onclick="salvaEsitoPreventivo()">
         Conferma
       </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- F4.3 — FATTURA D'ANTICIPO E ACCREDITO (segreteria e titolare; solo con sql/25) -->
+<div class="mbg" id="m-anticipo-segreteria">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-anticipo-segreteria')">×</button>
+
+    <h3 id="mas-titolo">Anticipo</h3>
+
+    <input type="hidden" id="mas-preventivo-id">
+    <input type="hidden" id="mas-modo">
+
+    <div id="mas-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div id="mas-riepilogo" class="al2 i" style="margin-bottom:12px"></div>
+
+    <div id="mas-box-fattura" style="display:none">
+      <div class="fr">
+        <div class="f">
+          <label>Numero fattura d'anticipo *</label>
+          <input type="text" id="mas-fattura-numero" placeholder="Es. 125/2026" oninput="aggiornaBottoneAnticipoSegreteria()">
+        </div>
+        <div class="f">
+          <label>Data fattura *</label>
+          <input type="date" id="mas-fattura-data" onchange="aggiornaBottoneAnticipoSegreteria()" oninput="aggiornaBottoneAnticipoSegreteria()">
+        </div>
+      </div>
+      <div class="f">
+        <label>Importo fatturato (€, IVA esclusa) *</label>
+        <input type="number" id="mas-fattura-importo" min="0" step="0.01" oninput="aggiornaBottoneAnticipoSegreteria()">
+      </div>
+      <div id="mas-fattura-avviso" style="font-size:12px;color:var(--m)"></div>
+    </div>
+
+    <div id="mas-box-accredito" style="display:none">
+      <div class="f">
+        <label>Data dell'accredito sul conto *</label>
+        <input type="date" id="mas-accredito-data" onchange="aggiornaBottoneAnticipoSegreteria()" oninput="aggiornaBottoneAnticipoSegreteria()">
+      </div>
+      <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px;font-weight:400;margin-top:4px">
+        <input type="checkbox" id="mas-accredito-conferma" onchange="aggiornaBottoneAnticipoSegreteria()" style="margin-top:3px">
+        Ho verificato sul conto che l'anticipo è stato accreditato
+      </label>
+      <div class="al2 w" style="margin-top:12px">
+        Con l'accredito il preventivo diventa <b>accettato</b>: è il via libera al
+        rappresentante. Dopo la conferma fattura e accredito non si cambiano più.
+      </div>
+    </div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-anticipo-segreteria')">Annulla</button>
+      <button class="btn p" id="mas-conferma" disabled onclick="salvaAnticipoSegreteria()">Conferma</button>
     </div>
   </div>
 </div>
