@@ -82,7 +82,8 @@ Sono gli accessi che le policy RLS per il portale dovranno permettere
 
 ## Mappa ruoli: organigramma → gestionale
 Da "Roadmap gestionale TOLI Fire" (gestione-task/ROADMAP.md). Si tengono i
-codici attuali di `utenti.ruolo`; se ne aggiunge uno solo (capo_operativo).
+codici attuali di `utenti.ruolo`. Il ruolo capo_operativo NON si crea
+(decisione del 26/10).
 Esiste anche `informatico` (Erika Pistolesi): accesso completo come il
 titolare (decisione di Erika del 23/10, da confermare da Toli in F1.4).
 Cambiano solo le etichette in interfaccia (Fase 3), mai il codice.
@@ -94,7 +95,7 @@ Cambiano solo le etichette in interfaccia (Fase 3), mai il codice.
 | Ingegnere | ingegnere | Verifiche tecniche, schede rilievo, certificati | Aggiungerlo al form nuovo utente (Fase 2) |
 | Acquisti | commerciale (la parte acquisti) | Richieste ai fornitori, scelta fornitore, preventivo | Consumabili e noli dal cantiere (Fase 6) |
 | Reparto Tecnico e squadre | tecnico | Esegue gli interventi, scheda di lavoro | Giornale di cantiere (Fase 8), audit presidi (Fase 10) |
-| Capo Operativo | manca | — | Nuovo ruolo capo_operativo (Fase 3) |
+| Capo Operativo | capo_tecnico (nessun ruolo nuovo, decisione 26/10) | Commesse e cantieri li gestisce il capo tecnico; in sua assenza lo sostituisce uno dei tecnici | Definire come si attiva il sostituto |
 | Responsabile Service | capo_tecnico | Pianifica gli interventi | Contratti e appuntamenti (Fase 10) |
 | Segreteria | segreteria | Interventi da pianificare, documenti | Anticipi, faldone, appuntamenti, chiusura |
 | Programmazione e controllo | titolare (accesso completo) | — | — |
@@ -131,7 +132,6 @@ js/02-portale-navigazione.js; controllo in `canAccessPage`):
 - informatico: come titolare (in js/01-core.js `boot` ROLE diventa
   'titolare', etichetta "Informatico"; lato DB `ruolo_corrente()` in
   sql/07 restituisce 'titolare')
-- capo_operativo: da creare (Fase 3)
 
 ## Ruoli e cosa fa ciascuno (campo `ruolo` in `utenti`)
 
@@ -185,8 +185,9 @@ INGEGNERE
 - Consulta clienti e schede cliente senza modificarli.
 - Selezionabile nel form nuovo utente (F2.3, sviluppo 085ce7d).
 
-CAPO_OPERATIVO (da creare, Fase 3)
-- Capo Operativo dei cantieri: vede le commesse dalla Fase 5 in poi.
+CAPO_OPERATIVO: non esiste (decisione del 26/10). Le commesse (Fase 5 in
+poi) le gestisce il CAPO_TECNICO; in sua assenza lo sostituisce uno dei
+tecnici sotto di lui (modalità del sostituto da definire).
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
