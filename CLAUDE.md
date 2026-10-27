@@ -65,6 +65,12 @@ cancellazione: attivo=false), documenti_team_subappalti (sola lettura; si
 scrive solo con le RPC registra_, correggi_ ed
 elimina_documento_team_subappalti, js/30); colonna nuova
 impostazioni.giorni_preavviso_documenti (default 30).
+Dopo sql/33 (F7.2, da eseguire, richiede 26, 28 e 32): colonne nuove
+commesse.data_inizio, data_fine_prevista, date_fissate_da,
+date_fissate_il (sola lettura; le scrive imposta_date_commessa);
+commesse_faldone, commesse_faldone_persone, commesse_faldone_voci (sola
+lettura per titolare, segreteria, capo_tecnico; si scrivono solo con le
+RPC del faldone, js/31).
 
 Usate dal frontend — fatturazione:
 fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
@@ -103,6 +109,11 @@ Dopo sql/31 (F6.2, eseguito il 27/10): apri_richiesta_integrazione,
 evadi_richiesta_integrazione, cambia_stato_richiesta_integrazione.
 Dopo sql/32 (F7.1, eseguito il 27/10): registra_documento_team_subappalti,
 correggi_documento_team_subappalti, elimina_documento_team_subappalti.
+Dopo sql/33 (F7.2, da eseguire): imposta_date_commessa,
+controllo_faldone_commessa, aggiungi_persona_faldone,
+togli_persona_faldone, imposta_documenti_richiesti_faldone,
+aggiungi_voce_faldone, imposta_stato_voce_faldone, togli_voce_faldone,
+consegna_faldone_commessa.
 Dopo sql/25 (F4.3, da eseguire): registra_fattura_anticipo,
 registra_accredito_anticipo, rifiuta_per_anticipo_non_versato.
 Dopo sql/22 (F4.1, da eseguire): accetta_preventivo, rifiuta_preventivo.
@@ -145,7 +156,7 @@ il rappresentante anche sopra 3.000 € (decisione 26/10, sql/23).
 | Programmazione e controllo | titolare (accesso completo) | — | — |
 | Contabile (esterno all'organigramma) | contabile | Fatturazione | — |
 | Informatico (esterno all'organigramma) | informatico | Accesso completo come il titolare | — |
-| Subappaltatori | non sono utenti | Anagrafica con referente e documenti con scadenza (F7.1, sql/32) | Checklist faldone sulla commessa (F7.2) |
+| Subappaltatori | non sono utenti | Anagrafica con referente e documenti con scadenza (F7.1, sql/32); checklist faldone sulla commessa (F7.2, sql/33) | — |
 
 Decisione D1 (chiusa da Erika il 23/10, da confermare da Toli in F1.4):
 il "commerciale" verso il cliente è il ruolo rappresentante (anche per gli
@@ -521,7 +532,7 @@ quale parte manca).
 Team e subappalti (F7.1, js/30-team-subappalti.js; sql/32-team-subappalti-
 documenti eseguito il 27/10, richiede solo sql/07, non 26-31): prepara il passo
 10 (documenti dei dipendenti e dei subappalti per il faldone; date di
-inizio e checklist del faldone sulla commessa = F7.2). Voce
+inizio e checklist del faldone sulla commessa = F7.2, vedi sotto). Voce
 "🦺 Team e subappalti" nel menu di titolare, segreteria e capo_tecnico
 (pagine team-subappalti e scheda-documenti). Pagina con tab Scadenze
 (documenti in vigore scaduti o entro il preavviso), Dipendenti (utenti
@@ -571,6 +582,49 @@ data (es. inizio lavori). Un utente con documenti non si può eliminare
 (vincolo del DB): va disattivato. Senza sql/32 la pagina mostra "non
 ancora attivi", i box non compaiono e il preavviso in Impostazioni resta
 disattivato.
+
+Date dei lavori e faldone (F7.2, js/31-faldone-commessa.js;
+sql/33-faldone-commessa da eseguire, richiede 26, 28 e 32, non 29-31):
+passo 10. Box "🗂️ Date dei lavori e faldone" (cmd-faldone) nella scheda
+della commessa. Date: la segreteria (o il titolare) fissa inizio lavori
+(obbligatoria) e fine prevista (facoltativa, non prima dell'inizio);
+colonne sulla commessa, le vede chi vede la commessa (rappresentante e
+commerciale vedono solo le date). Faldone (lo leggono titolare,
+segreteria, capo_tecnico, come i documenti di sql/32): nasce da solo con
+la commessa (trigger; per quelle esistenti lo crea sql/33) con 4 voci
+predefinite (POS della commessa, PSC o DUVRI del committente, elenco
+personale e mezzi comunicato al cliente, autorizzazioni di accesso);
+personale in cantiere = dipendenti (utenti attivi) e subappaltatori
+(sql/32); documenti richiesti = fissi + "in più per questa commessa"
+(codici di js/30, es. PLE, lavori in quota; per il subappaltatore anche
+POS o DVR); altre voci (Da fare / Fatto / Non necessario; le
+predefinite non si tolgono). Documenti richiesti fissi (proposta, da
+confermare da Toli; nel DB `faldone_tipi_obbligatori`): dipendenti
+formazione_lavoratori e idoneita_sanitaria; subappaltatori durc,
+visura_camerale, assicurazione_rc. Controllo UNICO nel database
+(`stato_faldone_commessa`, dal sito `controllo_faldone_commessa`):
+documenti IN VIGORE (non sostituiti) validi alla data di inizio (o a
+oggi, se l'inizio è passato). BLOCCANO 'pronta': data di inizio
+mancante, nessuna persona, persona non attiva, documento mancante o
+scaduto, voce "da fare". Solo AVVISO: fine prevista mancante, documento
+che scade prima della fine prevista. "✅ Faldone consegnato al capo
+tecnico" (consegna_faldone_commessa, segreteria e titolare, solo con la
+commessa 'in preparazione'): se in regola segna la consegna e porta a
+'pronta' (storico "Faldone consegnato al capo tecnico"); se non in
+regola la segreteria non può, il titolare sì ma SOLO scrivendo il motivo
+(consegna "forzata", motivo e problemi nello storico; proposta, da
+confermare da Toli). Blocco nel DATABASE con un trigger su commesse
+(trg_commesse_controllo_pronta, scelta: cambia_stato_commessa di sql/28
+NON si ridefinisce): 'in preparazione' → 'pronta' passa solo dopo la
+consegna e con il controllo in regola (o forzata), per qualunque strada
+e anche per il titolare. Con sql/33 "Stato e storico" (js/18) non offre
+più "→ Pronta" e rimanda alla scheda della commessa. Se il titolare
+riporta la commessa prima di 'pronta' la consegna si azzera (va
+rifatta). Modifiche: segreteria e titolare fino alla consegna, poi solo
+il titolare; le date la segreteria le cambia finché la commessa non è
+chiusa o annullata. Tornando dalla scheda documenti (js/30) la commessa
+si ricarica. Senza sql/33 il box dice "non ancora attive" e 'pronta' si
+segna come prima.
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

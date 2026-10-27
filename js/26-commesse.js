@@ -12,7 +12,8 @@
 // può intervenire ovunque ma non ha mai commesse "in attesa di lui".
 // Funziona con sql/26 soltanto (dati di base), con sql/28 (stati e
 // storico) e con sql/29 (cartella documenti). Ordini ai fornitori: js/27
-// (sql/30); consumabili e noli: js/28 (sql/31); elenco materiali: js/29.
+// (sql/30); consumabili e noli: js/28 (sql/31); elenco materiali: js/29;
+// date dei lavori e faldone: js/31 (sql/33).
 // =====================================================================
 
 // Cartelle dei documenti (stesso elenco del vincolo di sql/29).
@@ -300,6 +301,7 @@ async function caricaSchedaCommessa(commessaId) {
   if (ge('cmd-materiali')) ge('cmd-materiali').innerHTML = '';
   if (ge('cmd-ordini')) ge('cmd-ordini').innerHTML = '';
   if (ge('cmd-richieste')) ge('cmd-richieste').innerHTML = '';
+  if (ge('cmd-faldone')) ge('cmd-faldone').innerHTML = '';
 
   await verificaStatiCommessaDisponibili();
 
@@ -331,6 +333,8 @@ async function caricaSchedaCommessa(commessaId) {
   // F6.3: elenco unico dei materiali con le date di arrivo (js/29), dopo
   // js/27 perché riusa le offerte da ordinare già lette.
   if (typeof caricaMaterialiCommessa === 'function') await caricaMaterialiCommessa(commessa);
+  // F7.2: date dei lavori e faldone (js/31, attivi con sql/33).
+  if (typeof caricaFaldoneCommessa === 'function') await caricaFaldoneCommessa(commessa);
   await caricaDocumentiCommessa(commessa);
 }
 

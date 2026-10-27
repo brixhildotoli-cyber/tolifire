@@ -8840,7 +8840,11 @@ async function apriStatoCommessa(commessaId, preventivoId) {
       opzioni.push({ stato: prima, tipo: 'riattivazione', testo: '↺ Riattiva: torna a ' + ETICHETTE_STATO_COMMESSA[prima] });
     }
   } else {
-    if (prossimo && (ROLE === 'titolare' || RUOLO_PASSO_COMMESSA[prossimo] === ROLE)) {
+    // F7.2: con sql/33 'pronta' si segna solo con "Faldone consegnato"
+    // nella scheda della commessa (js/31; il database blocca il resto).
+    const prontaDalFaldone = prossimo === 'pronta' &&
+      typeof verificaFaldoneDisponibile === 'function' && (await verificaFaldoneDisponibile());
+    if (prossimo && !prontaDalFaldone && (ROLE === 'titolare' || RUOLO_PASSO_COMMESSA[prossimo] === ROLE)) {
       opzioni.push({ stato: prossimo, tipo: 'avanti', testo: '→ ' + ETICHETTE_STATO_COMMESSA[prossimo] });
     }
     if (ROLE === 'titolare') {
@@ -8855,8 +8859,13 @@ async function apriStatoCommessa(commessaId, preventivoId) {
   }
 
   const box = ge('msc-cambio');
+  const avvisoFaldone = (commessa.stato === 'in_preparazione' && typeof faldoneCommessaAttivo === 'function' &&
+      faldoneCommessaAttivo() && (ROLE === 'titolare' || RUOLO_PASSO_COMMESSA.pronta === ROLE))
+    ? '<div class="al2 i">"Pronta" si segna con <b>Faldone consegnato</b> nella scheda della commessa (box "Date dei lavori e faldone"): il gestionale controlla date, personale e documenti.' +
+      (canAccessPage('commessa-detail') ? ` <button class="btn sm" onclick="closeM('m-stato-commessa');openCommessaDetail('${esc(commessa.id)}')">Apri la commessa</button>` : '') + '</div>'
+    : '';
   if (opzioni.length) {
-    box.innerHTML = `
+    box.innerHTML = avvisoFaldone + `
       <div class="f">
         <label>Nuovo stato</label>
         <select id="msc-stato" onchange="aggiornaCambioStatoCommessa()">
@@ -8883,7 +8892,7 @@ async function apriStatoCommessa(commessaId, preventivoId) {
       motivo = 'Il prossimo passo (' + ETICHETTE_STATO_COMMESSA[prossimo] + ') lo segna: ' +
         NOMI_RUOLO_PASSO_COMMESSA[RUOLO_PASSO_COMMESSA[prossimo]] + ' (o il titolare).';
     }
-    box.innerHTML = '<div class="al2 i">' + esc(motivo) + '</div>';
+    box.innerHTML = avvisoFaldone || ('<div class="al2 i">' + esc(motivo) + '</div>');
   }
 
   ge('msc-conferma').style.display = opzioni.length ? '' : 'none';

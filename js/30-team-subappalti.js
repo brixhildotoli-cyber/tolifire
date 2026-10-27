@@ -454,6 +454,12 @@ function tornaDaSchedaDocumenti() {
     : 'team-subappalti';
   schedaDocumentiAperta = null;
   gotoPage(destinazione);
+  // F7.2: tornando alla commessa il faldone si ricarica (documenti rinnovati).
+  if (destinazione === 'commessa-detail' && typeof commessaApertaId !== 'undefined' && commessaApertaId &&
+      typeof caricaSchedaCommessa === 'function') {
+    caricaSchedaCommessa(commessaApertaId).then(ripristinaPosizionePagina);
+    return;
+  }
   ripristinaPosizionePagina();
 }
 

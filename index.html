@@ -1897,6 +1897,7 @@
   <div id="cmd-materiali"></div>
   <div id="cmd-ordini"></div>
   <div id="cmd-richieste"></div>
+  <div id="cmd-faldone"></div>
   <div id="cmd-documenti"></div>
 </div>
 
@@ -3065,6 +3066,65 @@
     <div class="ma">
       <button class="btn" onclick="closeM('m-rifiuto-anticipo')">Annulla</button>
       <button class="btn p" id="mra-conferma" disabled onclick="salvaRifiutoAnticipoNonVersato()">❌ Conferma rifiuto</button>
+    </div>
+  </div>
+</div>
+
+<!-- F7.2 — DATE DEI LAVORI DELLA COMMESSA (solo con sql/33) -->
+<div class="mbg" id="m-date-commessa">
+  <div class="modal" style="max-width:460px">
+    <button class="x" onclick="closeM('m-date-commessa')">×</button>
+    <h3>📅 Date dei lavori</h3>
+    <div id="fald-date-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div class="fr">
+      <div class="f">
+        <label>Inizio lavori *</label>
+        <input type="date" id="fald-data-inizio">
+      </div>
+      <div class="f">
+        <label>Fine prevista</label>
+        <input type="date" id="fald-data-fine">
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--m);margin:-4px 0 8px">I documenti di chi va in cantiere devono essere validi alla data di inizio.</div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-date-commessa')">Annulla</button>
+      <button class="btn p" onclick="salvaDateCommessa()">Salva date</button>
+    </div>
+  </div>
+</div>
+
+<!-- F7.2 — DOCUMENTI RICHIESTI IN PIÙ PER LA COMMESSA (solo con sql/33) -->
+<div class="mbg" id="m-requisiti-faldone">
+  <div class="modal" style="max-width:560px">
+    <button class="x" onclick="closeM('m-requisiti-faldone')">×</button>
+    <h3>📋 Documenti richiesti per questa commessa</h3>
+    <div style="font-size:12px;color:var(--m);margin-bottom:10px">Spunta quelli che servono in più per questo cantiere (es. PLE o lavori in quota). Quelli grigi sono richiesti sempre.</div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:4px">Dipendenti</div>
+    <div id="fald-req-dipendenti" style="margin-bottom:10px"></div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:4px">Subappaltatori</div>
+    <div id="fald-req-subappaltatori"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-requisiti-faldone')">Annulla</button>
+      <button class="btn p" onclick="salvaRequisitiFaldone()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- F7.2 — FALDONE CONSEGNATO → COMMESSA PRONTA (solo con sql/33) -->
+<div class="mbg" id="m-consegna-faldone">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-consegna-faldone')">×</button>
+    <h3>✅ Faldone consegnato al capo tecnico</h3>
+    <div id="fald-consegna-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div id="fald-consegna-problemi"></div>
+    <div class="f">
+      <label id="fald-consegna-nota-label">Nota (facoltativa)</label>
+      <textarea id="fald-consegna-nota" rows="2" maxlength="1000"></textarea>
+    </div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-consegna-faldone')">Annulla</button>
+      <button class="btn p" id="fald-consegna-conferma" onclick="salvaConsegnaFaldone()">Faldone consegnato</button>
     </div>
   </div>
 </div>
@@ -4339,6 +4399,7 @@
 <script defer src="js/28-richieste-integrazione.js"></script>
 <script defer src="js/29-materiali-commessa.js"></script>
 <script defer src="js/30-team-subappalti.js"></script>
+<script defer src="js/31-faldone-commessa.js"></script>
 <script defer src="js/19-init.js"></script>
 
 
