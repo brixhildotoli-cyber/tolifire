@@ -2,8 +2,8 @@
 
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
-file unico: `index.html` (markup) + `style.css` + moduli `js/00-…25-*.js`
-caricati in ordine 00–18, poi 20–25, infine `19-init.js` (dettagli in
+file unico: `index.html` (markup) + `style.css` + moduli `js/00-…26-*.js`
+caricati in ordine 00–18, poi 20–26, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -47,6 +47,9 @@ Usate dal frontend — commesse (F5.1, dopo sql/26-commesse, da eseguire):
 commesse (sola lettura dal sito; la crea il database, js/18)
 Dopo sql/28 (F5.2, da eseguire): commesse_storico (sola lettura; lo
 scrive il database)
+Dopo sql/29 (F5.3, da eseguire): commesse_documenti (sola lettura; si
+scrive solo con le RPC registra_documento_commessa ed
+elimina_documento_commessa, js/26)
 
 Usate dal frontend — fatturazione:
 fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
@@ -66,7 +69,7 @@ usate senza conferma di Toli.
 
 Bucket Storage usati dal frontend: documenti-clienti, foto-interventi,
 preventivi-documenti, progetti-tecnici, ticket-allegati,
-certificati-preventivi.
+certificati-preventivi; dopo sql/29 (F5.3) commesse-documenti.
 
 RPC chiamate dal frontend (`db.rpc`): marca_ritardi_pendenti,
 confirm_user_email, impegni_tecnici_dashboard,
@@ -76,6 +79,8 @@ nuovo_intervento_manichetta, salva_riporto_presidio.
 Dopo sql/18 (F2.3, da eseguire): marca_certificato_letto_ingegnere.
 Dopo sql/26 (F5.1, da eseguire): imposta_sede_commessa.
 Dopo sql/28 (F5.2, da eseguire): cambia_stato_commessa.
+Dopo sql/29 (F5.3, da eseguire): registra_documento_commessa,
+elimina_documento_commessa.
 Dopo sql/25 (F4.3, da eseguire): registra_fattura_anticipo,
 registra_accredito_anticipo, rifiuta_per_anticipo_non_versato.
 Dopo sql/22 (F4.1, da eseguire): accetta_preventivo, rifiuta_preventivo.
@@ -130,19 +135,23 @@ js/02-portale-navigazione.js; controllo in `canAccessPage`):
 - titolare: dashboard, calendario, piano-mensile, trattative,
   preventivi-titolare, preventivo-detail, progetti-da-preventivare, presidi,
   workflow, interventi, clienti, documenti, fatture, catalogo, impostazioni,
-  cliente-detail, progetto-detail, fornitore-detail, tecnico, sopralluogo
+  cliente-detail, progetto-detail, fornitore-detail, tecnico, sopralluogo,
+  commesse, commessa-detail
 - capo_tecnico: dashboard, calendario, calendario-team, piano-mensile,
-  presidi, interventi, tecnico, clienti, documenti, cliente-detail
+  presidi, interventi, tecnico, clienti, documenti, cliente-detail,
+  commesse, commessa-detail
 - segreteria: dashboard, calendario, workflow, presidi, interventi, tecnico,
-  clienti, documenti, fatture, catalogo, cliente-detail, fornitore-detail
+  clienti, documenti, fatture, catalogo, cliente-detail, fornitore-detail,
+  commesse, commessa-detail
 - contabile: dashboard, workflow, fatture, documenti, catalogo
 - tecnico: dashboard, calendario-tec, tecnico, documenti
 - commerciale: dashboard, progetti-da-preventivare, preventivi, fornitori,
   fornitore-detail, preventivo-detail, clienti, documenti, progetto-detail,
-  fatture, catalogo, cliente-detail, info
+  fatture, catalogo, cliente-detail, info, commesse, commessa-detail
 - rappresentante: dashboard, dashboard-rapp, calendario-appuntamenti,
   clienti, progetti, presidi, trattative, preventivi-rapp, cliente-detail,
-  progetto-detail, catalogo, info
+  progetto-detail, catalogo, info, commesse, commessa-detail (solo le sue,
+  per RLS)
 - ingegnere: dashboard, calendario-ingegnere, verifiche-tecniche,
   documenti, certificati-ingegnere, progetto-detail, cliente-detail, info,
   + clienti (aggiunta subito dopo la definizione, sola consultazione)
@@ -363,6 +372,42 @@ passo" e bottone "Stato e storico" (finestra m-stato-commessa); nelle
 dashboard di rappresentante, capo tecnico e segreteria il box
 "Commesse: tocca a te" (`caricaCommesseToccaAMe`). Senza sql/28 nulla
 di questo compare. Pagina Commesse completa: F5.3.
+
+Pagina Commesse e cartella documenti (F5.3, js/26-commesse.js; cartella
+con sql/29-commesse-documenti da eseguire dopo 26, non richiede 28):
+voce "📁 Commesse" nel menu di titolare, segreteria, commerciale,
+capo_tecnico e rappresentante (gli stessi ruoli che leggono le commesse
+per RLS; contabile, ingegnere e tecnico no). Pagina `commesse`: ricerca
+(codice, cliente, lavoro, sede) e filtro per stato (predefinito
+"Aperte"); in alto "Tocca a te" con le commesse che aspettano chi
+guarda: sede da indicare (segreteria, rappresentante), prossimo stato
+del suo ruolo (solo con sql/28), per il commerciale le commesse in
+preparazione (passo 9, consumabili e noli; non cambia stato). Il
+titolare non ha mai commesse "in attesa di lui". Scheda
+`commessa-detail`: dati, sede del cantiere (imposta_sede_commessa:
+anche la segreteria, che non vede preventivo-detail), collegamenti a
+cliente/preventivo/progetto secondo le pagine del ruolo, stato e
+storico (funzioni di js/18, solo con sql/28), cartella documenti. La
+commessa si ritrova da: pagina Commesse, scheda cliente (tab
+"📁 Commesse"), preventivo (riepilogo dell'esito, "Apri commessa e
+documenti"), box "Commesse: tocca a te" delle dashboard ("Apri").
+Cartella documenti, scelta dichiarata: bucket NUOVO commesse-documenti
+(privato, 50 MB per file, qualsiasi tipo), NON documenti-clienti, perché
+quello lo leggono anche contabile, ingegnere, tecnico e il portale
+clienti, e il faldone contiene documenti di dipendenti e subappaltatori.
+Percorso `<id commessa>/<cartella>/<file>`, cartelle fisse: ordini (passi
+7 e 9), ddt, faldone (passo 10), cantiere (passo 11: foto, report,
+cronoprogramma), certificati, chiusura (passo 12: corretta messa in
+opera, collaudi), altro. Il preventivo firmato non si copia: resta in
+preventivi-documenti `<preventivo>/accettazione/` e la cartella lo mostra
+come collegamento (aperto da titolare, segreteria, commerciale,
+rappresentante, regole di sql/22). Regole: chi vede la commessa vede
+righe e file; caricano gli stessi 5 ruoli su commessa non chiusa e non
+annullata (sempre il titolare); tolgono titolare e segreteria ogni
+documento, gli altri solo i propri, su commessa aperta (sempre il
+titolare). Nessuna sovrascrittura; il file si cancella solo dopo aver
+tolto il suo rigo. Senza sql/29 la scheda mostra "La cartella documenti
+della commessa non è ancora attiva".
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

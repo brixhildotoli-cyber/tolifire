@@ -1691,11 +1691,13 @@
     <button class="tab" onclick="stab(this,'cd-files');loadDocumentiCliente(currentCliId)">📎 File</button>
     <button class="tab" onclick="stab(this,'cd-progetti');loadProgettiCliente(currentCliId)"> 📐 Progetti tecnici </button>
     <button class="tab" onclick="stab(this,'cd-periodicita')">Periodicità</button>
+    <button class="tab" id="cd-tab-commesse" style="display:none" onclick="stab(this,'cd-commesse');loadCommesseCliente(currentCliId)">📁 Commesse</button>
   </div>
   <div class="tc on" id="cd-info"><div id="cd-info-content"><div class="load">Caricamento...</div></div></div>
   <div class="tc" id="cd-presidi"><div id="cd-presidi-content"><div class="load">Caricamento...</div></div></div>
   <div class="tc" id="cd-interventi"><div id="cd-interventi-content"><div class="load">Caricamento...</div></div></div>
   <div class="tc" id="cd-documenti"><div id="cd-documenti-content"><div class="load">Caricamento...</div></div></div>
+  <div class="tc" id="cd-commesse"><div id="cd-commesse-lista"><div class="load">Caricamento...</div></div></div>
 
 <div class="tc" id="cd-progetti">
   <div
@@ -1842,6 +1844,40 @@
   </div>
 
   <div id="fat-body"><div class="load">Caricamento...</div></div>
+</div>
+
+<!-- COMMESSE (F5.3, js/26) -->
+<div class="page" id="pg-commesse">
+  <div class="sh">
+    <div>
+      <div class="st">📁 Commesse</div>
+      <div style="font-size:12px;color:var(--m);margin-top:3px">Lavori nati dai preventivi accettati. In evidenza quelli in cui tocca a te.</div>
+    </div>
+    <span id="commesse-conta" style="font-size:12px;color:var(--m)"></span>
+  </div>
+  <div id="commesse-evidenza"></div>
+  <div class="sb">
+    <input type="text" id="commesse-cerca" placeholder="Cerca codice, cliente, lavoro, sede..." oninput="filtraCommesse()">
+    <select id="commesse-filtro-stato" onchange="filtraCommesse()" style="width:auto">
+      <option value="aperte">Aperte</option>
+      <option value="tutte">Tutte</option>
+    </select>
+  </div>
+  <div class="tw"><table><thead><tr><th>Codice</th><th>Cliente</th><th>Lavoro</th><th>Sede del cantiere</th><th>Stato</th><th>Importo</th><th></th></tr></thead><tbody id="commesse-tbody"><tr><td colspan="7"><div class="load">Caricamento...</div></td></tr></tbody></table></div>
+</div>
+
+<!-- SCHEDA COMMESSA (F5.3, js/26) -->
+<div class="page" id="pg-commessa-detail">
+  <div class="sh">
+    <div>
+      <button class="btn sm" onclick="tornaDaCommessa()" style="margin-bottom:8px">← Indietro</button>
+      <div class="st" id="cmd-titolo">📁 Commessa</div>
+      <div id="cmd-sottotitolo" style="font-size:12px;color:var(--m);margin-top:3px"></div>
+    </div>
+    <span id="cmd-stato"></span>
+  </div>
+  <div id="cmd-riepilogo"><div class="load">Caricamento...</div></div>
+  <div id="cmd-documenti"></div>
 </div>
 
 <!-- INTERVENTI -->
@@ -3989,6 +4025,7 @@
 <script defer src="js/23-elimina-sottosezioni.js"></script>
 <script defer src="js/24-scadenze-presidi.js"></script>
 <script defer src="js/25-nuovocontrollo-presidi.js"></script>
+<script defer src="js/26-commesse.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

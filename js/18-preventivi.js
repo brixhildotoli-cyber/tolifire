@@ -7488,6 +7488,10 @@ async function salvaEsitoPreventivo() {
 }
 
 async function aggiornaDopoEsitoPreventivo(preventivoId) {
+  // F5.3: sede o stato cambiati dalla pagina Commesse o dalla scheda
+  // della commessa (js/26): si ricarica quella pagina.
+  if (typeof aggiornaPagineCommesse === 'function' && await aggiornaPagineCommesse()) return;
+
   if (ROLE === 'rappresentante') {
     await loadPreventiviRappresentante();
     return;
@@ -8576,6 +8580,11 @@ function htmlCommessaPreventivo(preventivo) {
       </div>
       ${nata ? `<div style="font-size:12px;color:var(--m);margin-top:4px">Nata il ${esc(nata)}</div>` : ''}
       ${htmlProssimoPassoCommessa(commessa)}
+      ${canAccessPage('commessa-detail') ? `
+        <div style="margin-top:6px">
+          <button class="btn sm" onclick="openCommessaDetail('${esc(commessa.id)}')">📂 Apri commessa e documenti</button>
+        </div>
+      ` : ''}
       <div id="commessa-sede-${esc(commessa.id)}" style="font-size:12px;margin-top:6px">
         Sede del cantiere: ${sede
           ? '<b>' + esc(sede) + '</b>'
@@ -8675,7 +8684,7 @@ async function testoCommessaNata(preventivoId) {
 // 'annullata'; se il preventivo torna accettato si riattiva da sola.
 // Lo storico (chi, quando, da quale stato a quale, nota) lo scrive il
 // database (RPC cambia_stato_commessa). Senza sql/28 nulla compare.
-// La pagina Commesse completa arriva con F5.3.
+// Pagina Commesse e scheda della commessa: js/26 (F5.3).
 // =====================================================================
 
 const ORDINE_STATI_COMMESSA = [
@@ -9062,7 +9071,10 @@ async function caricaCommesseToccaAMe() {
                 · da segnare: <b>${esc(ETICHETTE_STATO_COMMESSA[prossimo] || '')}</b>
               </div>
             </div>
-            <button class="btn sm p" onclick="apriStatoCommessa('${esc(c.id)}', '${esc(c.preventivo_id || '')}')">Cambia stato</button>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              ${canAccessPage('commessa-detail') ? `<button class="btn sm" onclick="openCommessaDetail('${esc(c.id)}')">Apri</button>` : ''}
+              <button class="btn sm p" onclick="apriStatoCommessa('${esc(c.id)}', '${esc(c.preventivo_id || '')}')">Cambia stato</button>
+            </div>
           </div>
         `;
       }).join('')}

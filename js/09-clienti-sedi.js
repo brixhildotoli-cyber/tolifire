@@ -111,6 +111,8 @@ if (!erroreClienteAggiornato && clienteAggiornato) {
 
   gotoPage('cliente-detail');
   loadProgettiCliente(id);
+  // F5.3: tab Commesse per chi legge le commesse (js/26).
+  impostaTabCommesseCliente(id);
 
   document.querySelectorAll('.nb').forEach(function(nav) {
     nav.classList.remove('on');
