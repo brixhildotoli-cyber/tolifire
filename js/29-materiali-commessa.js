@@ -214,7 +214,9 @@ function htmlStatoOrdinatoMateriali(commessa, fonti, offerteDaOrdinare, vedeOffe
 
   // Capo tecnico e segreteria non vedono le offerte del preventivo.
   if (statiCommessaDisponibili === true) {
-    return '<div class="al2 i" style="margin:0 0 8px">Il rappresentante non ha ancora segnato <b>Materiali ordinati</b>: l\'elenco degli ordini può non essere completo.</div>';
+    return '<div class="al2 i" style="margin:0 0 8px">' +
+      (ROLE === 'rappresentante' ? 'La commessa non è ancora segnata' : 'Il rappresentante non ha ancora segnato') +
+      ' <b>Materiali ordinati</b>: l\'elenco degli ordini può non essere completo.</div>';
   }
   return '';
 }
