@@ -159,7 +159,7 @@ async function loadTeamSubappalti() {
   if (!contenuto) return;
 
   const nuovo = ge('ts-btn-nuovo-sub');
-  if (nuovo) nuovo.style.display = puoGestireTeamSubappalti() ? '' : 'none';
+  if (nuovo) nuovo.style.display = 'none';
 
   if (!(await verificaTeamSubappaltiDisponibili())) {
     if (avviso) avviso.style.display = 'block';
@@ -168,6 +168,7 @@ async function loadTeamSubappalti() {
   }
   if (avviso) avviso.style.display = 'none';
   contenuto.style.display = '';
+  if (nuovo) nuovo.style.display = puoGestireTeamSubappalti() ? '' : 'none';
 
   ['ts-scadenze-lista', 'ts-dipendenti-lista', 'ts-subappaltatori-lista'].forEach(function(id) {
     const el = ge(id);

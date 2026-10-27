@@ -99,7 +99,11 @@ async function eliminaUtente(id, nome) {
   // Prima disattiva su auth (non possiamo eliminare utenti auth da client)
   // Elimina dalla tabella utenti
   var r = await db.from('utenti').delete().eq('id', id);
-  if(r.error) { toast('Errore: '+r.error.message,'err'); return; }
+  if(r.error) {
+    // F7.1: chi ha documenti (o altri dati collegati) non si elimina, si disattiva
+    if(r.error.code === '23503') { toast(nome + ' ha documenti o lavori collegati: non si può eliminare, disattivalo', 'err'); return; }
+    toast('Errore: '+r.error.message,'err'); return;
+  }
   toast(nome + ' eliminato', 'ok');
   loadTeam(); loadUS();
 }
