@@ -823,6 +823,10 @@ async function loadDashCapoTecnicoPg(){
   // Pannelli riusati (refactored per accettare targetId)
   // F5.2: commesse in cui tocca al capo tecnico (js/18, solo con sql/28)
   try { await caricaCommesseToccaAMe(); } catch(e){ console.warn('caricaCommesseToccaAMe:', e); }
+  // F6.3: materiali in ritardo (js/29, con sql/30 o sql/31)
+  if (typeof caricaMaterialiInRitardoDashboard === 'function') {
+    try { await caricaMaterialiInRitardoDashboard(); } catch(e){ console.warn('caricaMaterialiInRitardoDashboard:', e); }
+  }
   // F6.2: consumabili e noli chiesti agli acquisti (js/28, solo con sql/31)
   if (typeof caricaRichiesteIntegrazioneDashboard === 'function') {
     try { await caricaRichiesteIntegrazioneDashboard(); } catch(e){ console.warn('caricaRichiesteIntegrazioneDashboard:', e); }

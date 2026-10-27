@@ -480,6 +480,33 @@ evase con le date, bottone Arrivata). Sostituto del capo tecnico
 vede le commesse). Senza sql/31 il box mostra "Le richieste di
 consumabili e noli non sono ancora attive".
 
+Elenco materiali e ritardi (F6.3, js/29-materiali-commessa.js; nessun
+SQL nuovo: legge le tabelle di sql/30 e sql/31 con le loro policy, che
+già aprono la lettura ai 5 ruoli della commessa): nella scheda della
+commessa, sopra "Ordini ai fornitori", il box "📦 Materiali" con UN
+elenco di tutto quello che deve arrivare in cantiere: ogni voce degli
+ordini ai fornitori non annullati (descrizione, quantità, fornitore,
+codice ordine) e ogni consumabile o nolo non annullato (fornitore se
+indicato dagli acquisti), con arrivo previsto o data di arrivo e stato.
+Ordine: prima i ritardi, poi gli arrivi per data, poi quello senza data
+(da evadere, da ordinare); gli arrivati chiusi in "Arrivati (n)".
+Segnale "in ritardo" (riga rossa) quando l'arrivo previsto è passato e
+non è arrivato (oggi in ora italiana); resta "arriva dopo il giorno in
+cui serve" di F6.2. Rappresentante, commerciale e titolare vedono anche
+le offerte selezionate ancora "Da ordinare" (dati letti da js/27 con
+offerte_ordinabili_commessa; capo tecnico e segreteria non vedono le
+offerte). Elenco in sola lettura: le azioni restano nei box di js/27 e
+js/28, che non cambiano. "Materiali ordinati" NON è automatico
+(decisione F5.2, lo segna il rappresentante con cambia_stato_commessa):
+il box dice solo se tutte le offerte sono ordinate ("Segna ... dal box
+Ordini", bottone solo lì) o, per capo tecnico e segreteria, che il
+rappresentante non l'ha ancora segnato. Dashboard del capo tecnico: box
+"⚠️ Materiali in ritardo" (ct-materiali-ritardo, ordini e
+consumabili/noli in ritardo sulle commesse aperte, solo "Apri
+commessa"; compare solo se ce ne sono). Funziona con nessuna, una o
+entrambe le fonti (senza 30 e 31 il box non compare; con una sola dice
+quale parte manca).
+
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
 - Riutilizzare le helper esistenti: `ge`, `v`, `toast`, `fd`, `openM`,
