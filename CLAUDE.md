@@ -50,15 +50,15 @@ scrive il database)
 Dopo sql/29 (F5.3, eseguito il 27/10): commesse_documenti (sola lettura; si
 scrive solo con le RPC registra_documento_commessa ed
 elimina_documento_commessa, js/26)
-Dopo sql/30 (F6.1, da eseguire): ordini_fornitori, ordini_fornitori_voci
+Dopo sql/30 (F6.1, eseguito il 27/10): ordini_fornitori, ordini_fornitori_voci
 (sola lettura; si scrivono solo con le RPC crea_ordine_fornitore e
 cambia_stato_ordine_fornitore, js/27)
-Dopo sql/31 (F6.2, da eseguire, non richiede 28-30):
+Dopo sql/31 (F6.2, eseguito il 27/10, non richiede 28-30):
 commesse_richieste_integrazione (sola lettura; si scrive solo con le RPC
 apri_richiesta_integrazione, evadi_richiesta_integrazione e
 cambia_stato_richiesta_integrazione, js/28)
 
-Usate dal frontend — team e subappalti (F7.1, sql/32 da eseguire, richiede
+Usate dal frontend — team e subappalti (F7.1, sql/32 eseguito il 27/10, richiede
 solo sql/07): subappaltatori (lettura titolare, segreteria, capo_tecnico;
 inserimento e modifica diretti di titolare e segreteria, niente
 cancellazione: attivo=false), documenti_team_subappalti (sola lettura; si
@@ -97,11 +97,11 @@ Dopo sql/26 (F5.1, eseguito il 27/10): imposta_sede_commessa.
 Dopo sql/28 (F5.2, eseguito il 27/10): cambia_stato_commessa.
 Dopo sql/29 (F5.3, eseguito il 27/10): registra_documento_commessa,
 elimina_documento_commessa.
-Dopo sql/30 (F6.1, da eseguire): offerte_ordinabili_commessa,
+Dopo sql/30 (F6.1, eseguito il 27/10): offerte_ordinabili_commessa,
 crea_ordine_fornitore, cambia_stato_ordine_fornitore.
-Dopo sql/31 (F6.2, da eseguire): apri_richiesta_integrazione,
+Dopo sql/31 (F6.2, eseguito il 27/10): apri_richiesta_integrazione,
 evadi_richiesta_integrazione, cambia_stato_richiesta_integrazione.
-Dopo sql/32 (F7.1, da eseguire): registra_documento_team_subappalti,
+Dopo sql/32 (F7.1, eseguito il 27/10): registra_documento_team_subappalti,
 correggi_documento_team_subappalti, elimina_documento_team_subappalti.
 Dopo sql/25 (F4.3, da eseguire): registra_fattura_anticipo,
 registra_accredito_anticipo, rifiuta_per_anticipo_non_versato.
@@ -432,7 +432,7 @@ tolto il suo rigo. Senza sql/29 la scheda mostra "La cartella documenti
 della commessa non è ancora attiva".
 
 Passo 7, ordini ai fornitori (F6.1, js/27-ordini-fornitori.js;
-sql/30-ordini-fornitori da eseguire, richiede 26, non 28 né 29): nella
+sql/30-ordini-fornitori eseguito il 27/10, richiede 26, non 28 né 29): nella
 scheda della commessa il box "🛒 Ordini ai fornitori". Gli ordini
 nascono SOLO dalle offerte 'selezionato' del preventivo della commessa
 (preventivi_fornitori, scelte dal commerciale): un ordine non annullato
@@ -461,7 +461,7 @@ hanno l'ordine il box lo suggerisce ("Segna Materiali ordinati"). Senza
 sql/30 il box mostra "Gli ordini ai fornitori non sono ancora attivi".
 
 Passi 8-9, consumabili e noli (F6.2, js/28-richieste-integrazione.js;
-sql/31-richieste-integrazione da eseguire, richiede 26, non 28, 29 né
+sql/31-richieste-integrazione eseguito il 27/10, richiede 26, non 28, 29 né
 30): nella scheda della commessa il box "🧰 Consumabili e noli". Il
 capo_tecnico (o il titolare) apre una richiesta per ogni cosa che manca:
 consumabile o nolo, descrizione, quantità e unità (predefinite pz o
@@ -519,7 +519,7 @@ entrambe le fonti (senza 30 e 31 il box non compare; con una sola dice
 quale parte manca).
 
 Team e subappalti (F7.1, js/30-team-subappalti.js; sql/32-team-subappalti-
-documenti da eseguire, richiede solo sql/07, non 26-31): prepara il passo
+documenti eseguito il 27/10, richiede solo sql/07, non 26-31): prepara il passo
 10 (documenti dei dipendenti e dei subappalti per il faldone; date di
 inizio e checklist del faldone sulla commessa = F7.2). Voce
 "🦺 Team e subappalti" nel menu di titolare, segreteria e capo_tecnico
