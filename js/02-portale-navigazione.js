@@ -417,9 +417,9 @@ function buildNav() {
 
 // Pagine accessibili per ruolo
 const PAGINE_RUOLO = {
-  titolare:       ['dashboard','calendario','piano-mensile','trattative','preventivi-titolare','preventivo-detail','progetti-da-preventivare','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','progetto-detail','fornitore-detail', 'tecnico','sopralluogo','commesse','commessa-detail'],
-  capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','tecnico','clienti','documenti','cliente-detail','commesse','commessa-detail'],
-  segreteria:     ['dashboard','calendario','workflow','presidi','interventi','tecnico','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail','commesse','commessa-detail'],
+  titolare:       ['dashboard','calendario','piano-mensile','trattative','preventivi-titolare','preventivo-detail','progetti-da-preventivare','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','progetto-detail','fornitore-detail', 'tecnico','sopralluogo','commesse','commessa-detail','team-subappalti','scheda-documenti'],
+  capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','tecnico','clienti','documenti','cliente-detail','commesse','commessa-detail','team-subappalti','scheda-documenti'],
+  segreteria:     ['dashboard','calendario','workflow','presidi','interventi','tecnico','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail','commesse','commessa-detail','team-subappalti','scheda-documenti'],
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
   tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
   commerciale:    ['dashboard','progetti-da-preventivare', 'preventivi', 'fornitori', 'fornitore-detail','preventivo-detail','clienti','documenti','progetto-detail','fatture','catalogo','cliente-detail', 'info','commesse','commessa-detail'],
@@ -497,6 +497,7 @@ function gotoPage(id){
   if(id==='tecnico'){loadOdlTecnico(); loadStoricoInterventiTecnico();}
   if(id==='fornitori')loadFornitori();
   if(id==='commesse')loadCommesse(); // F5.3, js/26
+  if(id==='team-subappalti')loadTeamSubappalti(); // F7.1, js/30
   if(id==='preventivazione') loadPreventivazione();
   if(id==='sopralluogo' && ROLE!=='rappresentante' && ROLE!=='titolare'){toast('Accesso non consentito','err');return;}
   if(id === 'info') loadInfo();

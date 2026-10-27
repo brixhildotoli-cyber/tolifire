@@ -222,6 +222,8 @@
         <span class="tec-badge" id="tec-week-badge">0</span>
       </div>
       <div id="tec-week-lista"><div class="tec-empty"><div class="ico">⏳</div>Caricamento...</div></div>
+      <!-- F7.1 — i miei documenti con scadenza (js/30, solo con sql/32) -->
+      <div id="tec-miei-documenti"></div>
       <div class="tec-quick">
         <button class="tec-quick-btn" onclick="gotoPage('calendario-tec')"><span class="ico">📅</span><span class="lbl">Calendario completo</span></button>
         <button class="tec-quick-btn" onclick="gotoPage('tecnico')"><span class="ico">📝</span><span class="lbl">Nuovo intervento</span></button>
@@ -328,6 +330,9 @@
       <!-- F5.2 — commesse il cui prossimo passo è della segreteria (solo con sql/28) -->
       <div id="seg-commesse-tocca"></div>
 
+      <!-- F7.1 — documenti di team e subappalti scaduti o in scadenza (js/30, solo con sql/32) -->
+      <div id="seg-documenti-scadenza"></div>
+
       <div class="tit-section">🎫 Richieste clienti aperte</div>
       <div id="seg-ticket-lista"><div class="rap-list-card"><div class="tit-empty">⏳ Caricamento...</div></div></div>
 
@@ -414,6 +419,9 @@
 
       <!-- F6.3 — materiali in ritardo (js/29, solo con sql/30 o sql/31) -->
       <div id="ct-materiali-ritardo"></div>
+
+      <!-- F7.1 — documenti di team e subappalti scaduti o in scadenza (js/30, solo con sql/32) -->
+      <div id="ct-documenti-scadenza"></div>
 
       <!-- F6.2 — consumabili e noli chiesti agli acquisti (js/28, solo con sql/31) -->
       <div id="ct-richieste-integrazione"></div>
@@ -1892,6 +1900,51 @@
   <div id="cmd-documenti"></div>
 </div>
 
+<!-- TEAM E SUBAPPALTI (F7.1, js/30; attiva con sql/32) -->
+<div class="page" id="pg-team-subappalti">
+  <div class="sh">
+    <div>
+      <div class="st">🦺 Team e subappalti</div>
+      <div style="font-size:12px;color:var(--m);margin-top:3px">Documenti con scadenza dei dipendenti e dei subappaltatori (DURC, POS, formazione, idoneità, patentini).</div>
+    </div>
+    <button class="btn p" id="ts-btn-nuovo-sub" style="display:none" onclick="apriSubappaltatore()">+ Nuovo subappaltatore</button>
+  </div>
+  <div class="al2 i" id="ts-non-attivo" style="display:none">I documenti di team e subappalti non sono ancora attivi: si attivano dopo l'aggiornamento del database.</div>
+  <div id="ts-contenuto">
+    <div class="tabs">
+      <button class="tab on" onclick="stab(this,'ts-tab-scadenze')">⚠️ Scadenze <span id="ts-scadenze-conta"></span></button>
+      <button class="tab" onclick="stab(this,'ts-tab-dipendenti')">👷 Dipendenti</button>
+      <button class="tab" onclick="stab(this,'ts-tab-subappaltatori')">🏗️ Subappaltatori</button>
+    </div>
+    <div class="tc on" id="ts-tab-scadenze">
+      <div id="ts-scadenze-lista"><div class="load">Caricamento...</div></div>
+    </div>
+    <div class="tc" id="ts-tab-dipendenti">
+      <div id="ts-dipendenti-lista"><div class="load">Caricamento...</div></div>
+    </div>
+    <div class="tc" id="ts-tab-subappaltatori">
+      <div class="sb">
+        <input type="text" id="ts-sub-cerca" placeholder="Cerca ragione sociale, partita IVA, lavorazioni, referente..." oninput="filtraSubappaltatori()">
+        <label style="display:flex;gap:6px;align-items:center;font-size:12px;white-space:nowrap"><input type="checkbox" id="ts-sub-non-attivi" onchange="filtraSubappaltatori()" style="width:auto"> anche non attivi</label>
+      </div>
+      <div id="ts-subappaltatori-lista"><div class="load">Caricamento...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCHEDA DOCUMENTI di un dipendente o di un subappaltatore (F7.1, js/30) -->
+<div class="page" id="pg-scheda-documenti">
+  <div class="sh">
+    <div>
+      <button class="btn sm" onclick="tornaDaSchedaDocumenti()" style="margin-bottom:8px">← Indietro</button>
+      <div class="st" id="sdoc-titolo">Documenti</div>
+      <div id="sdoc-sottotitolo" style="font-size:12px;color:var(--m);margin-top:3px"></div>
+    </div>
+  </div>
+  <div id="sdoc-anagrafica"><div class="load">Caricamento...</div></div>
+  <div id="sdoc-documenti"></div>
+</div>
+
 <!-- INTERVENTI -->
 <div class="page" id="pg-interventi">
   <div class="sh"><div class="st">Interventi</div><div style="display:flex;gap:8px"><button class="btn" onclick="gotoPage('calendario')">📅 Calendario</button><button class="btn p" onclick="apriNuovoIntervento()">+ Pianifica intervento</button></div></div>
@@ -2093,6 +2146,7 @@
         <div style="font-size:13px;font-weight:600;margin-bottom:14px">Soglie e tariffe</div>
         <div class="f"><label>Soglia "lavoro grande" (€, imponibile)</label><input type="number" id="si-soglia-lavoro-grande" min="0" step="100" placeholder="Nessuna soglia"><div style="font-size:11px;color:var(--m);margin-top:4px">Sopra questo importo il lavoro passa dall'Ingegnere. Vuoto = nessuna soglia.</div></div>
         <div class="f"><label>Preavviso rinnovo contratti di manutenzione (giorni)</label><input type="number" id="si-preavviso-rinnovo" min="0" max="365" step="1"><div style="font-size:11px;color:var(--m);margin-top:4px">Quanti giorni prima della scadenza segnalare il rinnovo.</div></div>
+        <div class="f"><label>Preavviso scadenza documenti di team e subappalti (giorni)</label><input type="number" id="si-preavviso-documenti" min="0" max="365" step="1"><div style="font-size:11px;color:var(--m);margin-top:4px">Quanti giorni prima della scadenza segnalare DURC, formazione, idoneità e gli altri documenti.</div></div>
         <div class="f"><label>Tariffa oraria standard manodopera (€/ora)</label><input type="number" id="si-tariffa-oraria" min="0" step="0.50"><div style="font-size:11px;color:var(--m);margin-top:4px">Usata per calcolare la manodopera dalle ore della scheda di lavoro.</div></div>
         <div class="al2 i" id="si-soglie-nota" style="display:none">Alcuni campi sono disattivati: si attivano dopo l'aggiornamento del database.</div>
         <button class="btn p" onclick="saveSoglie()">Salva soglie</button>
@@ -3034,6 +3088,67 @@
 
     <div style="font-size:14px;font-weight:700;margin:16px 0 6px">Storico</div>
     <div id="msc-storico"></div>
+  </div>
+</div>
+
+<!-- F7.1 — ANAGRAFICA SUBAPPALTATORE (js/30) -->
+<div class="mbg" id="m-subappaltatore">
+  <div class="modal" style="max-width:640px">
+    <button class="x" onclick="closeM('m-subappaltatore')">×</button>
+    <h3 id="msub-titolo">🏗️ Subappaltatore</h3>
+    <input type="hidden" id="msub-id">
+    <div class="fr">
+      <div class="f"><label>Ragione sociale *</label><input type="text" id="msub-ragione-sociale" maxlength="200"></div>
+      <div class="f"><label>Partita IVA</label><input type="text" id="msub-partita-iva" maxlength="20"></div>
+    </div>
+    <div class="f"><label>Lavorazioni</label><input type="text" id="msub-lavorazioni" maxlength="300" placeholder="es. posa porte REI, opere edili, compartimentazioni"></div>
+    <div class="f"><label>Indirizzo</label><input type="text" id="msub-indirizzo" maxlength="300"></div>
+    <div class="fr">
+      <div class="f"><label>Telefono</label><input type="tel" id="msub-telefono" maxlength="40"></div>
+      <div class="f"><label>Email</label><input type="email" id="msub-email" maxlength="200"></div>
+      <div class="f"><label>PEC</label><input type="email" id="msub-pec" maxlength="200"></div>
+    </div>
+    <div style="font-size:13px;font-weight:600;margin:6px 0 8px">Referente</div>
+    <div class="fr">
+      <div class="f"><label>Nome e cognome *</label><input type="text" id="msub-referente-nome" maxlength="200"></div>
+      <div class="f"><label>Ruolo</label><input type="text" id="msub-referente-ruolo" maxlength="100" placeholder="es. titolare, capocantiere"></div>
+    </div>
+    <div class="fr">
+      <div class="f"><label>Telefono</label><input type="tel" id="msub-referente-telefono" maxlength="40"></div>
+      <div class="f"><label>Email</label><input type="email" id="msub-referente-email" maxlength="200"></div>
+    </div>
+    <div class="f"><label>Note</label><textarea id="msub-note" rows="3" maxlength="2000"></textarea></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-subappaltatore')">Annulla</button>
+      <button class="btn p" id="msub-salva" onclick="salvaSubappaltatore()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- F7.1 — DOCUMENTO CON SCADENZA di dipendente o subappaltatore (js/30) -->
+<div class="mbg" id="m-documento-ts">
+  <div class="modal" style="max-width:600px">
+    <button class="x" onclick="closeM('m-documento-ts')">×</button>
+    <h3 id="mdts-titolo">🪪 Documento</h3>
+    <div id="mdts-intestatario" style="font-size:13px;color:var(--m);margin-bottom:8px"></div>
+    <div class="al2 i" id="mdts-aiuto" style="display:none"></div>
+    <input type="hidden" id="mdts-modo">
+    <input type="hidden" id="mdts-documento-id">
+    <div class="f"><label>Tipo di documento *</label><select id="mdts-tipo" onchange="aggiornaTipoDocumentoTS()"></select></div>
+    <div class="al2 w" id="mdts-riservato" style="display:none">Dato sulla salute: carica solo il giudizio di idoneità del medico competente, non la cartella sanitaria. Il file lo aprono titolare, segreteria e il dipendente; il capo tecnico vede solo la scadenza.</div>
+    <div class="f"><label id="mdts-descrizione-label">Dettaglio (facoltativo)</label><input type="text" id="mdts-descrizione" maxlength="200" placeholder="es. corso livello 2, polizza n. 123"></div>
+    <div class="f" id="mdts-riferito-box"><label>Persona (facoltativa)</label><input type="text" id="mdts-riferito-a" maxlength="200" placeholder="es. operaio del subappaltatore a cui si riferisce l'attestato"></div>
+    <div class="fr">
+      <div class="f"><label>Data di rilascio</label><input type="date" id="mdts-rilascio" onchange="proponiScadenzaDocumentoTS(false)"></div>
+      <div class="f"><label>Data di scadenza</label><input type="date" id="mdts-scadenza"></div>
+    </div>
+    <div id="mdts-proposta" style="font-size:11px;color:var(--m);margin:-4px 0 10px"></div>
+    <div class="f"><label>Nota (facoltativa)</label><input type="text" id="mdts-nota" maxlength="300"></div>
+    <div class="f" id="mdts-file-box"><label>File (PDF o foto, massimo 50 MB)</label><input type="file" id="mdts-file"><div style="font-size:11px;color:var(--m);margin-top:4px">Facoltativo: si può aggiungere dopo con "Rinnova o sostituisci".</div></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-documento-ts')">Annulla</button>
+      <button class="btn p" id="mdts-salva" onclick="salvaDocumentoTS()">Salva</button>
+    </div>
   </div>
 </div>
 
@@ -4223,6 +4338,7 @@
 <script defer src="js/27-ordini-fornitori.js"></script>
 <script defer src="js/28-richieste-integrazione.js"></script>
 <script defer src="js/29-materiali-commessa.js"></script>
+<script defer src="js/30-team-subappalti.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

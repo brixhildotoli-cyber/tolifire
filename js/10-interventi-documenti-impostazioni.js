@@ -114,6 +114,7 @@ async function loadTeam(){
     <td><span class="bx bblue">${esc(etichettaRuolo(u.ruolo))}</span></td>
     <td>${u.attivo?'<span class="bx bok">Attivo</span>':'<span class="bx bgray">Inattivo</span>'}</td>
     <td style="display:flex;gap:6px">
+      ${typeof openSchedaDocumenti==='function'&&canAccessPage('scheda-documenti')?`<button class="btn sm" title="Documenti con scadenza (F7.1)" onclick="openSchedaDocumenti('dipendente','${u.id}')">🪪 Documenti</button>`:''}
       <button class="btn sm" onclick="toggleAttivoUtente('${u.id}',${u.attivo})">${u.attivo?'⏸️ Disattiva':'▶️ Riattiva'}</button>
       ${u.id!==ME?.id?`<button class="btn sm" style="color:var(--r)" onclick="eliminaUtente('${u.id}','${esc(u.nome)} ${esc(u.cognome)}')">🗑️</button>`:''}
     </td>
@@ -137,6 +138,8 @@ let IMPOSTAZIONI=null;
 const CAMPI_SOGLIE=[
   {col:'soglia_lavoro_grande',id:'si-soglia-lavoro-grande',intero:false,max:null},
   {col:'giorni_preavviso_rinnovo',id:'si-preavviso-rinnovo',intero:true,max:365},
+  // F7.1: preavviso scadenza documenti di team e subappalti (sql/32, default 30)
+  {col:'giorni_preavviso_documenti',id:'si-preavviso-documenti',intero:true,max:365,obbligatorio:true,msg:'Il preavviso dei documenti è obbligatorio (0 = nessun preavviso)'},
   {col:'tariffa_oraria_standard',id:'si-tariffa-oraria',intero:false,max:null,obbligatorio:true}
 ];
 function mostraSoglie(){
@@ -160,7 +163,7 @@ async function saveSoglie(){
   for(const c of CAMPI_SOGLIE){
     if(!Object.prototype.hasOwnProperty.call(IMPOSTAZIONI,c.col))continue;
     const testo=String(v(c.id)).trim().replace(',','.');
-    if(testo===''&&c.obbligatorio){toast('La tariffa oraria standard è obbligatoria','err');ge(c.id).focus();return;}
+    if(testo===''&&c.obbligatorio){toast(c.msg||'La tariffa oraria standard è obbligatoria','err');ge(c.id).focus();return;}
     if(testo===''){upd[c.col]=null;continue;}
     const n=Number(testo);
     if(!isFinite(n)||n<0){toast('Valore non valido: usa un numero positivo','err');ge(c.id).focus();return;}

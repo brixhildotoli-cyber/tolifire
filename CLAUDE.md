@@ -58,6 +58,14 @@ commesse_richieste_integrazione (sola lettura; si scrive solo con le RPC
 apri_richiesta_integrazione, evadi_richiesta_integrazione e
 cambia_stato_richiesta_integrazione, js/28)
 
+Usate dal frontend — team e subappalti (F7.1, sql/32 da eseguire, richiede
+solo sql/07): subappaltatori (lettura titolare, segreteria, capo_tecnico;
+inserimento e modifica diretti di titolare e segreteria, niente
+cancellazione: attivo=false), documenti_team_subappalti (sola lettura; si
+scrive solo con le RPC registra_, correggi_ ed
+elimina_documento_team_subappalti, js/30); colonna nuova
+impostazioni.giorni_preavviso_documenti (default 30).
+
 Usate dal frontend — fatturazione:
 fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
 il modulo Fatture è in costruzione, vedi sotto)
@@ -76,7 +84,8 @@ usate senza conferma di Toli.
 
 Bucket Storage usati dal frontend: documenti-clienti, foto-interventi,
 preventivi-documenti, progetti-tecnici, ticket-allegati,
-certificati-preventivi; dopo sql/29 (F5.3) commesse-documenti.
+certificati-preventivi; dopo sql/29 (F5.3) commesse-documenti; dopo
+sql/32 (F7.1) documenti-team-subappalti.
 
 RPC chiamate dal frontend (`db.rpc`): marca_ritardi_pendenti,
 confirm_user_email, impegni_tecnici_dashboard,
@@ -92,6 +101,8 @@ Dopo sql/30 (F6.1, da eseguire): offerte_ordinabili_commessa,
 crea_ordine_fornitore, cambia_stato_ordine_fornitore.
 Dopo sql/31 (F6.2, da eseguire): apri_richiesta_integrazione,
 evadi_richiesta_integrazione, cambia_stato_richiesta_integrazione.
+Dopo sql/32 (F7.1, da eseguire): registra_documento_team_subappalti,
+correggi_documento_team_subappalti, elimina_documento_team_subappalti.
 Dopo sql/25 (F4.3, da eseguire): registra_fattura_anticipo,
 registra_accredito_anticipo, rifiuta_per_anticipo_non_versato.
 Dopo sql/22 (F4.1, da eseguire): accetta_preventivo, rifiuta_preventivo.
@@ -134,7 +145,7 @@ il rappresentante anche sopra 3.000 € (decisione 26/10, sql/23).
 | Programmazione e controllo | titolare (accesso completo) | — | — |
 | Contabile (esterno all'organigramma) | contabile | Fatturazione | — |
 | Informatico (esterno all'organigramma) | informatico | Accesso completo come il titolare | — |
-| Subappaltatori | non sono utenti | — | Anagrafica con documenti (Fase 7) |
+| Subappaltatori | non sono utenti | Anagrafica con referente e documenti con scadenza (F7.1, sql/32) | Checklist faldone sulla commessa (F7.2) |
 
 Decisione D1 (chiusa da Erika il 23/10, da confermare da Toli in F1.4):
 il "commerciale" verso il cliente è il ruolo rappresentante (anche per gli
@@ -147,13 +158,13 @@ js/02-portale-navigazione.js; controllo in `canAccessPage`):
   preventivi-titolare, preventivo-detail, progetti-da-preventivare, presidi,
   workflow, interventi, clienti, documenti, fatture, catalogo, impostazioni,
   cliente-detail, progetto-detail, fornitore-detail, tecnico, sopralluogo,
-  commesse, commessa-detail
+  commesse, commessa-detail, team-subappalti, scheda-documenti
 - capo_tecnico: dashboard, calendario, calendario-team, piano-mensile,
   presidi, interventi, tecnico, clienti, documenti, cliente-detail,
-  commesse, commessa-detail
+  commesse, commessa-detail, team-subappalti, scheda-documenti
 - segreteria: dashboard, calendario, workflow, presidi, interventi, tecnico,
   clienti, documenti, fatture, catalogo, cliente-detail, fornitore-detail,
-  commesse, commessa-detail
+  commesse, commessa-detail, team-subappalti, scheda-documenti
 - contabile: dashboard, workflow, fatture, documenti, catalogo
 - tecnico: dashboard, calendario-tec, tecnico, documenti
 - commerciale: dashboard, progetti-da-preventivare, preventivi, fornitori,
@@ -506,6 +517,60 @@ consumabili/noli in ritardo sulle commesse aperte, solo "Apri
 commessa"; compare solo se ce ne sono). Funziona con nessuna, una o
 entrambe le fonti (senza 30 e 31 il box non compare; con una sola dice
 quale parte manca).
+
+Team e subappalti (F7.1, js/30-team-subappalti.js; sql/32-team-subappalti-
+documenti da eseguire, richiede solo sql/07, non 26-31): prepara il passo
+10 (documenti dei dipendenti e dei subappalti per il faldone; date di
+inizio e checklist del faldone sulla commessa = F7.2). Voce
+"🦺 Team e subappalti" nel menu di titolare, segreteria e capo_tecnico
+(pagine team-subappalti e scheda-documenti). Pagina con tab Scadenze
+(documenti in vigore scaduti o entro il preavviso), Dipendenti (utenti
+attivi con riepilogo) e Subappaltatori (ricerca, "anche non attivi").
+Subappaltatore = anagrafica, NON utente: ragione sociale, partita IVA
+(una volta sola), lavorazioni, contatti, referente (nome obbligatorio nel
+sito, ruolo, telefono cliccabile, mail), note; "Non attivo" al posto
+della cancellazione (esce da elenco e avvisi, i documenti restano).
+Documento = di UN dipendente (utenti) o di UN subappaltatore: tipo, data
+di rilascio (non futura), scadenza (vuota = senza scadenza, con
+conferma), persona (solo subappaltatori, es. operaio col patentino),
+nota, file facoltativo (bucket NUOVO privato documenti-team-subappalti,
+50 MB, percorso `dipendenti/<utente>/<file>` o
+`subappaltatori/<id>/<file>`; NON documenti-clienti, che legge anche il
+portale). Tipi (scelta): elenco predefinito nel sito
+(`TIPI_DOCUMENTO_TEAM_SUBAPPALTI`, js/30; per aggiungerne uno basta una
+riga, il DB controlla solo la forma del codice) + "altro" con descrizione
+obbligatoria. Impresa: DURC, visura camerale, POS, assicurazione RCT/RCO,
+DVR, idoneità tecnico-professionale (All. XVII). Persona: formazione
+lavoratori, addetto antincendio, primo soccorso, preposto, patentino
+PLE, lavori in quota e DPI III cat., carrelli elevatori, idoneità
+sanitaria. Con la data di rilascio il sito PROPONE la scadenza
+(validità indicativa per tipo, es. DURC 120 giorni, antincendio 5 anni,
+primo soccorso 3, preposto 2; modificabile, "verifica sul documento").
+Rinnovo: "Rinnova o sostituisci" registra il nuovo documento e il
+vecchio resta nello storico come sostituito (sostituito_da); avvisi e
+controlli guardano solo i documenti in vigore. "Correggi" (✏️) cambia
+tipo, date, persona e nota senza toccare il file; 🗑️ solo per gli
+inserimenti sbagliati (cancella anche il file; se aveva sostituito un
+documento, quello torna in vigore). Permessi (sql/32): titolare e
+segreteria gestiscono tutto; capo_tecnico legge tutto in sola lettura;
+ogni utente legge i propri documenti (il tecnico nel box "🪪 I miei
+documenti" della sua dashboard, con il file). Dati sulla salute:
+l'idoneità sanitaria è "riservato" (lo decide il DB): il capo tecnico
+vede tipo e scadenza ma non apre il file (lo aprono titolare,
+segreteria e il dipendente); il sito avvisa di caricare solo il giudizio
+di idoneità, non la cartella sanitaria. Commerciale, rappresentante,
+contabile, ingegnere: solo i propri (nessuna pagina). Avviso: box
+"🪪 Documenti team e subappalti" nelle dashboard di segreteria
+(seg-documenti-scadenza) e capo tecnico (ct-documenti-scadenza): scaduti
+e in scadenza entro `impostazioni.giorni_preavviso_documenti` (default
+30, 0-365, lo cambia il titolare in Impostazioni > Soglie e tariffe),
+solo intestatari attivi; compare solo se c'è qualcosa. In Impostazioni >
+Team bottone "🪪 Documenti" per ogni utente. Per F7.2:
+`statoDocumentoTeamSubappalti(doc, allaData)` valuta un documento a una
+data (es. inizio lavori). Un utente con documenti non si può eliminare
+(vincolo del DB): va disattivato. Senza sql/32 la pagina mostra "non
+ancora attivi", i box non compaiono e il preavviso in Impostazioni resta
+disattivato.
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

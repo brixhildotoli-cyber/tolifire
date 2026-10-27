@@ -22,6 +22,10 @@ async function loadDash(){
   if (ROLE === 'tecnico') {
     showOnly('tecnico');
     await loadDashTecnico();
+    // F7.1: i miei documenti con scadenza (js/30, solo con sql/32)
+    if (typeof caricaMieiDocumentiTecnico === 'function') {
+      try { await caricaMieiDocumentiTecnico(); } catch(e){ console.warn('caricaMieiDocumentiTecnico:', e); }
+    }
     return;
   }
 
@@ -694,6 +698,10 @@ async function loadDashSegreteriaPg(){
   try { await loadAnticipiDaFatturare(); } catch(e){ console.warn('loadAnticipiDaFatturare:', e); }
   // F5.2: commesse in cui tocca alla segreteria (js/18, solo con sql/28)
   try { await caricaCommesseToccaAMe(); } catch(e){ console.warn('caricaCommesseToccaAMe:', e); }
+  // F7.1: documenti di team e subappalti scaduti o in scadenza (js/30, solo con sql/32)
+  if (typeof caricaDocumentiInScadenzaDashboard === 'function') {
+    try { await caricaDocumentiInScadenzaDashboard('seg-documenti-scadenza'); } catch(e){ console.warn('caricaDocumentiInScadenzaDashboard:', e); }
+  }
 
   // Ticket aperti assegnati alla segreteria (top 5)
   var rTk = await db.from('ticket_clienti')
@@ -826,6 +834,10 @@ async function loadDashCapoTecnicoPg(){
   // F6.3: materiali in ritardo (js/29, con sql/30 o sql/31)
   if (typeof caricaMaterialiInRitardoDashboard === 'function') {
     try { await caricaMaterialiInRitardoDashboard(); } catch(e){ console.warn('caricaMaterialiInRitardoDashboard:', e); }
+  }
+  // F7.1: documenti di team e subappalti scaduti o in scadenza (js/30, solo con sql/32)
+  if (typeof caricaDocumentiInScadenzaDashboard === 'function') {
+    try { await caricaDocumentiInScadenzaDashboard('ct-documenti-scadenza'); } catch(e){ console.warn('caricaDocumentiInScadenzaDashboard:', e); }
   }
   // F6.2: consumabili e noli chiesti agli acquisti (js/28, solo con sql/31)
   if (typeof caricaRichiesteIntegrazioneDashboard === 'function') {
