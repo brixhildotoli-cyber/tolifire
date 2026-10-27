@@ -67,6 +67,9 @@ async function openPreventivoDetail(preventivoId) {
     return;
   }
 
+  // F5.1: commessa nata dal preventivo accettato (solo con sql/26).
+  await aggiungiCommessaAiPreventivi([preventivo]);
+
   currentPreventivoId = preventivo.id;
   currentPreventivoProgettoId = preventivo.progetto_tecnico_id;
   impostaBloccoVociPreventivo(preventivo.stato);
@@ -7249,6 +7252,7 @@ function riepilogoEsitoPreventivo(preventivo) {
         : (accettato ? '✅ Accettato dal cliente' : '❌ Rifiutato dal cliente')}</b>
       ${dettaglio ? `<span style="font-size:12px"> · registrato ${esc(dettaglio)}</span>` : ''}
       ${accettato ? rigaAnticipoPreventivo(preventivo) : ''}
+      ${htmlCommessaPreventivo(preventivo)}
       ${!accettato && preventivo.motivo_rifiuto ? `
         <div style="margin-top:6px;white-space:pre-wrap">Motivo: ${esc(preventivo.motivo_rifiuto)}</div>
       ` : ''}
@@ -7472,10 +7476,11 @@ async function salvaEsitoPreventivo() {
 
   // F4.2: con l'anticipo il database restituisce 'in_attesa_anticipo'
   // e il preventivo compare alla segreteria in "Anticipi da fatturare".
+  // F5.1: senza anticipo nasce subito la commessa (solo con sql/26).
   toast(
     nuovoStato === 'in_attesa_anticipo'
       ? 'Preventivo accettato: in attesa dell\'anticipo (passa alla segreteria per la fattura)'
-      : 'Preventivo segnato come accettato',
+      : 'Preventivo segnato come accettato' + await testoCommessaNata(preventivoId),
     'ok'
   );
 
@@ -7521,6 +7526,9 @@ async function htmlEsitiRegistratiRappresentante() {
     .limit(20);
 
   if (error || !data?.length) return '';
+
+  // F5.1: codice della commessa sui preventivi accettati (solo con sql/26).
+  await aggiungiCommessaAiPreventivi(data);
 
   return `
     <div style="font-size:14px;font-weight:700;margin:22px 0 10px">
@@ -8322,7 +8330,7 @@ async function salvaAnticipoSegreteria() {
   toast(
     modo === 'fattura'
       ? 'Fattura d\'anticipo registrata. Quando l\'anticipo arriva sul conto segna "Accredito verificato"'
-      : 'Accredito registrato: preventivo accettato, via libera al rappresentante',
+      : 'Accredito registrato: preventivo accettato, via libera al rappresentante' + await testoCommessaNata(preventivoId),
     'ok'
   );
 
@@ -8436,4 +8444,211 @@ async function salvaRifiutoAnticipoNonVersato() {
   toast('Preventivo rifiutato: anticipo non versato', 'ok');
 
   await aggiornaDopoAnticipoSegreteria(preventivoId);
+}
+
+
+// =====================================================================
+// F5.1 — COMMESSA nata dal preventivo accettato (sql/26-commesse).
+// Passo 5 del flusso: quando il preventivo diventa 'accettato' (senza
+// anticipo, oppure con l'accredito verificato dalla segreteria) il
+// database crea da solo la commessa, con il codice ANNO-NUMERO
+// (es. 2026-001). Nasce solo dai preventivi collegati a un progetto
+// tecnico (lavoro straordinario/cantiere, non la manutenzione
+// periodica). Qui si mostra il codice nel riepilogo dell'esito e si
+// indica la sede del cantiere quando il cliente ne ha più d'una
+// (titolare, segreteria, rappresentante: imposta_sede_commessa).
+// Senza sql/26 nulla di questo compare.
+// =====================================================================
+
+const ETICHETTE_STATO_COMMESSA = {
+  approvata: 'Approvata',
+  materiali_ordinati: 'Materiali ordinati',
+  in_preparazione: 'In preparazione',
+  pronta: 'Pronta',
+  in_corso: 'In corso',
+  fine_lavori: 'Fine lavori',
+  chiusa: 'Chiusa'
+};
+
+let commesseDisponibili = null;
+
+// true se sql/26 è stato eseguito (esiste la tabella commesse).
+async function verificaCommesseDisponibili() {
+  if (commesseDisponibili !== null) return commesseDisponibili;
+
+  const { error } = await db
+    .from('commesse')
+    .select('id')
+    .limit(1);
+
+  if (!error) {
+    commesseDisponibili = true;
+  } else if (error.code === 'PGRST205' || error.code === '42P01' || /commesse/i.test(error.message || '')) {
+    commesseDisponibili = false;
+  } else {
+    // Errore di rete o altro: non decidere ora, riprova la prossima volta.
+    return false;
+  }
+
+  return commesseDisponibili;
+}
+
+// Commesse dei preventivi indicati: { id_preventivo: commessa }.
+// null se le commesse non sono attive o la lettura non riesce.
+async function caricaCommessePreventivi(idPreventivi) {
+  const ids = (idPreventivi || []).filter(Boolean);
+  if (!ids.length || !(await verificaCommesseDisponibili())) return null;
+
+  const { data, error } = await db
+    .from('commesse')
+    .select('id, codice, stato, creato_il, cliente_id, sede_id, preventivo_id, sedi_cliente(nome, tipo, via, civico, citta)')
+    .in('preventivo_id', ids);
+
+  if (error) return null;
+
+  const mappa = {};
+  (data || []).forEach(function(commessa) {
+    mappa[commessa.preventivo_id] = commessa;
+  });
+  return mappa;
+}
+
+// Aggiunge preventivo._commessa (oggetto, oppure null se manca) ai
+// preventivi accettati dell'elenco. Senza sql/26 non tocca nulla.
+async function aggiungiCommessaAiPreventivi(preventivi) {
+  const accettati = (preventivi || []).filter(function(p) {
+    return p && p.stato === 'accettato';
+  });
+  if (!accettati.length) return;
+
+  const mappa = await caricaCommessePreventivi(accettati.map(function(p) { return p.id; }));
+  if (!mappa) return;
+
+  accettati.forEach(function(p) {
+    p._commessa = mappa[p.id] || null;
+  });
+}
+
+function puoImpostareSedeCommessa() {
+  return ['titolare', 'segreteria', 'rappresentante'].includes(ROLE);
+}
+
+function testoSedeCommessa(sede) {
+  if (!sede) return '';
+  const indirizzo = [
+    [sede.via, sede.civico].filter(Boolean).join(' '),
+    sede.citta
+  ].filter(Boolean).join(', ');
+  return [sede.nome || sede.tipo, indirizzo].filter(Boolean).join(' · ');
+}
+
+// Riga "Commessa 2026-001" nel riepilogo dell'esito (solo accettati).
+function htmlCommessaPreventivo(preventivo) {
+  if (!preventivo || preventivo.stato !== 'accettato' || !('_commessa' in preventivo)) return '';
+
+  const commessa = preventivo._commessa;
+
+  if (!commessa) {
+    return `
+      <div style="margin-top:8px;font-size:12px;color:var(--m)">
+        Nessuna commessa collegata (preventivo senza progetto tecnico o
+        accettato prima dell'attivazione delle commesse).
+      </div>
+    `;
+  }
+
+  const nata = commessa.creato_il
+    ? new Date(commessa.creato_il).toLocaleDateString('it-IT')
+    : '';
+  const sede = testoSedeCommessa(commessa.sedi_cliente);
+
+  return `
+    <div class="card" style="margin:10px 0 0;padding:10px 12px;color:var(--t)">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+        <div style="font-size:14px;font-weight:700">
+          📁 Commessa ${esc(commessa.codice)}
+        </div>
+        <span class="bx bblue">${esc(ETICHETTE_STATO_COMMESSA[commessa.stato] || commessa.stato)}</span>
+      </div>
+      ${nata ? `<div style="font-size:12px;color:var(--m);margin-top:4px">Nata il ${esc(nata)}</div>` : ''}
+      <div id="commessa-sede-${esc(commessa.id)}" style="font-size:12px;margin-top:6px">
+        Sede del cantiere: ${sede
+          ? '<b>' + esc(sede) + '</b>'
+          : '<b style="color:var(--a)">da indicare</b>'}
+        ${puoImpostareSedeCommessa() && commessa.stato !== 'chiusa' ? `
+          <button
+            class="btn sm"
+            style="margin-left:6px"
+            onclick="apriSceltaSedeCommessa('${esc(commessa.id)}', '${esc(commessa.cliente_id)}', '${esc(commessa.preventivo_id)}', '${esc(commessa.sede_id || '')}')"
+          >
+            ${sede ? 'Cambia sede' : 'Indica la sede'}
+          </button>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+async function apriSceltaSedeCommessa(commessaId, clienteId, preventivoId, sedeAttuale) {
+  const box = ge('commessa-sede-' + commessaId);
+  if (!box) return;
+
+  const { data: sedi, error } = await db.rpc('elenco_sedi_cliente', { p_cliente_id: clienteId });
+
+  if (error) {
+    toast('Errore caricamento sedi: ' + error.message, 'err');
+    return;
+  }
+
+  if (!sedi?.length) {
+    toast('Il cliente non ha sedi: aggiungila nella scheda cliente', 'err');
+    return;
+  }
+
+  box.innerHTML = `
+    <div style="font-size:12px;font-weight:600;margin-bottom:4px">Sede del cantiere</div>
+    <select id="commessa-sede-scelta-${esc(commessaId)}" style="max-width:100%">
+      <option value="">— Scegli la sede —</option>
+      ${sedi.map(function(sede) {
+        return `<option value="${esc(sede.id)}" ${sede.id === sedeAttuale ? 'selected' : ''}>${esc(testoSedeCommessa(sede))}</option>`;
+      }).join('')}
+    </select>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn sm p" onclick="salvaSedeCommessa('${esc(commessaId)}', '${esc(preventivoId)}', this)">Salva sede</button>
+      <button class="btn sm" onclick="aggiornaDopoEsitoPreventivo('${esc(preventivoId)}')">Annulla</button>
+    </div>
+  `;
+}
+
+async function salvaSedeCommessa(commessaId, preventivoId, bottone) {
+  const sedeId = v('commessa-sede-scelta-' + commessaId);
+
+  if (!sedeId) {
+    toast('Scegli la sede del cantiere', 'err');
+    return;
+  }
+
+  if (bottone) bottone.disabled = true;
+
+  const { data: codice, error } = await db.rpc('imposta_sede_commessa', {
+    p_commessa_id: commessaId,
+    p_sede_id: sedeId
+  });
+
+  if (error) {
+    if (bottone) bottone.disabled = false;
+    toast('Sede non salvata: ' + (error.message || 'errore sconosciuto'), 'err');
+    return;
+  }
+
+  toast('Sede della commessa ' + (codice || '') + ' salvata', 'ok');
+  await aggiornaDopoEsitoPreventivo(preventivoId);
+}
+
+// Testo da aggiungere al messaggio dopo l'accettazione o l'accredito:
+// " · nata la commessa 2026-001" (vuoto senza sql/26 o senza commessa).
+async function testoCommessaNata(preventivoId) {
+  const mappa = await caricaCommessePreventivi([preventivoId]);
+  const commessa = mappa && mappa[preventivoId];
+  return commessa ? ' · nata la commessa ' + commessa.codice : '';
 }

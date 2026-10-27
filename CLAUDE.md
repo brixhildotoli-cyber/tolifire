@@ -43,6 +43,9 @@ Usate dal frontend — area commerciale (preventivi, progetti, fornitori, CRM):
   ai fornitori), preventivi_fornitori_allegati
 - pipeline_crm (trattative), lead_sito, appuntamenti_commerciali
 
+Usate dal frontend — commesse (F5.1, dopo sql/26-commesse, da eseguire):
+commesse (sola lettura dal sito; la crea il database, js/18)
+
 Usate dal frontend — fatturazione:
 fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
 il modulo Fatture è in costruzione, vedi sotto)
@@ -69,6 +72,7 @@ marca_preventivo_letto_rappresentante, marca_preventivo_letto_titolare,
 salva_esito_verifica, salva_bozza_verifica, elimina_scheda_storico,
 nuovo_intervento_manichetta, salva_riporto_presidio.
 Dopo sql/18 (F2.3, da eseguire): marca_certificato_letto_ingegnere.
+Dopo sql/26 (F5.1, da eseguire): imposta_sede_commessa.
 Dopo sql/25 (F4.3, da eseguire): registra_fattura_anticipo,
 registra_accredito_anticipo, rifiuta_per_anticipo_non_versato.
 Dopo sql/22 (F4.1, da eseguire): accetta_preventivo, rifiuta_preventivo.
@@ -306,6 +310,30 @@ policy preventivi_lettura di sql/10): importo dell'anticipo IVA inclusa,
 fattura d'anticipo emessa o in preparazione, giorni di attesa. Sparisce
 da solo con l'accredito (stato 'accettato') o con il rifiuto per
 anticipo non versato.
+
+Passo 5, nasce la commessa (F5.1, sql/26-commesse da eseguire dopo 25):
+tabella `commesse` (codice leggibile ANNO-NUMERO, es. 2026-001, numero
+che riparte ogni anno; collegata a cliente, sede, preventivo, progetto
+tecnico; una per preventivo). La crea il DATABASE (trigger
+trg_preventivi_crea_commessa) quando il preventivo entra in 'accettato':
+accettato diretto senza anticipo, oppure accredito verificato dopo
+'in_attesa_anticipo'. In attesa dell'anticipo la commessa non esiste.
+Nessuno la apre a mano (né capo tecnico né titolare). Distinzione
+straordinario/manutenzione: nasce solo dai preventivi con
+`progetto_tecnico_id` (ogni lavoro di cantiere passa dal progetto
+tecnico; la manutenzione periodica vive in clienti_periodicita,
+cicli_pianificati, ordini_lavoro). Sede: messa in automatico se il
+cliente ha una sola sede principale (o una sola sede), altrimenti la
+indicano rappresentante, segreteria o titolare (RPC
+imposta_sede_commessa). Stato iniziale 'approvata'; i passaggi
+successivi arrivano con F5.2. Lettura: titolare, segreteria,
+commerciale, capo_tecnico, rappresentante (suoi clienti/preventivi).
+Nessuna scrittura diretta dal sito. Un preventivo con commessa non si
+cancella. Nel sito: codice nel riepilogo dell'esito (scheda preventivo,
+Esiti registrati del rappresentante) e nel messaggio dopo accettazione o
+accredito (js/18 `htmlCommessaPreventivo`). Preventivi accettati prima
+di sql/26: commessa solo con sql/27-commesse-preventivi-gia-accettati
+(facoltativo, conferma separata di Toli).
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
