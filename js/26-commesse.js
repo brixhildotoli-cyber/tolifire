@@ -287,6 +287,7 @@ async function caricaSchedaCommessa(commessaId) {
 
   riepilogo.innerHTML = '<div class="load">Caricamento...</div>';
   cartella.innerHTML = '';
+  if (ge('cmd-ordini')) ge('cmd-ordini').innerHTML = '';
 
   await verificaStatiCommessaDisponibili();
 
@@ -309,6 +310,8 @@ async function caricaSchedaCommessa(commessaId) {
   ge('cmd-stato').innerHTML = badgeStatoCommessa(commessa.stato);
 
   riepilogo.innerHTML = htmlRiepilogoCommessa(commessa);
+  // F6.1: ordini ai fornitori (js/27, attivi con sql/30).
+  if (typeof caricaOrdiniCommessa === 'function') await caricaOrdiniCommessa(commessa);
   await caricaDocumentiCommessa(commessa);
 }
 

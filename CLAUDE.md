@@ -2,8 +2,8 @@
 
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
-file unico: `index.html` (markup) + `style.css` + moduli `js/00-…26-*.js`
-caricati in ordine 00–18, poi 20–26, infine `19-init.js` (dettagli in
+file unico: `index.html` (markup) + `style.css` + moduli `js/00-…27-*.js`
+caricati in ordine 00–18, poi 20–27, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -50,6 +50,9 @@ scrive il database)
 Dopo sql/29 (F5.3, eseguito il 27/10): commesse_documenti (sola lettura; si
 scrive solo con le RPC registra_documento_commessa ed
 elimina_documento_commessa, js/26)
+Dopo sql/30 (F6.1, da eseguire): ordini_fornitori, ordini_fornitori_voci
+(sola lettura; si scrivono solo con le RPC crea_ordine_fornitore e
+cambia_stato_ordine_fornitore, js/27)
 
 Usate dal frontend — fatturazione:
 fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
@@ -81,6 +84,8 @@ Dopo sql/26 (F5.1, eseguito il 27/10): imposta_sede_commessa.
 Dopo sql/28 (F5.2, eseguito il 27/10): cambia_stato_commessa.
 Dopo sql/29 (F5.3, eseguito il 27/10): registra_documento_commessa,
 elimina_documento_commessa.
+Dopo sql/30 (F6.1, da eseguire): offerte_ordinabili_commessa,
+crea_ordine_fornitore, cambia_stato_ordine_fornitore.
 Dopo sql/25 (F4.3, da eseguire): registra_fattura_anticipo,
 registra_accredito_anticipo, rifiuta_per_anticipo_non_versato.
 Dopo sql/22 (F4.1, da eseguire): accetta_preventivo, rifiuta_preventivo.
@@ -408,6 +413,35 @@ documento, gli altri solo i propri, su commessa aperta (sempre il
 titolare). Nessuna sovrascrittura; il file si cancella solo dopo aver
 tolto il suo rigo. Senza sql/29 la scheda mostra "La cartella documenti
 della commessa non è ancora attiva".
+
+Passo 7, ordini ai fornitori (F6.1, js/27-ordini-fornitori.js;
+sql/30-ordini-fornitori da eseguire, richiede 26, non 28 né 29): nella
+scheda della commessa il box "🛒 Ordini ai fornitori". Gli ordini
+nascono SOLO dalle offerte 'selezionato' del preventivo della commessa
+(preventivi_fornitori, scelte dal commerciale): un ordine non annullato
+per offerta. L'ordine copia i dati del fornitore e ha voci (precompilate
+dalle preventivi_voci collegate all'offerta con il costo_unitario, o una
+voce "Fornitura ... come da Vostra offerta" con prezzo_offerto;
+modificabili), importo IVA esclusa (somma delle voci, lo calcola il
+database), data dell'ordine, arrivo previsto (obbligatorio), luogo di
+consegna (precompilato con la sede del cantiere) e note. Codice
+`<codice commessa>/<n>` (es. 2026-001/1). Stati ordinato → confermato
+(data di arrivo confermata, nota) → arrivato (data di arrivo, non
+futura); annullato da ordinato o confermato con motivo (non si
+cancella, si rifà dalla stessa offerta). PDF dell'ordine (jsPDF +
+autotable: intestazione TOLI FIRE, fornitore, commessa come riferimento
+senza il nome del cliente, voci, totale IVA esclusa, note, chi ordina);
+alla creazione si scarica e, con sql/29, si salva anche nella cartella
+"ordini" della commessa (casella spuntata; bottone "Nella cartella" per
+rifarlo). Scelta dichiarata dei ruoli: leggono gli ordini i 5 ruoli che
+leggono la commessa; vedono le offerte (RPC offerte_ordinabili_commessa:
+le tabelle dei fornitori restano chiuse al rappresentante), creano,
+confermano e annullano rappresentante (sue commesse), commerciale e
+titolare; segnano "arrivato" anche capo_tecnico e segreteria. Su
+commessa chiusa o annullata solo il titolare. Lo stato "materiali
+ordinati" resta del rappresentante (sql/28): quando tutte le offerte
+hanno l'ordine il box lo suggerisce ("Segna Materiali ordinati"). Senza
+sql/30 il box mostra "Gli ordini ai fornitori non sono ancora attivi".
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

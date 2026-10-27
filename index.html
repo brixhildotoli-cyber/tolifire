@@ -1877,6 +1877,7 @@
     <span id="cmd-stato"></span>
   </div>
   <div id="cmd-riepilogo"><div class="load">Caricamento...</div></div>
+  <div id="cmd-ordini"></div>
   <div id="cmd-documenti"></div>
 </div>
 
@@ -3025,6 +3026,75 @@
   </div>
 </div>
 
+<!-- F6.1 — NUOVO ORDINE AL FORNITORE (js/27) -->
+<div class="mbg" id="m-ordine-fornitore">
+  <div class="modal" style="max-width:820px">
+    <button class="x" onclick="closeM('m-ordine-fornitore')">×</button>
+
+    <h3 id="mof-titolo">🛒 Ordine al fornitore</h3>
+    <div id="mof-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:6px"></div>
+    <div id="mof-fornitore" class="al2 i" style="margin-bottom:12px"></div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Data dell'ordine *</label>
+        <input type="date" id="mof-data-ordine">
+      </div>
+      <div class="f">
+        <label>Arrivo previsto *</label>
+        <input type="date" id="mof-arrivo">
+      </div>
+    </div>
+    <div class="f">
+      <label>Luogo di consegna</label>
+      <input type="text" id="mof-luogo" maxlength="300" placeholder="es. cantiere, nostro magazzino">
+    </div>
+
+    <div style="font-size:13px;font-weight:600;margin:6px 0">Voci dell'ordine (prezzi del fornitore, IVA esclusa)</div>
+    <div id="mof-voci"></div>
+
+    <div class="f" style="margin-top:10px">
+      <label>Note per il fornitore (vanno nel PDF)</label>
+      <textarea id="mof-note" rows="2" maxlength="1000"></textarea>
+    </div>
+
+    <label id="mof-salva-cartella-riga" style="display:flex;gap:8px;align-items:center;cursor:pointer;font-size:13px;font-weight:400">
+      <input type="checkbox" id="mof-salva-cartella" checked>
+      Salva il PDF anche nella cartella "Ordini" della commessa
+    </label>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-ordine-fornitore')">Annulla</button>
+      <button class="btn p" id="mof-conferma" onclick="salvaNuovoOrdineFornitore()">🛒 Crea ordine e PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- F6.1 — STATO DELL'ORDINE AL FORNITORE (js/27) -->
+<div class="mbg" id="m-stato-ordine-fornitore">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-stato-ordine-fornitore')">×</button>
+
+    <h3 id="mso-titolo">Ordine</h3>
+    <div id="mso-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+
+    <div class="f" id="mso-data-riga">
+      <label id="mso-data-etichetta">Data</label>
+      <input type="date" id="mso-data">
+    </div>
+    <div class="f">
+      <label id="mso-nota-etichetta">Nota</label>
+      <textarea id="mso-nota" rows="3" maxlength="500"></textarea>
+    </div>
+    <div id="mso-avviso"></div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-stato-ordine-fornitore')">Chiudi</button>
+      <button class="btn p" id="mso-conferma" onclick="salvaStatoOrdineFornitore()">Salva</button>
+    </div>
+  </div>
+</div>
+
 <!-- FORNITORE -->
 <div class="mbg" id="m-fornitore">
   <div class="modal">
@@ -4026,6 +4096,7 @@
 <script defer src="js/24-scadenze-presidi.js"></script>
 <script defer src="js/25-nuovocontrollo-presidi.js"></script>
 <script defer src="js/26-commesse.js"></script>
+<script defer src="js/27-ordini-fornitori.js"></script>
 <script defer src="js/19-init.js"></script>
 
 
