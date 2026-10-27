@@ -238,7 +238,7 @@ async function caricaMaterialiCommessa(commessa) {
   // Offerte da ordinare: già lette da js/27 (caricaOrdiniCommessa) per i
   // ruoli che le vedono; null = non disponibili per chi guarda.
   const vedeOfferte = fonti.attiveOrdini && typeof RUOLI_CREANO_ORDINI !== 'undefined' && RUOLI_CREANO_ORDINI.includes(ROLE);
-  const offerteLette = vedeOfferte && commessaOrdiniAperta && commessaOrdiniAperta.id === commessa.id;
+  const offerteLette = vedeOfferte && offerteCommessaLette && commessaOrdiniAperta && commessaOrdiniAperta.id === commessa.id;
   const offerteDaOrdinare = offerteLette
     ? (offerteCommessaAperta || []).filter(function(o) { return !o.ordine; })
     : null;

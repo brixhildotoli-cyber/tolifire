@@ -670,4 +670,5 @@ async function aggiornaDopoRichiestaIntegrazione() {
     return;
   }
   await caricaRichiesteIntegrazioneDashboard();
+  if (typeof caricaMaterialiInRitardoDashboard === 'function') await caricaMaterialiInRitardoDashboard(); // F6.3, js/29
 }

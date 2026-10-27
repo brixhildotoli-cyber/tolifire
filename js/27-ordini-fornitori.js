@@ -29,6 +29,7 @@ let ordiniFornitoriDisponibili = null;
 let commessaOrdiniAperta = null;
 let ordiniCommessaAperta = [];
 let offerteCommessaAperta = [];
+let offerteCommessaLette = false; // false se la lettura delle offerte è fallita (js/29)
 let vociNuovoOrdine = [];
 let offertaNuovoOrdine = null;
 let ordineStatoInModifica = null;
@@ -112,6 +113,7 @@ async function caricaOrdiniCommessa(commessa) {
   commessaOrdiniAperta = commessa;
   ordiniCommessaAperta = [];
   offerteCommessaAperta = [];
+  offerteCommessaLette = false;
 
   // La cartella documenti (sql/29) serve per salvare il PDF: verifica in cache.
   await verificaDocumentiCommessaDisponibili();
@@ -157,7 +159,10 @@ async function caricaOrdiniCommessa(commessa) {
   let erroreOfferte = '';
   if (offerteRes) {
     if (offerteRes.error) erroreOfferte = offerteRes.error.message || 'errore sconosciuto';
-    else offerteCommessaAperta = Array.isArray(offerteRes.data) ? offerteRes.data : [];
+    else {
+      offerteCommessaAperta = Array.isArray(offerteRes.data) ? offerteRes.data : [];
+      offerteCommessaLette = true;
+    }
   }
 
   box.innerHTML = `
