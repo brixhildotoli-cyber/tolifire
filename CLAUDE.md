@@ -2,8 +2,8 @@
 
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
-file unico: `index.html` (markup) + `style.css` + moduli `js/00-…27-*.js`
-caricati in ordine 00–18, poi 20–28, infine `19-init.js` (dettagli in
+file unico: `index.html` (markup) + `style.css` + moduli `js/00-…32-*.js`
+caricati in ordine 00–18, poi 20–32, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -117,6 +117,8 @@ consegna_faldone_commessa.
 Dopo sql/25 (F4.3, da eseguire): registra_fattura_anticipo,
 registra_accredito_anticipo, rifiuta_per_anticipo_non_versato.
 Dopo sql/22 (F4.1, da eseguire): accetta_preventivo, rifiuta_preventivo.
+Dopo sql/34 (F8.1, da eseguire): scheda_cantiere_commessa,
+imposta_dati_cantiere_commessa.
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
 Sono gli accessi che le policy RLS per il portale dovranno permettere
 (F1.1), sempre filtrati sul cliente del portale (`cliente_id`):
@@ -625,6 +627,38 @@ il titolare; le date la segreteria le cambia finché la commessa non è
 chiusa o annullata. Tornando dalla scheda documenti (js/30) la commessa
 si ricarica. Senza sql/33 il box dice "non ancora attive" e 'pronta' si
 segna come prima.
+
+Scheda cantiere (F8.1, js/32-scheda-cantiere.js; sql/34-scheda-cantiere
+da eseguire, richiede solo 07 e 26): passo 11. Nella scheda della
+commessa due schede: "🏗️ Cantiere" (cmd-cantiere; si apre per prima per
+il capo_tecnico, gli altri ruoli partono da "📁 Commessa e documenti";
+ricaricando la stessa commessa resta la scheda scelta). Una schermata per
+il telefono (390 px): Dove si va (indirizzo della sede, bottone "Apri la
+mappa" Google Maps, note della sede; con sql/34 piano e zona, orari e
+istruzioni di accesso), Con chi si parla (referente in cantiere, se
+vuoto quello del cliente in anagrafica, e referente di RISERVA DEL
+CLIENTE, con bottone "Chiama" tel:; personale del faldone se chi guarda
+lo legge), Note di sicurezza (rischi, DPI, regole del cliente), Cosa si
+fa (voci del preventivo con quantità e unità, SENZA prezzi, + descrizione
+tecnica del progetto), Con cosa (materiali di js/29 riusati, ritardi,
+"Chiedi consumabili o noli" di js/28), Allegati tecnici (file del
+progetto, certificati del preventivo, cartella "certificati" della
+commessa, schede di rilievo senza "note interne per il calcolo"). Dati
+del cantiere = 10 colonne cantiere_* sulla commessa + chi/quando,
+scritte SOLO con la RPC imposta_dati_cantiere_commessa: capo_tecnico,
+segreteria, rappresentante (sue commesse), titolare; su commessa chiusa
+o annullata solo il titolare; telefono solo cifre, spazi e + ( ) . / -.
+Lettura senza prezzi con la RPC scheda_cantiere_commessa (stessi lettori
+della commessa: capo tecnico e segreteria non leggono preventivi,
+voci e progetti per RLS); nuova regola storage
+commesse_file_tecnici_lettura (funzione file_tecnico_commessa_leggibile):
+chi legge la commessa apre i file del progetto (progetti-tecnici) e i
+certificati del preventivo (certificati-preventivi) di quella commessa.
+Il sostituto del capo tecnico NON è implementato (domanda aperta).
+Squadra del giorno, mezzi e calendario dei tecnici (resto della 8.1 in
+roadmap) non sono fatti. Senza sql/34 la scheda mostra indirizzo,
+referente del cliente, materiali e certificati della commessa e dice
+che il resto "non è ancora attivo".
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

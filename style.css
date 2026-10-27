@@ -1152,3 +1152,14 @@ pre {
     font-size:9px;
   }
 }
+/* F8.1 — Scheda cantiere (js/32): compatta e leggibile dal telefono */
+#cmd-cantiere .cant-card{padding:12px 14px;margin-bottom:10px}
+#cmd-cantiere .cant-titolo{font-size:15px;font-weight:700;margin-bottom:8px}
+#cmd-cantiere .cant-campo{padding:6px 0;border-top:1px solid var(--bo)}
+#cmd-cantiere .cant-etichetta{font-size:11px;color:var(--m);margin-bottom:2px}
+#cmd-cantiere .cant-testo{font-size:14px;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere}
+#cmd-cantiere .cant-riga{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--bo);font-size:14px}
+#cmd-cantiere .cant-quantita{font-weight:700;white-space:nowrap;text-align:right}
+#cmd-cantiere .cant-azione{display:flex;justify-content:center;width:100%;box-sizing:border-box;padding:12px 14px;font-size:15px;text-decoration:none;margin:4px 0;text-align:center;flex-wrap:wrap}
+#cmd-cantiere .empty{padding:14px}
+#cmd-cantiere .btn.sm{min-height:36px}

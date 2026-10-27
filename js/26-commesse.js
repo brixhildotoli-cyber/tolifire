@@ -13,7 +13,8 @@
 // Funziona con sql/26 soltanto (dati di base), con sql/28 (stati e
 // storico) e con sql/29 (cartella documenti). Ordini ai fornitori: js/27
 // (sql/30); consumabili e noli: js/28 (sql/31); elenco materiali: js/29;
-// date dei lavori e faldone: js/31 (sql/33).
+// date dei lavori e faldone: js/31 (sql/33); scheda cantiere: js/32
+// (sql/34).
 // =====================================================================
 
 // Cartelle dei documenti (stesso elenco del vincolo di sql/29).
@@ -302,6 +303,8 @@ async function caricaSchedaCommessa(commessaId) {
   if (ge('cmd-ordini')) ge('cmd-ordini').innerHTML = '';
   if (ge('cmd-richieste')) ge('cmd-richieste').innerHTML = '';
   if (ge('cmd-faldone')) ge('cmd-faldone').innerHTML = '';
+  // F8.1: scheda cantiere (js/32): sceglie la scheda da mostrare.
+  if (typeof preparaSchedaCantiere === 'function') preparaSchedaCantiere(commessaId);
 
   await verificaStatiCommessaDisponibili();
 
@@ -316,6 +319,7 @@ async function caricaSchedaCommessa(commessaId) {
     ge('cmd-sottotitolo').textContent = '';
     ge('cmd-stato').innerHTML = '';
     riepilogo.innerHTML = `<div class="al2 e">Commessa non trovata${error ? ': ' + esc(error.message) : ''}.</div>`;
+    if (ge('cmd-cantiere')) ge('cmd-cantiere').innerHTML = '<div class="al2 e">Commessa non trovata.</div>';
     return;
   }
 
@@ -336,6 +340,9 @@ async function caricaSchedaCommessa(commessaId) {
   // F7.2: date dei lavori e faldone (js/31, attivi con sql/33).
   if (typeof caricaFaldoneCommessa === 'function') await caricaFaldoneCommessa(commessa);
   await caricaDocumentiCommessa(commessa);
+  // F8.1: scheda cantiere (js/32), per ultima: riusa materiali, faldone e
+  // documenti appena letti.
+  if (typeof caricaSchedaCantiere === 'function') await caricaSchedaCantiere(commessa);
 }
 
 function htmlRiepilogoCommessa(c) {

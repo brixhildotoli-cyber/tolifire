@@ -1893,12 +1893,22 @@
     </div>
     <span id="cmd-stato"></span>
   </div>
-  <div id="cmd-riepilogo"><div class="load">Caricamento...</div></div>
-  <div id="cmd-materiali"></div>
-  <div id="cmd-ordini"></div>
-  <div id="cmd-richieste"></div>
-  <div id="cmd-faldone"></div>
-  <div id="cmd-documenti"></div>
+  <!-- F8.1: scheda cantiere (js/32) e tutto il resto della commessa -->
+  <div class="tabs" id="cmd-tabs">
+    <button class="tab" id="cmd-tab-btn-cantiere" onclick="mostraTabCommessa('cantiere')">🏗️ Cantiere</button>
+    <button class="tab on" id="cmd-tab-btn-commessa" onclick="mostraTabCommessa('commessa')">📁 Commessa e documenti</button>
+  </div>
+  <div class="tc" id="cmd-tab-cantiere">
+    <div id="cmd-cantiere"></div>
+  </div>
+  <div class="tc on" id="cmd-tab-commessa">
+    <div id="cmd-riepilogo"><div class="load">Caricamento...</div></div>
+    <div id="cmd-materiali"></div>
+    <div id="cmd-ordini"></div>
+    <div id="cmd-richieste"></div>
+    <div id="cmd-faldone"></div>
+    <div id="cmd-documenti"></div>
+  </div>
 </div>
 
 <!-- TEAM E SUBAPPALTI (F7.1, js/30; attiva con sql/32) -->
@@ -3125,6 +3135,49 @@
     <div class="ma">
       <button class="btn" onclick="closeM('m-consegna-faldone')">Annulla</button>
       <button class="btn p" id="fald-consegna-conferma" onclick="salvaConsegnaFaldone()">Faldone consegnato</button>
+    </div>
+  </div>
+</div>
+
+<!-- F8.1 — DATI DEL CANTIERE: accessi, orari, referenti, sicurezza (solo con sql/34) -->
+<div class="mbg" id="m-dati-cantiere">
+  <div class="modal" style="max-width:560px">
+    <button class="x" onclick="closeM('m-dati-cantiere')">×</button>
+    <h3>🏗️ Dati del cantiere</h3>
+    <div id="cant-mod-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:4px">📍 Dove</div>
+    <div class="f">
+      <label>Piano e zona di lavoro</label>
+      <input type="text" id="cant-mod-piano-zona" maxlength="500" placeholder="es. piano interrato, corridoio filtro scala B">
+    </div>
+    <div class="f">
+      <label>Orari di accesso</label>
+      <input type="text" id="cant-mod-orari" maxlength="500" placeholder="es. lun-ven 7:30-17:00, sabato chiuso">
+    </div>
+    <div class="f">
+      <label>Istruzioni di accesso</label>
+      <textarea id="cant-mod-accessi" rows="3" maxlength="2000" placeholder="badge, chiavi, parcheggio, carico/scarico materiali"></textarea>
+    </div>
+    <div style="font-size:13px;font-weight:700;margin:10px 0 4px">👤 Referente del cliente in cantiere</div>
+    <div style="font-size:11px;color:var(--m);margin-bottom:6px">Se lo lasci vuoto, la scheda mostra il referente del cliente.</div>
+    <div class="fr">
+      <div class="f"><label>Nome</label><input type="text" id="cant-mod-ref-nome" maxlength="120"></div>
+      <div class="f"><label>Ruolo</label><input type="text" id="cant-mod-ref-ruolo" maxlength="120" placeholder="es. responsabile manutenzione"></div>
+    </div>
+    <div class="f"><label>Telefono</label><input type="tel" id="cant-mod-ref-tel" maxlength="40" placeholder="es. 333 1234567"></div>
+    <div style="font-size:13px;font-weight:700;margin:10px 0 4px">👥 Referente di riserva del cliente</div>
+    <div class="fr">
+      <div class="f"><label>Nome</label><input type="text" id="cant-mod-ris-nome" maxlength="120"></div>
+      <div class="f"><label>Ruolo</label><input type="text" id="cant-mod-ris-ruolo" maxlength="120" placeholder="es. portineria, RSPP"></div>
+    </div>
+    <div class="f"><label>Telefono</label><input type="tel" id="cant-mod-ris-tel" maxlength="40"></div>
+    <div style="font-size:13px;font-weight:700;margin:10px 0 4px">⛑️ Note di sicurezza</div>
+    <div class="f">
+      <textarea id="cant-mod-sicurezza" rows="4" maxlength="4000" placeholder="rischi specifici, DPI richiesti, regole del cliente (permessi di lavoro a caldo, aree interdette...)"></textarea>
+    </div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-dati-cantiere')">Annulla</button>
+      <button class="btn p" id="cant-mod-salva" onclick="salvaDatiCantiere()">Salva</button>
     </div>
   </div>
 </div>
@@ -4400,6 +4453,7 @@
 <script defer src="js/29-materiali-commessa.js"></script>
 <script defer src="js/30-team-subappalti.js"></script>
 <script defer src="js/31-faldone-commessa.js"></script>
+<script defer src="js/32-scheda-cantiere.js"></script>
 <script defer src="js/19-init.js"></script>
 
 
