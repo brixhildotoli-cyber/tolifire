@@ -1180,6 +1180,11 @@ async function eliminaPreventivoTitolare(preventivoId) {
     .eq('id', preventivoId);
 
   if (erroreEliminazione) {
+    // F5.1: un preventivo da cui è nata una commessa non si cancella (FK).
+    if (/commesse_preventivo_id_fkey/.test(erroreEliminazione.message || '')) {
+      toast('Il preventivo n. ' + preventivo.numero + ' ha già una commessa: non si può eliminare', 'err');
+      return;
+    }
     toast('Errore eliminazione preventivo: ' + erroreEliminazione.message, 'err');
     return;
   }
