@@ -692,6 +692,8 @@ async function loadDashSegreteriaPg(){
 
   // F4.2: preventivi accettati con anticipo da fatturare (js/18, solo con sql/24)
   try { await loadAnticipiDaFatturare(); } catch(e){ console.warn('loadAnticipiDaFatturare:', e); }
+  // F5.2: commesse in cui tocca alla segreteria (js/18, solo con sql/28)
+  try { await caricaCommesseToccaAMe(); } catch(e){ console.warn('caricaCommesseToccaAMe:', e); }
 
   // Ticket aperti assegnati alla segreteria (top 5)
   var rTk = await db.from('ticket_clienti')
@@ -819,6 +821,8 @@ async function loadDashCapoTecnicoPg(){
   await ctLoadCalendarioSettimana();
 
   // Pannelli riusati (refactored per accettare targetId)
+  // F5.2: commesse in cui tocca al capo tecnico (js/18, solo con sql/28)
+  try { await caricaCommesseToccaAMe(); } catch(e){ console.warn('caricaCommesseToccaAMe:', e); }
   await loadDashCapoTecnico('ct-cicli-mese');
   await loadRichiesteModifica('ct-richieste-modifica');
   await loadDashTicket('ct-ticket-lista');

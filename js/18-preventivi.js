@@ -8467,7 +8467,8 @@ const ETICHETTE_STATO_COMMESSA = {
   pronta: 'Pronta',
   in_corso: 'In corso',
   fine_lavori: 'Fine lavori',
-  chiusa: 'Chiusa'
+  chiusa: 'Chiusa',
+  annullata: 'Annullata'
 };
 
 let commesseDisponibili = null;
@@ -8524,6 +8525,9 @@ async function aggiungiCommessaAiPreventivi(preventivi) {
   const mappa = await caricaCommessePreventivi(accettati.map(function(p) { return p.id; }));
   if (!mappa) return;
 
+  // F5.2: bottone "Stato e storico" solo con sql/28 (verifica in cache).
+  await verificaStatiCommessaDisponibili();
+
   accettati.forEach(function(p) {
     p._commessa = mappa[p.id] || null;
   });
@@ -8568,14 +8572,15 @@ function htmlCommessaPreventivo(preventivo) {
         <div style="font-size:14px;font-weight:700">
           📁 Commessa ${esc(commessa.codice)}
         </div>
-        <span class="bx bblue">${esc(ETICHETTE_STATO_COMMESSA[commessa.stato] || commessa.stato)}</span>
+        <span class="bx ${classeStatoCommessa(commessa.stato)}">${esc(ETICHETTE_STATO_COMMESSA[commessa.stato] || commessa.stato)}</span>
       </div>
       ${nata ? `<div style="font-size:12px;color:var(--m);margin-top:4px">Nata il ${esc(nata)}</div>` : ''}
+      ${htmlProssimoPassoCommessa(commessa)}
       <div id="commessa-sede-${esc(commessa.id)}" style="font-size:12px;margin-top:6px">
         Sede del cantiere: ${sede
           ? '<b>' + esc(sede) + '</b>'
           : '<b style="color:var(--a)">da indicare</b>'}
-        ${puoImpostareSedeCommessa() && commessa.stato !== 'chiusa' ? `
+        ${puoImpostareSedeCommessa() && commessa.stato !== 'chiusa' && commessa.stato !== 'annullata' ? `
           <button
             class="btn sm"
             style="margin-left:6px"
@@ -8651,4 +8656,416 @@ async function testoCommessaNata(preventivoId) {
   const mappa = await caricaCommessePreventivi([preventivoId]);
   const commessa = mappa && mappa[preventivoId];
   return commessa ? ' · nata la commessa ' + commessa.codice : '';
+}
+
+
+// =====================================================================
+// F5.2 — STATI DELLA COMMESSA e storico (sql/28-commesse-stati-storico).
+// Gli stati si passano solo in ordine, uno alla volta, e ognuno lo segna
+// il ruolo che nel flusso della commessa fa quel lavoro (o il titolare,
+// che può tutto ma non è mai obbligato):
+//   approvata → materiali ordinati   rappresentante (passo 7)
+//   → in preparazione                capo tecnico   (passo 8)
+//   → pronta                         segreteria     (passo 10, faldone)
+//   → in corso → fine lavori         capo tecnico   (passo 11)
+//   → chiusa                         segreteria     (passo 12)
+// Solo il titolare riporta indietro (nota obbligatoria), annulla (motivo
+// obbligatorio) e riattiva (torna allo stato di prima). Se il titolare
+// riporta indietro il preventivo accettato la commessa diventa da sola
+// 'annullata'; se il preventivo torna accettato si riattiva da sola.
+// Lo storico (chi, quando, da quale stato a quale, nota) lo scrive il
+// database (RPC cambia_stato_commessa). Senza sql/28 nulla compare.
+// La pagina Commesse completa arriva con F5.3.
+// =====================================================================
+
+const ORDINE_STATI_COMMESSA = [
+  'approvata', 'materiali_ordinati', 'in_preparazione', 'pronta',
+  'in_corso', 'fine_lavori', 'chiusa'
+];
+
+// Chi segna il passaggio A quello stato (oltre al titolare).
+const RUOLO_PASSO_COMMESSA = {
+  materiali_ordinati: 'rappresentante',
+  in_preparazione: 'capo_tecnico',
+  pronta: 'segreteria',
+  in_corso: 'capo_tecnico',
+  fine_lavori: 'capo_tecnico',
+  chiusa: 'segreteria'
+};
+
+const NOMI_RUOLO_PASSO_COMMESSA = {
+  rappresentante: 'Rappresentante',
+  capo_tecnico: 'Capo tecnico',
+  segreteria: 'Segreteria',
+  titolare: 'Titolare',
+  commerciale: 'Commerciale'
+};
+
+// Cosa significa il passaggio, in parole semplici (passi del flusso).
+const DESCRIZIONE_PASSO_COMMESSA = {
+  materiali_ordinati: 'tutto ordinato, date di arrivo comunicate e documentazione girata al capo tecnico',
+  in_preparazione: 'documenti esaminati, consumabili e noli mancanti chiesti agli acquisti',
+  pronta: 'date di inizio fissate con il cliente, documenti pronti, faldone consegnato al capo tecnico',
+  in_corso: 'cantiere iniziato',
+  fine_lavori: 'lavori finiti, si passa alla segreteria',
+  chiusa: 'corretta messa in opera verificata, fatture fatte, commessa chiusa'
+};
+
+function classeStatoCommessa(stato) {
+  if (stato === 'chiusa') return 'bok';
+  if (stato === 'annullata') return 'berr';
+  if (stato === 'in_corso' || stato === 'fine_lavori') return 'bpur';
+  return 'bblue';
+}
+
+function statoSuccessivoCommessa(stato) {
+  const i = ORDINE_STATI_COMMESSA.indexOf(stato);
+  if (i < 0 || i >= ORDINE_STATI_COMMESSA.length - 1) return null;
+  return ORDINE_STATI_COMMESSA[i + 1];
+}
+
+// true se l'utente collegato segna il prossimo passo della commessa.
+function toccaAMeCommessa(commessa) {
+  const prossimo = statoSuccessivoCommessa(commessa && commessa.stato);
+  return !!prossimo && RUOLO_PASSO_COMMESSA[prossimo] === ROLE;
+}
+
+let statiCommessaDisponibili = null;
+
+// true se sql/28 è stato eseguito (esiste la tabella commesse_storico).
+async function verificaStatiCommessaDisponibili() {
+  if (statiCommessaDisponibili !== null) return statiCommessaDisponibili;
+  if (!(await verificaCommesseDisponibili())) return false;
+
+  const { error } = await db
+    .from('commesse_storico')
+    .select('id')
+    .limit(1);
+
+  if (!error) {
+    statiCommessaDisponibili = true;
+  } else if (error.code === 'PGRST205' || error.code === '42P01' || /commesse_storico/i.test(error.message || '')) {
+    statiCommessaDisponibili = false;
+  } else {
+    return false;
+  }
+
+  return statiCommessaDisponibili;
+}
+
+// Riga "Prossimo passo" + bottone "Stato e storico" nel riepilogo della
+// commessa. Il bottone c'è solo con sql/28 (verifica già fatta e in cache).
+function htmlProssimoPassoCommessa(commessa) {
+  if (!commessa || statiCommessaDisponibili !== true) return '';
+
+  const prossimo = statoSuccessivoCommessa(commessa.stato);
+  const chi = prossimo ? NOMI_RUOLO_PASSO_COMMESSA[RUOLO_PASSO_COMMESSA[prossimo]] : '';
+  const testo = commessa.stato === 'annullata'
+    ? 'Commessa annullata: solo il titolare può riattivarla'
+    : (prossimo
+      ? 'Prossimo passo: <b>' + esc(ETICHETTE_STATO_COMMESSA[prossimo]) + '</b> (lo segna: ' + esc(chi) + ')'
+      : 'Commessa chiusa');
+
+  return `
+    <div style="font-size:12px;margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span>${testo}</span>
+      <button class="btn sm${toccaAMeCommessa(commessa) ? ' p' : ''}" onclick="apriStatoCommessa('${esc(commessa.id)}', '${esc(commessa.preventivo_id || '')}')">
+        Stato e storico
+      </button>
+    </div>
+  `;
+}
+
+let commessaStatoAperta = null;
+
+// Finestra "Stato della commessa": percorso degli stati, cambio di stato
+// consentito al ruolo, storico dei passaggi.
+async function apriStatoCommessa(commessaId, preventivoId) {
+  if (!(await verificaStatiCommessaDisponibili())) {
+    toast('Gli stati della commessa non sono ancora attivi (sql/28)', 'err');
+    return;
+  }
+
+  const [rCommessa, rStorico] = await Promise.all([
+    db.from('commesse')
+      .select('id, codice, stato, titolo, preventivo_id, clienti(ragione_sociale), preventivi(stato)')
+      .eq('id', commessaId)
+      .maybeSingle(),
+    db.from('commesse_storico')
+      .select('id, da_stato, a_stato, tipo, nota, cambiato_da_nome, cambiato_da_ruolo, cambiato_il')
+      .eq('commessa_id', commessaId)
+      .order('cambiato_il', { ascending: false })
+  ]);
+
+  if (rCommessa.error || !rCommessa.data) {
+    toast('Errore apertura commessa: ' + (rCommessa.error?.message || 'commessa non trovata'), 'err');
+    return;
+  }
+
+  const commessa = rCommessa.data;
+  const storico = rStorico.data || [];
+  commessaStatoAperta = {
+    id: commessa.id,
+    codice: commessa.codice,
+    stato: commessa.stato,
+    preventivoId: preventivoId || commessa.preventivo_id || ''
+  };
+
+  ge('msc-titolo').textContent = '📁 Commessa ' + commessa.codice;
+  ge('msc-sottotitolo').textContent = [commessa.clienti?.ragione_sociale, commessa.titolo]
+    .filter(Boolean).join(' · ');
+  ge('msc-percorso').innerHTML = htmlPercorsoStatiCommessa(commessa.stato);
+
+  // Stati che l'utente può scegliere (il database ricontrolla tutto).
+  const opzioni = [];
+  const prossimo = statoSuccessivoCommessa(commessa.stato);
+
+  if (commessa.stato === 'annullata') {
+    const annullamento = storico.find(function(r) { return r.a_stato === 'annullata'; });
+    const prima = (annullamento && annullamento.da_stato) || 'approvata';
+    if (ROLE === 'titolare' && commessa.preventivi?.stato === 'accettato') {
+      opzioni.push({ stato: prima, tipo: 'riattivazione', testo: '↺ Riattiva: torna a ' + ETICHETTE_STATO_COMMESSA[prima] });
+    }
+  } else {
+    if (prossimo && (ROLE === 'titolare' || RUOLO_PASSO_COMMESSA[prossimo] === ROLE)) {
+      opzioni.push({ stato: prossimo, tipo: 'avanti', testo: '→ ' + ETICHETTE_STATO_COMMESSA[prossimo] });
+    }
+    if (ROLE === 'titolare') {
+      ORDINE_STATI_COMMESSA
+        .slice(0, ORDINE_STATI_COMMESSA.indexOf(commessa.stato))
+        .reverse()
+        .forEach(function(stato) {
+          opzioni.push({ stato: stato, tipo: 'indietro', testo: '← Indietro a ' + ETICHETTE_STATO_COMMESSA[stato] });
+        });
+      opzioni.push({ stato: 'annullata', tipo: 'annullamento', testo: '✕ Annulla la commessa' });
+    }
+  }
+
+  const box = ge('msc-cambio');
+  if (opzioni.length) {
+    box.innerHTML = `
+      <div class="f">
+        <label>Nuovo stato</label>
+        <select id="msc-stato" onchange="aggiornaCambioStatoCommessa()">
+          ${opzioni.map(function(o, i) {
+            return `<option value="${esc(o.stato)}" data-tipo="${esc(o.tipo)}" ${i === 0 ? 'selected' : ''}>${esc(o.testo)}</option>`;
+          }).join('')}
+        </select>
+      </div>
+      <div id="msc-spiegazione" style="font-size:12px;color:var(--m);margin:-4px 0 8px"></div>
+      <div class="f">
+        <label id="msc-nota-label">Nota</label>
+        <textarea id="msc-nota" rows="2" oninput="aggiornaCambioStatoCommessa()"></textarea>
+      </div>
+    `;
+  } else {
+    let motivo;
+    if (commessa.stato === 'chiusa') {
+      motivo = 'La commessa è chiusa.';
+    } else if (commessa.stato === 'annullata') {
+      motivo = ROLE === 'titolare'
+        ? 'La commessa è annullata e il preventivo non è accettato: si riattiva da sola quando il preventivo torna accettato.'
+        : 'La commessa è annullata: solo il titolare può riattivarla.';
+    } else {
+      motivo = 'Il prossimo passo (' + ETICHETTE_STATO_COMMESSA[prossimo] + ') lo segna: ' +
+        NOMI_RUOLO_PASSO_COMMESSA[RUOLO_PASSO_COMMESSA[prossimo]] + ' (o il titolare).';
+    }
+    box.innerHTML = '<div class="al2 i">' + esc(motivo) + '</div>';
+  }
+
+  ge('msc-conferma').style.display = opzioni.length ? '' : 'none';
+  ge('msc-storico').innerHTML = htmlStoricoCommessa(storico);
+
+  aggiornaCambioStatoCommessa();
+  openM('m-stato-commessa');
+}
+
+function htmlPercorsoStatiCommessa(statoAttuale) {
+  const iAttuale = ORDINE_STATI_COMMESSA.indexOf(statoAttuale);
+
+  const passi = ORDINE_STATI_COMMESSA.map(function(stato, i) {
+    const fatto = iAttuale >= 0 && i < iAttuale;
+    const attuale = i === iAttuale;
+    const stile = attuale
+      ? 'background:var(--b);color:#fff;font-weight:700'
+      : (fatto ? 'background:var(--gl);color:#085041' : 'background:var(--bg);color:var(--m)');
+    return `<span style="padding:3px 8px;border-radius:12px;font-size:11px;${stile}">${fatto ? '✓ ' : ''}${esc(ETICHETTE_STATO_COMMESSA[stato])}</span>`;
+  }).join('<span style="color:var(--m);font-size:11px">›</span>');
+
+  return `
+    <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">${passi}</div>
+    ${statoAttuale === 'annullata' ? '<div class="al2 e" style="margin-top:8px">Commessa annullata</div>' : ''}
+  `;
+}
+
+function htmlStoricoCommessa(storico) {
+  if (!storico.length) {
+    return '<div style="font-size:12px;color:var(--m)">Nessun passaggio registrato.</div>';
+  }
+
+  const titoli = {
+    nascita: 'Nata',
+    avanti: 'Avanti',
+    indietro: 'Indietro',
+    annullamento: 'Annullata',
+    riattivazione: 'Riattivata'
+  };
+
+  return storico.map(function(r) {
+    const chi = r.cambiato_da_nome
+      ? r.cambiato_da_nome + (r.cambiato_da_ruolo ? ' (' + (NOMI_RUOLO_PASSO_COMMESSA[r.cambiato_da_ruolo] || r.cambiato_da_ruolo) + ')' : '')
+      : 'automatico';
+    const passaggio = r.da_stato
+      ? (ETICHETTE_STATO_COMMESSA[r.da_stato] || r.da_stato) + ' → ' + (ETICHETTE_STATO_COMMESSA[r.a_stato] || r.a_stato)
+      : (ETICHETTE_STATO_COMMESSA[r.a_stato] || r.a_stato);
+    return `
+      <div style="padding:6px 0;border-bottom:1px solid var(--bo);font-size:12px">
+        <div><b>${esc(titoli[r.tipo] || r.tipo)}</b> · ${esc(passaggio)}</div>
+        <div style="color:var(--m)">${esc(dataOraEsitoPreventivo(r.cambiato_il))} · ${esc(chi)}</div>
+        ${r.nota ? `<div style="white-space:pre-wrap;margin-top:2px">${esc(r.nota)}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function tipoCambioStatoCommessa() {
+  const sel = ge('msc-stato');
+  if (!sel || sel.selectedIndex < 0) return '';
+  return sel.options[sel.selectedIndex].getAttribute('data-tipo') || '';
+}
+
+// Nota obbligatoria per indietro, annullamento e riattivazione.
+function aggiornaCambioStatoCommessa() {
+  const bottone = ge('msc-conferma');
+  const sel = ge('msc-stato');
+  if (!sel) {
+    if (bottone) bottone.disabled = true;
+    return;
+  }
+
+  const tipo = tipoCambioStatoCommessa();
+  const notaObbligatoria = tipo !== 'avanti';
+  const nota = (v('msc-nota') || '').trim();
+
+  const etichetta = ge('msc-nota-label');
+  if (etichetta) {
+    etichetta.textContent = tipo === 'annullamento'
+      ? 'Motivo dell\'annullamento *'
+      : (notaObbligatoria ? 'Perché? *' : 'Nota (facoltativa)');
+  }
+
+  const spiegazione = ge('msc-spiegazione');
+  if (spiegazione) {
+    spiegazione.textContent = tipo === 'avanti'
+      ? 'Vuol dire: ' + (DESCRIZIONE_PASSO_COMMESSA[sel.value] || '') + '.'
+      : (tipo === 'annullamento'
+        ? 'La commessa resta salvata con il suo codice e lo storico, ma non va più avanti.'
+        : (tipo === 'riattivazione'
+          ? 'La commessa torna nello stato che aveva prima dell\'annullamento.'
+          : 'Solo il titolare riporta indietro una commessa.'));
+  }
+
+  if (bottone) bottone.disabled = notaObbligatoria && !nota;
+}
+
+async function salvaStatoCommessa() {
+  if (!commessaStatoAperta) return;
+
+  const stato = v('msc-stato');
+  const tipo = tipoCambioStatoCommessa();
+  const nota = (v('msc-nota') || '').trim();
+
+  if (!stato) return;
+  if (tipo !== 'avanti' && !nota) {
+    toast(tipo === 'annullamento' ? 'Scrivi il motivo dell\'annullamento' : 'Scrivi perché', 'err');
+    return;
+  }
+
+  const domanda = tipo === 'annullamento'
+    ? 'Confermi l\'annullamento della commessa ' + commessaStatoAperta.codice + '?'
+    : 'Confermi: commessa ' + commessaStatoAperta.codice + ' → ' + (ETICHETTE_STATO_COMMESSA[stato] || stato) + '?';
+  if (!confirm(domanda)) return;
+
+  const bottone = ge('msc-conferma');
+  if (bottone) bottone.disabled = true;
+
+  const { data: nuovoStato, error } = await db.rpc('cambia_stato_commessa', {
+    p_commessa_id: commessaStatoAperta.id,
+    p_stato: stato,
+    p_nota: nota || null
+  });
+
+  if (error) {
+    if (bottone) bottone.disabled = false;
+    toast('Stato non cambiato: ' + (error.message || 'errore sconosciuto'), 'err');
+    return;
+  }
+
+  const codice = commessaStatoAperta.codice;
+  const preventivoId = commessaStatoAperta.preventivoId;
+  closeM('m-stato-commessa');
+  toast('Commessa ' + codice + ': ' + (ETICHETTE_STATO_COMMESSA[nuovoStato] || nuovoStato), 'ok');
+
+  if (preventivoId) {
+    try { await aggiornaDopoEsitoPreventivo(preventivoId); } catch (e) { console.warn('aggiornaDopoEsitoPreventivo:', e); }
+  }
+  await caricaCommesseToccaAMe();
+}
+
+// Dashboard: "Commesse: tocca a te" per rappresentante, capo tecnico e
+// segreteria (le commesse il cui prossimo passo è del loro ruolo; il
+// rappresentante vede solo le sue, come la policy commesse_lettura).
+const BOX_COMMESSE_TOCCA_A_ME = {
+  rappresentante: 'rap-commesse-tocca',
+  capo_tecnico: 'ct-commesse-tocca',
+  segreteria: 'seg-commesse-tocca'
+};
+
+async function caricaCommesseToccaAMe() {
+  const box = ge(BOX_COMMESSE_TOCCA_A_ME[ROLE] || '');
+  if (!box) return;
+
+  if (!(await verificaStatiCommessaDisponibili())) {
+    box.innerHTML = '';
+    return;
+  }
+
+  const stati = ORDINE_STATI_COMMESSA.filter(function(stato) {
+    const prossimo = statoSuccessivoCommessa(stato);
+    return prossimo && RUOLO_PASSO_COMMESSA[prossimo] === ROLE;
+  });
+
+  const { data, error } = await db
+    .from('commesse')
+    .select('id, codice, stato, titolo, preventivo_id, aggiornato_il, clienti(ragione_sociale)')
+    .in('stato', stati)
+    .order('anno', { ascending: true })
+    .order('numero', { ascending: true });
+
+  if (error || !data?.length) {
+    if (error) console.warn('Commesse tocca a te:', error.message);
+    box.innerHTML = '';
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="tit-section">📁 Commesse: tocca a te (${data.length})</div>
+    <div class="rap-list-card" style="margin-bottom:14px">
+      ${data.map(function(c) {
+        const prossimo = statoSuccessivoCommessa(c.stato);
+        return `
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--bo)">
+            <div style="min-width:0">
+              <div style="font-weight:700">${esc(c.codice)} · ${esc(c.clienti?.ragione_sociale || '')}</div>
+              <div style="font-size:12px;color:var(--m)">
+                ${esc(c.titolo || '')}${c.titolo ? ' · ' : ''}ora: ${esc(ETICHETTE_STATO_COMMESSA[c.stato] || c.stato)}
+                · da segnare: <b>${esc(ETICHETTE_STATO_COMMESSA[prossimo] || '')}</b>
+              </div>
+            </div>
+            <button class="btn sm p" onclick="apriStatoCommessa('${esc(c.id)}', '${esc(c.preventivo_id || '')}')">Cambia stato</button>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
 }

@@ -325,6 +325,9 @@
         <div id="seg-anticipi-lista"><div class="rap-list-card"><div class="tit-empty">⏳ Caricamento...</div></div></div>
       </div>
 
+      <!-- F5.2 — commesse il cui prossimo passo è della segreteria (solo con sql/28) -->
+      <div id="seg-commesse-tocca"></div>
+
       <div class="tit-section">🎫 Richieste clienti aperte</div>
       <div id="seg-ticket-lista"><div class="rap-list-card"><div class="tit-empty">⏳ Caricamento...</div></div></div>
 
@@ -405,6 +408,9 @@
           <div class="ct-cal-grid" id="ct-cal-grid"><div class="ct-empty">⏳ Caricamento...</div></div>
         </div>
       </div>
+
+      <!-- F5.2 — commesse il cui prossimo passo è del capo tecnico (solo con sql/28) -->
+      <div id="ct-commesse-tocca" style="margin-top:14px"></div>
 
       <!-- Pannelli esistenti riusati con target ID diversi -->
       <div class="ct-section-title">📅 Interventi periodici del mese</div>
@@ -890,6 +896,8 @@
 <div id="rap-lead-assegnate"></div>
 <div id="rap-preventivi-ricevuti"></div>
 <div id="rap-promemoria-anticipi"></div>
+<!-- F5.2 — commesse il cui prossimo passo è del rappresentante (solo con sql/28) -->
+<div id="rap-commesse-tocca"></div>
 
     <div id="rap-progetti-da-integrare"></div>
      <button class="rap-primary" onclick="gotoPage('sopralluogo')">
@@ -2956,6 +2964,28 @@
       <button class="btn" onclick="closeM('m-rifiuto-anticipo')">Annulla</button>
       <button class="btn p" id="mra-conferma" disabled onclick="salvaRifiutoAnticipoNonVersato()">❌ Conferma rifiuto</button>
     </div>
+  </div>
+</div>
+
+<!-- F5.2 — STATO DELLA COMMESSA E STORICO (solo con sql/28) -->
+<div class="mbg" id="m-stato-commessa">
+  <div class="modal" style="max-width:560px">
+    <button class="x" onclick="closeM('m-stato-commessa')">×</button>
+
+    <h3 id="msc-titolo">📁 Commessa</h3>
+    <div id="msc-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+
+    <div id="msc-percorso" style="margin-bottom:12px"></div>
+
+    <div id="msc-cambio"></div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-stato-commessa')">Chiudi</button>
+      <button class="btn p" id="msc-conferma" onclick="salvaStatoCommessa()">Salva stato</button>
+    </div>
+
+    <div style="font-size:14px;font-weight:700;margin:16px 0 6px">Storico</div>
+    <div id="msc-storico"></div>
   </div>
 </div>
 

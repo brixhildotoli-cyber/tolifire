@@ -45,6 +45,8 @@ Usate dal frontend — area commerciale (preventivi, progetti, fornitori, CRM):
 
 Usate dal frontend — commesse (F5.1, dopo sql/26-commesse, da eseguire):
 commesse (sola lettura dal sito; la crea il database, js/18)
+Dopo sql/28 (F5.2, da eseguire): commesse_storico (sola lettura; lo
+scrive il database)
 
 Usate dal frontend — fatturazione:
 fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
@@ -73,6 +75,7 @@ salva_esito_verifica, salva_bozza_verifica, elimina_scheda_storico,
 nuovo_intervento_manichetta, salva_riporto_presidio.
 Dopo sql/18 (F2.3, da eseguire): marca_certificato_letto_ingegnere.
 Dopo sql/26 (F5.1, da eseguire): imposta_sede_commessa.
+Dopo sql/28 (F5.2, da eseguire): cambia_stato_commessa.
 Dopo sql/25 (F4.3, da eseguire): registra_fattura_anticipo,
 registra_accredito_anticipo, rifiuta_per_anticipo_non_versato.
 Dopo sql/22 (F4.1, da eseguire): accetta_preventivo, rifiuta_preventivo.
@@ -334,6 +337,32 @@ Esiti registrati del rappresentante) e nel messaggio dopo accettazione o
 accredito (js/18 `htmlCommessaPreventivo`). Preventivi accettati prima
 di sql/26: commessa solo con sql/27-commesse-preventivi-gia-accettati
 (facoltativo, conferma separata di Toli).
+
+Stati della commessa e storico (F5.2, sql/28-commesse-stati-storico da
+eseguire dopo 26): approvata → materiali_ordinati → in_preparazione →
+pronta → in_corso → fine_lavori → chiusa, SOLO IN ORDINE e uno alla
+volta (RPC cambia_stato_commessa; nessuna scrittura diretta). Chi segna
+il passaggio: materiali ordinati = rappresentante del cliente (passo 7);
+in preparazione = capo_tecnico (passo 8; il passo 9 degli acquisti non
+cambia stato); pronta = segreteria (passo 10, faldone consegnato); in
+corso e fine lavori = capo_tecnico (passo 11); chiusa = segreteria
+(passo 12). Il titolare può fare ogni passaggio, mai obbligato; SOLO il
+titolare riporta indietro (nota obbligatoria), annulla (nuovo stato
+'annullata', motivo obbligatorio) e riattiva (torna allo stato di prima,
+solo con preventivo accettato). 'in attesa anticipo' resta stato del
+preventivo, non della commessa (che non esiste ancora). Caso aperto da
+F5.1, deciso così: se il titolare riporta indietro un preventivo
+accettato la commessa diventa da sola 'annullata' (nota con il nuovo
+stato e l'eventuale motivo del rifiuto), non si cancella (codice e
+storico restano); se il preventivo torna accettato la stessa commessa
+si riattiva da sola nello stato di prima. Storico in `commesse_storico`
+(da/a stato, tipo nascita/avanti/indietro/annullamento/riattivazione,
+nota, chi con nome e ruolo copiati, quando), letto da chi legge la
+commessa. Nel sito (js/18): nel riepilogo della commessa "Prossimo
+passo" e bottone "Stato e storico" (finestra m-stato-commessa); nelle
+dashboard di rappresentante, capo tecnico e segreteria il box
+"Commesse: tocca a te" (`caricaCommesseToccaAMe`). Senza sql/28 nulla
+di questo compare. Pagina Commesse completa: F5.3.
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

@@ -301,6 +301,8 @@ async function loadDashRappresentante() {
   caricaAvvisiLeadAssegnate();
   caricaAvvisiPreventiviRappresentante();
   caricaPromemoriaAnticipiRappresentante();
+  // F5.2: commesse in cui tocca al rappresentante (js/18, solo con sql/28)
+  caricaCommesseToccaAMe().catch(function(e){ console.warn('caricaCommesseToccaAMe:', e); });
   var ora = new Date().getHours();
   var saluto = ora < 14 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
   var el;
