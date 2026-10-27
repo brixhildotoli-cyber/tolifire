@@ -83,6 +83,12 @@ function nomeTipoDocumentoFaldone(codice) {
   return tipo ? tipo.nome : String(codice || '').replace(/_/g, ' ');
 }
 
+// "scadenza il …" se già passata, "scade il …, prima dell'inizio lavori" se futura
+function testoScadenzaFaldone(dataScadenza) {
+  if (dataScadenza && dataScadenza > dataLocaleISO()) return 'scade il ' + fd(dataScadenza) + ", prima dell'inizio lavori";
+  return 'scadenza il ' + fd(dataScadenza) + ' (non più valido)';
+}
+
 function testoProblemaFaldone(p) {
   const tipo = p.tipo ? nomeTipoDocumentoFaldone(p.tipo) : '';
   switch (p.codice) {
@@ -91,7 +97,7 @@ function testoProblemaFaldone(p) {
     case 'nessuna_persona': return 'Nessun dipendente o subappaltatore nel faldone';
     case 'persona_non_attiva': return p.persona + ': non è più attivo, toglilo dal faldone';
     case 'documento_mancante': return p.persona + ': manca ' + tipo;
-    case 'documento_scaduto': return p.persona + ': ' + tipo + ' scaduto il ' + fd(p.data_scadenza);
+    case 'documento_scaduto': return p.persona + ': ' + tipo + ' — ' + testoScadenzaFaldone(p.data_scadenza);
     case 'documento_scade_durante': return p.persona + ': ' + tipo + ' scade il ' + fd(p.data_scadenza) + ', prima della fine prevista';
     case 'voce_da_fare': return 'Da fare: ' + (p.voce || '');
     default: return p.codice || '';
@@ -101,7 +107,7 @@ function testoProblemaFaldone(p) {
 function badgeRequisitoFaldone(r) {
   const nome = nomeTipoDocumentoFaldone(r.tipo);
   if (r.esito === 'mancante') return `<span class="bx berr" title="Manca">${esc(nome)}: manca</span>`;
-  if (r.esito === 'scaduto') return `<span class="bx berr">${esc(nome)}: scaduto il ${esc(fd(r.data_scadenza))}</span>`;
+  if (r.esito === 'scaduto') return `<span class="bx berr">${esc(nome)}: ${esc(testoScadenzaFaldone(r.data_scadenza))}</span>`;
   if (r.esito === 'scade_durante') return `<span class="bx bwarn">${esc(nome)}: scade il ${esc(fd(r.data_scadenza))}</span>`;
   return `<span class="bx bok">${esc(nome)}${r.data_scadenza ? ': fino al ' + esc(fd(r.data_scadenza)) : ': senza scadenza'}</span>`;
 }
