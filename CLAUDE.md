@@ -43,9 +43,9 @@ Usate dal frontend — area commerciale (preventivi, progetti, fornitori, CRM):
   ai fornitori), preventivi_fornitori_allegati
 - pipeline_crm (trattative), lead_sito, appuntamenti_commerciali
 
-Usate dal frontend — commesse (F5.1, dopo sql/26-commesse, da eseguire):
+Usate dal frontend — commesse (F5.1, sql/26-commesse eseguito il 27/10):
 commesse (sola lettura dal sito; la crea il database, js/18)
-Dopo sql/28 (F5.2, da eseguire): commesse_storico (sola lettura; lo
+Dopo sql/28 (F5.2, eseguito il 27/10): commesse_storico (sola lettura; lo
 scrive il database)
 Dopo sql/29 (F5.3, da eseguire): commesse_documenti (sola lettura; si
 scrive solo con le RPC registra_documento_commessa ed
@@ -77,8 +77,8 @@ marca_preventivo_letto_rappresentante, marca_preventivo_letto_titolare,
 salva_esito_verifica, salva_bozza_verifica, elimina_scheda_storico,
 nuovo_intervento_manichetta, salva_riporto_presidio.
 Dopo sql/18 (F2.3, da eseguire): marca_certificato_letto_ingegnere.
-Dopo sql/26 (F5.1, da eseguire): imposta_sede_commessa.
-Dopo sql/28 (F5.2, da eseguire): cambia_stato_commessa.
+Dopo sql/26 (F5.1, eseguito il 27/10): imposta_sede_commessa.
+Dopo sql/28 (F5.2, eseguito il 27/10): cambia_stato_commessa.
 Dopo sql/29 (F5.3, da eseguire): registra_documento_commessa,
 elimina_documento_commessa.
 Dopo sql/25 (F4.3, da eseguire): registra_fattura_anticipo,
@@ -345,10 +345,10 @@ cancella. Nel sito: codice nel riepilogo dell'esito (scheda preventivo,
 Esiti registrati del rappresentante) e nel messaggio dopo accettazione o
 accredito (js/18 `htmlCommessaPreventivo`). Preventivi accettati prima
 di sql/26: commessa solo con sql/27-commesse-preventivi-gia-accettati
-(facoltativo, conferma separata di Toli).
+(facoltativo; il 27/10 l'anteprima era vuota: non serve).
 
-Stati della commessa e storico (F5.2, sql/28-commesse-stati-storico da
-eseguire dopo 26): approvata → materiali_ordinati → in_preparazione →
+Stati della commessa e storico (F5.2, sql/28-commesse-stati-storico
+eseguito il 27/10 dopo 26): approvata → materiali_ordinati → in_preparazione →
 pronta → in_corso → fine_lavori → chiusa, SOLO IN ORDINE e uno alla
 volta (RPC cambia_stato_commessa; nessuna scrittura diretta). Chi segna
 il passaggio: materiali ordinati = rappresentante del cliente (passo 7);
