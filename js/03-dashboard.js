@@ -26,6 +26,10 @@ async function loadDash(){
     if (typeof caricaMieiDocumentiTecnico === 'function') {
       try { await caricaMieiDocumentiTecnico(); } catch(e){ console.warn('caricaMieiDocumentiTecnico:', e); }
     }
+    // F8.2: i miei cantieri di oggi e dei prossimi giorni (js/33, solo con sql/35)
+    if (typeof caricaMieiCantieriDashboard === 'function') {
+      try { await caricaMieiCantieriDashboard(); } catch(e){ console.warn('caricaMieiCantieriDashboard:', e); }
+    }
     return;
   }
 

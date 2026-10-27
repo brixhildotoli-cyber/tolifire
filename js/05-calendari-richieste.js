@@ -570,6 +570,11 @@ async function loadCalendarioTecnico() {
 
   // Carica richieste in attesa del tecnico
   await loadRichiesteInAttesaTecnico();
+
+  // F8.2: giorni di cantiere in cui il tecnico è in squadra (js/33, solo con sql/35)
+  if (typeof caricaCantieriCalendarioTecnico === 'function') {
+    try { await caricaCantieriCalendarioTecnico(_calTecAnno, _calTecMese); } catch(e){ console.warn('caricaCantieriCalendarioTecnico:', e); }
+  }
 }
 
 

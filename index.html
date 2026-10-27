@@ -222,6 +222,8 @@
         <span class="tec-badge" id="tec-week-badge">0</span>
       </div>
       <div id="tec-week-lista"><div class="tec-empty"><div class="ico">⏳</div>Caricamento...</div></div>
+      <!-- F8.2 — i miei cantieri di oggi e dei prossimi giorni (js/33, solo con sql/35) -->
+      <div id="tec-miei-cantieri"></div>
       <!-- F7.1 — i miei documenti con scadenza (js/30, solo con sql/32) -->
       <div id="tec-miei-documenti"></div>
       <div class="tec-quick">
@@ -799,6 +801,8 @@
       <div id="cal-tec-richieste-lista"></div>
     </div>
   </div>
+  <!-- F8.2: giorni di cantiere in cui sono in squadra (js/33, solo con sql/35) -->
+  <div id="cal-tec-cantieri"></div>
   <!-- Lista interventi -->
   <div class="card">
     <div id="cal-tec-lista"><div class="load">Caricamento...</div></div>
@@ -1900,6 +1904,8 @@
   </div>
   <div class="tc" id="cmd-tab-cantiere">
     <div id="cmd-cantiere"></div>
+    <!-- F8.2: squadra e mezzi del giorno (js/33, attivi con sql/35) -->
+    <div id="cmd-squadra"></div>
   </div>
   <div class="tc on" id="cmd-tab-commessa">
     <div id="cmd-riepilogo"><div class="load">Caricamento...</div></div>
@@ -3182,6 +3188,70 @@
   </div>
 </div>
 
+<!-- F8.2 — SQUADRA E MEZZI DEL GIORNO (js/33, solo con sql/35) -->
+<div class="mbg" id="m-squadra-giorno">
+  <div class="modal" style="max-width:600px">
+    <button class="x" onclick="closeM('m-squadra-giorno')">×</button>
+    <h3 id="sqg-titolo">👷 Organizza un giorno</h3>
+    <div id="sqg-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div class="fr">
+      <div class="f"><label>Giorno *</label><input type="date" id="sqg-dal" onchange="aggiornaImpegniSquadra()"></div>
+      <div class="f"><label id="sqg-al-etichetta">Stessa squadra fino al (facoltativo)</label><input type="date" id="sqg-al" onchange="aggiornaImpegniSquadra()"></div>
+    </div>
+    <label style="display:flex;gap:6px;align-items:center;font-size:13px;margin:-4px 0 10px"><input type="checkbox" id="sqg-salta-weekend" checked onchange="aggiornaImpegniSquadra()"> Salta sabato e domenica</label>
+    <div class="f">
+      <label>Orario o ritrovo</label>
+      <input type="text" id="sqg-orario" maxlength="200" placeholder="es. 7:30 in magazzino, 8:00 in cantiere">
+    </div>
+    <div id="sqg-proposta" class="al2 i" style="display:none;margin:0 0 8px">Proposta la squadra dell'ultimo giorno organizzato: cambia le spunte se serve.</div>
+    <div class="sq-gruppo">👷 Dipendenti</div>
+    <div id="sqg-dipendenti" class="sq-elenco"></div>
+    <div class="sq-gruppo">🏗️ Subappaltatori</div>
+    <div id="sqg-subappaltatori" class="sq-elenco"></div>
+    <div class="sq-gruppo" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <span>🚐 Mezzi e attrezzature</span>
+      <button class="btn sm" type="button" onclick="apriElencoMezzi()">Elenco mezzi e attrezzature</button>
+    </div>
+    <div id="sqg-mezzi" class="sq-elenco"></div>
+    <div class="f" style="margin-top:8px">
+      <label>Altri mezzi o attrezzature (non in elenco)</label>
+      <input type="text" id="sqg-altri-mezzi" maxlength="1000" placeholder="es. PLE a noleggio, carotatrice, scala del cliente">
+    </div>
+    <div class="f">
+      <label>Note per la squadra</label>
+      <textarea id="sqg-note" rows="2" maxlength="2000" placeholder="es. portare le chiavi del locale tecnico, materiale da caricare"></textarea>
+    </div>
+    <div id="sqg-avvisi"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-squadra-giorno')">Annulla</button>
+      <button class="btn p" id="sqg-salva" onclick="salvaGiornoSquadra()">Salva squadra</button>
+    </div>
+  </div>
+</div>
+
+<!-- F8.2 — ELENCO MEZZI E ATTREZZATURE (js/33, solo con sql/35) -->
+<div class="mbg" id="m-mezzi-attrezzature">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-mezzi-attrezzature')">×</button>
+    <h3>🚐 Mezzi e attrezzature</h3>
+    <div style="font-size:12px;color:var(--m);margin-bottom:10px">L'elenco da spuntare nella squadra del giorno. Chi non si usa più va segnato "Non attivo" (resta nei giorni passati).</div>
+    <input type="hidden" id="mza-id">
+    <div class="fr">
+      <div class="f"><label>Nome *</label><input type="text" id="mza-nome" maxlength="120" placeholder="es. Furgone Ducato, Trabattello 6 m"></div>
+      <div class="f"><label>Tipo</label><select id="mza-tipo"><option value="mezzo">Mezzo</option><option value="attrezzatura">Attrezzatura</option></select></div>
+    </div>
+    <div class="fr">
+      <div class="f"><label>Targa o matricola</label><input type="text" id="mza-targa" maxlength="60"></div>
+      <div class="f"><label>Note</label><input type="text" id="mza-note" maxlength="500" placeholder="es. revisione a marzo"></div>
+    </div>
+    <button class="btn p" id="mza-salva" onclick="salvaMezzoElenco()">➕ Aggiungi</button>
+    <div id="mza-elenco" style="margin-top:12px"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-mezzi-attrezzature')">Chiudi</button>
+    </div>
+  </div>
+</div>
+
 <!-- F5.2 — STATO DELLA COMMESSA E STORICO (solo con sql/28) -->
 <div class="mbg" id="m-stato-commessa">
   <div class="modal" style="max-width:560px">
@@ -4454,6 +4524,7 @@
 <script defer src="js/30-team-subappalti.js"></script>
 <script defer src="js/31-faldone-commessa.js"></script>
 <script defer src="js/32-scheda-cantiere.js"></script>
+<script defer src="js/33-squadra-cantiere.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

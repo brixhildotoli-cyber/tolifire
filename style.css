@@ -1163,3 +1163,26 @@ pre {
 #cmd-cantiere .cant-azione{display:flex;justify-content:center;width:100%;box-sizing:border-box;padding:12px 14px;font-size:15px;text-decoration:none;margin:4px 0;text-align:center;flex-wrap:wrap}
 #cmd-cantiere .empty{padding:14px}
 #cmd-cantiere .btn.sm{min-height:36px}
+/* F8.2 — Squadra e mezzi del giorno (js/33): box nella scheda cantiere,
+   finestra di scelta e giorni di cantiere nel calendario del tecnico */
+#cmd-squadra .sq-card{padding:12px 14px;margin-bottom:10px}
+#cmd-squadra .cant-titolo{font-size:15px;font-weight:700;margin-bottom:4px}
+#cmd-squadra .empty{padding:14px}
+.sq-azione{display:flex;justify-content:center;width:100%;box-sizing:border-box;padding:12px 14px;font-size:15px;text-decoration:none;margin:4px 0 8px;text-align:center;flex-wrap:wrap}
+.sq-giorno{padding:10px 0;border-top:1px solid var(--bo)}
+.sq-persona{font-size:13px;padding:4px 0}
+.sq-avvisi{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
+.sq-avvisi .bx{white-space:normal;overflow-wrap:anywhere}
+.sq-gruppo{font-size:13px;font-weight:700;margin:10px 0 4px}
+.sq-elenco{border:1px solid var(--bo);border-radius:var(--rs);max-height:240px;overflow-y:auto}
+.sq-scelta{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-bottom:1px solid var(--bo);font-size:13px;cursor:pointer}
+.sq-scelta:last-child{border-bottom:none}
+.sq-scelta input{margin-top:2px;width:18px;height:18px;flex-shrink:0}
+.sq-scelta.on{background:var(--bl)}
+.sq-scelta-avvisi{display:block}
+.sq-tec-giorno{border-top:1px solid var(--bo);padding:8px 0}
+.sq-tec-giorno:first-of-type{border-top:none}
+.sq-tec-giorno summary{cursor:pointer;list-style:none}
+.sq-tec-giorno summary::-webkit-details-marker{display:none}
+.sq-tec-campo{padding:6px 0;border-top:1px solid var(--bo);font-size:13px}
+.sq-tec-etichetta{font-size:11px;color:var(--m);margin-bottom:2px}

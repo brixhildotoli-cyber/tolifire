@@ -71,6 +71,12 @@ date_fissate_il (sola lettura; le scrive imposta_date_commessa);
 commesse_faldone, commesse_faldone_persone, commesse_faldone_voci (sola
 lettura per titolare, segreteria, capo_tecnico; si scrivono solo con le
 RPC del faldone, js/31).
+Dopo sql/35 (F8.2, da eseguire, richiede 07, 26 e 32): mezzi_attrezzature
+(lettura, inserimento e modifica diretti di titolare, segreteria,
+capo_tecnico; niente cancellazione: attivo=false),
+commesse_squadra_giorni, commesse_squadra_persone,
+commesse_squadra_mezzi (sola lettura per titolare, segreteria,
+capo_tecnico; si scrivono solo con le RPC della squadra, js/33).
 
 Usate dal frontend — fatturazione:
 fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
@@ -119,6 +125,8 @@ registra_accredito_anticipo, rifiuta_per_anticipo_non_versato.
 Dopo sql/22 (F4.1, da eseguire): accetta_preventivo, rifiuta_preventivo.
 Dopo sql/34 (F8.1, da eseguire): scheda_cantiere_commessa,
 imposta_dati_cantiere_commessa.
+Dopo sql/35 (F8.2, da eseguire): salva_squadra_cantiere,
+togli_giorno_squadra, impegni_squadra_periodo, miei_giorni_cantiere.
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
 Sono gli accessi che le policy RLS per il portale dovranno permettere
 (F1.1), sempre filtrati sul cliente del portale (`cliente_id`):
@@ -655,10 +663,56 @@ commesse_file_tecnici_lettura (funzione file_tecnico_commessa_leggibile):
 chi legge la commessa apre i file del progetto (progetti-tecnici) e i
 certificati del preventivo (certificati-preventivi) di quella commessa.
 Il sostituto del capo tecnico NON è implementato (domanda aperta).
-Squadra del giorno, mezzi e calendario dei tecnici (resto della 8.1 in
-roadmap) non sono fatti. Senza sql/34 la scheda mostra indirizzo,
-referente del cliente, materiali e certificati della commessa e dice
-che il resto "non è ancora attivo".
+Squadra del giorno, mezzi e calendario dei tecnici: F8.2, sotto. Senza
+sql/34 la scheda mostra indirizzo, referente del cliente, materiali e
+certificati della commessa e dice che il resto "non è ancora attivo".
+
+Squadra e mezzi del giorno (F8.2, js/33-squadra-cantiere.js;
+sql/35-squadra-cantiere da eseguire, richiede 07, 26 e 32, NON 28-31,
+33, 34): passo 11. Box "👷 Squadra e mezzi del giorno" (cmd-squadra) in
+fondo alla scheda "🏗️ Cantiere" della commessa: lo vedono titolare,
+segreteria e capo_tecnico; scrivono capo_tecnico e titolare (RPC
+salva_squadra_cantiere e togli_giorno_squadra; su commessa chiusa o
+annullata solo il titolare; giorni prima di oggi, ora italiana, solo il
+titolare). Finestra m-squadra-giorno: giorno, "stessa squadra fino al"
+(facoltativo, max 63 giorni, "salta sabato e domenica"; i giorni già
+organizzati si sostituiscono), orario o ritrovo, dipendenti (utenti
+attivi tecnico e capo_tecnico), subappaltatori attivi (sql/32), mezzi e
+attrezzature da spuntare, altri mezzi (testo libero), note; propone la
+squadra dell'ultimo giorno organizzato. AVVISI (non bloccano, conferma
+prima di salvare): già impegnato quel giorno (interventi assegnati,
+calendario personale di tecnici e capi tecnici, altri cantieri; RPC
+impegni_squadra_periodo, perché il capo tecnico non legge il calendario
+personale altrui), mezzo già su un altro cantiere, documenti in vigore
+scaduti al primo giorno o in scadenza entro l'ultimo (js/30
+statoDocumentoTeamSubappalti), e solo se il faldone è attivo e ha
+persone: "non è nel faldone" e documenti mancanti del faldone. Mezzi e
+attrezzature, scelta dichiarata: piccola anagrafica
+`mezzi_attrezzature` (nome, mezzo/attrezzatura, targa o matricola, note,
+attivo; niente cancellazione), gestita da titolare, segreteria e capo
+tecnico con la finestra "Elenco mezzi e attrezzature"
+(m-mezzi-attrezzature, scrittura diretta per RLS), più il testo libero
+"altri mezzi" per noli e attrezzi occasionali. Tabelle
+commesse_squadra_giorni, commesse_squadra_persone (dipendente OPPURE
+subappaltatore), commesse_squadra_mezzi: sola lettura per titolare,
+segreteria e capo_tecnico, si scrivono solo con le RPC. Il TECNICO non
+legge commesse né queste tabelle: la RPC miei_giorni_cantiere(dal, al)
+restituisce SOLO i giorni in cui chi chiede è in squadra (commessa non
+annullata), senza prezzi: codice e titolo, cliente e referente,
+indirizzo e note della sede, orario e note del giorno, colleghi con
+telefono, subappaltatori con referente, mezzi; con sql/33 e 34 anche
+date dei lavori, piano e zona, orari e istruzioni di accesso, referenti
+in cantiere, note di sicurezza (letti come chiavi della riga: senza 33
+e 34 restano vuoti). Nel sito: riquadro "🏗️ I miei cantieri del mese"
+in pg-calendario-tec (cal-tec-cantieri, chiamato alla fine di
+loadCalendarioTecnico, js/05) e "🏗️ I miei cantieri" (oggi e 6 giorni)
+nella dashboard del tecnico (tec-miei-cantieri, da js/03), con "Apri la
+mappa" e "Chiama". Non toccati: lista degli interventi del calendario
+del tecnico, calendario-team del capo tecnico (i cantieri non ci
+compaiono ancora), calendario del capo tecnico se è lui in squadra. Il
+sostituto del capo tecnico NON è implementato (domanda aperta). Senza
+sql/35 il box dice "non sono ancora attivi", il calendario e la
+dashboard del tecnico sono come prima.
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
