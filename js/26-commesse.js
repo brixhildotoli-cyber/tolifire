@@ -11,7 +11,8 @@
 // commerciale, capo_tecnico, rappresentante (solo le sue). Il titolare
 // può intervenire ovunque ma non ha mai commesse "in attesa di lui".
 // Funziona con sql/26 soltanto (dati di base), con sql/28 (stati e
-// storico) e con sql/29 (cartella documenti).
+// storico) e con sql/29 (cartella documenti). Ordini ai fornitori: js/27
+// (sql/30); consumabili e noli: js/28 (sql/31).
 // =====================================================================
 
 // Cartelle dei documenti (stesso elenco del vincolo di sql/29).
@@ -80,10 +81,17 @@ function motiviToccaAMeCommessa(commessa) {
         ' (' + DESCRIZIONE_PASSO_COMMESSA[prossimo] + ')');
     }
     // Passo 9: gli acquisti procurano consumabili e noli mentre la
-    // commessa è in preparazione (non cambia lo stato).
-    if (ROLE === 'commerciale' && commessa.stato === 'in_preparazione') {
+    // commessa è in preparazione (non cambia lo stato). Con sql/31 (F6.2)
+    // il motivo nasce dalle richieste aperte del capo tecnico (sotto).
+    if (ROLE === 'commerciale' && commessa.stato === 'in_preparazione' &&
+        !(typeof richiesteIntegrazioneAttive === 'function' && richiesteIntegrazioneAttive())) {
       motivi.push('Passo 9: procura consumabili e noli chiesti dal capo tecnico e comunica le date di arrivo');
     }
+  }
+
+  // F6.2: richieste di consumabili e noli (js/28, solo con sql/31).
+  if (typeof motiviRichiesteIntegrazioneCommessa === 'function') {
+    motivi.push.apply(motivi, motiviRichiesteIntegrazioneCommessa(commessa));
   }
 
   return motivi;
@@ -142,6 +150,8 @@ async function loadCommesse() {
   }
 
   commesseElenco = data || [];
+  // F6.2: richieste di consumabili e noli per "Tocca a te" (js/28).
+  if (typeof caricaRiepilogoRichiesteIntegrazione === 'function') await caricaRiepilogoRichiesteIntegrazione(null);
   renderEvidenzaCommesse();
   filtraCommesse();
 }
@@ -288,6 +298,7 @@ async function caricaSchedaCommessa(commessaId) {
   riepilogo.innerHTML = '<div class="load">Caricamento...</div>';
   cartella.innerHTML = '';
   if (ge('cmd-ordini')) ge('cmd-ordini').innerHTML = '';
+  if (ge('cmd-richieste')) ge('cmd-richieste').innerHTML = '';
 
   await verificaStatiCommessaDisponibili();
 
@@ -309,9 +320,13 @@ async function caricaSchedaCommessa(commessaId) {
   ge('cmd-sottotitolo').textContent = [commessa.clienti?.ragione_sociale, commessa.titolo].filter(Boolean).join(' · ');
   ge('cmd-stato').innerHTML = badgeStatoCommessa(commessa.stato);
 
+  // F6.2: richieste di consumabili e noli per "Tocca a te" (js/28).
+  if (typeof caricaRiepilogoRichiesteIntegrazione === 'function') await caricaRiepilogoRichiesteIntegrazione(commessa.id);
   riepilogo.innerHTML = htmlRiepilogoCommessa(commessa);
   // F6.1: ordini ai fornitori (js/27, attivi con sql/30).
   if (typeof caricaOrdiniCommessa === 'function') await caricaOrdiniCommessa(commessa);
+  // F6.2: consumabili e noli (js/28, attivi con sql/31).
+  if (typeof caricaRichiesteIntegrazioneCommessa === 'function') await caricaRichiesteIntegrazioneCommessa(commessa);
   await caricaDocumentiCommessa(commessa);
 }
 
@@ -648,6 +663,8 @@ async function loadCommesseCliente(clienteId) {
   }
 
   await verificaStatiCommessaDisponibili();
+  // F6.2: richieste di consumabili e noli per la stellina (js/28).
+  if (typeof caricaRiepilogoRichiesteIntegrazione === 'function') await caricaRiepilogoRichiesteIntegrazione(null);
 
   const { data, error } = await db
     .from('commesse')

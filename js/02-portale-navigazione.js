@@ -684,6 +684,11 @@ async function loadDashCommerciale() {
       year: 'numeric'
     });
 
+  // F6.2: consumabili e noli da procurare (js/28, solo con sql/31)
+  if (typeof caricaRichiesteIntegrazioneDashboard === 'function') {
+    caricaRichiesteIntegrazioneDashboard().catch(function(e){ console.warn('caricaRichiesteIntegrazioneDashboard:', e); });
+  }
+
   const [
     progettiRicevutiRes,
     progettiLavorazioneRes,

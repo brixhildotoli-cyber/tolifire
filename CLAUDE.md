@@ -3,7 +3,7 @@
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
 file unico: `index.html` (markup) + `style.css` + moduli `js/00-…27-*.js`
-caricati in ordine 00–18, poi 20–27, infine `19-init.js` (dettagli in
+caricati in ordine 00–18, poi 20–28, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -53,6 +53,10 @@ elimina_documento_commessa, js/26)
 Dopo sql/30 (F6.1, da eseguire): ordini_fornitori, ordini_fornitori_voci
 (sola lettura; si scrivono solo con le RPC crea_ordine_fornitore e
 cambia_stato_ordine_fornitore, js/27)
+Dopo sql/31 (F6.2, da eseguire, non richiede 28-30):
+commesse_richieste_integrazione (sola lettura; si scrive solo con le RPC
+apri_richiesta_integrazione, evadi_richiesta_integrazione e
+cambia_stato_richiesta_integrazione, js/28)
 
 Usate dal frontend — fatturazione:
 fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
@@ -86,6 +90,8 @@ Dopo sql/29 (F5.3, eseguito il 27/10): registra_documento_commessa,
 elimina_documento_commessa.
 Dopo sql/30 (F6.1, da eseguire): offerte_ordinabili_commessa,
 crea_ordine_fornitore, cambia_stato_ordine_fornitore.
+Dopo sql/31 (F6.2, da eseguire): apri_richiesta_integrazione,
+evadi_richiesta_integrazione, cambia_stato_richiesta_integrazione.
 Dopo sql/25 (F4.3, da eseguire): registra_fattura_anticipo,
 registra_accredito_anticipo, rifiuta_per_anticipo_non_versato.
 Dopo sql/22 (F4.1, da eseguire): accetta_preventivo, rifiuta_preventivo.
@@ -442,6 +448,37 @@ commessa chiusa o annullata solo il titolare. Lo stato "materiali
 ordinati" resta del rappresentante (sql/28): quando tutte le offerte
 hanno l'ordine il box lo suggerisce ("Segna Materiali ordinati"). Senza
 sql/30 il box mostra "Gli ordini ai fornitori non sono ancora attivi".
+
+Passi 8-9, consumabili e noli (F6.2, js/28-richieste-integrazione.js;
+sql/31-richieste-integrazione da eseguire, richiede 26, non 28, 29 né
+30): nella scheda della commessa il box "🧰 Consumabili e noli". Il
+capo_tecnico (o il titolare) apre una richiesta per ogni cosa che manca:
+consumabile o nolo, descrizione, quantità e unità (predefinite pz o
+giorni), "serve dal" e per i noli "fino al" (facoltative), note per gli
+acquisti ("Invia e chiedi altro" tiene aperta la finestra). Numero che
+riparte per commessa (n. 1, 2...). Stati aperta → evasa (il commerciale
+o il titolare indica l'arrivo previsto, obbligatorio, e se vuole
+fornitore, dall'anagrafica o scritto a mano, costo IVA esclusa e nota;
+finché non è arrivata la data si corregge con "Cambia data") → arrivata
+(data effettiva, non futura: capo tecnico, commerciale, segreteria,
+titolare); annullata da aperta o evasa con motivo (capo tecnico,
+commerciale, titolare; non si cancella e non si riattiva). Leggono i 5
+ruoli che leggono la commessa. Su commessa chiusa o annullata solo il
+titolare. Segnali: "in ritardo" (arrivo previsto passato e non
+arrivata), "arriva dopo il giorno in cui serve". Scelta dichiarata: la
+richiesta evasa NON crea un ordine al fornitore (sql/30), basta la data
+con fornitore e costo facoltativi. Gli stati della commessa non cambiano
+da soli. "Tocca a te" (pagina Commesse, scheda, stellina nella scheda
+cliente): al commerciale le commesse con richieste aperte (con sql/31
+sostituisce il vecchio avviso generico "Passo 9" sulle commesse in
+preparazione), al capo tecnico quelle con arrivi previsti entro oggi da
+segnare. Dashboard: commerciale "Consumabili e noli da procurare" (box
+com-richieste-integrazione, bottone Evadi), capo tecnico "Consumabili e
+noli richiesti agli acquisti" (ct-richieste-integrazione, aperte ed
+evase con le date, bottone Arrivata). Sostituto del capo tecnico
+(un tecnico): NON gestito, modalità da decidere (oggi il tecnico non
+vede le commesse). Senza sql/31 il box mostra "Le richieste di
+consumabili e noli non sono ancora attive".
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

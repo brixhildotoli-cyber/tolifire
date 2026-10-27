@@ -412,6 +412,9 @@
       <!-- F5.2 — commesse il cui prossimo passo è del capo tecnico (solo con sql/28) -->
       <div id="ct-commesse-tocca" style="margin-top:14px"></div>
 
+      <!-- F6.2 — consumabili e noli chiesti agli acquisti (js/28, solo con sql/31) -->
+      <div id="ct-richieste-integrazione"></div>
+
       <!-- Pannelli esistenti riusati con target ID diversi -->
       <div class="ct-section-title">📅 Interventi periodici del mese</div>
       <div class="ct-pane"><div id="ct-cicli-mese"><div class="ct-empty">⏳ Caricamento...</div></div></div>
@@ -438,6 +441,9 @@
     </div>
 
     <div id="com-avviso-progetti"></div>
+
+    <!-- F6.2 — consumabili e noli chiesti dal capo tecnico (js/28, solo con sql/31) -->
+    <div id="com-richieste-integrazione"></div>
 
     <button class="rap-primary" onclick="gotoPage('progetti-da-preventivare')">
       <span class="ico">📐</span>
@@ -1878,6 +1884,7 @@
   </div>
   <div id="cmd-riepilogo"><div class="load">Caricamento...</div></div>
   <div id="cmd-ordini"></div>
+  <div id="cmd-richieste"></div>
   <div id="cmd-documenti"></div>
 </div>
 
@@ -3095,6 +3102,119 @@
   </div>
 </div>
 
+<!-- F6.2 — NUOVA RICHIESTA DI CONSUMABILE O NOLO (js/28) -->
+<div class="mbg" id="m-richiesta-integrazione">
+  <div class="modal" style="max-width:560px">
+    <button class="x" onclick="closeM('m-richiesta-integrazione')">×</button>
+
+    <h3 id="mri-titolo">🧰 Richiesta agli acquisti</h3>
+    <div id="mri-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+
+    <div class="f">
+      <label>Cosa serve *</label>
+      <select id="mri-tipo" onchange="cambiaTipoNuovaRichiestaIntegrazione()">
+        <option value="consumabile">🔩 Consumabile</option>
+        <option value="nolo">🏗️ Nolo (mezzo o attrezzatura)</option>
+      </select>
+    </div>
+    <div class="f">
+      <label>Descrizione *</label>
+      <input type="text" id="mri-descrizione" maxlength="300">
+    </div>
+    <div class="fr">
+      <div class="f">
+        <label>Quantità *</label>
+        <input type="number" id="mri-quantita" min="0" step="any" value="1">
+      </div>
+      <div class="f">
+        <label>Unità di misura</label>
+        <input type="text" id="mri-unita" maxlength="30">
+      </div>
+    </div>
+    <div class="fr">
+      <div class="f">
+        <label id="mri-serve-dal-etichetta">Serve in cantiere dal</label>
+        <input type="date" id="mri-serve-dal">
+      </div>
+      <div class="f" id="mri-fino-al-riga">
+        <label>Fino al</label>
+        <input type="date" id="mri-fino-al">
+      </div>
+    </div>
+    <div class="f">
+      <label>Note per gli acquisti (facoltative)</label>
+      <textarea id="mri-note" rows="2" maxlength="1000" placeholder="es. marca preferita, consegna in cantiere, con operatore"></textarea>
+    </div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-richiesta-integrazione')">Annulla</button>
+      <button class="btn" id="mri-conferma-altra" onclick="salvaNuovaRichiestaIntegrazione(true)">Invia e chiedi altro</button>
+      <button class="btn p" id="mri-conferma" onclick="salvaNuovaRichiestaIntegrazione(false)">Invia agli acquisti</button>
+    </div>
+  </div>
+</div>
+
+<!-- F6.2 — EVASIONE DELLA RICHIESTA: DATA DI ARRIVO (js/28) -->
+<div class="mbg" id="m-evadi-richiesta">
+  <div class="modal" style="max-width:560px">
+    <button class="x" onclick="closeM('m-evadi-richiesta')">×</button>
+
+    <h3 id="mev-titolo">📅 Evadi la richiesta</h3>
+    <div id="mev-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:6px"></div>
+    <div id="mev-cosa" class="al2 i" style="margin-bottom:12px"></div>
+
+    <div class="f">
+      <label>Arrivo previsto *</label>
+      <input type="date" id="mev-arrivo">
+    </div>
+    <div class="fr">
+      <div class="f">
+        <label>Fornitore (facoltativo)</label>
+        <input type="text" id="mev-fornitore" list="mev-fornitori-elenco" maxlength="200" placeholder="scegli o scrivi">
+        <datalist id="mev-fornitori-elenco"></datalist>
+      </div>
+      <div class="f">
+        <label>Costo € IVA esclusa (facoltativo)</label>
+        <input type="number" id="mev-costo" min="0" step="0.01">
+      </div>
+    </div>
+    <div class="f">
+      <label>Nota per il capo tecnico (facoltativa)</label>
+      <textarea id="mev-nota" rows="2" maxlength="500" placeholder="es. consegna in cantiere al mattino, ritiro al banco"></textarea>
+    </div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-evadi-richiesta')">Chiudi</button>
+      <button class="btn p" id="mev-conferma" onclick="salvaEvasioneRichiestaIntegrazione()">📅 Evadi e comunica la data</button>
+    </div>
+  </div>
+</div>
+
+<!-- F6.2 — RICHIESTA ARRIVATA O ANNULLATA (js/28) -->
+<div class="mbg" id="m-stato-richiesta-integrazione">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-stato-richiesta-integrazione')">×</button>
+
+    <h3 id="msr-titolo">Richiesta</h3>
+    <div id="msr-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+
+    <div class="f" id="msr-data-riga">
+      <label id="msr-data-etichetta">Data</label>
+      <input type="date" id="msr-data">
+    </div>
+    <div class="f">
+      <label id="msr-nota-etichetta">Nota</label>
+      <textarea id="msr-nota" rows="3" maxlength="500"></textarea>
+    </div>
+    <div id="msr-avviso"></div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-stato-richiesta-integrazione')">Chiudi</button>
+      <button class="btn p" id="msr-conferma" onclick="salvaStatoRichiestaIntegrazione()">Salva</button>
+    </div>
+  </div>
+</div>
+
 <!-- FORNITORE -->
 <div class="mbg" id="m-fornitore">
   <div class="modal">
@@ -4097,6 +4217,7 @@
 <script defer src="js/25-nuovocontrollo-presidi.js"></script>
 <script defer src="js/26-commesse.js"></script>
 <script defer src="js/27-ordini-fornitori.js"></script>
+<script defer src="js/28-richieste-integrazione.js"></script>
 <script defer src="js/19-init.js"></script>
 
 
