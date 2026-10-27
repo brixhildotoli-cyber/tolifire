@@ -8636,7 +8636,10 @@ async function apriSceltaSedeCommessa(commessaId, clienteId, preventivoId, sedeA
 }
 
 async function salvaSedeCommessa(commessaId, preventivoId, bottone) {
-  const sedeId = v('commessa-sede-scelta-' + commessaId);
+  // La tendina giusta è quella accanto al bottone (può essercene una anche nella pagina nascosta del preventivo)
+  const scelta = (bottone && bottone.closest('[id="commessa-sede-' + commessaId + '"]')?.querySelector('select'))
+    || document.querySelector('.page.on [id="commessa-sede-scelta-' + commessaId + '"]');
+  const sedeId = scelta ? scelta.value : v('commessa-sede-scelta-' + commessaId);
 
   if (!sedeId) {
     toast('Scegli la sede del cantiere', 'err');
