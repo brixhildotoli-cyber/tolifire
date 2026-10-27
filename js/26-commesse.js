@@ -277,7 +277,6 @@ function tornaDaCommessa() {
     : 'commesse';
   commessaApertaId = null;
   gotoPage(destinazione);
-  if (destinazione === 'commesse') loadCommesse();
   ripristinaPosizionePagina();
 }
 

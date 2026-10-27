@@ -8604,7 +8604,8 @@ function htmlCommessaPreventivo(preventivo) {
 }
 
 async function apriSceltaSedeCommessa(commessaId, clienteId, preventivoId, sedeAttuale) {
-  const box = ge('commessa-sede-' + commessaId);
+  // Lo stesso id c'è nel riepilogo del preventivo e nella scheda commessa: si prende quello della pagina aperta
+  const box = document.querySelector('.page.on [id="commessa-sede-' + commessaId + '"]') || ge('commessa-sede-' + commessaId);
   if (!box) return;
 
   const { data: sedi, error } = await db.rpc('elenco_sedi_cliente', { p_cliente_id: clienteId });
