@@ -47,7 +47,7 @@ Usate dal frontend — commesse (F5.1, sql/26-commesse eseguito il 27/10):
 commesse (sola lettura dal sito; la crea il database, js/18)
 Dopo sql/28 (F5.2, eseguito il 27/10): commesse_storico (sola lettura; lo
 scrive il database)
-Dopo sql/29 (F5.3, da eseguire): commesse_documenti (sola lettura; si
+Dopo sql/29 (F5.3, eseguito il 27/10): commesse_documenti (sola lettura; si
 scrive solo con le RPC registra_documento_commessa ed
 elimina_documento_commessa, js/26)
 
@@ -79,7 +79,7 @@ nuovo_intervento_manichetta, salva_riporto_presidio.
 Dopo sql/18 (F2.3, da eseguire): marca_certificato_letto_ingegnere.
 Dopo sql/26 (F5.1, eseguito il 27/10): imposta_sede_commessa.
 Dopo sql/28 (F5.2, eseguito il 27/10): cambia_stato_commessa.
-Dopo sql/29 (F5.3, da eseguire): registra_documento_commessa,
+Dopo sql/29 (F5.3, eseguito il 27/10): registra_documento_commessa,
 elimina_documento_commessa.
 Dopo sql/25 (F4.3, da eseguire): registra_fattura_anticipo,
 registra_accredito_anticipo, rifiuta_per_anticipo_non_versato.
@@ -374,7 +374,7 @@ dashboard di rappresentante, capo tecnico e segreteria il box
 di questo compare. Pagina Commesse completa: F5.3.
 
 Pagina Commesse e cartella documenti (F5.3, js/26-commesse.js; cartella
-con sql/29-commesse-documenti da eseguire dopo 26, non richiede 28):
+con sql/29-commesse-documenti eseguito il 27/10, non richiede 28):
 voce "📁 Commesse" nel menu di titolare, segreteria, commerciale,
 capo_tecnico e rappresentante (gli stessi ruoli che leggono le commesse
 per RLS; contabile, ingegnere e tecnico no). Pagina `commesse`: ricerca
