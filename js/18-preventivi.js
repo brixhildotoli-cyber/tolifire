@@ -512,7 +512,8 @@ function etichettaFamigliaTecnica(famiglia) {
     impianti_spegnimento: 'Impianti di spegnimento',
     progettazione: 'Progettazione',
     formazione: 'Formazione',
-    rilevazione_incendi: 'Impianti di rilevazione incendi'
+    rilevazione_incendi: 'Impianti di rilevazione incendi',
+    coppelle: 'Coppelle'
   };
 
   return etichette[famiglia] ||
@@ -526,6 +527,19 @@ function etichettaFamigliaTecnica(famiglia) {
 function etichettaCampoTecnico(campo) {
   const etichette = {
     tipo_intervento: 'Tipo di intervento',
+    // Coppelle (protezione antincendio delle tubazioni)
+    materiale_tubazione: 'Materiale della tubazione',
+    uso_tubazione: 'Uso / fluido della tubazione',
+    diametro: 'Diametro esterno tubazione (mm)',
+    lunghezza: 'Lunghezza da rivestire (m)',
+    numero_tratti: 'Numero di tratti / tubazioni',
+    spessore: 'Spessore coppella (mm)',
+    classe_resistenza: 'Classe di resistenza al fuoco',
+    supporto_attraversato: 'Parete o solaio attraversato',
+    numero_attraversamenti_coppelle: 'Numero di attraversamenti',
+    reazione_fuoco: 'Reazione al fuoco richiesta',
+    finitura: 'Finitura esterna',
+    ostacoli: 'Ostacoli e interferenze',
     progetto_esistente: 'Progetto esistente fornito dal cliente',
     sorveglianza: 'Livello di sorveglianza',
     marca: 'Marca richiesta / impianto esistente',
@@ -2160,6 +2174,279 @@ async function salvaSchedaVerniceIntumescente() {
   closeM('m-rilievo-tecnico');
 }
 
+
+// ── Scheda "Coppelle" (protezione antincendio delle tubazioni) ───────
+// Richiesta di Erika del 28/10: stessa struttura delle altre schede
+// dell'ingegnere (tabella progetti_tecnici_schede, famiglia 'coppelle').
+// Nessun campo obbligatorio.
+async function apriSchedaCoppelleIngegnere() {
+  ricordaPosizionePagina();
+  const progettoId = v('mvt-id');
+
+  if (!progettoId) {
+    toast('Progetto tecnico non selezionato', 'err');
+    return;
+  }
+
+  currentRilievoProgettoId = progettoId;
+
+  openM('m-rilievo-tecnico');
+  await apriSchedaCoppelle();
+}
+
+function chiudiSchedaCoppelle() {
+  closeM('m-rilievo-tecnico');
+  renderSchedePreventivo();
+}
+
+async function apriSchedaCoppelle() {
+  ricordaPosizionePagina();
+  const box = ge('mrt-content');
+
+  const { data, error } = await db
+    .from('progetti_tecnici_schede')
+    .select('dati')
+    .eq('progetto_tecnico_id', currentRilievoProgettoId)
+    .eq('famiglia', 'coppelle')
+    .maybeSingle();
+
+  if (error) {
+    toast('Errore apertura scheda: ' + error.message, 'err');
+    return;
+  }
+
+  const d = data?.dati || {};
+
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-size:16px;font-weight:700">
+          🔥 Coppelle
+        </div>
+
+        <div style="font-size:12px;color:var(--m);margin-top:3px">
+          Rilievo per la protezione antincendio delle tubazioni con coppelle.
+        </div>
+      </div>
+
+      <button class="btn sm" onclick="chiudiSchedaCoppelle()">
+        ← Indietro
+      </button>
+    </div>
+
+    <div class="rap-section">1. Tubazioni da proteggere</div>
+
+    <div class="card">
+      ${selectPreventivo('Tipo di intervento', 'co-tipo-intervento', d.tipo_intervento || '', [
+        { value: '', label: 'Seleziona' },
+        { value: 'nuova_posa', label: 'Nuova posa' },
+        { value: 'sostituzione', label: 'Sostituzione coppelle esistenti' },
+        { value: 'integrazione', label: 'Integrazione / ripristino' }
+      ])}
+
+      <div class="fr">
+        ${selectPreventivo('Materiale della tubazione', 'co-materiale-tubazione', d.materiale_tubazione || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'acciaio', label: 'Acciaio' },
+          { value: 'rame', label: 'Rame' },
+          { value: 'ghisa', label: 'Ghisa' },
+          { value: 'plastica', label: 'Plastica (PVC, PE, PP)' },
+          { value: 'multistrato', label: 'Multistrato' },
+          { value: 'altro', label: 'Altro / da definire' }
+        ])}
+
+        ${selectPreventivo('Uso / fluido', 'co-uso-tubazione', d.uso_tubazione || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'acqua', label: 'Acqua (sanitaria / riscaldamento)' },
+          { value: 'antincendio', label: 'Rete antincendio' },
+          { value: 'gas', label: 'Gas' },
+          { value: 'scarichi', label: 'Scarichi' },
+          { value: 'vapore', label: 'Vapore / alta temperatura' },
+          { value: 'altro', label: 'Altro' }
+        ])}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo('Diametro esterno tubazione (mm)', 'co-diametro', d.diametro, 'text', 'Es. 48, 60, 114 (anche più diametri)')}
+        ${campoPreventivo('Lunghezza da rivestire (m)', 'co-lunghezza', d.lunghezza, 'number')}
+      </div>
+
+      <div class="fr">
+        ${campoPreventivo('Numero di tratti / tubazioni', 'co-numero-tratti', d.numero_tratti, 'number')}
+        ${campoPreventivo('Spessore coppella (mm)', 'co-spessore', d.spessore, 'text', 'Se richiesto o da certificato')}
+      </div>
+    </div>
+
+    <div class="rap-section">2. Resistenza e reazione al fuoco</div>
+
+    <div class="card">
+      <div class="fr">
+        ${selectPreventivo('Classe di resistenza al fuoco', 'co-classe-resistenza', d.classe_resistenza || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'EI 30', label: 'EI 30' },
+          { value: 'EI 60', label: 'EI 60' },
+          { value: 'EI 90', label: 'EI 90' },
+          { value: 'EI 120', label: 'EI 120' },
+          { value: 'EI 180', label: 'EI 180' },
+          { value: 'altro', label: 'Altro / da definire' }
+        ])}
+
+        ${selectPreventivo('Reazione al fuoco richiesta', 'co-reazione-fuoco', d.reazione_fuoco || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'A1', label: 'A1' },
+          { value: 'A2-s1,d0', label: 'A2-s1,d0' },
+          { value: 'BL-s1,d0', label: 'BL-s1,d0' },
+          { value: 'non_richiesta', label: 'Non richiesta' },
+          { value: 'da_definire', label: 'Da definire' }
+        ])}
+      </div>
+
+      <div class="fr">
+        ${selectPreventivo('Parete o solaio attraversato', 'co-supporto-attraversato', d.supporto_attraversato || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'nessuno', label: 'Nessun attraversamento' },
+          { value: 'muratura', label: 'Parete in muratura / calcestruzzo' },
+          { value: 'cartongesso', label: 'Parete in cartongesso' },
+          { value: 'solaio', label: 'Solaio' },
+          { value: 'misto', label: 'Più tipi' }
+        ])}
+
+        ${campoPreventivo('Numero di attraversamenti', 'co-numero-attraversamenti', d.numero_attraversamenti_coppelle, 'number')}
+      </div>
+
+      ${selectPreventivo('Finitura esterna', 'co-finitura', d.finitura || '', [
+        { value: '', label: 'Seleziona' },
+        { value: 'nessuna', label: 'Nessuna' },
+        { value: 'alluminio', label: 'Alluminio' },
+        { value: 'pvc', label: 'PVC' },
+        { value: 'lamierino', label: 'Lamierino' },
+        { value: 'altro', label: 'Altro' }
+      ])}
+    </div>
+
+    <div class="rap-section">3. Ambiente, ostacoli e mezzi</div>
+
+    <div class="card">
+      <div class="fr">
+        ${selectPreventivo('Ambiente', 'co-ambiente', d.ambiente || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'interno', label: 'Interno' },
+          { value: 'esterno', label: 'Esterno' },
+          { value: 'cavedio', label: 'Cavedio / vano tecnico' },
+          { value: 'controsoffitto', label: 'Sopra controsoffitto' },
+          { value: 'umidita', label: 'Umidità elevata' }
+        ])}
+
+        ${selectPreventivo('Altezza / mezzo di sollevamento', 'co-altezza-lavoro', d.altezza_lavoro || '', [
+          { value: '', label: 'Seleziona' },
+          { value: 'normale', label: 'Normale' },
+          { value: 'trabattello', label: 'Trabattello' },
+          { value: 'PLE', label: 'PLE' },
+          { value: 'ponteggio', label: 'Ponteggio' }
+        ])}
+      </div>
+
+      ${areaPreventivo(
+        'Ostacoli e interferenze',
+        'co-ostacoli',
+        d.ostacoli,
+        'Es. canaline, cavi, altri impianti, staffaggi, controsoffitti da aprire'
+      )}
+
+      ${areaPreventivo(
+        'Accessibilità e vincoli di cantiere',
+        'co-accessibilita',
+        d.accessibilita
+      )}
+    </div>
+
+    <div class="rap-section">4. Foto, certificazione e note</div>
+
+    <div class="card">
+      ${areaPreventivo(
+        'Foto e misure delle tubazioni',
+        'co-foto',
+        d.foto,
+        'Indica le foto caricate negli allegati tecnici.'
+      )}
+
+      ${areaPreventivo(
+        'Certificazione e dichiarazione di corretta posa',
+        'co-certificazione',
+        d.certificazione
+      )}
+
+      ${areaPreventivo(
+        'Note tecniche per il preventivo',
+        'co-note-tecniche',
+        d.note_tecniche
+      )}
+    </div>
+
+    <div class="ma" style="margin:18px 0 40px">
+      <button class="btn" onclick="chiudiSchedaCoppelle()">
+        Annulla
+      </button>
+
+      <button class="btn p" onclick="salvaSchedaCoppelle()">
+        Salva scheda coppelle
+      </button>
+    </div>
+  `;
+  renderSchedePreventivo();
+}
+
+async function salvaSchedaCoppelle() {
+  if (!currentRilievoProgettoId) {
+    toast('Progetto tecnico non selezionato', 'err');
+    return;
+  }
+
+  const dati = {
+    tipo_intervento: v('co-tipo-intervento'),
+    materiale_tubazione: v('co-materiale-tubazione'),
+    uso_tubazione: v('co-uso-tubazione'),
+    diametro: v('co-diametro'),
+    lunghezza: v('co-lunghezza'),
+    numero_tratti: v('co-numero-tratti'),
+    spessore: v('co-spessore'),
+    classe_resistenza: v('co-classe-resistenza'),
+    reazione_fuoco: v('co-reazione-fuoco'),
+    supporto_attraversato: v('co-supporto-attraversato'),
+    numero_attraversamenti_coppelle: v('co-numero-attraversamenti'),
+    finitura: v('co-finitura'),
+    ambiente: v('co-ambiente'),
+    altezza_lavoro: v('co-altezza-lavoro'),
+    ostacoli: v('co-ostacoli'),
+    accessibilita: v('co-accessibilita'),
+    foto: v('co-foto'),
+    certificazione: v('co-certificazione'),
+    note_tecniche: v('co-note-tecniche')
+  };
+
+  // Nessun campo obbligatorio nelle schede tecniche (decisione di Erika del 28/10)
+
+  const { error } = await db
+    .from('progetti_tecnici_schede')
+    .upsert({
+      progetto_tecnico_id: currentRilievoProgettoId,
+      famiglia: 'coppelle',
+      dati: dati,
+      stato: 'bozza',
+      compilato_da: ME.id,
+      aggiornato_il: new Date().toISOString()
+    }, {
+      onConflict: 'progetto_tecnico_id,famiglia'
+    });
+
+  if (error) {
+    toast('Errore salvataggio scheda: ' + error.message, 'err');
+    return;
+  }
+
+  toast('Scheda coppelle salvata', 'ok');
+  closeM('m-rilievo-tecnico');
+}
 
 async function apriSchedaImpiantiSpegnimentoIngegnere() {
   ricordaPosizionePagina();

@@ -317,6 +317,15 @@ solo un avviso giallo ("valuta l'invio all'ingegnere"); "Invia al
 commerciale" resta sempre possibile. Importo o soglia vuoti: nessun
 avviso (js/17).
 
+Scheda tecnica "Coppelle" (richiesta di Erika del 28/10, js/18
+`apriSchedaCoppelleIngegnere`, bottone "🔥 Compila coppelle" nella verifica
+tecnica; nessun SQL): settima scheda dell'ingegnere, famiglia 'coppelle' in
+progetti_tecnici_schede. Tubazioni (intervento, materiale, uso, diametro,
+lunghezza, tratti, spessore), classe di resistenza EI e reazione al fuoco,
+attraversamenti, finitura, ambiente, altezza/PLE, ostacoli, foto,
+certificazione, note. Nessun campo obbligatorio. Compare come le altre nel
+preventivo, nella copia del commerciale e nel PDF per il fornitore.
+
 Rimanda indietro un preventivo avviato (richiesta di Erika del 28/10,
 js/18 `apriRimandaPreventivoAvviato`, finestra m-rimanda-preventivo-avviato;
 nessun SQL): nel riepilogo di un preventivo in BOZZA con progetto tecnico,
