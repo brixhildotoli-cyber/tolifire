@@ -6182,6 +6182,9 @@ if (progetto.materiali_note) {
 ).filter(function(entry) {
         const valore = entry[1];
 
+        // Le note interne per il calcolo non vanno al fornitore (decisione 28/10)
+        if (entry[0] === 'note_calcolo') return false;
+
         return valore !== null &&
           valore !== undefined &&
           valore !== '';
