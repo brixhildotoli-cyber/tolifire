@@ -496,6 +496,10 @@ async function loadDashTitolare(){
   caricaCodaCommercialeTitolare();
   caricaAvvisoLeadSitoTitolare();
   caricaAvvisiPreventiviTitolare();
+  // F10.1: contratti di manutenzione in scadenza (js/39, solo con sql/40)
+  if (typeof caricaContrattiInScadenzaDashboard === 'function') {
+    caricaContrattiInScadenzaDashboard().catch(function(e){ console.warn('caricaContrattiInScadenzaDashboard:', e); });
+  }
   var periodo = window._dashTitPeriodo || 'settimana';
   var range = getPeriodoRange(periodo);
   var oggi = new Date(); oggi.setHours(0,0,0,0);
@@ -842,6 +846,10 @@ async function loadDashCapoTecnicoPg(){
   // F7.1: documenti di team e subappalti scaduti o in scadenza (js/30, solo con sql/32)
   if (typeof caricaDocumentiInScadenzaDashboard === 'function') {
     try { await caricaDocumentiInScadenzaDashboard('ct-documenti-scadenza'); } catch(e){ console.warn('caricaDocumentiInScadenzaDashboard:', e); }
+  }
+  // F10.1: contratti di manutenzione in scadenza (js/39, solo con sql/40)
+  if (typeof caricaContrattiInScadenzaDashboard === 'function') {
+    try { await caricaContrattiInScadenzaDashboard(); } catch(e){ console.warn('caricaContrattiInScadenzaDashboard:', e); }
   }
   // F6.2: consumabili e noli chiesti agli acquisti (js/28, solo con sql/31)
   if (typeof caricaRichiesteIntegrazioneDashboard === 'function') {

@@ -1,5 +1,7 @@
 // ── PERIODICITA CLIENTE ───────────────────────────────────────
 async function loadPeriodicitaCliente(cliId){
+  // F10.1: presidi previsti, preventivo e rinnovo del contratto (js/39, solo con sql/40)
+  if(typeof verificaContrattoRinnovoDisponibile==='function') await verificaContrattoRinnovoDisponibile();
   const {data}=await db.from('clienti_periodicita').select('*').eq('cliente_id',cliId).maybeSingle();
   const perio=data||{};
 
@@ -33,8 +35,11 @@ async function loadPeriodicitaCliente(cliId){
         <option value="">Non previsto</option>
         ${PERIO_OPT.map(p=>`<option value="${p}"${perio[t]===p?' selected':''}>${p.charAt(0).toUpperCase()+p.slice(1)}</option>`).join('')}
       </select>
+      ${typeof htmlPresidiContrattoTipo==='function'?htmlPresidiContrattoTipo(t,perio):''}
     </div>`).join('')}
   </div>`;
+
+  if(typeof caricaContrattoManutenzione==='function') await caricaContrattoManutenzione(cliId, data);
 
   // Carica piano se già generato
   if(perio.pianificazione_generata) await loadPrevistaCliente(cliId);
@@ -49,7 +54,7 @@ function calcolaFineContratto() {
   if(durata === 'annuale') d.setFullYear(d.getFullYear() + 1);
   else d.setFullYear(d.getFullYear() + 5);
   d.setDate(d.getDate() - 1);
-  fine.value = d.toISOString().split('T')[0];
+  fine.value = dataLocaleISO(d); // F10.1: data locale (toISOString dava il giorno prima)
   var bgen = ge('btn-genera-piano');
   if(bgen) bgen.style.display = '';
 }
@@ -64,12 +69,18 @@ async function savePeriodicita(){
     note_contratto: v('perio-note') || null,
   };
   TIPI_PRESIDI.forEach(t=>{payload[t]=v('perio-'+t)||null;});
+  // F10.1 (js/39): presidi previsti e preventivo del contratto; evacuatore_fumi solo se la colonna c'è
+  if(typeof completaPayloadContratto==='function' && !(await completaPayloadContratto(payload))) return;
   const {data:existing}=await db.from('clienti_periodicita').select('id').eq('cliente_id',currentCliId).maybeSingle();
   let error;
   if(existing){({error}=await db.from('clienti_periodicita').update(payload).eq('cliente_id',currentCliId));}
   else{({error}=await db.from('clienti_periodicita').insert(payload));}
   if(error){toast('Errore: '+error.message,'err');return;}
   toast('✅ Periodicità e contratto salvati','ok');
+  if(typeof caricaContrattoManutenzione==='function'){
+    const {data:salvato}=await db.from('clienti_periodicita').select('*').eq('cliente_id',currentCliId).maybeSingle();
+    await caricaContrattoManutenzione(currentCliId, salvato);
+  }
   // Aggiorna date prossima verifica per i presidi esistenti
   await aggiornaProssimeDate(currentCliId,payload);
   // Mostra bottone genera
@@ -119,11 +130,14 @@ async function generaPianificazione() {
       ? new Date(perio.data_fine_contratto + 'T00:00:00')
       : new Date(inizio.getFullYear() + (perio.durata_contratto === 'quinquennale' ? 5 : 1), inizio.getMonth(), inizio.getDate());
 
-    // Elimina cicli precedenti non ancora eseguiti
+    // Elimina cicli precedenti non ancora eseguiti (F10.1: solo dall'inizio
+    // del contratto in poi; dopo un rinnovo i cicli ancora da fare del
+    // periodo precedente restano)
     await db.from('cicli_pianificati')
       .delete()
       .eq('cliente_id', currentCliId)
-      .eq('stato', 'pianificato');
+      .eq('stato', 'pianificato')
+      .gte('data_prevista', perio.data_inizio_contratto);
 
     // Genera cicli per ogni tipo di presidio con periodicità
     var cicli = [];
@@ -145,7 +159,7 @@ async function generaPianificazione() {
         cicli.push({
           cliente_id: currentCliId,
           tipo_presidio: tipo,
-          data_prevista: dataCorrente.toISOString().split('T')[0],
+          data_prevista: dataLocaleISO(dataCorrente), // F10.1: data locale, non UTC
           mese_anno: mesAnno,
           stato: dataCorrente < oggi ? 'saltato' : 'pianificato'
         });
@@ -176,6 +190,11 @@ async function generaPianificazione() {
     if(stato) stato.textContent = '✅ Piano generato: ' + cicli.length + ' interventi';
     if(btn) { btn.disabled=false; btn.textContent='🔄 Rigenera piano'; btn.className='btn warn'; }
     await loadPrevistaCliente(currentCliId);
+    // F10.1: aggiorna il riquadro del rinnovo (avviso "piano da rigenerare")
+    if(typeof caricaContrattoManutenzione==='function'){
+      var rAgg = await db.from('clienti_periodicita').select('*').eq('cliente_id', currentCliId).maybeSingle();
+      await caricaContrattoManutenzione(currentCliId, rAgg.data);
+    }
 
   } catch(e) {
     console.error('Errore generazione:', e);

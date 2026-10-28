@@ -94,6 +94,11 @@ commesse.fattura_finale_* (numero, data, importo, calcolato, con_extra,
 dettaglio, nota, registrata_da, registrata_da_nome, registrata_il) e
 chiusura_forzata, chiusura_motivo_forzatura, chiusura_problemi (sola
 lettura per chi legge la commessa; le scrivono solo le RPC di js/38).
+Dopo sql/40 (F10.1, da eseguire, richiede solo 07): colonne nuove
+clienti_periodicita.presidi_contratto (jsonb), preventivo_id,
+contratto_stato (lo cambia solo registra_rinnovo_contratto) ed
+evacuatore_fumi (se manca); tabella clienti_periodicita_rinnovi (sola
+lettura, la scrive solo registra_rinnovo_contratto, js/39).
 
 Usate dal frontend — fatturazione:
 fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
@@ -153,6 +158,7 @@ Dopo sql/38 (F8.5, da eseguire): registra_lavoro_extra,
 annulla_lavoro_extra, voci_lavori_extra_commessa.
 Dopo sql/39 (F9.2, da eseguire): controllo_chiusura_commessa,
 registra_fattura_finale_commessa, chiudi_commessa.
+Dopo sql/40 (F10.1, da eseguire): registra_rinnovo_contratto.
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
 Sono gli accessi che le policy RLS per il portale dovranno permettere
 (F1.1), sempre filtrati sul cliente del portale (`cliente_id`):
@@ -1020,6 +1026,68 @@ titolare; regola del nome della dichiarazione (basta il PDF generato o
 serve la copia firmata?); extra compresi o fatturati a parte come
 predefinito; il contabile deve registrare la fattura finale (oggi non
 legge le commesse)?
+
+## Service: manutenzioni ordinarie (Fase 10)
+Contratto di manutenzione e rinnovo (F10.1, js/39-contratto-
+manutenzione.js; sql/40-contratto-manutenzione-rinnovo da eseguire,
+richiede solo 07). Il contratto resta in clienti_periodicita (scheda
+cliente, tab Periodicità, card "Contratto di manutenzione"); la tabella
+`contratti` (mai usata) NON si usa e non si tocca. Con sql/40:
+- PRESIDI PREVISTI PER TIPO: campo "N. previsti dal contratto" sotto la
+  frequenza di ogni tipo (perio-n-<tipo>), colonna presidi_contratto
+  jsonb ({"estintore": 25, ...}, interi 0-100000, vincolo nel DB). Si
+  salvano con "Salva periodicità" (titolare, segreteria, capo tecnico:
+  la policy clienti_periodicita_gestione di sql/08). Serviranno a 10.2.
+- PREVENTIVO DEL CONTRATTO: select perio-preventivo (preventivi del
+  cliente) solo per titolare e segreteria (leggono i preventivi e
+  scrivono il contratto); il capo tecnico non legge i preventivi: vede
+  "collegato (non visibile per il tuo ruolo)" e salvando non lo tocca.
+  Il trigger trg_clienti_periodicita_contratto impone lo stesso cliente.
+- PROMEMORIA: un contratto 'attivo' con fine entro
+  impostazioni.giorni_preavviso_rinnovo giorni (sql/20, già in
+  produzione e già in Impostazioni; vuoto = 60) o già scaduto compare
+  nel box "📄 Contratti in scadenza" (caricaContrattiInScadenzaDashboard)
+  della dashboard del RAPPRESENTANTE (rap-contratti-scadenza, solo i suoi
+  clienti), del TITOLARE (tit-contratti-scadenza, tutti, con il nome del
+  rappresentante o "Cliente senza rappresentante") e del CAPO TECNICO
+  (ct-contratti-scadenza, Responsabile Service). Bottoni "Apri contratto"
+  (scheda cliente sul tab Periodicità), "✅ Rinnovato", "❌ Non
+  rinnovato". Con l'esito il contratto esce dalla lista. Nella scheda il
+  riquadro perio-rinnovo-box mostra fine e giorni mancanti, i bottoni
+  (solo se in scadenza, scaduto o non rinnovato) e lo storico.
+- ESITO DEL RINNOVO (finestra m-rinnovo-contratto, id rnc-; RPC
+  registra_rinnovo_contratto; titolare, segreteria, capo tecnico,
+  rappresentante solo per i suoi clienti): "Rinnovato" = nuovo inizio
+  (predefinito il giorno dopo la fine), durata (annuale/quinquennale),
+  nuova fine (calcolata, modificabile; max 10 anni), preventivo del
+  rinnovo facoltativo; il contratto si aggiorna e resta 'attivo'.
+  "Non rinnovato" = motivo obbligatorio, contratto 'non_rinnovato'; se il
+  cliente ci ripensa si registra "Rinnovato". contratto_stato non si
+  cambia con update diretti (trigger). Storico in
+  clienti_periodicita_rinnovi (date prima/dopo, motivo, preventivo,
+  nota, chi con nome e ruolo copiati, quando), letto come il contratto.
+- PIANO INTERVENTI: NON si rigenera da solo. Dopo un rinnovo la scheda
+  avvisa ("generato prima del rinnovo") e il titolare o il capo tecnico
+  usano "Rigenera piano interventi". generaPianificazione (js/08) ora
+  cancella i cicli 'pianificato' solo dall'inizio del contratto in poi
+  (quelli ancora da fare del periodo precedente restano) e scrive le date
+  in ora locale (prima toISOString le spostava di un giorno; stessa
+  correzione in calcolaFineContratto).
+- EVACUATORI DI FUMO: la griglia chiede la frequenza di evacuatore_fumi
+  (TIPI_PRESIDI) ma la colonna in clienti_periodicita non esiste: "Salva
+  periodicità" oggi in produzione si ferma con "Could not find the
+  'evacuatore_fumi' column". Corretto: senza la colonna il sito non la
+  manda (completaPayloadContratto); sql/40 la aggiunge.
+Senza sql/40: nella card "Presidi previsti, preventivo del contratto e
+rinnovo: non ancora attivi", nessun box nelle dashboard, nessun errore.
+SCELTA DICHIARATA, da confermare da Toli: il "Commerciale" della roadmap
+10.1 è il ruolo rappresentante (D1), il promemoria va al rappresentante
+del cliente (clienti.rappresentante_id); i clienti senza rappresentante
+li vede il titolare. Domande per Toli: anche il ruolo commerciale
+(acquisti) deve vedere i contratti in scadenza? Il rappresentante deve
+poter modificare presidi previsti e preventivo del contratto (oggi solo
+nel rinnovo)? La segreteria deve avere il box in dashboard? Va bene
+"Non rinnovato" anche prima della scadenza (disdetta anticipata)?
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

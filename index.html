@@ -246,6 +246,8 @@
         <button class="tit-period-btn" id="tit-period-mese" onclick="setTitolarePeriodo('mese')">Mese</button>
       </div>
 <div id="tit-avviso-preventivi"></div>
+<!-- F10.1 — contratti di manutenzione in scadenza (js/39, solo con sql/40) -->
+<div id="tit-contratti-scadenza"></div>
       <div class="tit-section">💼 Lavoro</div>
       <div class="kpi-grid">
         <div class="kpi-card clickable success" onclick="gotoPage('interventi')"><div class="kpi-icon">✅</div><div class="kpi-num" id="tit-k-completati">—</div><div class="kpi-label">Completati nel periodo</div></div>
@@ -427,6 +429,9 @@
 
       <!-- F7.1 — documenti di team e subappalti scaduti o in scadenza (js/30, solo con sql/32) -->
       <div id="ct-documenti-scadenza"></div>
+
+      <!-- F10.1 — contratti di manutenzione in scadenza (js/39, solo con sql/40) -->
+      <div id="ct-contratti-scadenza"></div>
 
       <!-- F6.2 — consumabili e noli chiesti agli acquisti (js/28, solo con sql/31) -->
       <div id="ct-richieste-integrazione"></div>
@@ -925,6 +930,8 @@
 <div id="rap-lead-assegnate"></div>
 <div id="rap-preventivi-ricevuti"></div>
 <div id="rap-promemoria-anticipi"></div>
+<!-- F10.1 — contratti di manutenzione in scadenza dei clienti del rappresentante (js/39, solo con sql/40) -->
+<div id="rap-contratti-scadenza"></div>
 <!-- F5.2 — commesse il cui prossimo passo è del rappresentante (solo con sql/28) -->
 <div id="rap-commesse-tocca"></div>
 <!-- F8.5 — lavori extra dei clienti del rappresentante (js/36, solo con sql/38) -->
@@ -1827,6 +1834,8 @@
         </div>
       </div>
       <div class="f"><label>Note contratto</label><input type="text" id="perio-note" placeholder="Es: include ricambi, escluso CO2..."></div>
+      <!-- F10.1 — preventivo del contratto, scadenza ed esito del rinnovo (js/39, solo con sql/40) -->
+      <div id="perio-contratto-extra"></div>
     </div>
     <!-- PERIODICITÀ PER TIPO -->
     <div class="card" style="margin-bottom:14px">
@@ -3328,6 +3337,53 @@
     <div class="ma">
       <button class="btn" onclick="closeM('m-chiusura-commessa')">Annulla</button>
       <button class="btn p" id="chc-conferma" onclick="salvaChiusuraCommessa()">✅ Chiudi la commessa</button>
+    </div>
+  </div>
+</div>
+
+<!-- F10.1 — ESITO DEL RINNOVO DEL CONTRATTO DI MANUTENZIONE (js/39) -->
+<div class="mbg" id="m-rinnovo-contratto">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-rinnovo-contratto')">×</button>
+    <h3 id="rnc-titolo">Esito del rinnovo</h3>
+    <div id="rnc-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div id="rnc-box-rinnovato">
+      <div class="fr">
+        <div class="f">
+          <label for="rnc-durata">Durata</label>
+          <select id="rnc-durata" style="width:100%" onchange="aggiornaRinnovoContratto(true)">
+            <option value="annuale">Annuale (12 mesi)</option>
+            <option value="quinquennale">Quinquennale (5 anni)</option>
+          </select>
+        </div>
+        <div class="f">
+          <label for="rnc-inizio">Nuovo inizio</label>
+          <input type="date" id="rnc-inizio" onchange="aggiornaRinnovoContratto(true)">
+        </div>
+        <div class="f">
+          <label for="rnc-fine">Nuova fine</label>
+          <input type="date" id="rnc-fine" onchange="aggiornaRinnovoContratto(false)">
+        </div>
+      </div>
+      <div class="f" id="rnc-preventivo-box" style="display:none">
+        <label for="rnc-preventivo">Preventivo del rinnovo (facoltativo)</label>
+        <select id="rnc-preventivo" style="width:100%"></select>
+      </div>
+    </div>
+    <div id="rnc-box-non-rinnovato" style="display:none">
+      <div class="f">
+        <label for="rnc-motivo">Motivo del mancato rinnovo (obbligatorio)</label>
+        <textarea id="rnc-motivo" rows="3" maxlength="1000" placeholder="Es: passato a un altro manutentore, attività chiusa, prezzo..." oninput="aggiornaRinnovoContratto(false)"></textarea>
+      </div>
+    </div>
+    <div class="f">
+      <label for="rnc-nota">Nota (facoltativa)</label>
+      <textarea id="rnc-nota" rows="2" maxlength="1000"></textarea>
+    </div>
+    <div id="rnc-aiuto" style="font-size:12px;color:var(--m);margin-bottom:8px"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-rinnovo-contratto')">Annulla</button>
+      <button class="btn p" id="rnc-conferma" onclick="salvaRinnovoContratto()">Registra</button>
     </div>
   </div>
 </div>
@@ -4901,6 +4957,7 @@
 <script defer src="js/36-lavori-extra.js"></script>
 <script defer src="js/37-dichiarazione-messa-in-opera.js"></script>
 <script defer src="js/38-fattura-finale-commessa.js"></script>
+<script defer src="js/39-contratto-manutenzione.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

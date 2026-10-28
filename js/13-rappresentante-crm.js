@@ -301,6 +301,10 @@ async function loadDashRappresentante() {
   caricaAvvisiLeadAssegnate();
   caricaAvvisiPreventiviRappresentante();
   caricaPromemoriaAnticipiRappresentante();
+  // F10.1: contratti di manutenzione in scadenza dei suoi clienti (js/39, solo con sql/40)
+  if (typeof caricaContrattiInScadenzaDashboard === 'function') {
+    caricaContrattiInScadenzaDashboard().catch(function(e){ console.warn('caricaContrattiInScadenzaDashboard:', e); });
+  }
   // F5.2: commesse in cui tocca al rappresentante (js/18, solo con sql/28)
   caricaCommesseToccaAMe().catch(function(e){ console.warn('caricaCommesseToccaAMe:', e); });
   // F8.5: lavori extra dei suoi clienti (js/36, solo con sql/38)
