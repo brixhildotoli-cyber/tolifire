@@ -787,7 +787,12 @@ compilato; "➕ altra lavorazione" divide le ore della stessa persona.
 SCRIVONO capo_tecnico e titolare (RPC salva_giornale_cantiere, che
 sostituisce le ore del giorno, e togli_giornale_cantiere): giorni futuri
 mai; giorni più vecchi di 7 giorni (ora italiana) solo il titolare;
-commessa chiusa o annullata solo il titolare. LAVORAZIONI E ORE STIMATE,
+commessa chiusa o annullata solo il titolare. Decisioni di Erika del
+28/10: i tecnici NON segnano da soli le proprie ore (solo capo tecnico e
+titolare); nessun limite di giorni per il capo tecnico (tolto il limite
+dei 7 giorni: corregge qualunque giorno passato della commessa aperta);
+la segreteria non vede le ore per persona; riepilogo ore su tutte le
+commesse: task a parte (Moduli da costruire, punto 6). LAVORAZIONI E ORE STIMATE,
 scelta dichiarata: tabella commesse_lavorazioni (nome, ore_stimate
 facoltative a quarti d'ora, unità e quantità copiate dal preventivo, max
 60) salvata tutta insieme con salva_lavorazioni_commessa (finestra
@@ -943,3 +948,10 @@ una sessione e l'altra.
      index.html ma mai scritte: oggi il bottone non fa nulla).
    - D6: `ricordaPosizionePagina` è solo nella copia morta di renderPC
      (js/07): rimetterla nella versione usata (js/09).
+
+6. **Riepilogo ore degli operai su tutte le commesse** — chiesto da Erika
+   il 28/10 (risposta alla domanda 4 di F8.4). Pagina per il titolare
+   (e capo tecnico?) con le ore di ogni dipendente e subappaltatore in
+   cantiere, per periodo, sommate su tutte le commesse, con il confronto
+   ore stimate/effettive per lavorazione. Dati da sql/37 (giornale di
+   cantiere). Da pianificare come task a parte dopo F8.5.
