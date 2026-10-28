@@ -315,6 +315,117 @@ if (
   }).join('');
 }
 
+// ── Bozza automatica del progetto (nel browser) ─────────────────────
+// Il testo scritto nella finestra del progetto si salva da solo in questo
+// browser mentre si scrive: se la sessione scade o la finestra si chiude,
+// riaprendo lo stesso progetto (o "Nuovo progetto" sullo stesso cliente)
+// il testo torna. Si cancella quando il progetto viene salvato. I file
+// allegati non si possono conservare: vanno riselezionati.
+const CAMPI_BOZZA_PROGETTO = ['mp-titolo', 'mp-tipologia', 'mp-descrizione', 'mp-materiali', 'mp-importo'];
+let chiaveBozzaProgettoAperta = null;
+let timerBozzaProgetto = null;
+
+function chiaveBozzaProgetto(progettoId, clienteId) {
+  return 'bozza_progetto_' + (ME?.id || 'anonimo') + '_' + (progettoId || ('nuovo_' + (clienteId || '')));
+}
+
+function leggiBozzaProgetto(chiave) {
+  try {
+    const testo = localStorage.getItem(chiave);
+    return testo ? JSON.parse(testo) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function salvaBozzaProgettoLocale() {
+  if (!chiaveBozzaProgettoAperta) return;
+  const valori = {};
+  let qualcosaScritto = false;
+  CAMPI_BOZZA_PROGETTO.forEach(function(id) {
+    const el = ge(id);
+    if (!el) return;
+    valori[id] = el.value;
+    if (String(el.value || '').trim()) qualcosaScritto = true;
+  });
+  try {
+    if (qualcosaScritto) {
+      localStorage.setItem(chiaveBozzaProgettoAperta, JSON.stringify({ valori: valori, salvata_il: Date.now() }));
+      const nota = ge('mp-bozza-nota');
+      if (nota && nota.dataset.ripresa !== '1') {
+        nota.style.display = 'block';
+        nota.innerHTML = '💾 Bozza salvata in automatico alle ' +
+          new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+      }
+    }
+  } catch (e) { /* spazio pieno o navigazione privata: si prosegue senza bozza */ }
+}
+
+function pianificaBozzaProgetto() {
+  clearTimeout(timerBozzaProgetto);
+  timerBozzaProgetto = setTimeout(salvaBozzaProgettoLocale, 800);
+}
+
+function cancellaBozzaProgetto(chiave) {
+  try { localStorage.removeItem(chiave || chiaveBozzaProgettoAperta); } catch (e) {}
+}
+
+function scartaBozzaProgetto() {
+  if (!confirm('Scartare il testo ripreso dalla bozza?')) return;
+  const chiave = chiaveBozzaProgettoAperta;
+  cancellaBozzaProgetto(chiave);
+  closeM('m-progetto');
+  const id = v('mp-id');
+  if (id) modificaProgetto(id); else apriNuovoProgetto();
+}
+
+// Chiamata all'apertura della finestra, dopo aver riempito i campi
+function preparaBozzaProgetto(progettoId) {
+  chiaveBozzaProgettoAperta = chiaveBozzaProgetto(progettoId, currentCliId);
+
+  let nota = ge('mp-bozza-nota');
+  if (!nota) {
+    const mh = document.querySelector('#m-progetto .mh');
+    if (mh) {
+      nota = document.createElement('div');
+      nota.id = 'mp-bozza-nota';
+      nota.className = 'al2 i';
+      nota.style.cssText = 'display:none;margin:0 0 10px;font-size:12px';
+      mh.insertAdjacentElement('afterend', nota);
+    }
+  }
+  if (nota) { nota.style.display = 'none'; nota.innerHTML = ''; nota.dataset.ripresa = ''; }
+
+  CAMPI_BOZZA_PROGETTO.forEach(function(id) {
+    const el = ge(id);
+    if (el && !el.dataset.bozzaAgganciata) {
+      el.addEventListener('input', pianificaBozzaProgetto);
+      el.addEventListener('change', pianificaBozzaProgetto);
+      el.dataset.bozzaAgganciata = '1';
+    }
+  });
+
+  const bozza = leggiBozzaProgetto(chiaveBozzaProgettoAperta);
+  if (!bozza || !bozza.valori) return;
+
+  CAMPI_BOZZA_PROGETTO.forEach(function(id) {
+    const el = ge(id);
+    if (el && bozza.valori[id] !== undefined) el.value = bozza.valori[id];
+  });
+  if (typeof aggiornaAvvisoImportoProgetto === 'function') aggiornaAvvisoImportoProgetto();
+
+  if (nota) {
+    const quando = new Date(bozza.salvata_il || Date.now());
+    nota.dataset.ripresa = '1';
+    nota.style.display = 'block';
+    nota.innerHTML = '💾 Ho ripreso il testo non salvato del ' +
+      esc(quando.toLocaleDateString('it-IT')) + ' alle ' +
+      esc(quando.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })) +
+      '. Controllalo e premi Salva. Gli allegati vanno riselezionati. ' +
+      '<a href="#" onclick="scartaBozzaProgetto();return false">Scarta</a>';
+  }
+}
+
 async function apriNuovoProgetto() {
   if (!currentCliId) {
     toast('Apri prima la scheda di un cliente', 'err');
@@ -333,6 +444,7 @@ async function apriNuovoProgetto() {
 
   await mostraImportoProgetto(null);
   await caricaAllegatiProgetto(null);
+  preparaBozzaProgetto(null);
 
   openM('m-progetto');
 }
@@ -359,6 +471,7 @@ async function modificaProgetto(id) {
 
   await mostraImportoProgetto(progetto);
   await caricaAllegatiProgetto(id);
+  preparaBozzaProgetto(id);
 
   openM('m-progetto');
 }
@@ -414,12 +527,24 @@ async function salvaProgetto() {
       return;
     }
 
-    const { data: authData, error: authError } = await db.auth.getUser();
+    // La bozza si salva subito, così con la sessione scaduta il testo non si perde
+    salvaBozzaProgettoLocale();
 
-if (authError || !authData.user) {
-  toast('Sessione utente non valida', 'err');
-  return;
-}
+    let { data: authData, error: authError } = await db.auth.getUser();
+
+    if (authError || !authData?.user) {
+      // Sessione scaduta: si prova a rinnovarla prima di arrendersi
+      const rinnovo = await db.auth.refreshSession();
+      if (!rinnovo.error && rinnovo.data?.user) {
+        authData = { user: rinnovo.data.user };
+        authError = null;
+      }
+    }
+
+    if (authError || !authData?.user) {
+      toast('La sessione è scaduta: il testo è salvato in bozza. Rientra e riapri il progetto per continuare.', 'err');
+      return;
+    }
 
 const authUserId = authData.user.id;
 
@@ -497,6 +622,8 @@ const authUserId = authData.user.id;
       }
 
       progettoId = data.id;
+      // Il progetto ora esiste: la bozza del "nuovo" non deve ricrearlo una seconda volta
+      cancellaBozzaProgetto(chiaveBozzaProgetto(null, currentCliId));
     }
 
   const utenteStorageId = authUserId;
@@ -544,6 +671,8 @@ const authUserId = authData.user.id;
   }
 }
 
+    cancellaBozzaProgetto(chiaveBozzaProgetto(id || null, currentCliId));
+    chiaveBozzaProgettoAperta = null;
     closeM('m-progetto');
 
     toast(
