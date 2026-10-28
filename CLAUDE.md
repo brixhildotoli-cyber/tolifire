@@ -65,7 +65,7 @@ cancellazione: attivo=false), documenti_team_subappalti (sola lettura; si
 scrive solo con le RPC registra_, correggi_ ed
 elimina_documento_team_subappalti, js/30); colonna nuova
 impostazioni.giorni_preavviso_documenti (default 30).
-Dopo sql/33 (F7.2, da eseguire, richiede 26, 28 e 32): colonne nuove
+Dopo sql/33 (F7.2, eseguito il 28/10, richiede 26, 28 e 32): colonne nuove
 commesse.data_inizio, data_fine_prevista, date_fissate_da,
 date_fissate_il (sola lettura; le scrive imposta_date_commessa);
 commesse_faldone, commesse_faldone_persone, commesse_faldone_voci (sola
@@ -115,7 +115,7 @@ Dopo sql/31 (F6.2, eseguito il 27/10): apri_richiesta_integrazione,
 evadi_richiesta_integrazione, cambia_stato_richiesta_integrazione.
 Dopo sql/32 (F7.1, eseguito il 27/10): registra_documento_team_subappalti,
 correggi_documento_team_subappalti, elimina_documento_team_subappalti.
-Dopo sql/33 (F7.2, da eseguire): imposta_date_commessa,
+Dopo sql/33 (F7.2, eseguito il 28/10): imposta_date_commessa,
 controllo_faldone_commessa, aggiungi_persona_faldone,
 togli_persona_faldone, imposta_documenti_richiesti_faldone,
 aggiungi_voce_faldone, imposta_stato_voce_faldone, togli_voce_faldone,
@@ -123,7 +123,7 @@ consegna_faldone_commessa.
 Dopo sql/25 (F4.3, da eseguire): registra_fattura_anticipo,
 registra_accredito_anticipo, rifiuta_per_anticipo_non_versato.
 Dopo sql/22 (F4.1, da eseguire): accetta_preventivo, rifiuta_preventivo.
-Dopo sql/34 (F8.1, da eseguire): scheda_cantiere_commessa,
+Dopo sql/34 (F8.1, eseguito il 28/10): scheda_cantiere_commessa,
 imposta_dati_cantiere_commessa.
 Dopo sql/35 (F8.2, da eseguire): salva_squadra_cantiere,
 togli_giorno_squadra, impegni_squadra_periodo, miei_giorni_cantiere.
@@ -594,7 +594,7 @@ ancora attivi", i box non compaiono e il preavviso in Impostazioni resta
 disattivato.
 
 Date dei lavori e faldone (F7.2, js/31-faldone-commessa.js;
-sql/33-faldone-commessa da eseguire, richiede 26, 28 e 32, non 29-31):
+sql/33-faldone-commessa eseguito il 28/10, richiede 26, 28 e 32, non 29-31):
 passo 10. Box "🗂️ Date dei lavori e faldone" (cmd-faldone) nella scheda
 della commessa. Date: la segreteria (o il titolare) fissa inizio lavori
 (obbligatoria) e fine prevista (facoltativa, non prima dell'inizio);
@@ -637,7 +637,7 @@ si ricarica. Senza sql/33 il box dice "non ancora attive" e 'pronta' si
 segna come prima.
 
 Scheda cantiere (F8.1, js/32-scheda-cantiere.js; sql/34-scheda-cantiere
-da eseguire, richiede solo 07 e 26): passo 11. Nella scheda della
+eseguito il 28/10, richiede solo 07 e 26): passo 11. Nella scheda della
 commessa due schede: "🏗️ Cantiere" (cmd-cantiere; si apre per prima per
 il capo_tecnico, gli altri ruoli partono da "📁 Commessa e documenti";
 ricaricando la stessa commessa resta la scheda scelta). Una schermata per
