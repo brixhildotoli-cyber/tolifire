@@ -81,7 +81,10 @@ function calcolaAvanzamentoFasi(fasi) {
   });
   return {
     fasi: elenco.length,
-    percentuale: pesi ? Math.round(somma / pesi) : null,
+    // 100% solo se tutte le fasi sono finite: 99,5 non deve diventare 100
+    percentuale: pesi
+      ? (completate < elenco.length ? Math.min(99, Math.round(somma / pesi)) : Math.round(somma / pesi))
+      : null,
     completate: completate,
     inRitardo: inRitardo
   };
@@ -220,7 +223,7 @@ function htmlCronoprogramma(s, r) {
   const fineLavori = s.datiLavori.data_fine_prevista;
 
   const avvisi = [];
-  if (r.fasi && r.percentuale === 100 && c.stato === 'in_corso') {
+  if (r.fasi && r.completate === r.fasi && c.stato === 'in_corso') {
     avvisi.push(modifica && statiCommessaDisponibili === true
       ? `<div class="al2 ok" style="margin:0 0 8px">Tutte le fasi sono al 100%: se il cantiere è finito segna <b>Fine lavori</b> (la commessa passa alla segreteria).
            <div style="margin-top:6px"><button class="btn sm p" onclick="apriStatoCommessa('${esc(c.id)}', '${esc(c.preventivo_id || '')}')">Segna Fine lavori</button></div></div>`
@@ -572,10 +575,19 @@ async function confermaPropostaFasi() {
 async function caricaAvanzamentoCommesse() {
   avanzamentoCommesse = null;
   if (!(await verificaCronoprogrammaDisponibile())) return;
-  const { data, error } = await db
-    .from('commesse_fasi')
-    .select('commessa_id, peso, percentuale, fine_prevista');
-  if (error) return;
+  // Lettura a pagine: Supabase restituisce al massimo 1000 righe per volta
+  const data = [];
+  const PAGINA = 1000;
+  for (let da = 0; ; da += PAGINA) {
+    const { data: pagina, error } = await db
+      .from('commesse_fasi')
+      .select('id, commessa_id, peso, percentuale, fine_prevista')
+      .order('id')
+      .range(da, da + PAGINA - 1);
+    if (error) return;
+    data.push(...(pagina || []));
+    if (!pagina || pagina.length < PAGINA) break;
+  }
   const perCommessa = {};
   (data || []).forEach(function(f) {
     (perCommessa[f.commessa_id] = perCommessa[f.commessa_id] || []).push(f);
