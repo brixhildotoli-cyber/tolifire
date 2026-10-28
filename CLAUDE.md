@@ -949,7 +949,7 @@ titolare, gli altri "Solo scarica"); nome file
 Dichiarazione_messa_in_opera_<codice>_<cliente>.pdf, il box conta quelle
 salvate. Domande aperte per Toli: il capo tecnico può generarla
 (RUOLI_DICHIARAZIONE_POSA)? testo e riferimenti normativi; nome fisso del
-responsabile tecnico; serve anche la modulistica VV.F. (DICH.POSA.OPERA).
+responsabile tecnico; per la SCIA ai VV.F. serve comunque la modulistica ufficiale (es. DICH.PROD, PIN 2.3): questo PDF è la dichiarazione dell'impresa da allegare.
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

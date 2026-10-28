@@ -43,7 +43,7 @@ const NORMATIVA_DICHIARAZIONE_POSA_PREDEFINITA = [
   '- D.M. 7 agosto 2012 – Documentazione tecnica allegata alle istanze di prevenzione incendi (certificazioni e dichiarazioni di corretta posa in opera);',
   '- D.M. 16 febbraio 2007 – Classificazione di resistenza al fuoco di prodotti ed elementi costruttivi;',
   '- D.M. 21 giugno 2004 – Porte ed altri elementi di chiusura resistenti al fuoco (ove applicabile);',
-  '- Regolamento (UE) n. 305/2011 – Prodotti da costruzione e marcatura CE (ove applicabile);',
+  '- Regolamento (UE) n. 305/2011 e Regolamento (UE) 2024/3110 – Prodotti da costruzione e marcatura CE (ove applicabile);',
   '- D.M. 1 settembre 2021 – Controllo e manutenzione di impianti, attrezzature e altri sistemi di sicurezza antincendio;',
   '- D.M. 2 settembre 2021 – Gestione della sicurezza antincendio in esercizio e in emergenza.'
 ].join('\n');
