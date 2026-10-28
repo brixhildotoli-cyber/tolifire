@@ -313,6 +313,7 @@ async function caricaSchedaCommessa(commessaId) {
   if (ge('cmd-faldone')) ge('cmd-faldone').innerHTML = '';
   if (ge('cmd-squadra')) ge('cmd-squadra').innerHTML = '';
   ['cmd-cronoprogramma', 'cmd-avanzamento', 'cmd-avanzamento-cantiere'].forEach(function(id) { if (ge(id)) ge(id).innerHTML = ''; });
+  ['cmd-giornale', 'cmd-ore', 'cmd-ore-compatto'].forEach(function(id) { if (ge(id)) ge(id).innerHTML = ''; });
   // F8.1: scheda cantiere (js/32): sceglie la scheda da mostrare.
   if (typeof preparaSchedaCantiere === 'function') preparaSchedaCantiere(commessaId);
 
@@ -359,6 +360,9 @@ async function caricaSchedaCommessa(commessaId) {
   // F8.2: squadra e mezzi del giorno (js/33, attivi con sql/35), dopo la
   // scheda cantiere e il faldone (riusa date dei lavori e persone).
   if (typeof caricaSquadraCantiere === 'function') await caricaSquadraCantiere(commessa);
+  // F8.4: giornale di cantiere e ore stimate contro effettive (js/35,
+  // attivi con sql/37), per ultimi: riusano documenti, squadra e fasi.
+  if (typeof caricaGiornaleCantiere === 'function') await caricaGiornaleCantiere(commessa);
 }
 
 function htmlRiepilogoCommessa(c) {

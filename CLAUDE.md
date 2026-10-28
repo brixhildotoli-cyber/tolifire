@@ -2,8 +2,8 @@
 
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
-file unico: `index.html` (markup) + `style.css` + moduli `js/00-…32-*.js`
-caricati in ordine 00–18, poi 20–32, infine `19-init.js` (dettagli in
+file unico: `index.html` (markup) + `style.css` + moduli `js/00-…35-*.js`
+caricati in ordine 00–18, poi 20–35, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -80,6 +80,11 @@ capo_tecnico; si scrivono solo con le RPC della squadra, js/33).
 Dopo sql/36 (F8.3, da eseguire, richiede 07 e 26): commesse_fasi
 (sola lettura per chi legge la commessa; si scrive solo con le RPC del
 cronoprogramma, js/34).
+Dopo sql/37 (F8.4, da eseguire, richiede 07, 26 e 32): commesse_lavorazioni
+(lettura per chi legge la commessa), commesse_giornale (lettura titolare,
+segreteria, capo_tecnico), commesse_giornale_ore (lettura SOLO titolare e
+capo_tecnico: ore per persona); si scrivono solo con le RPC del giornale,
+js/35.
 
 Usate dal frontend — fatturazione:
 fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
@@ -132,6 +137,9 @@ Dopo sql/35 (F8.2, da eseguire): salva_squadra_cantiere,
 togli_giorno_squadra, impegni_squadra_periodo, miei_giorni_cantiere.
 Dopo sql/36 (F8.3, da eseguire): salva_fase_commessa,
 aggiungi_fasi_commessa, sposta_fase_commessa, togli_fase_commessa.
+Dopo sql/37 (F8.4, da eseguire): salva_lavorazioni_commessa,
+salva_giornale_cantiere, togli_giornale_cantiere,
+presenti_giornale_commessa, mie_ore_cantiere.
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
 Sono gli accessi che le policy RLS per il portale dovranno permettere
 (F1.1), sempre filtrati sul cliente del portale (`cliente_id`):
@@ -164,7 +172,7 @@ il rappresentante anche sopra 3.000 € (decisione 26/10, sql/23).
 | Commerciale verso il cliente (cliente, approvazione, ordini) | rappresentante | Trattative, progetti, riceve il PDF del preventivo | Accettazione, anticipo, ordini (Fasi 4–6) |
 | Ingegnere | ingegnere | Verifiche tecniche, schede rilievo, certificati | Aggiungerlo al form nuovo utente (Fase 2) |
 | Acquisti | commerciale (la parte acquisti) | Richieste ai fornitori, scelta fornitore, preventivo | Consumabili e noli dal cantiere (Fase 6) |
-| Reparto Tecnico e squadre | tecnico | Esegue gli interventi, scheda di lavoro | Giornale di cantiere (Fase 8), audit presidi (Fase 10) |
+| Reparto Tecnico e squadre | tecnico | Esegue gli interventi, scheda di lavoro; vede i suoi cantieri (F8.2) e le sue ore in cantiere (F8.4) | Audit presidi (Fase 10) |
 | Capo Operativo | capo_tecnico (nessun ruolo nuovo, decisione 26/10) | Pianifica gli interventi | Passi 8 e 11 del flusso commessa (documenti, consumabili e noli, cantiere); in sua assenza lo sostituisce un tecnico (modalità da definire) |
 | Responsabile Service | capo_tecnico | Pianifica gli interventi | Contratti e appuntamenti (Fase 10) |
 | Segreteria | segreteria | Interventi da pianificare, documenti | Anticipi, faldone, appuntamenti, chiusura |
@@ -759,6 +767,59 @@ capo tecnico e titolare vedono "Segna Fine lavori" (apre "Stato e
 storico" di js/18, solo con sql/28). Giornale di cantiere, foto, ore e
 performance: F8.4. Senza sql/36 il box dice "non sono ancora attivi"
 e la colonna non compare.
+
+Giornale di cantiere e performance operai (F8.4, js/35-giornale-
+cantiere.js; sql/37-giornale-cantiere da eseguire, richiede 07, 26 e 32,
+tutti in produzione; NON richiede 28, 33-36): passo 11. Nella scheda
+"🏗️ Cantiere", dopo la squadra: box "📓 Giornale di cantiere"
+(cmd-giornale; titolare, segreteria, capo_tecnico) e "⏱️ Ore stimate e
+ore effettive" (cmd-ore; SOLO titolare e capo_tecnico), più il riquadro
+compatto delle ore in "Commessa e documenti" (cmd-ore-compatto). Un
+giorno per commessa (commesse_giornale): presenti con le ore, lavori
+fatti, problemi e note, foto. Ore (commesse_giornale_ore): dipendente
+(tecnico o capo tecnico) OPPURE subappaltatore con il numero di persone,
+lavorazione (vuota = "Altro, non in elenco"), ore a testa da 0,25 a 24 a
+quarti d'ora; ore effettive = ore x persone; un dipendente max 24 ore al
+giorno sommando tutti i cantieri. Finestra m-giornale-cantiere (pensata
+per il telefono): propone la squadra organizzata per quel giorno (js/33,
+se sql/35 c'è) con 8 ore a testa, se no i presenti dell'ultimo giorno
+compilato; "➕ altra lavorazione" divide le ore della stessa persona.
+SCRIVONO capo_tecnico e titolare (RPC salva_giornale_cantiere, che
+sostituisce le ore del giorno, e togli_giornale_cantiere): giorni futuri
+mai; giorni più vecchi di 7 giorni (ora italiana) solo il titolare;
+commessa chiusa o annullata solo il titolare. LAVORAZIONI E ORE STIMATE,
+scelta dichiarata: tabella commesse_lavorazioni (nome, ore_stimate
+facoltative a quarti d'ora, unità e quantità copiate dal preventivo, max
+60) salvata tutta insieme con salva_lavorazioni_commessa (finestra
+m-lavorazioni-ore); il preventivo non ha una colonna ore e non si tocca:
+il sito PROPONE le voci del preventivo (scheda_cantiere_commessa di
+sql/34, senza prezzi; spuntate manodopera, servizi e voci in ore) e le
+voci con unità in ore (h, ora, ore, ore uomo...) danno la quantità come
+ore stimate; propone anche le fasi del cronoprogramma (js/34, se sql/36
+c'è), senza ore. Una lavorazione con ore nel giornale non si toglie.
+FOTO, scelta dichiarata: nessuna tabella nuova, riuso della cartella
+documenti della commessa (sql/29, bucket privato commesse-documenti,
+cartella "cantiere", registra_documento_commessa); il file si chiama
+`giornale_<AAAA-MM-GG>_...` e il giornale ritrova così le foto del
+giorno (anteprime con link firmati); foto oltre 1,2 MB rimpicciolite nel
+browser (lato max 1920 px, JPEG); bottone "📷 Foto di oggi" e 📷 sul
+giorno per caricarle con un tocco; togliere una foto = regole della
+cartella (js/26). Togliendo un giorno le foto restano nella cartella.
+CONFRONTO ORE: per lavorazione (effettive su stimate, barra, "+N h oltre
+la stima" o "restano N h", chi ci ha lavorato), totale della commessa
+(più le ore su lavorazioni senza stima), con sql/36 la stima "a questo
+ritmo per finire servono circa N h" (ore effettive / % avanzamento);
+per persona (giorni, ore, media al giorno, ore per lavorazione e % delle
+stimate) e per squadra (squadra = le stesse persone presenti nello
+stesso giorno: giorni insieme, ore, media al giorno, ore per
+lavorazione). PERMESSI (dato sensibile): le ore per persona le vedono
+solo titolare e capo tecnico; la segreteria vede il giornale e i
+presenti senza ore (RPC presenti_giornale_commessa); il tecnico vede
+solo le sue ore nel calendario (riquadro "⏱️ Le mie ore in cantiere del
+mese", cal-tec-ore, RPC mie_ore_cantiere, chiamata da js/05);
+commerciale, rappresentante, contabile, ingegnere: niente. I tecnici NON
+segnano da soli le proprie ore (domanda aperta per Toli). Senza sql/37 i
+box dicono "non ancora attivo" e il calendario del tecnico è come prima.
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

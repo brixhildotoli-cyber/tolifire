@@ -575,6 +575,10 @@ async function loadCalendarioTecnico() {
   if (typeof caricaCantieriCalendarioTecnico === 'function') {
     try { await caricaCantieriCalendarioTecnico(_calTecAnno, _calTecMese); } catch(e){ console.warn('caricaCantieriCalendarioTecnico:', e); }
   }
+  // F8.4: le mie ore in cantiere del mese (js/35, solo con sql/37)
+  if (typeof caricaMieOreCalendarioTecnico === 'function') {
+    try { await caricaMieOreCalendarioTecnico(_calTecAnno, _calTecMese); } catch(e){ console.warn('caricaMieOreCalendarioTecnico:', e); }
+  }
 }
 
 

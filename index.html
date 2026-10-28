@@ -803,6 +803,8 @@
   </div>
   <!-- F8.2: giorni di cantiere in cui sono in squadra (js/33, solo con sql/35) -->
   <div id="cal-tec-cantieri"></div>
+  <!-- F8.4: le mie ore in cantiere del mese (js/35, solo con sql/37) -->
+  <div id="cal-tec-ore"></div>
   <!-- Lista interventi -->
   <div class="card">
     <div id="cal-tec-lista"><div class="load">Caricamento...</div></div>
@@ -1910,11 +1912,17 @@
     <div id="cmd-cronoprogramma"></div>
     <!-- F8.2: squadra e mezzi del giorno (js/33, attivi con sql/35) -->
     <div id="cmd-squadra"></div>
+    <!-- F8.4: giornale di cantiere (js/35, attivo con sql/37) -->
+    <div id="cmd-giornale"></div>
+    <!-- F8.4: ore stimate e ore effettive (js/35, attivo con sql/37) -->
+    <div id="cmd-ore"></div>
   </div>
   <div class="tc on" id="cmd-tab-commessa">
     <div id="cmd-riepilogo"><div class="load">Caricamento...</div></div>
     <!-- F8.3: % di avanzamento in breve (js/34, attivo con sql/36) -->
     <div id="cmd-avanzamento"></div>
+    <!-- F8.4: ore stimate contro effettive in breve (js/35, attivo con sql/37) -->
+    <div id="cmd-ore-compatto"></div>
     <div id="cmd-materiali"></div>
     <div id="cmd-ordini"></div>
     <div id="cmd-richieste"></div>
@@ -3326,6 +3334,69 @@
   </div>
 </div>
 
+<!-- F8.4 — GIORNALE DI CANTIERE DEL GIORNO (js/35, solo con sql/37) -->
+<div class="mbg" id="m-giornale-cantiere">
+  <div class="modal" style="max-width:620px">
+    <button class="x" onclick="closeM('m-giornale-cantiere')">×</button>
+    <h3>📓 Giornale di cantiere</h3>
+    <div id="gnc-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div class="f">
+      <label>Giorno *</label>
+      <input type="date" id="gnc-giorno" onchange="cambiaGiornoGiornale()">
+      <div id="gnc-limite" style="font-size:11px;color:var(--m);margin-top:2px"></div>
+    </div>
+    <div id="gnc-proposta" class="al2 i" style="display:none;margin:0 0 8px"></div>
+    <div class="sq-gruppo">👷 Presenti e ore</div>
+    <div style="font-size:11px;color:var(--m);margin-bottom:4px">Per ogni persona le ore e la lavorazione. Se ha lavorato su due lavorazioni: "➕ altra lavorazione".</div>
+    <div id="gnc-righe"></div>
+    <div class="gnc-bottoni">
+      <button type="button" class="btn" onclick="aggiungiRigaGiornale('utente')">➕ Dipendente</button>
+      <button type="button" class="btn" onclick="aggiungiRigaGiornale('sub')">➕ Subappaltatore</button>
+    </div>
+    <div id="gnc-totale" style="font-size:13px;font-weight:700;margin:6px 0 4px"></div>
+    <div class="f" style="margin-top:8px">
+      <label>Lavori fatti</label>
+      <textarea id="gnc-lavori" rows="3" maxlength="4000" placeholder="es. montate 4 porte REI 60 al piano terra, sigillati 6 attraversamenti"></textarea>
+    </div>
+    <div class="f">
+      <label>Problemi e note</label>
+      <textarea id="gnc-note" rows="2" maxlength="2000" placeholder="es. manca un maniglione antipanico, il cliente chiede una porta in più"></textarea>
+    </div>
+    <div class="sq-gruppo">📷 Foto del giorno</div>
+    <div id="gnc-foto-presenti" style="font-size:12px;color:var(--m)"></div>
+    <input type="file" id="gnc-foto" accept="image/*" multiple onchange="anteprimaFotoGiornale(this)">
+    <div style="font-size:11px;color:var(--m);margin-top:2px">Vanno nella cartella "Cantiere" della commessa (report fotografico).</div>
+    <div id="gnc-foto-anteprima" class="gnc-foto"></div>
+    <div id="gnc-avviso"></div>
+    <div class="ma">
+      <button class="btn" id="gnc-togli" style="margin-right:auto;color:var(--r)" onclick="togliGiornaleCantiere()">Togli il giorno</button>
+      <button class="btn" onclick="closeM('m-giornale-cantiere')">Annulla</button>
+      <button class="btn p" id="gnc-salva" onclick="salvaGiornaleCantiere()">Salva il giornale</button>
+    </div>
+  </div>
+</div>
+<!-- F8.4: foto veloci di un giorno del giornale (js/35) -->
+<input type="file" id="gnc-foto-rapide" accept="image/*" multiple style="display:none" onchange="caricaFotoRapideGiornale(this)">
+
+<!-- F8.4 — LAVORAZIONI E ORE STIMATE (js/35, solo con sql/37) -->
+<div class="mbg" id="m-lavorazioni-ore">
+  <div class="modal" style="max-width:600px">
+    <button class="x" onclick="closeM('m-lavorazioni-ore')">×</button>
+    <h3>📋 Lavorazioni e ore stimate</h3>
+    <div id="lvo-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:6px"></div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Le lavorazioni su cui il giornale conta le ore. Le ore stimate servono per il confronto con le ore effettive: le voci del preventivo in ore le propongono già.</div>
+    <div id="lvo-righe"></div>
+    <button type="button" class="btn" style="margin-top:6px" onclick="aggiungiRigaLavorazione()">➕ Aggiungi una lavorazione</button>
+    <div class="sq-gruppo" style="margin-top:12px">Dal preventivo e dal cronoprogramma</div>
+    <div id="lvo-proposte"></div>
+    <div id="lvo-avviso"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-lavorazioni-ore')">Annulla</button>
+      <button class="btn p" id="lvo-salva" onclick="salvaLavorazioniOre()">Salva</button>
+    </div>
+  </div>
+</div>
+
 <!-- F5.2 — STATO DELLA COMMESSA E STORICO (solo con sql/28) -->
 <div class="mbg" id="m-stato-commessa">
   <div class="modal" style="max-width:560px">
@@ -4600,6 +4671,7 @@
 <script defer src="js/32-scheda-cantiere.js"></script>
 <script defer src="js/33-squadra-cantiere.js"></script>
 <script defer src="js/34-cronoprogramma-commessa.js"></script>
+<script defer src="js/35-giornale-cantiere.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

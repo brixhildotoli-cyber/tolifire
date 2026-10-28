@@ -1226,3 +1226,43 @@ pre {
 #m-fase-cronoprogramma .ma,#m-proposta-fasi .ma{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:14px}
 .crono-solo-mobile{display:none;margin-top:3px}
 @media(max-width:700px){.crono-solo-mobile{display:block}}
+/* F8.4 — Giornale di cantiere e ore stimate contro effettive (js/35) */
+.gnc-card{padding:12px 14px;margin-bottom:10px}
+.gnc-titolo{font-size:15px;font-weight:700;margin-bottom:4px}
+.gnc-card .empty{padding:14px}
+.gnc-bottoni{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 8px}
+.gnc-bottoni .btn{flex:1 1 140px;justify-content:center;padding:10px 12px}
+.gnc-giorno{padding:10px 0;border-top:1px solid var(--bo)}
+.gnc-giorno-testa{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.gnc-giorno-azioni{display:flex;gap:6px;flex-shrink:0}
+.gnc-giorno-azioni .btn.sm{min-height:36px;min-width:40px;justify-content:center}
+.gnc-presente{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 8px;font-size:13px;padding:4px 0}
+.gnc-presente-ore{font-weight:700;white-space:nowrap;text-align:right}
+.gnc-presente-lav{grid-column:1/-1;font-size:11px;color:var(--m);overflow-wrap:anywhere}
+.gnc-presenti-nomi{font-size:13px;padding:4px 0;overflow-wrap:anywhere}
+.gnc-testo{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:6px}
+.gnc-etichetta{display:block;font-size:11px;color:var(--m);white-space:normal}
+.gnc-problemi{background:var(--al);border-radius:var(--rs);padding:6px 8px}
+.gnc-foto{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.gnc-foto-item{position:relative;width:84px}
+.gnc-foto-item img,.gnc-foto-apri{width:84px;height:84px;border-radius:8px;object-fit:cover;display:block}
+.gnc-foto-apri{border:1px solid var(--bo);background:var(--bg);padding:0;cursor:pointer;overflow:hidden;font-size:28px}
+.gnc-foto-apri img{border-radius:0}
+.gnc-foto-nota{font-size:10px;color:var(--m);margin-top:2px;overflow-wrap:anywhere}
+.gnc-foto-togli{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:none;background:var(--r);color:#fff;font-size:12px;cursor:pointer;line-height:24px;padding:0}
+.gnc-foto-item input{width:84px;box-sizing:border-box;font-size:11px;margin-top:4px;border:0.5px solid var(--bo);border-radius:4px;padding:3px 4px}
+.gnc-riga{border:1px solid var(--bo);border-radius:var(--rs);padding:8px;margin-bottom:6px;background:var(--w)}
+.gnc-riga-chi{display:flex;gap:6px;align-items:center}
+.gnc-riga-chi select,.gnc-riga-chi input{flex:1;min-width:0;font-size:15px;padding:8px}
+.gnc-riga-dati{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.gnc-riga-dati .gnc-riga-lav{flex:1 1 100%;min-width:0;font-size:14px;padding:8px}
+.gnc-riga .btn.sm{min-height:38px;min-width:40px;justify-content:center}
+.gnc-num{display:flex;align-items:center;gap:4px;font-size:13px;white-space:nowrap;margin:0}
+.gnc-num input{width:72px;font-size:16px;padding:8px;text-align:right}
+.gnc-totale{padding:8px 0}
+.gnc-confronto{display:flex;justify-content:space-between;align-items:baseline;gap:4px 8px;flex-wrap:wrap;font-size:13px;margin-top:2px}
+.gnc-sezione{font-size:13px;font-weight:700;margin:10px 0 2px}
+.gnc-lav{padding:8px 0;border-top:1px solid var(--bo)}
+.gnc-dettagli{margin-top:8px;border:1px solid var(--bo);border-radius:var(--rs);padding:8px 10px}
+.gnc-dettagli summary{font-size:13px;font-weight:600;cursor:pointer}
+#m-giornale-cantiere .ma,#m-lavorazioni-ore .ma{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:14px}
