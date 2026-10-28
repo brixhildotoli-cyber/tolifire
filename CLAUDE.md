@@ -888,7 +888,16 @@ commerciale "Lavori extra da preventivare" (com-lavori-extra, bottone
 (rap-lavori-extra), capo tecnico (ct-lavori-extra, anche gli accettati
 finché non è fine lavori); "Tocca a te" della pagina Commesse: al
 commerciale richiesti e bozze, al rappresentante quelli inviati a lui
-da far approvare. Nel riepilogo dell'esito del preventivo integrativo
+da far approvare. "Rimanda indietro" (js/18) e "Richiedi integrazione":
+se il progetto del lavoro extra è dal rappresentante (da_integrare,
+bozza) o dall'ingegnere (in_verifica_tecnica) il lavoro mostra
+"rimandato al rappresentante" / "rimandato all'ingegnere (verifica
+tecnica)", senza "Prepara/Riprendi il preventivo" e senza "Tocca a te"
+per il commerciale; tornato in inviato_a_commerciale, pronto_per_
+preventivo o in_preventivazione riappare "Riprendi il preventivo"
+(stato letto con progetti_tecnici(stato)). Il rappresentante vede "I
+miei preventivi" solo con il preventivo inviato a lui o al cliente.
+Nel riepilogo dell'esito del preventivo integrativo
 accettato (js/18) "Preventivo integrativo: lavoro extra n. N della
 commessa ..." al posto di "Nessuna commessa collegata". L'importo della
 commessa NON cambia (gli extra sono nei loro preventivi). FINE LAVORI →

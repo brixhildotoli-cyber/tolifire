@@ -101,11 +101,45 @@ function puoAnnullareLavoroExtra(commessa, r) {
     RUOLI_ANNULLANO_LAVORI_EXTRA.includes(ROLE) && commessaModificabileLavoriExtra(commessa);
 }
 
+// Stati del progetto in cui il preventivo tocca al commerciale (come la
+// lista "Da preventivare", js/17). Con "Rimanda indietro" (js/18) o
+// "Richiedi integrazione" il progetto va al rappresentante (da_integrare,
+// poi bozza) o all'ingegnere (in_verifica_tecnica): lì il commerciale
+// aspetta. Stato del progetto letto con progetti_tecnici(stato): il capo
+// tecnico non lo legge (RLS) e per lui resta vuoto.
+const STATI_PROGETTO_LAVORO_EXTRA_AL_COMMERCIALE = ['inviato_a_commerciale', 'pronto_per_preventivo', 'in_preventivazione'];
+
+function statoProgettoLavoroExtra(r) {
+  return (r && r.progetti_tecnici && r.progetti_tecnici.stato) || null;
+}
+
+// true se il progetto è dal commerciale (o se lo stato non si legge).
+function progettoLavoroExtraAlCommerciale(r) {
+  const stato = statoProgettoLavoroExtra(r);
+  return !stato || STATI_PROGETTO_LAVORO_EXTRA_AL_COMMERCIALE.includes(stato);
+}
+
+// Il preventivo (o il progetto) aspetta il commerciale.
+function lavoroExtraDaPreparare(r) {
+  return (r.stato === 'richiesto' || (r.stato === 'in_preventivo' && r.preventivo_stato === 'bozza')) &&
+    progettoLavoroExtraAlCommerciale(r);
+}
+
+// "rimandato al rappresentante / all'ingegnere" (vuoto se non rimandato).
+function testoRimandoLavoroExtra(r) {
+  if (!(r.stato === 'richiesto' || (r.stato === 'in_preventivo' && r.preventivo_stato === 'bozza'))) return '';
+  const stato = statoProgettoLavoroExtra(r);
+  if (stato === 'da_integrare' || stato === 'bozza') return 'rimandato al rappresentante';
+  if (stato === 'in_verifica_tecnica') return 'rimandato all\'ingegnere (verifica tecnica)';
+  return '';
+}
+
 // Il preventivo integrativo lo prepara chi prepara i preventivi dal
-// progetto tecnico (js/17 avviaPreventivo): commerciale e titolare.
+// progetto tecnico (js/17 avviaPreventivo): commerciale e titolare, solo
+// con il progetto dal commerciale.
 function puoPreparareLavoroExtra(commessa, r) {
   if (!['commerciale', 'titolare'].includes(ROLE) || !commessaModificabileLavoriExtra(commessa)) return false;
-  return r.stato === 'richiesto' || (r.stato === 'in_preventivo' && r.preventivo_stato === 'bozza');
+  return lavoroExtraDaPreparare(r);
 }
 
 // Ancora da decidere con il cliente: in cantiere NON si esegue.
@@ -127,8 +161,12 @@ function badgeStatoLavoroExtra(stato) {
 }
 
 function testoPreventivoLavoroExtra(r) {
-  if (!r.preventivo_numero) return r.stato === 'richiesto' ? 'preventivo integrativo da preparare (commerciale)' : '';
-  const stato = ETICHETTE_STATO_PREVENTIVO_LAVORO_EXTRA[r.preventivo_stato] || r.preventivo_stato || '';
+  const rimando = testoRimandoLavoroExtra(r);
+  if (!r.preventivo_numero) {
+    if (r.stato !== 'richiesto') return '';
+    return rimando ? 'preventivo integrativo: progetto ' + rimando : 'preventivo integrativo da preparare (commerciale)';
+  }
+  const stato = rimando || ETICHETTE_STATO_PREVENTIVO_LAVORO_EXTRA[r.preventivo_stato] || r.preventivo_stato || '';
   return 'preventivo integrativo n. ' + r.preventivo_numero + (stato ? ' · ' + stato : '');
 }
 
@@ -144,7 +182,7 @@ async function caricaRiepilogoLavoriExtra(commessaId) {
 
   let query = db
     .from('commesse_lavori_extra')
-    .select('commessa_id, stato, preventivo_stato')
+    .select('commessa_id, stato, preventivo_stato, progetti_tecnici(stato)')
     .in('stato', ['richiesto', 'in_preventivo', 'accettato']);
   if (commessaId) query = query.eq('commessa_id', commessaId);
 
@@ -160,8 +198,9 @@ async function caricaRiepilogoLavoriExtra(commessaId) {
   (data || []).forEach(function(r) {
     const voce = riepilogoLavoriExtraCommesse[r.commessa_id] ||
       (riepilogoLavoriExtraCommesse[r.commessa_id] = { richiesti: 0, bozze: 0, daApprovare: 0, inAttesa: 0, accettati: 0 });
-    if (r.stato === 'richiesto') voce.richiesti++;
-    if (r.stato === 'in_preventivo' && r.preventivo_stato === 'bozza') voce.bozze++;
+    // Solo se il progetto è dal commerciale (non rimandato indietro).
+    if (r.stato === 'richiesto' && lavoroExtraDaPreparare(r)) voce.richiesti++;
+    if (r.stato === 'in_preventivo' && lavoroExtraDaPreparare(r)) voce.bozze++;
     if (r.stato === 'in_preventivo' && ['inviato_a_rappresentante', 'inviato', 'approvato'].includes(r.preventivo_stato)) voce.daApprovare++;
     if (lavoroExtraInAttesa(r)) voce.inAttesa++;
     if (r.stato === 'accettato') voce.accettati++;
@@ -212,7 +251,7 @@ async function caricaLavoriExtraCommessa(commessa) {
 
   const { data, error } = await db
     .from('commesse_lavori_extra')
-    .select('*')
+    .select('*, progetti_tecnici(stato)')
     .eq('commessa_id', commessa.id)
     .order('numero', { ascending: true });
 
@@ -330,7 +369,8 @@ function htmlLavoroExtra(commessa, r, voci, conCommessa) {
   if (r.preventivo_id && canAccessPage('preventivo-detail') && !puoPreparareLavoroExtra(commessa, r)) {
     bottoni.push(`<button class="btn sm" onclick="openPreventivoDetail('${esc(r.preventivo_id)}')">🧾 Preventivo n. ${esc(r.preventivo_numero || '')}</button>`);
   }
-  if (ROLE === 'rappresentante' && r.stato === 'in_preventivo' && canAccessPage('preventivi-rapp')) {
+  if (ROLE === 'rappresentante' && r.stato === 'in_preventivo' && canAccessPage('preventivi-rapp') &&
+      ['inviato_a_rappresentante', 'inviato', 'approvato'].includes(r.preventivo_stato)) {
     bottoni.push(`<button class="btn sm p" onclick="gotoPage('preventivi-rapp')">🧾 I miei preventivi</button>`);
   }
   if (canAccessPage('progetto-detail') && r.progetto_tecnico_id && ['commerciale', 'rappresentante', 'titolare'].includes(ROLE)) {
@@ -670,7 +710,7 @@ async function caricaLavoriExtraDashboard() {
 
   const { data, error } = await db
     .from('commesse_lavori_extra')
-    .select('*, commesse(id, codice, stato, titolo, preventivo_id, clienti(ragione_sociale))')
+    .select('*, progetti_tecnici(stato), commesse(id, codice, stato, titolo, preventivo_id, clienti(ragione_sociale))')
     .in('stato', stati)
     .order('richiesto_il', { ascending: true });
 
