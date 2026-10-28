@@ -1933,6 +1933,8 @@
     <div id="cmd-riepilogo"><div class="load">Caricamento...</div></div>
     <!-- F8.5: fine lavori, riepilogo per la chiusura della segreteria (js/36) -->
     <div id="cmd-chiusura"></div>
+    <!-- F9.1: dichiarazione di corretta messa in opera (js/37, fine lavori e chiusa) -->
+    <div id="cmd-dichiarazione"></div>
     <!-- F8.3: % di avanzamento in breve (js/34, attivo con sql/36) -->
     <div id="cmd-avanzamento"></div>
     <!-- F8.4: ore stimate contro effettive in breve (js/35, attivo con sql/37) -->
@@ -3248,6 +3250,47 @@
     <div class="ma">
       <button class="btn" onclick="closeM('m-dati-cantiere')">Annulla</button>
       <button class="btn p" id="cant-mod-salva" onclick="salvaDatiCantiere()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- F9.1 — DICHIARAZIONE DI CORRETTA MESSA IN OPERA (js/37) -->
+<div class="mbg" id="m-dichiarazione-posa">
+  <div class="modal" style="max-width:640px">
+    <button class="x" onclick="closeM('m-dichiarazione-posa')">×</button>
+    <h3>📄 Dichiarazione di corretta messa in opera</h3>
+    <div id="dmo-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div id="dmo-avvisi"></div>
+    <div style="font-size:11px;color:var(--m);margin-bottom:6px">I dati vengono dalla commessa, dal cliente e dal preventivo accettato (senza prezzi): non si riscrivono. Puoi togliere voci e aggiungere note.</div>
+    <div id="dmo-dati" class="dmo-dati"></div>
+    <div class="dmo-gruppo">🔧 Lavorazioni eseguite</div>
+    <div id="dmo-lavorazioni" class="dmo-elenco"></div>
+    <div class="dmo-gruppo">🧱 Prodotti e materiali posati in opera</div>
+    <div style="font-size:11px;color:var(--m);margin-bottom:4px">Classi (REI, EI...), norme e omologazioni sono lette dalle descrizioni. Le voci degli ordini ai fornitori sono non spuntate: spesso ripetono quelle del preventivo.</div>
+    <div id="dmo-prodotti" class="dmo-elenco"></div>
+    <div class="dmo-gruppo">🏅 Certificazioni e schede tecniche</div>
+    <div id="dmo-certificati" class="dmo-elenco"></div>
+    <div class="f" style="margin-top:10px">
+      <label>Testo della dichiarazione</label>
+      <textarea id="dmo-testo" rows="5" maxlength="3000"></textarea>
+    </div>
+    <div class="f">
+      <label>Riferimenti normativi</label>
+      <textarea id="dmo-normativa" rows="6" maxlength="3000"></textarea>
+    </div>
+    <button class="btn sm" style="margin:-4px 0 10px" onclick="ripristinaTestiDichiarazionePosa()">↩️ Ripristina i testi predefiniti</button>
+    <div class="f">
+      <label>Note (facoltative)</label>
+      <textarea id="dmo-note" rows="3" maxlength="2000" placeholder="es. porte installate ai piani 1 e 2, filtri a prova di fumo scala B"></textarea>
+    </div>
+    <div class="f">
+      <label>Responsabile tecnico (facoltativo: vuoto = da scrivere a mano)</label>
+      <input type="text" id="dmo-responsabile" maxlength="120" placeholder="nome e cognome">
+    </div>
+    <div class="ma" style="flex-wrap:wrap">
+      <button class="btn" onclick="closeM('m-dichiarazione-posa')">Annulla</button>
+      <button class="btn" id="dmo-scarica" onclick="scaricaDichiarazionePosa()">⬇️ Solo scarica</button>
+      <button class="btn p" id="dmo-salva" onclick="salvaDichiarazionePosa()">💾 Genera e salva in Chiusura</button>
     </div>
   </div>
 </div>
@@ -4778,6 +4821,7 @@
 <script defer src="js/34-cronoprogramma-commessa.js"></script>
 <script defer src="js/35-giornale-cantiere.js"></script>
 <script defer src="js/36-lavori-extra.js"></script>
+<script defer src="js/37-dichiarazione-messa-in-opera.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

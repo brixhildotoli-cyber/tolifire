@@ -914,6 +914,43 @@ giallo se ci sono lavori extra ancora in attesa (non blocca). Senza
 sql/38 il box dice "non ancora attivi", nessun avviso né box in
 dashboard.
 
+Dichiarazione di corretta messa in opera (F9.1, js/37-dichiarazione-
+messa-in-opera.js; NESSUN SQL nuovo): passo 12. Box "📄 Dichiarazione
+di corretta messa in opera" (cmd-dichiarazione, in "Commessa e
+documenti" sotto cmd-chiusura) per segreteria e titolare, con la
+commessa in fine_lavori o chiusa (serve sql/28). Finestra
+m-dichiarazione-posa (id con prefisso dmo-): dati PRECOMPILATI e non
+modificabili (committente con P.IVA/C.F. e sede legale; luogo dei lavori
+= sede della commessa + piano e zona di sql/34; commessa, preventivo,
+lavoro e tipologia; periodo dei lavori = data_inizio del faldone, sql/33,
+→ data della "fine lavori" nello storico, sql/28). Elenchi con spunta,
+SENZA prezzi: voci del preventivo da scheda_cantiere_commessa (sql/34;
+senza 34 lettura diretta di preventivi_voci, che la segreteria non vede
+per RLS: avviso); categoria materiale → "Prodotti e materiali posati in
+opera", le altre → "Lavorazioni eseguite"; noli, trasporti e voci tipo
+"dichiarazione/certificazione/pratica" NON spuntati. Facoltativi: voci
+dei lavori extra accettati (voci_lavori_extra_commessa, sql/38) e voci
+degli ordini ai fornitori (sql/30, non spuntate: ripetono i materiali,
+servono per il fornitore). Classi lette dalle descrizioni
+(classificazioniDaDescrizione: REI/EI/E…, euroclassi di reazione al
+fuoco, classe 0/1/2, capacità estinguente 34A 233B C, norme UNI/EN,
+omologato, marcatura CE): nessun campo nuovo. Certificati:
+preventivi_certificati (sql/34) + cartella "certificati" della commessa
+(solo nomi dei file). Modificabili: testo della dichiarazione e
+riferimenti normativi (predefiniti DA CONFERMARE DA TOLI: D.M. 3/8/2015,
+D.M. 7/8/2012, D.M. 16/2/2007, D.M. 21/6/2004, Reg. UE 305/2011, D.M.
+1/9/2021, D.M. 2/9/2021; "Ripristina i testi predefiniti"), note,
+nome del responsabile tecnico (vuoto = a mano). PDF jsPDF con
+intestazione TOLI FIRE come l'ordine (js/27): luogo, data, "Il
+responsabile tecnico", riquadro timbro e firma. "Genera e salva in
+Chiusura": bucket commesse-documenti `<id>/chiusura/`, RPC
+registra_documento_commessa (sql/29; su commessa chiusa solo il
+titolare, gli altri "Solo scarica"); nome file
+Dichiarazione_messa_in_opera_<codice>_<cliente>.pdf, il box conta quelle
+salvate. Domande aperte per Toli: il capo tecnico può generarla
+(RUOLI_DICHIARAZIONE_POSA)? testo e riferimenti normativi; nome fisso del
+responsabile tecnico; serve anche la modulistica VV.F. (DICH.POSA.OPERA).
+
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
 - Riutilizzare le helper esistenti: `ge`, `v`, `toast`, `fd`, `openM`,

@@ -1279,3 +1279,14 @@ pre {
 .lex-avviso{margin-bottom:10px}
 #cmd-lavori-extra .btn.sm,#cmd-chiusura .btn.sm{min-height:36px}
 #cmd-lavori-extra .empty{padding:14px}
+
+/* F9.1 — Dichiarazione di corretta messa in opera (js/37) */
+.dmo-dati{background:var(--bg);border-radius:var(--rs);padding:8px 10px;margin-bottom:8px}
+.dmo-dato{font-size:13px;padding:3px 0;overflow-wrap:anywhere}
+.dmo-dato>span:first-child{display:block;font-size:11px;color:var(--m)}
+.dmo-gruppo{font-size:13px;font-weight:700;margin:10px 0 4px}
+.dmo-elenco{border:1px solid var(--bo);border-radius:var(--rs);max-height:260px;overflow-y:auto}
+.dmo-riga{display:flex;align-items:flex-start;gap:8px;padding:7px 8px;border-bottom:1px solid var(--bo);cursor:pointer;word-break:break-word}
+.dmo-riga:last-child{border-bottom:none}
+.dmo-riga input{margin-top:3px;flex-shrink:0;width:auto}
+.dmo-quantita{font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0}

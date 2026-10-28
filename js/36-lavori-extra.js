@@ -662,7 +662,9 @@ async function caricaRiepilogoChiusuraCommessa(commessa) {
     const docChiusura = (documentiCommessaAperta || []).filter(function(d) { return d.cartella === 'chiusura'; }).length;
     punti.push(docChiusura
       ? { ok: true, testo: 'Cartella Chiusura: ' + docChiusura + (docChiusura === 1 ? ' documento' : ' documenti') }
-      : { ok: false, testo: 'Cartella Chiusura vuota: carica la dichiarazione di corretta messa in opera, collaudi e verbali' });
+      : { ok: false, testo: (typeof puoGenerareDichiarazionePosa === 'function' && puoGenerareDichiarazionePosa(commessa)
+          ? 'Cartella Chiusura vuota: genera la dichiarazione di corretta messa in opera (qui sotto) e carica collaudi e verbali'
+          : 'Cartella Chiusura vuota: carica la dichiarazione di corretta messa in opera, collaudi e verbali') });
   }
 
   const puoChiudere = ['segreteria', 'titolare'].includes(ROLE);

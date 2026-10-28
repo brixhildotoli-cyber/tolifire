@@ -16,7 +16,8 @@
 // date dei lavori e faldone: js/31 (sql/33); scheda cantiere: js/32
 // (sql/34); squadra del giorno: js/33 (sql/35); cronoprogramma e %
 // di avanzamento: js/34 (sql/36); lavori extra e riepilogo per la
-// chiusura dopo la fine lavori: js/36 (sql/38).
+// chiusura dopo la fine lavori: js/36 (sql/38); dichiarazione di corretta
+// messa in opera: js/37.
 // =====================================================================
 
 // Cartelle dei documenti (stesso elenco del vincolo di sql/29).
@@ -321,7 +322,7 @@ async function caricaSchedaCommessa(commessaId) {
   if (ge('cmd-squadra')) ge('cmd-squadra').innerHTML = '';
   ['cmd-cronoprogramma', 'cmd-avanzamento', 'cmd-avanzamento-cantiere'].forEach(function(id) { if (ge(id)) ge(id).innerHTML = ''; });
   ['cmd-giornale', 'cmd-ore', 'cmd-ore-compatto'].forEach(function(id) { if (ge(id)) ge(id).innerHTML = ''; });
-  ['cmd-lavori-extra', 'cmd-lavori-extra-avviso', 'cmd-lavori-extra-compatto', 'cmd-chiusura'].forEach(function(id) { if (ge(id)) ge(id).innerHTML = ''; });
+  ['cmd-lavori-extra', 'cmd-lavori-extra-avviso', 'cmd-lavori-extra-compatto', 'cmd-chiusura', 'cmd-dichiarazione'].forEach(function(id) { if (ge(id)) ge(id).innerHTML = ''; });
   // F8.1: scheda cantiere (js/32): sceglie la scheda da mostrare.
   if (typeof preparaSchedaCantiere === 'function') preparaSchedaCantiere(commessaId);
 
@@ -377,6 +378,9 @@ async function caricaSchedaCommessa(commessaId) {
   // riepilogo per la chiusura della segreteria (riusa i dati letti sopra).
   if (typeof caricaLavoriExtraCommessa === 'function') await caricaLavoriExtraCommessa(commessa);
   if (typeof caricaRiepilogoChiusuraCommessa === 'function') await caricaRiepilogoChiusuraCommessa(commessa);
+  // F9.1: dichiarazione di corretta messa in opera (js/37), in fine
+  // lavori e chiusa; riusa la cartella documenti letta sopra.
+  if (typeof caricaDichiarazioneCommessa === 'function') await caricaDichiarazioneCommessa(commessa);
 }
 
 function htmlRiepilogoCommessa(c) {
