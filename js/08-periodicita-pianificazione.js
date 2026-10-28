@@ -130,14 +130,21 @@ async function generaPianificazione() {
       ? new Date(perio.data_fine_contratto + 'T00:00:00')
       : new Date(inizio.getFullYear() + (perio.durata_contratto === 'quinquennale' ? 5 : 1), inizio.getMonth(), inizio.getDate());
 
-    // Elimina cicli precedenti non ancora eseguiti (F10.1: solo dall'inizio
-    // del contratto in poi; dopo un rinnovo i cicli ancora da fare del
-    // periodo precedente restano)
-    await db.from('cicli_pianificati')
+    // Elimina cicli precedenti non ancora eseguiti. F10.1: se il periodo
+    // attuale nasce da un rinnovo registrato (sql/40) i cicli ancora da
+    // fare del periodo precedente restano: si cancellano solo quelli dopo
+    // la fine precedente. In tutti gli altri casi (e senza sql/40) si
+    // cancellano tutti i 'pianificato', come prima.
+    var finePrecedente = (typeof fineperiodoPrecedenteRinnovo === 'function')
+      ? await fineperiodoPrecedenteRinnovo(currentCliId, perio.data_inizio_contratto)
+      : null;
+    var qDel = db.from('cicli_pianificati')
       .delete()
       .eq('cliente_id', currentCliId)
-      .eq('stato', 'pianificato')
-      .gte('data_prevista', perio.data_inizio_contratto);
+      .eq('stato', 'pianificato');
+    if(finePrecedente) qDel = qDel.gt('data_prevista', finePrecedente);
+    var rDel = await qDel;
+    if(rDel.error) throw rDel.error;
 
     // Genera cicli per ogni tipo di presidio con periodicità
     var cicli = [];

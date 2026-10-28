@@ -184,6 +184,7 @@ function htmlPresidiContrattoTipo(tipo, perio) {
 async function caricaContrattoManutenzione(cliId, perio) {
   const box = ge('perio-contratto-extra');
   if (!box) return;
+  await bloccaFrequenzaEvacuatoriSeManca();
 
   if (!contrattoRinnovoAttivo()) {
     box.innerHTML = '<div style="font-size:12px;color:var(--m);margin-top:6px">Presidi previsti, preventivo del contratto e rinnovo: non ancora attivi (aggiornamento del database in attesa).</div>';
@@ -194,11 +195,17 @@ async function caricaContrattoManutenzione(cliId, perio) {
   let htmlPreventivo = '';
   if (puoCollegarePreventivoContratto()) {
     const preventivi = await preventiviDelCliente(cliId);
-    const opzioni = preventivi.map(function(p) {
+    let opzioni = preventivi.map(function(p) {
       return `<option value="${esc(p.id)}"${p.id === perio.preventivo_id ? ' selected' : ''}>${esc(testoPreventivoContratto(p))}</option>`;
     }).join('');
+    // Il preventivo collegato non è nell'elenco (oltre i 100 o lettura
+    // fallita): resta selezionato, così salvando non si scollega.
+    if (perio.preventivo_id && !preventivi.some(function(p) { return p.id === perio.preventivo_id; })) {
+      const { data: attuale } = await db.from('preventivi').select('id, numero, data_emissione, stato, totale_imponibile').eq('id', perio.preventivo_id).maybeSingle();
+      opzioni = `<option value="${esc(perio.preventivo_id)}" selected>${attuale ? esc(testoPreventivoContratto(attuale)) : 'Preventivo collegato (non in elenco)'}</option>` + opzioni;
+    }
     htmlPreventivo = `<div class="f" style="margin-top:10px"><label for="perio-preventivo">Preventivo del contratto</label>
-      <select id="perio-preventivo" style="width:100%">
+      <select id="perio-preventivo" data-originale="${esc(perio.preventivo_id || '')}" style="width:100%">
         <option value="">— Nessun preventivo collegato —</option>${opzioni}
       </select>
       <div style="font-size:11px;color:var(--m);margin-top:4px">${preventivi.length ? 'Si salva con "Salva periodicità".' : 'Il cliente non ha ancora preventivi.'}</div></div>`;
@@ -276,6 +283,36 @@ function etichettaRuoloContratto(ruolo) {
   return String(ruolo || '').replace(/_/g, ' ');
 }
 
+// Per "Rigenera piano" (js/08): se il periodo attuale del contratto nasce
+// da un rinnovo registrato (riga 'rinnovato' con nuovo_inizio = inizio
+// attuale) restituisce la fine del periodo precedente, altrimenti null.
+async function fineperiodoPrecedenteRinnovo(cliId, inizioContratto) {
+  if (!inizioContratto || !(await verificaContrattoRinnovoDisponibile())) return null;
+  const { data, error } = await db
+    .from('clienti_periodicita_rinnovi')
+    .select('fine_precedente')
+    .eq('cliente_id', cliId)
+    .eq('esito', 'rinnovato')
+    .eq('nuovo_inizio', inizioContratto)
+    .order('registrato_il', { ascending: false })
+    .limit(1);
+  if (error || !data || !data.length) return null;
+  return data[0].fine_precedente || null;
+}
+
+// Senza la colonna evacuatore_fumi (arriva con sql/40) la frequenza non si
+// può salvare: il campo si disattiva con la spiegazione.
+async function bloccaFrequenzaEvacuatoriSeManca() {
+  const sel = ge('perio-evacuatore_fumi');
+  if (!sel || (await colonnaPeriodicitaEsiste('evacuatore_fumi'))) return;
+  sel.disabled = true;
+  sel.value = '';
+  sel.title = 'Non ancora salvabile: aggiornamento del database in attesa';
+  if (!ge('perio-evacuatore-nota')) {
+    sel.insertAdjacentHTML('afterend', '<div id="perio-evacuatore-nota" style="font-size:11px;color:var(--m);margin-top:4px">Frequenza degli evacuatori non ancora salvabile (aggiornamento del database in attesa).</div>');
+  }
+}
+
 // Chiamata da savePeriodicita (js/08) prima di salvare.
 async function completaPayloadContratto(payload) {
   if (!(await colonnaPeriodicitaEsiste('evacuatore_fumi'))) delete payload.evacuatore_fumi;
@@ -297,7 +334,10 @@ async function completaPayloadContratto(payload) {
   }
   payload.presidi_contratto = presidi;
   const sel = ge('perio-preventivo');
-  if (sel && puoCollegarePreventivoContratto()) payload.preventivo_id = sel.value || null;
+  // Si manda solo se cambiato: il collegamento attuale non si perde mai per sbaglio.
+  if (sel && puoCollegarePreventivoContratto() && sel.value !== (sel.dataset.originale || '')) {
+    payload.preventivo_id = sel.value || null;
+  }
   return true;
 }
 

@@ -1068,16 +1068,22 @@ cliente, tab Periodicità, card "Contratto di manutenzione"); la tabella
   nota, chi con nome e ruolo copiati, quando), letto come il contratto.
 - PIANO INTERVENTI: NON si rigenera da solo. Dopo un rinnovo la scheda
   avvisa ("generato prima del rinnovo") e il titolare o il capo tecnico
-  usano "Rigenera piano interventi". generaPianificazione (js/08) ora
-  cancella i cicli 'pianificato' solo dall'inizio del contratto in poi
-  (quelli ancora da fare del periodo precedente restano) e scrive le date
-  in ora locale (prima toISOString le spostava di un giorno; stessa
-  correzione in calcolaFineContratto).
+  usano "Rigenera piano interventi". generaPianificazione (js/08): se il
+  periodo attuale nasce da un rinnovo registrato (riga 'rinnovato' in
+  clienti_periodicita_rinnovi con nuovo_inizio = inizio del contratto,
+  js/39 fineperiodoPrecedenteRinnovo) cancella solo i cicli 'pianificato'
+  dopo la fine precedente (quelli ancora da fare del periodo precedente
+  restano); in tutti gli altri casi, e sempre senza sql/40, cancella tutti
+  i 'pianificato' come prima. Date scritte in ora locale (prima
+  toISOString le spostava di un giorno; stessa correzione in
+  calcolaFineContratto). Il preventivo collegato si manda al salvataggio
+  solo se cambiato (non si scollega se non è nell'elenco).
 - EVACUATORI DI FUMO: la griglia chiede la frequenza di evacuatore_fumi
   (TIPI_PRESIDI) ma la colonna in clienti_periodicita non esiste: "Salva
   periodicità" oggi in produzione si ferma con "Could not find the
-  'evacuatore_fumi' column". Corretto: senza la colonna il sito non la
-  manda (completaPayloadContratto); sql/40 la aggiunge.
+  'evacuatore_fumi' column". Corretto: senza la colonna il campo è
+  disattivato con la nota "non ancora salvabile" e il sito non lo manda
+  (completaPayloadContratto); sql/40 aggiunge la colonna.
 Senza sql/40: nella card "Presidi previsti, preventivo del contratto e
 rinnovo: non ancora attivi", nessun box nelle dashboard, nessun errore.
 SCELTA DICHIARATA, da confermare da Toli: il "Commerciale" della roadmap
