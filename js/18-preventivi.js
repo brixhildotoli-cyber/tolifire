@@ -8911,7 +8911,12 @@ async function apriStatoCommessa(commessaId, preventivoId) {
     // nella scheda della commessa (js/31; il database blocca il resto).
     const prontaDalFaldone = prossimo === 'pronta' &&
       typeof verificaFaldoneDisponibile === 'function' && (await verificaFaldoneDisponibile());
-    if (prossimo && !prontaDalFaldone && (ROLE === 'titolare' || RUOLO_PASSO_COMMESSA[prossimo] === ROLE)) {
+    // F9.2: con sql/39 'chiusa' si segna solo con "Chiudi la commessa"
+    // nella scheda (js/38: dichiarazione e fattura finale; il database
+    // blocca il resto).
+    const chiusaDallaScheda = prossimo === 'chiusa' &&
+      typeof verificaFatturaFinaleDisponibile === 'function' && (await verificaFatturaFinaleDisponibile());
+    if (prossimo && !prontaDalFaldone && !chiusaDallaScheda && (ROLE === 'titolare' || RUOLO_PASSO_COMMESSA[prossimo] === ROLE)) {
       opzioni.push({ stato: prossimo, tipo: 'avanti', testo: '→ ' + ETICHETTE_STATO_COMMESSA[prossimo] });
     }
     if (ROLE === 'titolare') {
@@ -8931,6 +8936,11 @@ async function apriStatoCommessa(commessaId, preventivoId) {
     ? '<div class="al2 i">"Pronta" si segna con <b>Faldone consegnato</b> nella scheda della commessa (box "Date dei lavori e faldone"): il gestionale controlla date, personale e documenti.' +
       (canAccessPage('commessa-detail') ? ` <button class="btn sm" onclick="closeM('m-stato-commessa');openCommessaDetail('${esc(commessa.id)}')">Apri la commessa</button>` : '') + '</div>'
     : '';
+  const avvisoChiusura = (commessa.stato === 'fine_lavori' && typeof chiusuraCommessaAttiva === 'function' &&
+      chiusuraCommessaAttiva() && (ROLE === 'titolare' || RUOLO_PASSO_COMMESSA.chiusa === ROLE))
+    ? '<div class="al2 i">"Chiusa" si segna con <b>Chiudi la commessa</b> nella scheda della commessa (box "Fine lavori"): servono la dichiarazione di corretta messa in opera nella cartella Chiusura e la fattura finale.' +
+      (canAccessPage('commessa-detail') ? ` <button class="btn sm" onclick="closeM('m-stato-commessa');openCommessaDetail('${esc(commessa.id)}')">Apri la commessa</button>` : '') + '</div>'
+    : '';
   // F8.5: lavori extra ancora da decidere prima di "Fine lavori" o
   // "Chiusa" (js/36, solo con sql/38).
   const avvisoLavoriExtra = prossimo && typeof htmlAvvisoLavoriExtraCambioStato === 'function' &&
@@ -8938,7 +8948,7 @@ async function apriStatoCommessa(commessaId, preventivoId) {
     ? await htmlAvvisoLavoriExtraCambioStato(commessa.id, prossimo)
     : '';
   if (opzioni.length) {
-    box.innerHTML = avvisoLavoriExtra + avvisoFaldone + `
+    box.innerHTML = avvisoLavoriExtra + avvisoFaldone + avvisoChiusura + `
       <div class="f">
         <label>Nuovo stato</label>
         <select id="msc-stato" onchange="aggiornaCambioStatoCommessa()">
@@ -8965,7 +8975,7 @@ async function apriStatoCommessa(commessaId, preventivoId) {
       motivo = 'Il prossimo passo (' + ETICHETTE_STATO_COMMESSA[prossimo] + ') lo segna: ' +
         NOMI_RUOLO_PASSO_COMMESSA[RUOLO_PASSO_COMMESSA[prossimo]] + ' (o il titolare).';
     }
-    box.innerHTML = avvisoLavoriExtra + (avvisoFaldone || ('<div class="al2 i">' + esc(motivo) + '</div>'));
+    box.innerHTML = avvisoLavoriExtra + (avvisoFaldone || avvisoChiusura || ('<div class="al2 i">' + esc(motivo) + '</div>'));
   }
 
   ge('msc-conferma').style.display = opzioni.length ? '' : 'none';

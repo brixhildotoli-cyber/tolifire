@@ -89,6 +89,11 @@ Dopo sql/38 (F8.5, da eseguire, richiede 07, 22 e 26): commesse_lavori_extra
 (sola lettura per chi legge la commessa; si scrive solo con
 registra_lavoro_extra e annulla_lavoro_extra e dal trigger sui
 preventivi, js/36).
+Dopo sql/39 (F9.2, da eseguire, richiede 25, 26, 28 e 29): colonne nuove
+commesse.fattura_finale_* (numero, data, importo, calcolato, con_extra,
+dettaglio, nota, registrata_da, registrata_da_nome, registrata_il) e
+chiusura_forzata, chiusura_motivo_forzatura, chiusura_problemi (sola
+lettura per chi legge la commessa; le scrivono solo le RPC di js/38).
 
 Usate dal frontend — fatturazione:
 fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
@@ -146,6 +151,8 @@ salva_giornale_cantiere, togli_giornale_cantiere,
 presenti_giornale_commessa, mie_ore_cantiere.
 Dopo sql/38 (F8.5, da eseguire): registra_lavoro_extra,
 annulla_lavoro_extra, voci_lavori_extra_commessa.
+Dopo sql/39 (F9.2, da eseguire): controllo_chiusura_commessa,
+registra_fattura_finale_commessa, chiudi_commessa.
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
 Sono gli accessi che le policy RLS per il portale dovranno permettere
 (F1.1), sempre filtrati sul cliente del portale (`cliente_id`):
@@ -950,6 +957,60 @@ Dichiarazione_messa_in_opera_<codice>_<cliente>.pdf, il box conta quelle
 salvate. Domande aperte per Toli: il capo tecnico può generarla
 (RUOLI_DICHIARAZIONE_POSA)? testo e riferimenti normativi; nome fisso del
 responsabile tecnico; per la SCIA ai VV.F. serve comunque la modulistica ufficiale (es. DICH.PROD, PIN 2.3): questo PDF è la dichiarazione dell'impresa da allegare.
+
+Fattura finale e chiusura della commessa (F9.2, js/38-fattura-finale-
+commessa.js; sql/39-fattura-finale-chiusura da eseguire, richiede 25, 26,
+28 e 29, tutti in produzione; 38 facoltativo, letto con to_regclass +
+EXECUTE): passo 12. Box "💶 Fattura finale" (cmd-fattura-finale, in
+"Commessa e documenti" sotto cmd-dichiarazione) con la commessa in fine
+lavori o chiusa. IMPORTO PROPOSTO (calcolo nel DB,
+calcolo_fattura_finale_commessa): totale imponibile del preventivo
+accettato + preventivi integrativi dei lavori extra accettati (sql/38;
+spunta "Comprende i lavori extra accettati", toglibile se si fatturano a
+parte) − fatture d'anticipo registrate (preventivi.anticipo_fattura_
+importo, sql/25) del preventivo e degli integrativi compresi; IVA solo
+informativa. Avvisi: anticipo previsto ma non registrato, integrativo con
+IVA diversa, lavori extra ancora in attesa (non nel calcolo), niente da
+fatturare. SCELTA (come F4.3): la fattura finale NON va nella tabella
+fatture (modulo Fatture in costruzione, Fase 11): sulla commessa
+numero, data, imponibile IVA esclusa, importo calcolato, con/senza extra,
+calcolo copiato (jsonb), nota, chi e quando; da collegare alla fattura
+vera quando il modulo emetterà le fatture finali. Registra (finestra
+m-fattura-finale, id ffc-; RPC registra_fattura_finale_commessa):
+segreteria e titolare con la commessa in fine lavori; su commessa chiusa
+corregge solo il titolare; data non futura (ora italiana) e non prima
+della nascita della commessa; imponibile > 0; se diverso dal calcolato
+nota obbligatoria. Se il calcolo cambia dopo la registrazione (es. extra
+accettato dopo) avviso "calcolo cambiato". CHIUSURA: 'chiusa' SOLO con
+(a) una dichiarazione di corretta messa in opera nella cartella
+"chiusura" (sql/29) = file il cui nome inizia con "Dichiarazione" e
+contiene "messa in opera" (spazi, _ e - non contano: il PDF di F9.1 e la
+copia firmata con nome dello stesso tipo; scelta dichiarata, nessuna
+colonna nuova sui documenti) e (b) la fattura finale registrata. Blocco
+nel DATABASE con il trigger trg_commesse_controllo_chiusa (BEFORE UPDATE
+OF stato, fine_lavori → chiusa, come trg_commesse_controllo_pronta di
+sql/33; cambia_stato_commessa di sql/28 NON ridefinita): vale per ogni
+strada, anche per il titolare. "Chiudi la commessa" (finestra
+m-chiusura-commessa, id chc-; RPC chiudi_commessa, segreteria e
+titolare): checklist nel box cmd-chiusura di js/36 (❌ dichiarazione,
+❌ fattura finale con "Vai" al box; ⚠️ calcolo cambiato, ordini ai
+fornitori non arrivati, consumabili e noli non arrivati, lavori extra in
+attesa, cronoprogramma sotto il 100%: avvisi che NON bloccano); per la
+segreteria il bottone si attiva solo con (a) e (b). Il TITOLARE può
+chiudere lo stesso scrivendo il motivo ("Chiudi comunque (con motivo)",
+proposta come la consegna forzata del faldone di F7.2, da confermare da
+Toli): chiusura_forzata, motivo e problemi sulla commessa e nello storico.
+Se il titolare riporta indietro una commessa chiusa la forzatura si
+azzera (trigger trg_commesse_chiusura_riapri); la fattura finale resta.
+In "Stato e storico" (js/18) con sql/39 non c'è più "→ Chiusa": rimanda
+alla scheda della commessa ("Apri la commessa"). Gli altri ruoli che
+leggono la commessa vedono solo la fattura finale registrata (numero,
+data, imponibile). Senza sql/39 tutto come prima (box assente, "Chiudi la
+commessa" apre "Stato e storico"). Domande per Toli: chiusura forzata del
+titolare; regola del nome della dichiarazione (basta il PDF generato o
+serve la copia firmata?); extra compresi o fatturati a parte come
+predefinito; il contabile deve registrare la fattura finale (oggi non
+legge le commesse)?
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

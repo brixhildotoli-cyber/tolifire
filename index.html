@@ -1935,6 +1935,8 @@
     <div id="cmd-chiusura"></div>
     <!-- F9.1: dichiarazione di corretta messa in opera (js/37, fine lavori e chiusa) -->
     <div id="cmd-dichiarazione"></div>
+    <!-- F9.2: fattura finale con l'anticipo scalato (js/38, attiva con sql/39) -->
+    <div id="cmd-fattura-finale"></div>
     <!-- F8.3: % di avanzamento in breve (js/34, attivo con sql/36) -->
     <div id="cmd-avanzamento"></div>
     <!-- F8.4: ore stimate contro effettive in breve (js/35, attivo con sql/37) -->
@@ -3250,6 +3252,75 @@
     <div class="ma">
       <button class="btn" onclick="closeM('m-dati-cantiere')">Annulla</button>
       <button class="btn p" id="cant-mod-salva" onclick="salvaDatiCantiere()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- F9.2 — FATTURA FINALE DELLA COMMESSA (js/38, solo con sql/39) -->
+<div class="mbg" id="m-fattura-finale">
+  <div class="modal" style="max-width:540px">
+    <button class="x" onclick="closeM('m-fattura-finale')">×</button>
+    <h3>💶 Fattura finale</h3>
+    <div id="ffc-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div class="al2 i" style="margin-bottom:10px">
+      La fattura si emette come oggi, fuori dal gestionale: qui registri numero, data e imponibile.
+      Il gestionale propone l'imponibile con l'anticipo già fatturato scalato; confermalo o correggilo.
+    </div>
+    <div id="ffc-extra-box" style="display:none;margin-bottom:8px">
+      <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px;font-weight:400">
+        <input type="checkbox" id="ffc-con-extra" onchange="aggiornaFatturaFinale(true)" style="margin-top:3px">
+        Comprende i lavori extra accettati (togli la spunta se li fatturi a parte con il loro preventivo integrativo)
+      </label>
+    </div>
+    <div id="ffc-calcolo" class="card" style="margin-bottom:10px"></div>
+    <div id="ffc-avvisi" style="margin-bottom:8px"></div>
+    <div class="fr">
+      <div class="f">
+        <label>Numero fattura finale *</label>
+        <input type="text" id="ffc-numero" maxlength="50" placeholder="Es. 245/2026" oninput="aggiornaFatturaFinale(false)">
+      </div>
+      <div class="f">
+        <label>Data fattura *</label>
+        <input type="date" id="ffc-data" onchange="aggiornaFatturaFinale(false)" oninput="aggiornaFatturaFinale(false)">
+      </div>
+    </div>
+    <div class="f">
+      <label>Imponibile fatturato (€, IVA esclusa) *</label>
+      <input type="number" id="ffc-importo" min="0" step="0.01" inputmode="decimal" oninput="aggiornaFatturaFinale(false)">
+      <div id="ffc-importo-aiuto" style="font-size:12px;color:var(--m);margin-top:2px"></div>
+    </div>
+    <div class="f">
+      <label id="ffc-nota-label">Nota (facoltativa)</label>
+      <textarea id="ffc-nota" rows="2" maxlength="1000" oninput="aggiornaFatturaFinale(false)"></textarea>
+    </div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-fattura-finale')">Annulla</button>
+      <button class="btn p" id="ffc-salva" disabled onclick="salvaFatturaFinale()">💾 Registra fattura finale</button>
+    </div>
+  </div>
+</div>
+
+<!-- F9.2 — CHIUDI LA COMMESSA (js/38, solo con sql/39) -->
+<div class="mbg" id="m-chiusura-commessa">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-chiusura-commessa')">×</button>
+    <h3>✅ Chiudi la commessa</h3>
+    <div id="chc-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div id="chc-punti" class="card" style="margin-bottom:10px"></div>
+    <div id="chc-forzata" class="al2 e" style="display:none">
+      Mancano la dichiarazione di corretta messa in opera o la fattura finale. Solo il titolare può chiudere lo stesso:
+      il motivo e i problemi restano nello storico della commessa.
+    </div>
+    <div class="f">
+      <label id="chc-nota-label">Nota (facoltativa)</label>
+      <textarea id="chc-nota" rows="2" maxlength="1000" oninput="aggiornaChiusuraCommessa()"></textarea>
+    </div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">
+      Chiusa, la commessa la modifica solo il titolare (documenti, fattura finale, cantiere), che può anche riportarla indietro.
+    </div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-chiusura-commessa')">Annulla</button>
+      <button class="btn p" id="chc-conferma" onclick="salvaChiusuraCommessa()">✅ Chiudi la commessa</button>
     </div>
   </div>
 </div>
@@ -4822,6 +4893,7 @@
 <script defer src="js/35-giornale-cantiere.js"></script>
 <script defer src="js/36-lavori-extra.js"></script>
 <script defer src="js/37-dichiarazione-messa-in-opera.js"></script>
+<script defer src="js/38-fattura-finale-commessa.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

@@ -622,7 +622,50 @@ async function caricaRiepilogoChiusuraCommessa(commessa) {
   if (commessaApertaId && commessaApertaId !== commessa.id) return;
   const fine = storico && storico[0];
 
+  // F9.2 (js/38, sql/39): dichiarazione e fattura finale prima, poi gli avvisi.
+  const puntiF92 = typeof puntiChiusuraCommessa === 'function' ? puntiChiusuraCommessa(commessa) : null;
+  const punti = (puntiF92 || []).concat(puntiRiepilogoChiusuraCommessa(commessa));
+
+  const puoChiudere = ['segreteria', 'titolare'].includes(ROLE);
+  const bottoneChiudi = puntiF92 && typeof htmlBottoneChiudiCommessa === 'function'
+    ? htmlBottoneChiudiCommessa(commessa)
+    : (puoChiudere ? `<button class="btn sm p" onclick="apriStatoCommessa('${esc(commessa.id)}', '${esc(commessa.preventivo_id || '')}')">✅ Chiudi la commessa</button>` : '');
+  const bloccanti = puntiF92 && typeof bloccantiChiusuraCommessa === 'function' ? bloccantiChiusuraCommessa(commessa) : 0;
+
+  box.innerHTML = `
+    <div class="card lex-card" style="border-left:4px solid var(--p)">
+      <div style="font-size:14px;font-weight:700">🏁 Fine lavori: ora tocca alla segreteria</div>
+      <div style="font-size:12px;color:var(--m);margin-top:2px">
+        ${fine ? 'Segnata' + (fine.cambiato_da_nome ? ' da ' + esc(fine.cambiato_da_nome) + (fine.cambiato_da_ruolo ? ' (' + esc(etichettaRuolo(fine.cambiato_da_ruolo)) + ')' : '') : '') + ' il ' + esc(dataOraEsitoPreventivo(fine.cambiato_il)) : 'Lavori finiti in cantiere.'}
+        Passo 12: corretta messa in opera, fatture, chiusura della commessa.
+      </div>
+      ${fine && fine.nota ? `<div style="font-size:12px;white-space:pre-wrap;margin-top:4px">Nota: ${esc(fine.nota)}</div>` : ''}
+      ${punti.length ? `
+        <div style="margin-top:8px">
+          ${punti.map(function(p) {
+            const vai = p.box && !p.ok && typeof vaiABoxCommessa === 'function' && ge(p.box)
+              ? ` <button class="btn sm" style="padding:1px 8px" onclick="vaiABoxCommessa('${esc(p.box)}')">Vai</button>` : '';
+            return `<div style="font-size:13px;padding:3px 0;overflow-wrap:anywhere">${p.ok ? (p.info ? '💶' : '✅') : (p.blocca ? '❌' : '⚠️')} ${esc(p.testo)}${vai}</div>`;
+          }).join('')}
+        </div>
+      ` : ''}
+      ${puntiF92 && bloccanti ? `<div style="font-size:12px;color:var(--m);margin-top:4px">${ROLE === 'titolare'
+        ? 'La commessa si chiude con la dichiarazione e la fattura finale; senza, solo il titolare e scrivendo il motivo.'
+        : '"Chiudi la commessa" si attiva con la dichiarazione di corretta messa in opera e la fattura finale.'}</div>` : ''}
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+        ${typeof vaiABoxCommessa === 'function' ? `<button class="btn sm" onclick="vaiABoxCommessa('cmd-documenti')">📂 Cartella documenti</button>` : ''}
+        ${bottoneChiudi}
+      </div>
+    </div>
+  `;
+}
+
+// Avvisi per la chiusura letti dai box della scheda (cronoprogramma,
+// lavori extra, consumabili e noli, cartella Chiusura). Usata anche dalla
+// finestra "Chiudi la commessa" (js/38).
+function puntiRiepilogoChiusuraCommessa(commessa) {
   const punti = [];
+  const conF92 = typeof puntiChiusuraCommessa === 'function' && !!puntiChiusuraCommessa(commessa);
 
   // Avanzamento (js/34, se il cronoprogramma c'è).
   if (typeof cronoprogrammaAperto !== 'undefined' && cronoprogrammaAperto && cronoprogrammaAperto.commessa?.id === commessa.id &&
@@ -641,7 +684,9 @@ async function caricaRiepilogoChiusuraCommessa(commessa) {
     const accettati = extra.filter(function(r) { return r.stato === 'accettato'; });
     const inAttesa = extra.filter(lavoroExtraInAttesa);
     if (accettati.length) {
-      punti.push({ ok: true, info: true, testo: 'Lavori extra accettati da fatturare con il loro preventivo integrativo: ' +
+      punti.push({ ok: true, info: true, testo: (conF92
+        ? 'Lavori extra accettati (compresi nel calcolo della fattura finale, o da fatturare a parte): '
+        : 'Lavori extra accettati da fatturare con il loro preventivo integrativo: ') +
         accettati.map(function(r) { return 'n. ' + r.numero + (r.preventivo_numero ? ' (preventivo n. ' + r.preventivo_numero + ')' : ''); }).join(', ') });
     }
     if (inAttesa.length) {
@@ -657,8 +702,9 @@ async function caricaRiepilogoChiusuraCommessa(commessa) {
     if (aperte) punti.push({ ok: false, testo: aperte + (aperte === 1 ? ' consumabile o nolo non ancora arrivato' : ' consumabili e noli non ancora arrivati') + ': chiudili o annullali' });
   }
 
-  // Documenti di chiusura (cartella "chiusura", sql/29).
-  if (typeof documentiCommessaDisponibili !== 'undefined' && documentiCommessaDisponibili === true) {
+  // Documenti di chiusura (cartella "chiusura", sql/29). Con sql/39 la
+  // dichiarazione la controlla js/38.
+  if (!conF92 && typeof documentiCommessaDisponibili !== 'undefined' && documentiCommessaDisponibili === true) {
     const docChiusura = (documentiCommessaAperta || []).filter(function(d) { return d.cartella === 'chiusura'; }).length;
     punti.push(docChiusura
       ? { ok: true, testo: 'Cartella Chiusura: ' + docChiusura + (docChiusura === 1 ? ' documento' : ' documenti') }
@@ -667,29 +713,7 @@ async function caricaRiepilogoChiusuraCommessa(commessa) {
           : 'Cartella Chiusura vuota: carica la dichiarazione di corretta messa in opera, collaudi e verbali') });
   }
 
-  const puoChiudere = ['segreteria', 'titolare'].includes(ROLE);
-
-  box.innerHTML = `
-    <div class="card lex-card" style="border-left:4px solid var(--p)">
-      <div style="font-size:14px;font-weight:700">🏁 Fine lavori: ora tocca alla segreteria</div>
-      <div style="font-size:12px;color:var(--m);margin-top:2px">
-        ${fine ? 'Segnata' + (fine.cambiato_da_nome ? ' da ' + esc(fine.cambiato_da_nome) + (fine.cambiato_da_ruolo ? ' (' + esc(etichettaRuolo(fine.cambiato_da_ruolo)) + ')' : '') : '') + ' il ' + esc(dataOraEsitoPreventivo(fine.cambiato_il)) : 'Lavori finiti in cantiere.'}
-        Passo 12: corretta messa in opera, fatture, chiusura della commessa.
-      </div>
-      ${fine && fine.nota ? `<div style="font-size:12px;white-space:pre-wrap;margin-top:4px">Nota: ${esc(fine.nota)}</div>` : ''}
-      ${punti.length ? `
-        <div style="margin-top:8px">
-          ${punti.map(function(p) {
-            return `<div style="font-size:13px;padding:3px 0;overflow-wrap:anywhere">${p.ok ? (p.info ? '💶' : '✅') : '⚠️'} ${esc(p.testo)}</div>`;
-          }).join('')}
-        </div>
-      ` : ''}
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-        ${typeof vaiABoxCommessa === 'function' ? `<button class="btn sm" onclick="vaiABoxCommessa('cmd-documenti')">📂 Cartella documenti</button>` : ''}
-        ${puoChiudere ? `<button class="btn sm p" onclick="apriStatoCommessa('${esc(commessa.id)}', '${esc(commessa.preventivo_id || '')}')">✅ Chiudi la commessa</button>` : ''}
-      </div>
-    </div>
-  `;
+  return punti;
 }
 
 // ── Dashboard: commerciale, rappresentante, capo tecnico ────────────

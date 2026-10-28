@@ -322,7 +322,7 @@ async function caricaSchedaCommessa(commessaId) {
   if (ge('cmd-squadra')) ge('cmd-squadra').innerHTML = '';
   ['cmd-cronoprogramma', 'cmd-avanzamento', 'cmd-avanzamento-cantiere'].forEach(function(id) { if (ge(id)) ge(id).innerHTML = ''; });
   ['cmd-giornale', 'cmd-ore', 'cmd-ore-compatto'].forEach(function(id) { if (ge(id)) ge(id).innerHTML = ''; });
-  ['cmd-lavori-extra', 'cmd-lavori-extra-avviso', 'cmd-lavori-extra-compatto', 'cmd-chiusura', 'cmd-dichiarazione'].forEach(function(id) { if (ge(id)) ge(id).innerHTML = ''; });
+  ['cmd-lavori-extra', 'cmd-lavori-extra-avviso', 'cmd-lavori-extra-compatto', 'cmd-chiusura', 'cmd-dichiarazione', 'cmd-fattura-finale'].forEach(function(id) { if (ge(id)) ge(id).innerHTML = ''; });
   // F8.1: scheda cantiere (js/32): sceglie la scheda da mostrare.
   if (typeof preparaSchedaCantiere === 'function') preparaSchedaCantiere(commessaId);
 
@@ -377,6 +377,9 @@ async function caricaSchedaCommessa(commessaId) {
   // F8.5: lavori extra (js/36, attivi con sql/38) e, in fine lavori, il
   // riepilogo per la chiusura della segreteria (riusa i dati letti sopra).
   if (typeof caricaLavoriExtraCommessa === 'function') await caricaLavoriExtraCommessa(commessa);
+  // F9.2: fattura finale e controllo della chiusura (js/38, attivi con
+  // sql/39), prima del riepilogo per la chiusura che ne usa la checklist.
+  if (typeof caricaFatturaFinaleCommessa === 'function') await caricaFatturaFinaleCommessa(commessa);
   if (typeof caricaRiepilogoChiusuraCommessa === 'function') await caricaRiepilogoChiusuraCommessa(commessa);
   // F9.1: dichiarazione di corretta messa in opera (js/37), in fine
   // lavori e chiusa; riusa la cartella documenti letta sopra.
