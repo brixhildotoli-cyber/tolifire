@@ -10,9 +10,10 @@
 //   "⏱️ Ore stimate e ore effettive" (cmd-ore) + riquadro compatto in
 //     "Commessa e documenti" (cmd-ore-compatto): solo titolare e capo
 //     tecnico (le ore per persona sono un dato sensibile).
-// Scrivono capo tecnico e titolare: giorni futuri mai, giorni più vecchi
-// di 7 giorni solo il titolare, commessa chiusa o annullata solo il
-// titolare (stesse regole nel database, sql/37).
+// Scrivono capo tecnico e titolare: giorni futuri mai, qualunque giorno
+// passato (decisione di Erika del 28/10: nessun limite di giorni),
+// commessa chiusa o annullata solo il titolare (stesse regole nel
+// database, sql/37).
 // Lavorazioni con le ore stimate (finestra m-lavorazioni-ore): proposte
 // dalle voci del preventivo (scheda_cantiere_commessa di sql/34, senza
 // prezzi; le voci in ore danno le ore stimate) e dalle fasi del
@@ -29,7 +30,6 @@
 
 const RUOLI_LEGGONO_GIORNALE = ['titolare', 'segreteria', 'capo_tecnico'];
 const RUOLI_LEGGONO_ORE_CANTIERE = ['titolare', 'capo_tecnico'];
-const GIORNI_INDIETRO_GIORNALE = 7;      // come sql/37 (controlla_giorno_giornale)
 const PREFISSO_FOTO_GIORNALE = 'giornale_';
 const ORE_PROPOSTE_GIORNALE = 8;
 const GIORNI_GIORNALE_IN_VISTA = 7;      // gli altri in "Giorni precedenti"
@@ -73,7 +73,7 @@ function puoModificareGiornale(commessa) {
 }
 
 function primoGiornoModificabileGiornale() {
-  return ROLE === 'titolare' ? null : sommaGiorniGiornale(dataLocaleISO(), -GIORNI_INDIETRO_GIORNALE);
+  return null; // nessun limite di giorni indietro (decisione 28/10)
 }
 
 function puoModificareGiornoGiornale(commessa, giorno) {
@@ -593,9 +593,7 @@ function apriGiornaleCantiere(giorno) {
   ge('gnc-giorno').max = oggi;
   ge('gnc-giorno').min = primoGiornoModificabileGiornale() || '';
   ge('gnc-giorno').value = giorno || oggi;
-  ge('gnc-limite').textContent = ROLE === 'titolare'
-    ? ''
-    : 'Si compila per oggi o per i ' + GIORNI_INDIETRO_GIORNALE + ' giorni prima; i giorni più vecchi li corregge il titolare.';
+  ge('gnc-limite').textContent = 'Si compila per oggi o per un giorno passato.';
   ge('gnc-foto').value = '';
   ge('gnc-avviso').innerHTML = '';
   ge('gnc-salva').disabled = false;
@@ -752,7 +750,8 @@ function dividiRigaGiornale(indice) {
   if (!m || !m.righe[indice]) return;
   const r = m.righe[indice];
   const ore = Number(r.ore) || 0;
-  const meta = Math.round(ore / 2 * 4) / 4;
+  if (ore > 0 && ore < 0.5) { toast('Con meno di mezz\'ora non si può dividere: aggiungi la lavorazione con ore nuove', 'info'); }
+  const meta = ore >= 0.5 ? Math.round(ore / 2 * 4) / 4 : 0;
   r.ore = ore ? ore - meta : '';
   m.righe.splice(indice + 1, 0, { tipo: r.tipo, id: r.id, persone: r.persone, lavorazione: '', ore: meta || '' });
   disegnaRigheGiornale();
@@ -877,7 +876,7 @@ async function salvaGiornaleCantiere() {
   if (!giorno) return errore('Indica il giorno.');
   if (giorno > oggi) return errore('Il giornale si compila per oggi o per i giorni passati.');
   const primo = primoGiornoModificabileGiornale();
-  if (primo && giorno < primo) return errore('I giorni di più di ' + GIORNI_INDIETRO_GIORNALE + ' giorni fa li corregge il titolare.');
+  if (primo && giorno < primo) return errore('Questo giorno non si può più correggere.');
 
   const ore = [];
   const viste = {};

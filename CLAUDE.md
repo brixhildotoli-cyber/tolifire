@@ -786,7 +786,7 @@ se sql/35 c'è) con 8 ore a testa, se no i presenti dell'ultimo giorno
 compilato; "➕ altra lavorazione" divide le ore della stessa persona.
 SCRIVONO capo_tecnico e titolare (RPC salva_giornale_cantiere, che
 sostituisce le ore del giorno, e togli_giornale_cantiere): giorni futuri
-mai; giorni più vecchi di 7 giorni (ora italiana) solo il titolare;
+mai; giorni passati senza limite (decisione 28/10);
 commessa chiusa o annullata solo il titolare. Decisioni di Erika del
 28/10: i tecnici NON segnano da soli le proprie ore (solo capo tecnico e
 titolare); nessun limite di giorni per il capo tecnico (tolto il limite
