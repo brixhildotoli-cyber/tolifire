@@ -1228,7 +1228,7 @@ async function loadProgettiDaPreventivare() {
   if (idsProgetti.length) {
     const { data: righePreventivi, error: errorePreventivi } = await db
       .from('preventivi')
-      .select('progetto_tecnico_id')
+      .select('id, numero, stato, progetto_tecnico_id')
       .in('progetto_tecnico_id', idsProgetti);
 
     if (errorePreventivi) {
@@ -1242,16 +1242,19 @@ async function loadProgettiDaPreventivare() {
     preventiviCollegati = righePreventivi || [];
   }
 
-  const progettiConPreventivo = new Set(
-    preventiviCollegati
-      .map(function(preventivo) {
-        return preventivo.progetto_tecnico_id;
-      })
-      .filter(Boolean)
-  );
+  // Un progetto con preventivo esce dalla lista, tranne quando il
+  // preventivo è ancora in bozza e il progetto è stato rimandato indietro
+  // (di nuovo inviato al commerciale o pronto): si riprende la bozza.
+  const preventivoPerProgetto = {};
+  preventiviCollegati.forEach(function(preventivo) {
+    if (preventivo.progetto_tecnico_id) preventivoPerProgetto[preventivo.progetto_tecnico_id] = preventivo;
+  });
 
   const progettiDaPreventivare = (data || []).filter(function(progetto) {
-    return !progettiConPreventivo.has(progetto.id);
+    const preventivo = preventivoPerProgetto[progetto.id];
+    if (!preventivo) return true;
+    return preventivo.stato === 'bozza' &&
+      ['inviato_a_commerciale', 'pronto_per_preventivo'].includes(progetto.stato);
   });
 
   if (!progettiDaPreventivare.length) {
@@ -1262,7 +1265,8 @@ async function loadProgettiDaPreventivare() {
 
   box.innerHTML = progettiDaPreventivare.map(function(p) {
     const cliente = p.clienti?.ragione_sociale || 'Cliente non disponibile';
-    const inLavorazione = false;
+    const bozzaRipresa = preventivoPerProgetto[p.id] || null;
+    const inLavorazione = !!bozzaRipresa;
     const dataInvio = p.creato_il
       ? new Date(p.creato_il).toLocaleDateString('it-IT')
       : '';
@@ -1280,7 +1284,7 @@ async function loadProgettiDaPreventivare() {
           </div>
 
           <span class="bx ${inLavorazione ? 'bok' : 'bblue'}">
-  ${inLavorazione ? 'Preventivo in lavorazione' : 'Da preventivare'}
+  ${inLavorazione ? 'Preventivo n. ' + esc(bozzaRipresa.numero) + ' in bozza' : 'Da preventivare'}
 </span>
         </div>
 
@@ -1307,7 +1311,6 @@ async function loadProgettiDaPreventivare() {
     📂 Apri progetto
   </button>
 
-${!inLavorazione ? `
   <button
     class="btn sm"
     style="color:#b45309"
@@ -1315,13 +1318,12 @@ ${!inLavorazione ? `
   >
     ↩ Richiedi integrazione
   </button>
-` : ''}
 
 <button
   class="btn sm p"
   onclick="avviaPreventivo('${p.id}')"
 >
-  ${inLavorazione ? '🧾 Apri preventivo' : '🧾 Avvia preventivo'}
+  ${inLavorazione ? '🧾 Riprendi preventivo' : '🧾 Avvia preventivo'}
 </button>
 ${ROLE === 'titolare' ? `
   <button
@@ -1528,11 +1530,12 @@ async function _avviaPreventivo(progettoId, commercialeScelto) {
     }
 
     toast(
-      'Preventivo n. ' + esistente.numero + ' già presente',
+      'Ripreso il preventivo n. ' + esistente.numero,
       'ok'
     );
 
     gotoPage(paginaPreventivi);
+    if (typeof openPreventivoDetail === 'function') await openPreventivoDetail(esistente.id);
     return;
   }
 

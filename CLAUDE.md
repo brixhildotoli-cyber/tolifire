@@ -304,6 +304,17 @@ solo un avviso giallo ("valuta l'invio all'ingegnere"); "Invia al
 commerciale" resta sempre possibile. Importo o soglia vuoti: nessun
 avviso (js/17).
 
+Rimanda indietro un preventivo avviato (richiesta di Erika del 28/10,
+js/18 `apriRimandaPreventivoAvviato`, finestra m-rimanda-preventivo-avviato;
+nessun SQL): nel riepilogo di un preventivo in BOZZA con progetto tecnico,
+commerciale o titolare lo rimandano indietro. Il preventivo resta in bozza
+con le voci; cambia solo lo stato del progetto: "Da preventivare"
+(inviato_a_commerciale, nota facoltativa), al rappresentante (da_integrare)
+o all'ingegnere (in_verifica_tecnica), con nota obbligatoria in
+nota_integrazione come "Richiedi integrazione". In "Da preventivare" (js/17)
+il progetto tornato con un preventivo in bozza compare con "Preventivo n. X
+in bozza" e "🧾 Riprendi preventivo", che apre la bozza.
+
 Passo 5, esito del cliente (F4.1, sql/22-esito-preventivo da eseguire):
 il rappresentante (o il titolare) segna il preventivo "Accettato dal
 cliente" (allegato obbligatorio: preventivo firmato o mail di

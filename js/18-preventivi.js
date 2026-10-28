@@ -127,6 +127,17 @@ async function openPreventivoDetail(preventivoId) {
 
 ${cardEsitoPreventivo(preventivo)}
 
+${['commerciale', 'titolare'].includes(ROLE) && preventivo.stato === 'bozza' && preventivo.progetto_tecnico_id ? `
+  <div class="card" style="margin-top:16px;border-left:4px solid #d97706">
+    <div style="font-size:14px;font-weight:700">↩ Rimanda indietro il preventivo avviato</div>
+    <div style="font-size:12px;color:var(--m);margin:6px 0 10px">
+      Il preventivo resta in bozza. Il progetto torna in "Da preventivare",
+      oppure va al rappresentante o all'ingegnere con una nota.
+    </div>
+    <button class="btn warn" onclick="apriRimandaPreventivoAvviato()">↩ Rimanda indietro</button>
+  </div>
+` : ''}
+
 ${ROLE === 'titolare' ? `
   <div class="card" style="margin-top:16px;border-left:4px solid var(--g)">
     <div style="font-size:14px;font-weight:700">
@@ -322,6 +333,95 @@ ${ROLE === 'titolare' ? `
   await renderCertificatiPreventivo();
   gotoPage('preventivo-detail');
   
+}
+
+// ── Rimanda indietro un preventivo avviato (ancora in bozza) ─────────
+// Commerciale o titolare, dal riepilogo. Il preventivo resta in bozza con
+// le sue voci; cambia solo lo stato del progetto tecnico:
+//   da_preventivare → inviato_a_commerciale (torna nella lista "Da preventivare")
+//   rappresentante  → da_integrare, con nota (come "Richiedi integrazione")
+//   ingegnere       → in_verifica_tecnica, con nota
+// Quando il progetto torna in "Da preventivare" la lista mostra
+// "Riprendi preventivo" (js/17 loadProgettiDaPreventivare).
+function apriRimandaPreventivoAvviato() {
+  ge('mrpa-destinazione').value = 'da_preventivare';
+  ge('mrpa-nota').value = '';
+  aggiornaFinestraRimandaPreventivo();
+  openM('m-rimanda-preventivo-avviato');
+}
+
+function aggiornaFinestraRimandaPreventivo() {
+  const conNota = v('mrpa-destinazione') !== 'da_preventivare';
+  ge('mrpa-nota-label').textContent = conNota ? 'Nota / modifiche richieste *' : 'Nota (facoltativa)';
+}
+
+async function confermaRimandaPreventivoAvviato() {
+  if (!['commerciale', 'titolare'].includes(ROLE)) return;
+  const destinazione = v('mrpa-destinazione');
+  const nota = v('mrpa-nota').trim();
+
+  if (destinazione !== 'da_preventivare' && !nota) {
+    toast('Scrivi la nota: cosa va modificato o integrato', 'err');
+    ge('mrpa-nota').focus();
+    return;
+  }
+
+  const { data: preventivo, error: erroreLettura } = await db
+    .from('preventivi')
+    .select('id, numero, stato, progetto_tecnico_id')
+    .eq('id', currentPreventivoId)
+    .single();
+
+  if (erroreLettura || !preventivo) {
+    toast('Impossibile leggere il preventivo: ' + (erroreLettura?.message || ''), 'err');
+    return;
+  }
+  if (preventivo.stato !== 'bozza' || !preventivo.progetto_tecnico_id) {
+    toast('Si rimanda indietro solo un preventivo ancora in bozza', 'err');
+    return;
+  }
+
+  const nuovoStato = {
+    da_preventivare: 'inviato_a_commerciale',
+    rappresentante: 'da_integrare',
+    ingegnere: 'in_verifica_tecnica'
+  }[destinazione];
+
+  const modifiche = {
+    stato: nuovoStato,
+    aggiornato_il: new Date().toISOString()
+  };
+  if (destinazione !== 'da_preventivare') {
+    modifiche.nota_integrazione = nota;
+    modifiche.integrazione_richiesta_da = ROLE;
+    modifiche.integrazione_letta_rappresentante_il = null;
+  }
+
+  const bottone = ge('mrpa-conferma');
+  if (bottone) bottone.disabled = true;
+
+  const { data, error } = await db
+    .from('progetti_tecnici')
+    .update(modifiche)
+    .eq('id', preventivo.progetto_tecnico_id)
+    .in('stato', ['inviato_a_commerciale', 'pronto_per_preventivo', 'in_preventivazione'])
+    .select('id');
+
+  if (bottone) bottone.disabled = false;
+
+  if (error || !data?.length) {
+    toast('Rinvio non riuscito: ' + (error?.message || 'il progetto non è più in preventivazione'), 'err');
+    return;
+  }
+
+  closeM('m-rimanda-preventivo-avviato');
+  toast({
+    da_preventivare: 'Progetto tornato in "Da preventivare": il preventivo n. ' + preventivo.numero + ' resta in bozza',
+    rappresentante: 'Progetto rimandato al rappresentante con la nota',
+    ingegnere: 'Progetto rimandato all’ingegnere con la nota'
+  }[destinazione], 'ok');
+
+  gotoPage('progetti-da-preventivare');
 }
 
 async function rimandaPreventivoAlCommerciale() {

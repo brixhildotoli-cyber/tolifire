@@ -2913,6 +2913,40 @@
   </div>
 </div>
 
+<!-- Rimanda indietro un preventivo avviato (ancora in bozza): js/18 -->
+<div class="mbg" id="m-rimanda-preventivo-avviato">
+  <div class="modal">
+    <button class="x" onclick="closeM('m-rimanda-preventivo-avviato')">×</button>
+
+    <h3>↩ Rimanda indietro il preventivo</h3>
+
+    <div style="font-size:12px;color:var(--m);margin-bottom:12px">
+      Il preventivo resta in bozza con le voci già inserite: quando il
+      progetto torna in "Da preventivare" si riprende da dove era rimasto.
+    </div>
+
+    <div class="f">
+      <label>Dove va</label>
+      <select id="mrpa-destinazione" onchange="aggiornaFinestraRimandaPreventivo()">
+        <option value="da_preventivare">Torna in "Da preventivare" (resta in bozza)</option>
+        <option value="rappresentante">Al rappresentante, con nota</option>
+        <option value="ingegnere">All'ingegnere / ufficio tecnico, con nota</option>
+      </select>
+    </div>
+
+    <div class="f">
+      <label id="mrpa-nota-label">Nota (facoltativa)</label>
+      <textarea id="mrpa-nota" rows="5"
+        placeholder="Es.: verificare le misure delle porte, integrare le foto, chiarire con il cliente il numero di estintori..."></textarea>
+    </div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-rimanda-preventivo-avviato')">Annulla</button>
+      <button class="btn warn" id="mrpa-conferma" onclick="confermaRimandaPreventivoAvviato()">↩ Rimanda indietro</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- F4.1 — ESITO DEL PREVENTIVO (accettato / rifiutato dal cliente) -->
 <div class="mbg" id="m-esito-preventivo">
