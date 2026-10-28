@@ -701,7 +701,7 @@ async function apriSchedaPorteRei() {
 
     <div class="card">
       <div class="fr">
-        ${selectPreventivo('Tipo di intervento *', 'pr-tipo-intervento', d.tipo_intervento || '', [
+        ${selectPreventivo('Tipo di intervento', 'pr-tipo-intervento', d.tipo_intervento || '', [
           { value: '', label: 'Seleziona' },
           { value: 'fornitura_e_posa', label: 'Fornitura e posa' },
           { value: 'sostituzione', label: 'Sostituzione porta esistente' },
@@ -709,7 +709,7 @@ async function apriSchedaPorteRei() {
           { value: 'manutenzione', label: 'Manutenzione' }
         ])}
 
-        ${selectPreventivo('Resistenza al fuoco richiesta *', 'pr-rei', d.rei || '', [
+        ${selectPreventivo('Resistenza al fuoco richiesta', 'pr-rei', d.rei || '', [
           { value: '', label: 'Seleziona' },
           { value: 'rei_60', label: 'REI 60' },
           { value: 'rei_90', label: 'REI 90' },
@@ -723,7 +723,7 @@ async function apriSchedaPorteRei() {
 
     <div class="card">
       <div class="fr">
-        ${selectPreventivo('Tipologia *', 'pr-tipologia', d.tipologia || '', [
+        ${selectPreventivo('Tipologia', 'pr-tipologia', d.tipologia || '', [
           { value: '', label: 'Seleziona' },
           { value: 'battente_singolo', label: 'Battente singolo' },
           { value: 'battente_doppio', label: 'Battente doppio' },
@@ -733,16 +733,16 @@ async function apriSchedaPorteRei() {
           { value: 'altro', label: 'Altro' }
         ])}
 
-        ${campoPreventivo('Quantità *', 'pr-quantita', d.quantita, 'number')}
+        ${campoPreventivo('Quantità', 'pr-quantita', d.quantita, 'number')}
       </div>
 
       <div class="fr">
-        ${campoPreventivo('Larghezza (cm) *', 'pr-larghezza', d.larghezza, 'number', 'Es. 120')}
-        ${campoPreventivo('Altezza (cm) *', 'pr-altezza', d.altezza, 'number', 'Es. 210')}
+        ${campoPreventivo('Larghezza (cm)', 'pr-larghezza', d.larghezza, 'number', 'Es. 120')}
+        ${campoPreventivo('Altezza (cm)', 'pr-altezza', d.altezza, 'number', 'Es. 210')}
       </div>
 
       <div class="fr">
-        ${campoPreventivo('Colore / finitura *', 'pr-colore', d.colore, 'text', 'Es. bianco RAL 9010')}
+        ${campoPreventivo('Colore / finitura', 'pr-colore', d.colore, 'text', 'Es. bianco RAL 9010')}
 
         ${selectPreventivo('Maniglione antipanico', 'pr-maniglione', d.maniglione || '', [
           { value: '', label: 'Seleziona' },
@@ -865,21 +865,7 @@ async function salvaSchedaPorteRei() {
     note_tecniche: v('pr-note-tecniche')
   };
 
-  if (
-    !dati.tipo_intervento ||
-    !dati.rei ||
-    !dati.tipologia ||
-    !dati.quantita ||
-    !dati.larghezza ||
-    !dati.altezza ||
-    !dati.colore
-  ) {
-    toast(
-      'Compila tipo intervento, REI, tipologia, quantità, larghezza, altezza e colore',
-      'err'
-    );
-    return;
-  }
+  // Nessun campo obbligatorio nelle schede tecniche (decisione di Erika del 28/10)
 
   const riga = {
     progetto_tecnico_id: currentRilievoProgettoId,
@@ -965,7 +951,7 @@ async function apriSchedaEstintori() {
     <div class="rap-section">1. Intervento</div>
 
     <div class="card">
-      ${selectPreventivo('Tipo di intervento *', 'es-tipo-intervento', d.tipo_intervento || '', [
+      ${selectPreventivo('Tipo di intervento', 'es-tipo-intervento', d.tipo_intervento || '', [
         { value: '', label: 'Seleziona' },
         { value: 'fornitura', label: 'Fornitura' },
         { value: 'sostituzione', label: 'Sostituzione' },
@@ -978,12 +964,12 @@ async function apriSchedaEstintori() {
 
     <div class="card">
       <div class="fr">
-        ${campoPreventivo('Numero estintori esistenti *', 'es-numero-esistenti', d.numero_esistenti, 'number')}
-        ${campoPreventivo('Numero estintori da installare *', 'es-numero-installare', d.numero_installare, 'number')}
+        ${campoPreventivo('Numero estintori esistenti', 'es-numero-esistenti', d.numero_esistenti, 'number')}
+        ${campoPreventivo('Numero estintori da installare', 'es-numero-installare', d.numero_installare, 'number')}
       </div>
 
       <div class="fr">
-        ${selectPreventivo('Tipologia *', 'es-tipologia', d.tipologia || '', [
+        ${selectPreventivo('Tipologia', 'es-tipologia', d.tipologia || '', [
           { value: '', label: 'Seleziona' },
           { value: 'polvere', label: 'Polvere' },
           { value: 'co2', label: 'CO₂' },
@@ -992,7 +978,7 @@ async function apriSchedaEstintori() {
           { value: 'altro', label: 'Altro' }
         ])}
 
-        ${selectPreventivo('Peso o capacità *', 'es-capacita', d.capacita || '', [
+        ${selectPreventivo('Peso o capacità', 'es-capacita', d.capacita || '', [
           { value: '', label: 'Seleziona' },
           { value: '2_kg', label: '2 kg' },
           { value: '4_kg', label: '4 kg' },
@@ -1003,7 +989,7 @@ async function apriSchedaEstintori() {
       </div>
 
       ${campoPreventivo(
-        'Classe di spegnimento e capacità estinguente richiesta *',
+        'Classe di spegnimento e capacità estinguente richiesta',
         'es-classe-spegnimento',
         d.classe_spegnimento,
         'text',
@@ -1032,7 +1018,7 @@ async function apriSchedaEstintori() {
       </div>
 
       ${areaPreventivo(
-        'Posizionamento, altezza, accessibilità, distanze di copertura e aree protette *',
+        'Posizionamento, altezza, accessibilità, distanze di copertura e aree protette',
         'es-posizionamento',
         d.posizionamento,
         'Indica postazioni, distanze, ostacoli e criticità.'
@@ -1127,21 +1113,7 @@ async function salvaSchedaEstintori() {
     note_tecniche: v('es-note-tecniche')
   };
 
-  if (
-    !dati.tipo_intervento ||
-    !dati.numero_esistenti ||
-    !dati.numero_installare ||
-    !dati.tipologia ||
-    !dati.capacita ||
-    !dati.classe_spegnimento ||
-    !dati.posizionamento
-  ) {
-    toast(
-      'Compila intervento, quantità, tipologia, capacità, classe di spegnimento e posizionamento',
-      'err'
-    );
-    return;
-  }
+  // Nessun campo obbligatorio nelle schede tecniche (decisione di Erika del 28/10)
 
   const { error } = await db
     .from('progetti_tecnici_schede')
@@ -1218,7 +1190,7 @@ async function apriSchedaRilevazioneIncendi() {
     <div class="rap-section">1. Tipo di intervento</div>
     <div class="card">
       <div class="fr">
-        ${selectPreventivo('Tipo di intervento *', 'ri-tipo-intervento', d.tipo_intervento || '', [
+        ${selectPreventivo('Tipo di intervento', 'ri-tipo-intervento', d.tipo_intervento || '', [
           { value: '', label: 'Seleziona' },
           { value: 'nuovo_impianto', label: 'Nuovo impianto' },
           { value: 'ampliamento', label: 'Ampliamento' },
@@ -1487,10 +1459,7 @@ async function salvaSchedaRilevazioneIncendi() {
     note_calcolo: v('ri-note-calcolo')
   };
 
-  if (!dati.tipo_intervento) {
-    toast('Seleziona almeno il tipo di intervento', 'err');
-    return;
-  }
+  // Nessun campo obbligatorio nelle schede tecniche (decisione di Erika del 28/10)
 
  const tabella = usaProgetto
   ? 'progetti_tecnici_schede'
@@ -1605,7 +1574,7 @@ async function apriSchedaCompartimentazione() {
     <div class="rap-section">1. Tipo di intervento</div>
 
     <div class="card">
-      ${selectPreventivo('Intervento *', 'cp-tipo-intervento', d.tipo_intervento || '', [
+      ${selectPreventivo('Intervento', 'cp-tipo-intervento', d.tipo_intervento || '', [
         { value: '', label: 'Seleziona' },
         { value: 'sigillatura_attraversamenti', label: 'Sigillatura attraversamenti' },
         { value: 'parete', label: 'Parete' },
@@ -1619,13 +1588,13 @@ async function apriSchedaCompartimentazione() {
 
     <div class="card">
       <div class="fr">
-        ${selectPreventivo('Classe richiesta *', 'cp-classe', d.classe || '', [
+        ${selectPreventivo('Classe richiesta', 'cp-classe', d.classe || '', [
           { value: '', label: 'Seleziona' },
           { value: 'ei', label: 'EI' },
           { value: 'rei', label: 'REI' }
         ])}
 
-        ${selectPreventivo('Minuti *', 'cp-minuti', d.minuti || '', [
+        ${selectPreventivo('Minuti', 'cp-minuti', d.minuti || '', [
           { value: '', label: 'Seleziona' },
           { value: '30', label: '30 minuti' },
           { value: '60', label: '60 minuti' },
@@ -1640,9 +1609,9 @@ async function apriSchedaCompartimentazione() {
 
     <div class="card">
       <div class="fr">
-        ${campoPreventivo('Numero attraversamenti *', 'cp-numero-attraversamenti', d.numero_attraversamenti, 'number')}
+        ${campoPreventivo('Numero attraversamenti', 'cp-numero-attraversamenti', d.numero_attraversamenti, 'number')}
 
-        ${selectPreventivo('Tipo attraversamento *', 'cp-tipo-attraversamento', d.tipo_attraversamento || '', [
+        ${selectPreventivo('Tipo attraversamento', 'cp-tipo-attraversamento', d.tipo_attraversamento || '', [
           { value: '', label: 'Seleziona' },
           { value: 'cavi', label: 'Cavi' },
           { value: 'tubazioni_metalliche', label: 'Tubazioni metalliche' },
@@ -1653,8 +1622,8 @@ async function apriSchedaCompartimentazione() {
       </div>
 
       <div class="fr">
-        ${campoPreventivo('Dimensioni foro (mm) *', 'cp-dimensioni-foro', d.dimensioni_foro, 'text', 'Es. 300 × 200')}
-        ${campoPreventivo('Spessore parete o solaio (mm) *', 'cp-spessore-supporto', d.spessore_supporto, 'number')}
+        ${campoPreventivo('Dimensioni foro (mm)', 'cp-dimensioni-foro', d.dimensioni_foro, 'text', 'Es. 300 × 200')}
+        ${campoPreventivo('Spessore parete o solaio (mm)', 'cp-spessore-supporto', d.spessore_supporto, 'number')}
       </div>
 
       <div class="fr">
@@ -1667,7 +1636,7 @@ async function apriSchedaCompartimentazione() {
         ])}
 
         ${campoPreventivo(
-          'Posizione attraversamenti *',
+          'Posizione attraversamenti',
           'cp-posizione',
           d.posizione,
           'text',
@@ -1726,7 +1695,7 @@ async function apriSchedaCompartimentazione() {
       </div>
 
       ${areaPreventivo(
-        'Foto ravvicinate e foto di contesto *',
+        'Foto ravvicinate e foto di contesto',
         'cp-foto',
         d.foto,
         'Indica le foto caricate negli allegati tecnici.'
@@ -1778,23 +1747,7 @@ async function salvaSchedaCompartimentazione() {
     note_tecniche: v('cp-note-tecniche')
   };
 
-  if (
-    !dati.tipo_intervento ||
-    !dati.classe ||
-    !dati.minuti ||
-    !dati.numero_attraversamenti ||
-    !dati.tipo_attraversamento ||
-    !dati.dimensioni_foro ||
-    !dati.spessore_supporto ||
-    !dati.posizione ||
-    !dati.foto
-  ) {
-    toast(
-      'Compila intervento, classe, minuti, attraversamenti, dimensioni, spessore, posizione e foto',
-      'err'
-    );
-    return;
-  }
+  // Nessun campo obbligatorio nelle schede tecniche (decisione di Erika del 28/10)
 
   const { error } = await db
     .from('progetti_tecnici_schede')
@@ -1877,7 +1830,7 @@ async function apriSchedaVerniceIntumescente() {
 
     <div class="card">
       <div class="fr">
-        ${selectPreventivo('Elemento da proteggere *', 'vi-elemento', d.elemento || '', [
+        ${selectPreventivo('Elemento da proteggere', 'vi-elemento', d.elemento || '', [
           { value: '', label: 'Seleziona' },
           { value: 'pilastro', label: 'Pilastro' },
           { value: 'trave', label: 'Trave' },
@@ -1885,7 +1838,7 @@ async function apriSchedaVerniceIntumescente() {
           { value: 'struttura_metallica', label: 'Struttura metallica' }
         ])}
 
-        ${selectPreventivo('Classe R richiesta *', 'vi-classe-r', d.classe_r || '', [
+        ${selectPreventivo('Classe R richiesta', 'vi-classe-r', d.classe_r || '', [
           { value: '', label: 'Seleziona' },
           { value: 'r30', label: 'R30' },
           { value: 'r60', label: 'R60' },
@@ -1897,14 +1850,14 @@ async function apriSchedaVerniceIntumescente() {
 
       <div class="fr">
         ${campoPreventivo(
-          'Tipo e dimensione profilo metallico *',
+          'Tipo e dimensione profilo metallico',
           'vi-profilo',
           d.profilo,
           'text',
           'Es. HEA 200, IPE 160, tubolare 100×100'
         )}
 
-        ${campoPreventivo('Numero elementi *', 'vi-numero-elementi', d.numero_elementi, 'number')}
+        ${campoPreventivo('Numero elementi', 'vi-numero-elementi', d.numero_elementi, 'number')}
       </div>
 
       <div class="fr">
@@ -2022,7 +1975,7 @@ async function apriSchedaVerniceIntumescente() {
 
     <div class="card">
       ${areaPreventivo(
-        'Foto, misure e dettagli dei profili *',
+        'Foto, misure e dettagli dei profili',
         'vi-foto',
         d.foto,
         'Indica le foto caricate negli allegati tecnici.'
@@ -2083,20 +2036,7 @@ async function salvaSchedaVerniceIntumescente() {
     note_tecniche: v('vi-note-tecniche')
   };
 
-  if (
-    !dati.elemento ||
-    !dati.classe_r ||
-    !dati.profilo ||
-    !dati.numero_elementi ||
-    (!dati.sviluppo_lineare && !dati.superficie) ||
-    !dati.foto
-  ) {
-    toast(
-      'Compila elemento, classe R, profilo, quantità, sviluppo o superficie e foto',
-      'err'
-    );
-    return;
-  }
+  // Nessun campo obbligatorio nelle schede tecniche (decisione di Erika del 28/10)
 
   const { error } = await db
     .from('progetti_tecnici_schede')
@@ -2181,7 +2121,7 @@ async function apriSchedaImpiantiSpegnimento() {
 
     <div class="card">
       <div class="fr">
-        ${selectPreventivo('Tipo impianto *', 'is-tipo-impianto', d.tipo_impianto || '', [
+        ${selectPreventivo('Tipo impianto', 'is-tipo-impianto', d.tipo_impianto || '', [
           { value: '', label: 'Seleziona' },
           { value: 'idranti', label: 'Idranti' },
           { value: 'naspi', label: 'Naspi' },
@@ -2192,7 +2132,7 @@ async function apriSchedaImpiantiSpegnimento() {
           { value: 'altro', label: 'Altro' }
         ])}
 
-        ${selectPreventivo('Tipo intervento *', 'is-tipo-intervento', d.tipo_intervento || '', [
+        ${selectPreventivo('Tipo intervento', 'is-tipo-intervento', d.tipo_intervento || '', [
           { value: '', label: 'Seleziona' },
           { value: 'nuovo', label: 'Nuovo impianto' },
           { value: 'ampliamento', label: 'Ampliamento' },
@@ -2202,7 +2142,7 @@ async function apriSchedaImpiantiSpegnimento() {
       </div>
 
       ${campoPreventivo(
-        'Area o compartimento da proteggere *',
+        'Area o compartimento da proteggere',
         'is-area-protetta',
         d.area_protetta,
         'text',
@@ -2222,7 +2162,7 @@ async function apriSchedaImpiantiSpegnimento() {
 
     <div class="card">
       ${areaPreventivo(
-        'Impianto esistente: marca, modello, anno, stato e documentazione *',
+        'Impianto esistente: marca, modello, anno, stato e documentazione',
         'is-impianto-esistente',
         d.impianto_esistente,
         'Indica anche se assente o non documentato.'
@@ -2238,7 +2178,7 @@ async function apriSchedaImpiantiSpegnimento() {
         ])}
 
         ${campoPreventivo(
-          'Pressione disponibile *',
+          'Pressione disponibile',
           'is-pressione',
           d.pressione,
           'text',
@@ -2248,7 +2188,7 @@ async function apriSchedaImpiantiSpegnimento() {
 
       <div class="fr">
         ${campoPreventivo(
-          'Portata disponibile *',
+          'Portata disponibile',
           'is-portata',
           d.portata,
           'text',
@@ -2256,7 +2196,7 @@ async function apriSchedaImpiantiSpegnimento() {
         )}
 
         ${campoPreventivo(
-          'Riserva idrica disponibile *',
+          'Riserva idrica disponibile',
           'is-riserva',
           d.riserva,
           'text',
@@ -2326,7 +2266,7 @@ async function apriSchedaImpiantiSpegnimento() {
 
     <div class="card">
       ${areaPreventivo(
-        'Foto locale pompe, rete, terminali e criticità *',
+        'Foto locale pompe, rete, terminali e criticità',
         'is-foto',
         d.foto,
         'Indica le foto caricate negli allegati tecnici.'
@@ -2380,22 +2320,7 @@ async function salvaSchedaImpiantiSpegnimento() {
     note_tecniche: v('is-note-tecniche')
   };
 
-  if (
-    !dati.tipo_impianto ||
-    !dati.tipo_intervento ||
-    !dati.area_protetta ||
-    !dati.impianto_esistente ||
-    !dati.pressione ||
-    !dati.portata ||
-    !dati.riserva ||
-    !dati.foto
-  ) {
-    toast(
-      'Compila impianto, intervento, area, dati esistenti, pressione, portata, riserva e foto',
-      'err'
-    );
-    return;
-  }
+  // Nessun campo obbligatorio nelle schede tecniche (decisione di Erika del 28/10)
 
   const { error } = await db
     .from('progetti_tecnici_schede')
