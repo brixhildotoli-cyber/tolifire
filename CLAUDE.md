@@ -71,25 +71,25 @@ date_fissate_il (sola lettura; le scrive imposta_date_commessa);
 commesse_faldone, commesse_faldone_persone, commesse_faldone_voci (sola
 lettura per titolare, segreteria, capo_tecnico; si scrivono solo con le
 RPC del faldone, js/31).
-Dopo sql/35 (F8.2, da eseguire, richiede 07, 26 e 32): mezzi_attrezzature
+Dopo sql/35 (F8.2, eseguito il 28/10, richiede 07, 26 e 32): mezzi_attrezzature
 (lettura, inserimento e modifica diretti di titolare, segreteria,
 capo_tecnico; niente cancellazione: attivo=false),
 commesse_squadra_giorni, commesse_squadra_persone,
 commesse_squadra_mezzi (sola lettura per titolare, segreteria,
 capo_tecnico; si scrivono solo con le RPC della squadra, js/33).
-Dopo sql/36 (F8.3, da eseguire, richiede 07 e 26): commesse_fasi
+Dopo sql/36 (F8.3, eseguito il 28/10, richiede 07 e 26): commesse_fasi
 (sola lettura per chi legge la commessa; si scrive solo con le RPC del
 cronoprogramma, js/34).
-Dopo sql/37 (F8.4, da eseguire, richiede 07, 26 e 32): commesse_lavorazioni
+Dopo sql/37 (F8.4, eseguito il 28/10, richiede 07, 26 e 32): commesse_lavorazioni
 (lettura per chi legge la commessa), commesse_giornale (lettura titolare,
 segreteria, capo_tecnico), commesse_giornale_ore (lettura SOLO titolare e
 capo_tecnico: ore per persona); si scrivono solo con le RPC del giornale,
 js/35.
-Dopo sql/38 (F8.5, da eseguire, richiede 07, 22 e 26): commesse_lavori_extra
+Dopo sql/38 (F8.5, eseguito il 28/10, richiede 07, 22 e 26): commesse_lavori_extra
 (sola lettura per chi legge la commessa; si scrive solo con
 registra_lavoro_extra e annulla_lavoro_extra e dal trigger sui
 preventivi, js/36).
-Dopo sql/39 (F9.2, da eseguire, richiede 25, 26, 28 e 29): colonne nuove
+Dopo sql/39 (F9.2, eseguito il 28/10, richiede 25, 26, 28 e 29): colonne nuove
 commesse.fattura_finale_* (numero, data, importo, calcolato, con_extra,
 dettaglio, nota, registrata_da, registrata_da_nome, registrata_il) e
 chiusura_forzata, chiusura_motivo_forzatura, chiusura_problemi (sola
@@ -147,16 +147,16 @@ registra_accredito_anticipo, rifiuta_per_anticipo_non_versato.
 Dopo sql/22 (F4.1, da eseguire): accetta_preventivo, rifiuta_preventivo.
 Dopo sql/34 (F8.1, eseguito il 28/10): scheda_cantiere_commessa,
 imposta_dati_cantiere_commessa.
-Dopo sql/35 (F8.2, da eseguire): salva_squadra_cantiere,
+Dopo sql/35 (F8.2, eseguito il 28/10): salva_squadra_cantiere,
 togli_giorno_squadra, impegni_squadra_periodo, miei_giorni_cantiere.
-Dopo sql/36 (F8.3, da eseguire): salva_fase_commessa,
+Dopo sql/36 (F8.3, eseguito il 28/10): salva_fase_commessa,
 aggiungi_fasi_commessa, sposta_fase_commessa, togli_fase_commessa.
-Dopo sql/37 (F8.4, da eseguire): salva_lavorazioni_commessa,
+Dopo sql/37 (F8.4, eseguito il 28/10): salva_lavorazioni_commessa,
 salva_giornale_cantiere, togli_giornale_cantiere,
 presenti_giornale_commessa, mie_ore_cantiere.
-Dopo sql/38 (F8.5, da eseguire): registra_lavoro_extra,
+Dopo sql/38 (F8.5, eseguito il 28/10): registra_lavoro_extra,
 annulla_lavoro_extra, voci_lavori_extra_commessa.
-Dopo sql/39 (F9.2, da eseguire): controllo_chiusura_commessa,
+Dopo sql/39 (F9.2, eseguito il 28/10): controllo_chiusura_commessa,
 registra_fattura_finale_commessa, chiudi_commessa.
 Dopo sql/40 (F10.1, da eseguire): registra_rinnovo_contratto.
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
@@ -720,7 +720,7 @@ sql/34 la scheda mostra indirizzo, referente del cliente, materiali e
 certificati della commessa e dice che il resto "non è ancora attivo".
 
 Squadra e mezzi del giorno (F8.2, js/33-squadra-cantiere.js;
-sql/35-squadra-cantiere da eseguire, richiede 07, 26 e 32, NON 28-31,
+sql/35-squadra-cantiere eseguito il 28/10, richiede 07, 26 e 32, NON 28-31,
 33, 34): passo 11. Box "👷 Squadra e mezzi del giorno" (cmd-squadra) in
 fondo alla scheda "🏗️ Cantiere" della commessa: lo vedono titolare,
 segreteria e capo_tecnico; scrivono capo_tecnico e titolare (RPC
@@ -767,7 +767,7 @@ sql/35 il box dice "non sono ancora attivi", il calendario e la
 dashboard del tecnico sono come prima.
 
 Cronoprogramma e % di avanzamento (F8.3, js/34-cronoprogramma-
-commessa.js; sql/36-cronoprogramma-commessa da eseguire, richiede 07 e
+commessa.js; sql/36-cronoprogramma-commessa eseguito il 28/10, richiede 07 e
 26, NON 28-35): passo 11. Box "📅 Cronoprogramma e avanzamento"
 (cmd-cronoprogramma) nella scheda "🏗️ Cantiere", dopo la scheda
 cantiere e prima della squadra; riquadro compatto della % in cima alla
@@ -808,7 +808,7 @@ performance: F8.4. Senza sql/36 il box dice "non sono ancora attivi"
 e la colonna non compare.
 
 Giornale di cantiere e performance operai (F8.4, js/35-giornale-
-cantiere.js; sql/37-giornale-cantiere da eseguire, richiede 07, 26 e 32,
+cantiere.js; sql/37-giornale-cantiere eseguito il 28/10, richiede 07, 26 e 32,
 tutti in produzione; NON richiede 28, 33-36): passo 11. Nella scheda
 "🏗️ Cantiere", dopo la squadra: box "📓 Giornale di cantiere"
 (cmd-giornale; titolare, segreteria, capo_tecnico) e "⏱️ Ore stimate e
@@ -974,7 +974,7 @@ salvate. Domande aperte per Toli: il capo tecnico può generarla
 responsabile tecnico; per la SCIA ai VV.F. serve comunque la modulistica ufficiale (es. DICH.PROD, PIN 2.3): questo PDF è la dichiarazione dell'impresa da allegare.
 
 Fattura finale e chiusura della commessa (F9.2, js/38-fattura-finale-
-commessa.js; sql/39-fattura-finale-chiusura da eseguire, richiede 25, 26,
+commessa.js; sql/39-fattura-finale-chiusura eseguito il 28/10, richiede 25, 26,
 28 e 29, tutti in produzione; 38 facoltativo, letto con to_regclass +
 EXECUTE): passo 12. Box "💶 Fattura finale" (cmd-fattura-finale, in
 "Commessa e documenti" sotto cmd-dichiarazione) con la commessa in fine
