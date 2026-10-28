@@ -1186,3 +1186,43 @@ pre {
 .sq-tec-giorno summary::-webkit-details-marker{display:none}
 .sq-tec-campo{padding:6px 0;border-top:1px solid var(--bo);font-size:13px}
 .sq-tec-etichetta{font-size:11px;color:var(--m);margin-bottom:2px}
+/* F8.3 — Cronoprogramma e % di avanzamento (js/34): box nella scheda
+   cantiere, riquadro compatto, colonna nella pagina Commesse */
+.crono-card,.crono-compatto{padding:12px 14px;margin-bottom:10px}
+.crono-titolo{font-size:15px;font-weight:700;margin-bottom:4px}
+.crono-perc{font-size:16px;font-weight:700;white-space:nowrap}
+.crono-perc.grande{font-size:24px}
+.crono-barra{height:12px;background:var(--gyl);border-radius:6px;overflow:hidden;margin-top:4px}
+.crono-barra.piccola{height:6px;border-radius:3px}
+.crono-barra>div{height:100%;border-radius:inherit;transition:width .2s}
+.crono-fase{padding:10px 0;border-top:1px solid var(--bo)}
+.crono-date{display:flex;gap:4px 14px;flex-wrap:wrap;font-size:12px;margin-top:5px}
+.crono-date span{color:var(--m)}
+.crono-azioni{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.crono-azioni .btn.sm{min-height:36px;min-width:40px;justify-content:center}
+.crono-bottoni{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.crono-bottoni .btn{flex:1 1 200px;justify-content:center;padding:12px 14px;font-size:14px}
+.crono-rapidi{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px}
+.crono-rapidi .btn.sm{min-height:36px}
+.crono-cella{min-width:90px}
+.crono-cella .crono-barra{margin-top:3px}
+.crono-gantt{margin:6px 0 4px;border:1px solid var(--bo);border-radius:var(--rs);padding:8px 10px}
+.crono-gantt summary{font-size:13px;font-weight:600;cursor:pointer}
+.crono-g-riga{display:grid;grid-template-columns:minmax(0,38%) minmax(0,1fr);gap:8px;align-items:center;padding:4px 0;border-bottom:1px dashed var(--bo)}
+.crono-g-nome{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crono-g-pista{position:relative;height:22px;background:var(--bg);border-radius:4px}
+.crono-g-prev{position:absolute;top:3px;height:10px;background:var(--bl);border:1px solid #378ADD;border-radius:3px;overflow:hidden;box-sizing:border-box}
+.crono-g-prev>div{height:100%;background:#378ADD}
+.crono-g-prev.ritardo{border-color:#E24B4A;background:var(--rl)}
+.crono-g-prev.ritardo>div{background:#E24B4A}
+.crono-g-eff{position:absolute;top:15px;height:4px;background:#EF9F27;border-radius:2px}
+.crono-g-eff.finita{background:var(--gm)}
+.crono-oggi{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#E24B4A;z-index:1}
+.crono-g-legenda{display:flex;gap:4px 12px;flex-wrap:wrap;font-size:11px;color:var(--m);margin-top:6px}
+.crono-g-legenda i{display:inline-block;width:14px;height:8px;border-radius:2px;vertical-align:middle;margin-right:3px}
+.crono-g-legenda i.prev{background:#378ADD}
+.crono-g-legenda i.eff{background:#EF9F27;height:4px}
+.crono-g-legenda i.oggi{background:#E24B4A;width:2px;height:12px}
+#m-fase-cronoprogramma .ma,#m-proposta-fasi .ma{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:14px}
+.crono-solo-mobile{display:none;margin-top:3px}
+@media(max-width:700px){.crono-solo-mobile{display:block}}

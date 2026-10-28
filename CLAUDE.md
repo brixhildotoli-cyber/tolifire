@@ -77,6 +77,9 @@ capo_tecnico; niente cancellazione: attivo=false),
 commesse_squadra_giorni, commesse_squadra_persone,
 commesse_squadra_mezzi (sola lettura per titolare, segreteria,
 capo_tecnico; si scrivono solo con le RPC della squadra, js/33).
+Dopo sql/36 (F8.3, da eseguire, richiede 07 e 26): commesse_fasi
+(sola lettura per chi legge la commessa; si scrive solo con le RPC del
+cronoprogramma, js/34).
 
 Usate dal frontend — fatturazione:
 fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
@@ -127,6 +130,8 @@ Dopo sql/34 (F8.1, eseguito il 28/10): scheda_cantiere_commessa,
 imposta_dati_cantiere_commessa.
 Dopo sql/35 (F8.2, da eseguire): salva_squadra_cantiere,
 togli_giorno_squadra, impegni_squadra_periodo, miei_giorni_cantiere.
+Dopo sql/36 (F8.3, da eseguire): salva_fase_commessa,
+aggiungi_fasi_commessa, sposta_fase_commessa, togli_fase_commessa.
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
 Sono gli accessi che le policy RLS per il portale dovranno permettere
 (F1.1), sempre filtrati sul cliente del portale (`cliente_id`):
@@ -713,6 +718,47 @@ compaiono ancora), calendario del capo tecnico se è lui in squadra. Il
 sostituto del capo tecnico NON è implementato (domanda aperta). Senza
 sql/35 il box dice "non sono ancora attivi", il calendario e la
 dashboard del tecnico sono come prima.
+
+Cronoprogramma e % di avanzamento (F8.3, js/34-cronoprogramma-
+commessa.js; sql/36-cronoprogramma-commessa da eseguire, richiede 07 e
+26, NON 28-35): passo 11. Box "📅 Cronoprogramma e avanzamento"
+(cmd-cronoprogramma) nella scheda "🏗️ Cantiere", dopo la scheda
+cantiere e prima della squadra; riquadro compatto della % in cima alla
+scheda Cantiere (cmd-avanzamento-cantiere, solo se ci sono fasi) e sotto
+il riepilogo in "Commessa e documenti" (cmd-avanzamento, con "Apri il
+cronoprogramma"); colonna "Avanzamento" nella pagina Commesse (th
+commesse-th-avanzamento, nascosta senza sql/36; sul telefono la % anche
+sotto il codice). Tabella `commesse_fasi`: nome, ordine, peso (1-100,
+predefinito 1), inizio/fine previsti, inizio/fine effettivi (mai dopo
+oggi, ora italiana), percentuale 0-100, note, chi/quando. Regole (DB):
+100% se e solo se c'è la fine effettiva (100% senza data = finita oggi;
+fine effettiva con meno del 100% = errore); oltre lo 0% serve l'inizio
+effettivo (se manca = oggi); max 60 fasi. % DELLA COMMESSA = somma(peso
+x %) / somma(peso), arrotondata, calcolata dal sito
+(`calcolaAvanzamentoFasi`, stessa formula in scheda e pagina Commesse);
+senza fasi "Cronoprogramma da preparare". Scelta: peso a mano
+(predefinito 1 = tutte uguali), NON in giorni (la durata non dice
+quanto lavoro c'è). Fase IN RITARDO: fine prevista prima di oggi e non
+al 100% (non si salva). Avvisi senza blocco: fasi fuori dalle date dei
+lavori (sql/33), fine lavori prevista passata con % sotto 100, commessa
+in fine lavori o chiusa con % sotto 100. Mini cronoprogramma a barre
+solo CSS (previsto riempito con la %, effettivo sotto, linea di oggi).
+SCRIVONO capo_tecnico e titolare (RPC salva_fase_commessa,
+aggiungi_fasi_commessa, sposta_fase_commessa, togli_fase_commessa; su
+commessa chiusa o annullata solo il titolare); LEGGONO tutti quelli
+che leggono la commessa (rappresentante solo le sue). Finestra
+m-fase-cronoprogramma (cursore e bottoni 0/25/50/75/100%, date, peso,
+note, "Togli la fase"); "Proponi le fasi dal preventivo"
+(m-proposta-fasi): voci del preventivo senza prezzi da
+scheda_cantiere_commessa (sql/34; senza, solo le fasi tipiche),
+spuntate quelle di manodopera e servizi (se non ce ne sono, i
+materiali), noli e trasporti no, più 3 fasi tipiche non spuntate
+(allestimento, prove e collaudo, smobilizzo). Lo stato della commessa
+NON cambia da solo: con tutte le fasi al 100% e la commessa "in corso"
+capo tecnico e titolare vedono "Segna Fine lavori" (apre "Stato e
+storico" di js/18, solo con sql/28). Giornale di cantiere, foto, ore e
+performance: F8.4. Senza sql/36 il box dice "non sono ancora attivi"
+e la colonna non compare.
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

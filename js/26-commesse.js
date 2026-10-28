@@ -14,7 +14,8 @@
 // storico) e con sql/29 (cartella documenti). Ordini ai fornitori: js/27
 // (sql/30); consumabili e noli: js/28 (sql/31); elenco materiali: js/29;
 // date dei lavori e faldone: js/31 (sql/33); scheda cantiere: js/32
-// (sql/34).
+// (sql/34); squadra del giorno: js/33 (sql/35); cronoprogramma e %
+// di avanzamento: js/34 (sql/36).
 // =====================================================================
 
 // Cartelle dei documenti (stesso elenco del vincolo di sql/29).
@@ -129,11 +130,11 @@ async function loadCommesse() {
   const evidenza = ge('commesse-evidenza');
   if (!lista) return;
 
-  lista.innerHTML = '<tr><td colspan="7"><div class="load">Caricamento...</div></td></tr>';
+  lista.innerHTML = '<tr><td colspan="8"><div class="load">Caricamento...</div></td></tr>';
   if (evidenza) evidenza.innerHTML = '';
 
   if (!(await verificaCommesseDisponibili())) {
-    lista.innerHTML = '<tr><td colspan="7"><div class="empty">Le commesse non sono ancora attive.</div></td></tr>';
+    lista.innerHTML = '<tr><td colspan="8"><div class="empty">Le commesse non sono ancora attive.</div></td></tr>';
     return;
   }
 
@@ -147,13 +148,15 @@ async function loadCommesse() {
     .order('numero', { ascending: false });
 
   if (error) {
-    lista.innerHTML = `<tr><td colspan="7"><div class="al2 e">Errore caricamento commesse: ${esc(error.message)}</div></td></tr>`;
+    lista.innerHTML = `<tr><td colspan="8"><div class="al2 e">Errore caricamento commesse: ${esc(error.message)}</div></td></tr>`;
     return;
   }
 
   commesseElenco = data || [];
   // F6.2: richieste di consumabili e noli per "Tocca a te" (js/28).
   if (typeof caricaRiepilogoRichiesteIntegrazione === 'function') await caricaRiepilogoRichiesteIntegrazione(null);
+  // F8.3: % di avanzamento per la colonna "Avanzamento" (js/34, sql/36).
+  if (typeof caricaAvanzamentoCommesse === 'function') await caricaAvanzamentoCommesse();
   renderEvidenzaCommesse();
   filtraCommesse();
 }
@@ -239,11 +242,15 @@ function filtraCommesse() {
       .includes(q);
   });
 
+  // F8.3: colonna "Avanzamento" solo con il cronoprogramma attivo (js/34).
+  const conAvanzamento = typeof avanzamentoCommesseAttivo === 'function' && avanzamentoCommesseAttivo();
+  if (ge('commesse-th-avanzamento')) ge('commesse-th-avanzamento').style.display = conAvanzamento ? '' : 'none';
+
   const conta = ge('commesse-conta');
   if (conta) conta.textContent = righe.length + (righe.length === 1 ? ' commessa' : ' commesse');
 
   if (!righe.length) {
-    lista.innerHTML = `<tr><td colspan="7"><div class="empty">${commesseElenco.length ? 'Nessuna commessa con questi filtri.' : 'Nessuna commessa.'}</div></td></tr>`;
+    lista.innerHTML = `<tr><td colspan="8"><div class="empty">${commesseElenco.length ? 'Nessuna commessa con questi filtri.' : 'Nessuna commessa.'}</div></td></tr>`;
     return;
   }
 
@@ -253,11 +260,12 @@ function filtraCommesse() {
     const prossimo = testoProssimoPassoCommessa(c);
     return `
       <tr${mia ? ' style="background:var(--al)"' : ''}>
-        <td><b>${esc(c.codice)}</b>${mia ? ' ⭐' : ''}</td>
+        <td><b>${esc(c.codice)}</b>${mia ? ' ⭐' : ''}${conAvanzamento ? htmlAvanzamentoSottoCodice(c) : ''}</td>
         <td>${esc(c.clienti?.ragione_sociale || '—')}</td>
         <td>${esc(c.titolo || '—')}</td>
         <td>${sede ? esc(sede) : '<span style="color:var(--a)">da indicare</span>'}</td>
         <td>${badgeStatoCommessa(c.stato)}${prossimo ? `<div style="font-size:11px;color:var(--m);margin-top:2px">poi: ${esc(prossimo)}</div>` : ''}</td>
+        ${conAvanzamento ? `<td>${htmlCellaAvanzamentoCommessa(c)}</td>` : ''}
         <td style="white-space:nowrap">${c.importo_imponibile != null ? esc(euroPreventivo(c.importo_imponibile)) : '—'}</td>
         <td><button class="btn sm p" onclick="openCommessaDetail('${esc(c.id)}')">Apri</button></td>
       </tr>
@@ -304,6 +312,7 @@ async function caricaSchedaCommessa(commessaId) {
   if (ge('cmd-richieste')) ge('cmd-richieste').innerHTML = '';
   if (ge('cmd-faldone')) ge('cmd-faldone').innerHTML = '';
   if (ge('cmd-squadra')) ge('cmd-squadra').innerHTML = '';
+  ['cmd-cronoprogramma', 'cmd-avanzamento', 'cmd-avanzamento-cantiere'].forEach(function(id) { if (ge(id)) ge(id).innerHTML = ''; });
   // F8.1: scheda cantiere (js/32): sceglie la scheda da mostrare.
   if (typeof preparaSchedaCantiere === 'function') preparaSchedaCantiere(commessaId);
 
@@ -344,6 +353,9 @@ async function caricaSchedaCommessa(commessaId) {
   // F8.1: scheda cantiere (js/32), per ultima: riusa materiali, faldone e
   // documenti appena letti.
   if (typeof caricaSchedaCantiere === 'function') await caricaSchedaCantiere(commessa);
+  // F8.3: cronoprogramma e % di avanzamento (js/34, attivi con sql/36),
+  // dopo la scheda cantiere (riusa le date dei lavori lette lì).
+  if (typeof caricaCronoprogrammaCommessa === 'function') await caricaCronoprogrammaCommessa(commessa);
   // F8.2: squadra e mezzi del giorno (js/33, attivi con sql/35), dopo la
   // scheda cantiere e il faldone (riusa date dei lavori e persone).
   if (typeof caricaSquadraCantiere === 'function') await caricaSquadraCantiere(commessa);

@@ -1884,7 +1884,7 @@
       <option value="tutte">Tutte</option>
     </select>
   </div>
-  <div class="tw"><table><thead><tr><th>Codice</th><th>Cliente</th><th>Lavoro</th><th>Sede del cantiere</th><th>Stato</th><th>Importo</th><th></th></tr></thead><tbody id="commesse-tbody"><tr><td colspan="7"><div class="load">Caricamento...</div></td></tr></tbody></table></div>
+  <div class="tw"><table><thead><tr><th>Codice</th><th>Cliente</th><th>Lavoro</th><th>Sede del cantiere</th><th>Stato</th><th id="commesse-th-avanzamento" style="display:none">Avanzamento</th><th>Importo</th><th></th></tr></thead><tbody id="commesse-tbody"><tr><td colspan="8"><div class="load">Caricamento...</div></td></tr></tbody></table></div>
 </div>
 
 <!-- SCHEDA COMMESSA (F5.3, js/26) -->
@@ -1903,12 +1903,18 @@
     <button class="tab on" id="cmd-tab-btn-commessa" onclick="mostraTabCommessa('commessa')">📁 Commessa e documenti</button>
   </div>
   <div class="tc" id="cmd-tab-cantiere">
+    <!-- F8.3: % di avanzamento in breve (js/34, attivo con sql/36) -->
+    <div id="cmd-avanzamento-cantiere"></div>
     <div id="cmd-cantiere"></div>
+    <!-- F8.3: cronoprogramma e % di avanzamento (js/34, attivo con sql/36) -->
+    <div id="cmd-cronoprogramma"></div>
     <!-- F8.2: squadra e mezzi del giorno (js/33, attivi con sql/35) -->
     <div id="cmd-squadra"></div>
   </div>
   <div class="tc on" id="cmd-tab-commessa">
     <div id="cmd-riepilogo"><div class="load">Caricamento...</div></div>
+    <!-- F8.3: % di avanzamento in breve (js/34, attivo con sql/36) -->
+    <div id="cmd-avanzamento"></div>
     <div id="cmd-materiali"></div>
     <div id="cmd-ordini"></div>
     <div id="cmd-richieste"></div>
@@ -3252,6 +3258,74 @@
   </div>
 </div>
 
+<!-- F8.3 — FASE DEL CRONOPROGRAMMA (js/34, solo con sql/36) -->
+<div class="mbg" id="m-fase-cronoprogramma">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-fase-cronoprogramma')">×</button>
+    <h3 id="crf-titolo">📅 Fase del cronoprogramma</h3>
+    <div id="crf-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div class="f">
+      <label>Nome della fase *</label>
+      <input type="text" id="crf-nome" maxlength="200" placeholder="es. Posa porte REI 60 piano terra">
+    </div>
+    <div style="font-size:13px;font-weight:700;margin:6px 0 4px">Avanzamento</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <input type="range" id="crf-perc" min="0" max="100" step="5" value="0" style="flex:1" oninput="impostaPercentualeFase(this.value)">
+      <b id="crf-perc-testo" style="font-size:18px;min-width:52px;text-align:right">0%</b>
+    </div>
+    <div class="crono-rapidi">
+      <button type="button" class="btn sm" data-perc="0" onclick="impostaPercentualeFase(0)">0%</button>
+      <button type="button" class="btn sm" data-perc="25" onclick="impostaPercentualeFase(25)">25%</button>
+      <button type="button" class="btn sm" data-perc="50" onclick="impostaPercentualeFase(50)">50%</button>
+      <button type="button" class="btn sm" data-perc="75" onclick="impostaPercentualeFase(75)">75%</button>
+      <button type="button" class="btn sm" data-perc="100" onclick="impostaPercentualeFase(100)">100% finita</button>
+    </div>
+    <div style="font-size:13px;font-weight:700;margin:10px 0 4px">Date previste</div>
+    <div class="fr">
+      <div class="f"><label>Inizio previsto</label><input type="date" id="crf-inizio-prev"></div>
+      <div class="f"><label>Fine prevista</label><input type="date" id="crf-fine-prev"></div>
+    </div>
+    <div style="font-size:13px;font-weight:700;margin:4px 0 4px">Date effettive</div>
+    <div class="fr">
+      <div class="f"><label>Iniziata il</label><input type="date" id="crf-inizio-eff"></div>
+      <div class="f"><label>Finita il</label><input type="date" id="crf-fine-eff" onchange="cambiaFineEffettivaFase()"></div>
+    </div>
+    <div class="fr">
+      <div class="f">
+        <label>Peso nella % della commessa</label>
+        <input type="number" id="crf-peso" min="1" max="100" step="1" value="1">
+        <div style="font-size:11px;color:var(--m);margin-top:2px">1 = come le altre fasi; 2 = vale il doppio.</div>
+      </div>
+    </div>
+    <div class="f">
+      <label>Note</label>
+      <textarea id="crf-note" rows="2" maxlength="1000" placeholder="es. in attesa delle porte del lotto 2"></textarea>
+    </div>
+    <div id="crf-avviso"></div>
+    <div class="ma">
+      <button class="btn" id="crf-togli" style="margin-right:auto;color:var(--r)" onclick="togliFaseCronoprogramma()">Togli la fase</button>
+      <button class="btn" onclick="closeM('m-fase-cronoprogramma')">Annulla</button>
+      <button class="btn p" id="crf-salva" onclick="salvaFaseCronoprogramma()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- F8.3 — PROPOSTA DELLE FASI DAL PREVENTIVO (js/34, solo con sql/36) -->
+<div class="mbg" id="m-proposta-fasi">
+  <div class="modal" style="max-width:560px">
+    <button class="x" onclick="closeM('m-proposta-fasi')">×</button>
+    <h3>📋 Fasi dal preventivo</h3>
+    <div id="crp-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:6px"></div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Spunta le voci che diventano fasi del cronoprogramma (si aggiungono in fondo, al 0%, senza date). Poi indica date previste e peso con "Aggiorna".</div>
+    <div id="crp-avviso"></div>
+    <div id="crp-elenco" class="sq-elenco" style="max-height:360px"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-proposta-fasi')">Annulla</button>
+      <button class="btn p" id="crp-salva" onclick="confermaPropostaFasi()">Aggiungi le fasi spuntate</button>
+    </div>
+  </div>
+</div>
+
 <!-- F5.2 — STATO DELLA COMMESSA E STORICO (solo con sql/28) -->
 <div class="mbg" id="m-stato-commessa">
   <div class="modal" style="max-width:560px">
@@ -4525,6 +4599,7 @@
 <script defer src="js/31-faldone-commessa.js"></script>
 <script defer src="js/32-scheda-cantiere.js"></script>
 <script defer src="js/33-squadra-cantiere.js"></script>
+<script defer src="js/34-cronoprogramma-commessa.js"></script>
 <script defer src="js/19-init.js"></script>
 
 
