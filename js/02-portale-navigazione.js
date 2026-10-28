@@ -689,6 +689,10 @@ async function loadDashCommerciale() {
   if (typeof caricaRichiesteIntegrazioneDashboard === 'function') {
     caricaRichiesteIntegrazioneDashboard().catch(function(e){ console.warn('caricaRichiesteIntegrazioneDashboard:', e); });
   }
+  // F8.5: lavori extra da preventivare (js/36, solo con sql/38)
+  if (typeof caricaLavoriExtraDashboard === 'function') {
+    caricaLavoriExtraDashboard().catch(function(e){ console.warn('caricaLavoriExtraDashboard:', e); });
+  }
 
   const [
     progettiRicevutiRes,

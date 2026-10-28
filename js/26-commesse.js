@@ -15,7 +15,8 @@
 // (sql/30); consumabili e noli: js/28 (sql/31); elenco materiali: js/29;
 // date dei lavori e faldone: js/31 (sql/33); scheda cantiere: js/32
 // (sql/34); squadra del giorno: js/33 (sql/35); cronoprogramma e %
-// di avanzamento: js/34 (sql/36).
+// di avanzamento: js/34 (sql/36); lavori extra e riepilogo per la
+// chiusura dopo la fine lavori: js/36 (sql/38).
 // =====================================================================
 
 // Cartelle dei documenti (stesso elenco del vincolo di sql/29).
@@ -96,6 +97,10 @@ function motiviToccaAMeCommessa(commessa) {
   if (typeof motiviRichiesteIntegrazioneCommessa === 'function') {
     motivi.push.apply(motivi, motiviRichiesteIntegrazioneCommessa(commessa));
   }
+  // F8.5: lavori extra da preventivare o da far approvare (js/36, sql/38).
+  if (typeof motiviLavoriExtraCommessa === 'function') {
+    motivi.push.apply(motivi, motiviLavoriExtraCommessa(commessa));
+  }
 
   return motivi;
 }
@@ -155,6 +160,8 @@ async function loadCommesse() {
   commesseElenco = data || [];
   // F6.2: richieste di consumabili e noli per "Tocca a te" (js/28).
   if (typeof caricaRiepilogoRichiesteIntegrazione === 'function') await caricaRiepilogoRichiesteIntegrazione(null);
+  // F8.5: lavori extra per "Tocca a te" (js/36).
+  if (typeof caricaRiepilogoLavoriExtra === 'function') await caricaRiepilogoLavoriExtra(null);
   // F8.3: % di avanzamento per la colonna "Avanzamento" (js/34, sql/36).
   if (typeof caricaAvanzamentoCommesse === 'function') await caricaAvanzamentoCommesse();
   renderEvidenzaCommesse();
@@ -314,6 +321,7 @@ async function caricaSchedaCommessa(commessaId) {
   if (ge('cmd-squadra')) ge('cmd-squadra').innerHTML = '';
   ['cmd-cronoprogramma', 'cmd-avanzamento', 'cmd-avanzamento-cantiere'].forEach(function(id) { if (ge(id)) ge(id).innerHTML = ''; });
   ['cmd-giornale', 'cmd-ore', 'cmd-ore-compatto'].forEach(function(id) { if (ge(id)) ge(id).innerHTML = ''; });
+  ['cmd-lavori-extra', 'cmd-lavori-extra-avviso', 'cmd-lavori-extra-compatto', 'cmd-chiusura'].forEach(function(id) { if (ge(id)) ge(id).innerHTML = ''; });
   // F8.1: scheda cantiere (js/32): sceglie la scheda da mostrare.
   if (typeof preparaSchedaCantiere === 'function') preparaSchedaCantiere(commessaId);
 
@@ -340,6 +348,8 @@ async function caricaSchedaCommessa(commessaId) {
 
   // F6.2: richieste di consumabili e noli per "Tocca a te" (js/28).
   if (typeof caricaRiepilogoRichiesteIntegrazione === 'function') await caricaRiepilogoRichiesteIntegrazione(commessa.id);
+  // F8.5: lavori extra per "Tocca a te" (js/36).
+  if (typeof caricaRiepilogoLavoriExtra === 'function') await caricaRiepilogoLavoriExtra(commessa.id);
   riepilogo.innerHTML = htmlRiepilogoCommessa(commessa);
   // F6.1: ordini ai fornitori (js/27, attivi con sql/30).
   if (typeof caricaOrdiniCommessa === 'function') await caricaOrdiniCommessa(commessa);
@@ -363,6 +373,10 @@ async function caricaSchedaCommessa(commessaId) {
   // F8.4: giornale di cantiere e ore stimate contro effettive (js/35,
   // attivi con sql/37), per ultimi: riusano documenti, squadra e fasi.
   if (typeof caricaGiornaleCantiere === 'function') await caricaGiornaleCantiere(commessa);
+  // F8.5: lavori extra (js/36, attivi con sql/38) e, in fine lavori, il
+  // riepilogo per la chiusura della segreteria (riusa i dati letti sopra).
+  if (typeof caricaLavoriExtraCommessa === 'function') await caricaLavoriExtraCommessa(commessa);
+  if (typeof caricaRiepilogoChiusuraCommessa === 'function') await caricaRiepilogoChiusuraCommessa(commessa);
 }
 
 function htmlRiepilogoCommessa(c) {
@@ -700,6 +714,8 @@ async function loadCommesseCliente(clienteId) {
   await verificaStatiCommessaDisponibili();
   // F6.2: richieste di consumabili e noli per la stellina (js/28).
   if (typeof caricaRiepilogoRichiesteIntegrazione === 'function') await caricaRiepilogoRichiesteIntegrazione(null);
+  // F8.5: lavori extra per la stellina (js/36).
+  if (typeof caricaRiepilogoLavoriExtra === 'function') await caricaRiepilogoLavoriExtra(null);
 
   const { data, error } = await db
     .from('commesse')

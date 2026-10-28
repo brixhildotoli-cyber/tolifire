@@ -8563,6 +8563,23 @@ async function aggiungiCommessaAiPreventivi(preventivi) {
   accettati.forEach(function(p) {
     p._commessa = mappa[p.id] || null;
   });
+
+  // F8.5: il preventivo integrativo di un lavoro extra non ha una
+  // commessa sua: resta nella commessa del lavoro extra (js/36, sql/38).
+  const senzaCommessa = accettati.filter(function(p) { return !p._commessa; });
+  if (senzaCommessa.length && typeof verificaLavoriExtraDisponibili === 'function' &&
+      (await verificaLavoriExtraDisponibili())) {
+    const { data: extra, error: erroreExtra } = await db
+      .from('commesse_lavori_extra')
+      .select('numero, preventivo_id, commesse(id, codice, stato, preventivo_id)')
+      .in('preventivo_id', senzaCommessa.map(function(p) { return p.id; }));
+    if (!erroreExtra) {
+      (extra || []).forEach(function(r) {
+        const p = senzaCommessa.find(function(x) { return x.id === r.preventivo_id; });
+        if (p && r.commesse) p._lavoroExtra = { numero: r.numero, commessa: r.commesse };
+      });
+    }
+  }
 }
 
 function puoImpostareSedeCommessa() {
@@ -8583,6 +8600,28 @@ function htmlCommessaPreventivo(preventivo) {
   if (!preventivo || preventivo.stato !== 'accettato' || !('_commessa' in preventivo)) return '';
 
   const commessa = preventivo._commessa;
+
+  if (!commessa && preventivo._lavoroExtra) {
+    const le = preventivo._lavoroExtra;
+    return `
+      <div class="card" style="margin:10px 0 0;padding:10px 12px;color:var(--t)">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
+          <div style="font-size:14px;font-weight:700">
+            ➕ Preventivo integrativo: lavoro extra n. ${esc(le.numero)} della commessa ${esc(le.commessa.codice)}
+          </div>
+          <span class="bx ${classeStatoCommessa(le.commessa.stato)}">${esc(ETICHETTE_STATO_COMMESSA[le.commessa.stato] || le.commessa.stato)}</span>
+        </div>
+        <div style="font-size:12px;color:var(--m);margin-top:4px">
+          Accettato: il lavoro extra si può eseguire nella stessa commessa (nessuna commessa nuova).
+        </div>
+        ${canAccessPage('commessa-detail') ? `
+          <div style="margin-top:6px">
+            <button class="btn sm" onclick="openCommessaDetail('${esc(le.commessa.id)}')">📂 Apri commessa ${esc(le.commessa.codice)}</button>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
 
   if (!commessa) {
     return `
@@ -8892,8 +8931,14 @@ async function apriStatoCommessa(commessaId, preventivoId) {
     ? '<div class="al2 i">"Pronta" si segna con <b>Faldone consegnato</b> nella scheda della commessa (box "Date dei lavori e faldone"): il gestionale controlla date, personale e documenti.' +
       (canAccessPage('commessa-detail') ? ` <button class="btn sm" onclick="closeM('m-stato-commessa');openCommessaDetail('${esc(commessa.id)}')">Apri la commessa</button>` : '') + '</div>'
     : '';
+  // F8.5: lavori extra ancora da decidere prima di "Fine lavori" o
+  // "Chiusa" (js/36, solo con sql/38).
+  const avvisoLavoriExtra = prossimo && typeof htmlAvvisoLavoriExtraCambioStato === 'function' &&
+      (ROLE === 'titolare' || RUOLO_PASSO_COMMESSA[prossimo] === ROLE)
+    ? await htmlAvvisoLavoriExtraCambioStato(commessa.id, prossimo)
+    : '';
   if (opzioni.length) {
-    box.innerHTML = avvisoFaldone + `
+    box.innerHTML = avvisoLavoriExtra + avvisoFaldone + `
       <div class="f">
         <label>Nuovo stato</label>
         <select id="msc-stato" onchange="aggiornaCambioStatoCommessa()">
@@ -8920,7 +8965,7 @@ async function apriStatoCommessa(commessaId, preventivoId) {
       motivo = 'Il prossimo passo (' + ETICHETTE_STATO_COMMESSA[prossimo] + ') lo segna: ' +
         NOMI_RUOLO_PASSO_COMMESSA[RUOLO_PASSO_COMMESSA[prossimo]] + ' (o il titolare).';
     }
-    box.innerHTML = avvisoFaldone || ('<div class="al2 i">' + esc(motivo) + '</div>');
+    box.innerHTML = avvisoLavoriExtra + (avvisoFaldone || ('<div class="al2 i">' + esc(motivo) + '</div>'));
   }
 
   ge('msc-conferma').style.display = opzioni.length ? '' : 'none';

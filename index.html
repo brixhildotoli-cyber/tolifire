@@ -419,6 +419,9 @@
       <!-- F5.2 — commesse il cui prossimo passo è del capo tecnico (solo con sql/28) -->
       <div id="ct-commesse-tocca" style="margin-top:14px"></div>
 
+      <!-- F8.5 — lavori extra in cantiere (js/36, solo con sql/38) -->
+      <div id="ct-lavori-extra"></div>
+
       <!-- F6.3 — materiali in ritardo (js/29, solo con sql/30 o sql/31) -->
       <div id="ct-materiali-ritardo"></div>
 
@@ -457,6 +460,9 @@
 
     <!-- F6.2 — consumabili e noli chiesti dal capo tecnico (js/28, solo con sql/31) -->
     <div id="com-richieste-integrazione"></div>
+
+    <!-- F8.5 — lavori extra da preventivare (js/36, solo con sql/38) -->
+    <div id="com-lavori-extra"></div>
 
     <button class="rap-primary" onclick="gotoPage('progetti-da-preventivare')">
       <span class="ico">📐</span>
@@ -921,6 +927,8 @@
 <div id="rap-promemoria-anticipi"></div>
 <!-- F5.2 — commesse il cui prossimo passo è del rappresentante (solo con sql/28) -->
 <div id="rap-commesse-tocca"></div>
+<!-- F8.5 — lavori extra dei clienti del rappresentante (js/36, solo con sql/38) -->
+<div id="rap-lavori-extra"></div>
 
     <div id="rap-progetti-da-integrare"></div>
      <button class="rap-primary" onclick="gotoPage('sopralluogo')">
@@ -1905,9 +1913,13 @@
     <button class="tab on" id="cmd-tab-btn-commessa" onclick="mostraTabCommessa('commessa')">📁 Commessa e documenti</button>
   </div>
   <div class="tc" id="cmd-tab-cantiere">
+    <!-- F8.5: lavori extra da NON eseguire ancora (js/36, attivo con sql/38) -->
+    <div id="cmd-lavori-extra-avviso"></div>
     <!-- F8.3: % di avanzamento in breve (js/34, attivo con sql/36) -->
     <div id="cmd-avanzamento-cantiere"></div>
     <div id="cmd-cantiere"></div>
+    <!-- F8.5: lavori extra chiesti in cantiere (js/36, attivo con sql/38) -->
+    <div id="cmd-lavori-extra"></div>
     <!-- F8.3: cronoprogramma e % di avanzamento (js/34, attivo con sql/36) -->
     <div id="cmd-cronoprogramma"></div>
     <!-- F8.2: squadra e mezzi del giorno (js/33, attivi con sql/35) -->
@@ -1919,10 +1931,14 @@
   </div>
   <div class="tc on" id="cmd-tab-commessa">
     <div id="cmd-riepilogo"><div class="load">Caricamento...</div></div>
+    <!-- F8.5: fine lavori, riepilogo per la chiusura della segreteria (js/36) -->
+    <div id="cmd-chiusura"></div>
     <!-- F8.3: % di avanzamento in breve (js/34, attivo con sql/36) -->
     <div id="cmd-avanzamento"></div>
     <!-- F8.4: ore stimate contro effettive in breve (js/35, attivo con sql/37) -->
     <div id="cmd-ore-compatto"></div>
+    <!-- F8.5: lavori extra in breve (js/36, attivo con sql/38) -->
+    <div id="cmd-lavori-extra-compatto"></div>
     <div id="cmd-materiali"></div>
     <div id="cmd-ordini"></div>
     <div id="cmd-richieste"></div>
@@ -3583,6 +3599,61 @@
   </div>
 </div>
 
+<!-- F8.5 — NUOVO LAVORO EXTRA CHIESTO IN CANTIERE (js/36) -->
+<div class="mbg" id="m-lavoro-extra">
+  <div class="modal" style="max-width:560px">
+    <button class="x" onclick="closeM('m-lavoro-extra')">×</button>
+
+    <h3>➕ Lavoro extra chiesto dal cliente</h3>
+    <div id="mle-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+
+    <div class="al2 w">
+      Va al commerciale per il <b>preventivo integrativo</b> (e al rappresentante del cliente).
+      <b>Non eseguirlo</b> finché il cliente non accetta il preventivo integrativo.
+    </div>
+
+    <div class="f">
+      <label>Cosa chiede il cliente *</label>
+      <input type="text" id="mle-descrizione" maxlength="500" placeholder="es. sigillare 6 attraversamenti impianti al piano primo">
+    </div>
+    <div class="f">
+      <label>Dettagli per il preventivo (facoltativi)</label>
+      <textarea id="mle-dettagli" rows="3" maxlength="4000" placeholder="quantità, misure, materiali, dove (piano, locale), foto caricate nella cartella Cantiere"></textarea>
+    </div>
+    <div class="f">
+      <label>Chi lo chiede per il cliente (facoltativo)</label>
+      <input type="text" id="mle-chiesto" maxlength="200" placeholder="es. Ing. Bianchi, responsabile manutenzione">
+    </div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-lavoro-extra')">Annulla</button>
+      <button class="btn p" id="mle-conferma" onclick="salvaNuovoLavoroExtra()">Invia al commerciale</button>
+    </div>
+  </div>
+</div>
+
+<!-- F8.5 — ANNULLA UN LAVORO EXTRA (js/36) -->
+<div class="mbg" id="m-annulla-lavoro-extra">
+  <div class="modal" style="max-width:480px">
+    <button class="x" onclick="closeM('m-annulla-lavoro-extra')">×</button>
+
+    <h3>Annulla il lavoro extra</h3>
+    <div id="mla-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px;overflow-wrap:anywhere"></div>
+
+    <div class="al2 i">Il lavoro extra resta nell'elenco come annullato e il suo progetto esce da "Da preventivare". Se serve di nuovo, se ne registra uno nuovo.</div>
+
+    <div class="f">
+      <label>Motivo dell'annullamento *</label>
+      <textarea id="mla-motivo" rows="2" maxlength="1000" placeholder="es. il cliente non lo vuole più"></textarea>
+    </div>
+
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-annulla-lavoro-extra')">Chiudi</button>
+      <button class="btn p" id="mla-conferma" onclick="salvaAnnullaLavoroExtra()">Annulla il lavoro extra</button>
+    </div>
+  </div>
+</div>
+
 <!-- F6.2 — NUOVA RICHIESTA DI CONSUMABILE O NOLO (js/28) -->
 <div class="mbg" id="m-richiesta-integrazione">
   <div class="modal" style="max-width:560px">
@@ -4706,6 +4777,7 @@
 <script defer src="js/33-squadra-cantiere.js"></script>
 <script defer src="js/34-cronoprogramma-commessa.js"></script>
 <script defer src="js/35-giornale-cantiere.js"></script>
+<script defer src="js/36-lavori-extra.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

@@ -2,8 +2,8 @@
 
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
-file unico: `index.html` (markup) + `style.css` + moduli `js/00-…35-*.js`
-caricati in ordine 00–18, poi 20–35, infine `19-init.js` (dettagli in
+file unico: `index.html` (markup) + `style.css` + moduli `js/00-…36-*.js`
+caricati in ordine 00–18, poi 20–36, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -85,6 +85,10 @@ Dopo sql/37 (F8.4, da eseguire, richiede 07, 26 e 32): commesse_lavorazioni
 segreteria, capo_tecnico), commesse_giornale_ore (lettura SOLO titolare e
 capo_tecnico: ore per persona); si scrivono solo con le RPC del giornale,
 js/35.
+Dopo sql/38 (F8.5, da eseguire, richiede 07, 22 e 26): commesse_lavori_extra
+(sola lettura per chi legge la commessa; si scrive solo con
+registra_lavoro_extra e annulla_lavoro_extra e dal trigger sui
+preventivi, js/36).
 
 Usate dal frontend — fatturazione:
 fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
@@ -140,6 +144,8 @@ aggiungi_fasi_commessa, sposta_fase_commessa, togli_fase_commessa.
 Dopo sql/37 (F8.4, da eseguire): salva_lavorazioni_commessa,
 salva_giornale_cantiere, togli_giornale_cantiere,
 presenti_giornale_commessa, mie_ore_cantiere.
+Dopo sql/38 (F8.5, da eseguire): registra_lavoro_extra,
+annulla_lavoro_extra, voci_lavori_extra_commessa.
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
 Sono gli accessi che le policy RLS per il portale dovranno permettere
 (F1.1), sempre filtrati sul cliente del portale (`cliente_id`):
@@ -836,6 +842,68 @@ mese", cal-tec-ore, RPC mie_ore_cantiere, chiamata da js/05);
 commerciale, rappresentante, contabile, ingegnere: niente. I tecnici NON
 segnano da soli le proprie ore (domanda aperta per Toli). Senza sql/37 i
 box dicono "non ancora attivo" e il calendario del tecnico è come prima.
+
+Lavori extra e fine lavori (F8.5, js/36-lavori-extra.js; sql/38-lavori-
+extra da eseguire, richiede 07, 22 e 26, tutti in produzione; NON
+richiede 28-37): passi 11-12. NOMI: "Commerciale" del documento del flusso
+= rappresentante (fa approvare), "Acquisti" = commerciale (prepara il
+preventivo dal progetto tecnico). Scelta dichiarata (da confermare da
+Toli): il lavoro extra arriva al COMMERCIALE (prepara il preventivo
+integrativo, come ogni preventivo dal progetto tecnico: nel sito il
+rappresentante non crea preventivi) e al RAPPRESENTANTE del cliente (lo
+fa approvare, soglia 3.000 € invariata). Registrano capo_tecnico e
+titolare (box "➕ Lavori extra", cmd-lavori-extra, nella scheda Cantiere;
+finestra m-lavoro-extra: cosa chiede il cliente, dettagli, chi lo chiede).
+COLLEGAMENTO, scelta dichiarata: NESSUNA colonna nuova su preventivi.
+registra_lavoro_extra crea un progetto tecnico NUOVO (stesso cliente,
+rappresentante della commessa, tipologia del progetto principale, titolo
+"Lavoro extra n. N – commessa 2026-001: ...", descrizione con sede, chi e
+"non si esegue prima dell'accettazione") in stato
+'inviato_a_commerciale': compare da solo nella lista "Da preventivare"
+del commerciale e "Avvia preventivo" (js/17 avviaPreventivo, nessuna
+modifica) crea il preventivo integrativo. Tabella commesse_lavori_extra
+(commessa, numero per commessa, descrizione, dettagli, chi lo chiede,
+progetto_tecnico_id UNICO, stato, preventivo_id/numero/stato copiati,
+esito, annullamento). Lo STATO lo calcola il trigger nuovo
+trg_preventivi_lavori_extra sui preventivi del suo progetto: richiesto
+(nessun preventivo) → in_preventivo (bozza, al rappresentante, in attesa
+anticipo) → accettato (con anticipo: dopo l'accredito) | rifiutato
+(rifiutato o scaduto); annullato a mano (annulla_lavoro_extra, motivo
+obbligatorio, SOLO da richiesto o rifiutato: con il preventivo in corso
+si registra il rifiuto sul preventivo; capo tecnico, commerciale,
+rappresentante sue commesse, titolare; il progetto va in 'archiviato').
+NIENTE COMMESSA NUOVA: trigger nuovo trg_commesse_niente_lavori_extra
+(BEFORE INSERT su commesse) salta la nascita se il progetto è di un
+lavoro extra; trg_preventivi_crea_commessa e crea_commessa_per_preventivo
+di sql/26 NON sono ridefiniti (vale anche per sql/27). NON ESEGUIBILI
+PRIMA DELL'ACCETTAZIONE: in cima alla scheda Cantiere avviso rosso
+(cmd-lavori-extra-avviso) "NON eseguirli"; ogni lavoro richiesto o in
+preventivo ha "⛔ Non eseguire"; l'accettato mostra le voci del preventivo
+integrativo SENZA prezzi (RPC voci_lavori_extra_commessa: il capo tecnico
+non legge i preventivi) e solo allora le sue voci sono proposte come
+lavorazioni del giornale (js/35 "Extra n. N: ..."). Riquadro in
+"Commessa e documenti" (cmd-lavori-extra-compatto). AVVISI: dashboard
+commerciale "Lavori extra da preventivare" (com-lavori-extra, bottone
+"Prepara il preventivo integrativo" = avviaPreventivo), rappresentante
+(rap-lavori-extra), capo tecnico (ct-lavori-extra, anche gli accettati
+finché non è fine lavori); "Tocca a te" della pagina Commesse: al
+commerciale richiesti e bozze, al rappresentante quelli inviati a lui
+da far approvare. Nel riepilogo dell'esito del preventivo integrativo
+accettato (js/18) "Preventivo integrativo: lavoro extra n. N della
+commessa ..." al posto di "Nessuna commessa collegata". L'importo della
+commessa NON cambia (gli extra sono nei loro preventivi). FINE LAVORI →
+SEGRETERIA: il box "Commesse: tocca a te" della segreteria c'era già
+(js/18, fine_lavori → chiusa); nuovo box "🏁 Fine lavori: ora tocca alla
+segreteria" (cmd-chiusura, in "Commessa e documenti", solo con la
+commessa in fine lavori e sql/28; funziona anche senza sql/38): chi e
+quando ha segnato la fine (storico), nota, % del cronoprogramma (js/34),
+lavori extra accettati da fatturare e ancora in attesa, consumabili e
+noli non arrivati (js/28), cartella "chiusura" vuota o no; bottone
+"Chiudi la commessa" (segreteria, titolare: apre "Stato e storico").
+Nella finestra "Stato e storico" passando a Fine lavori o Chiusa avviso
+giallo se ci sono lavori extra ancora in attesa (non blocca). Senza
+sql/38 il box dice "non ancora attivi", nessun avviso né box in
+dashboard.
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

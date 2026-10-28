@@ -1266,3 +1266,16 @@ pre {
 .gnc-dettagli{margin-top:8px;border:1px solid var(--bo);border-radius:var(--rs);padding:8px 10px}
 .gnc-dettagli summary{font-size:13px;font-weight:600;cursor:pointer}
 #m-giornale-cantiere .ma,#m-lavorazioni-ore .ma{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:14px}
+/* F8.5 — Lavori extra (js/36): box nella scheda cantiere, avviso in cima,
+   riquadro in "Commessa e documenti", riepilogo per la chiusura */
+.lex-card{padding:12px 14px;margin-bottom:10px}
+#cmd-lavori-extra .cant-titolo{font-size:15px;font-weight:700;margin-bottom:4px}
+.lex-azione{display:flex;justify-content:center;width:100%;box-sizing:border-box;padding:12px 14px;font-size:15px;margin:4px 0 8px;text-align:center;flex-wrap:wrap}
+.lex-riga{padding:10px 0;border-top:1px solid var(--bo)}
+.lex-stop{font-size:13px;font-weight:700;color:var(--r);background:var(--rl);border-radius:var(--rs);padding:6px 8px;margin-top:6px}
+.lex-via{font-size:13px;font-weight:700;color:var(--g);background:var(--gl);border-radius:var(--rs);padding:6px 8px;margin-top:6px}
+.lex-voce{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--bo);font-size:13px}
+.lex-quantita{font-weight:700;white-space:nowrap;text-align:right}
+.lex-avviso{margin-bottom:10px}
+#cmd-lavori-extra .btn.sm,#cmd-chiusura .btn.sm{min-height:36px}
+#cmd-lavori-extra .empty{padding:14px}

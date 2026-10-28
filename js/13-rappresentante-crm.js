@@ -303,6 +303,10 @@ async function loadDashRappresentante() {
   caricaPromemoriaAnticipiRappresentante();
   // F5.2: commesse in cui tocca al rappresentante (js/18, solo con sql/28)
   caricaCommesseToccaAMe().catch(function(e){ console.warn('caricaCommesseToccaAMe:', e); });
+  // F8.5: lavori extra dei suoi clienti (js/36, solo con sql/38)
+  if (typeof caricaLavoriExtraDashboard === 'function') {
+    caricaLavoriExtraDashboard().catch(function(e){ console.warn('caricaLavoriExtraDashboard:', e); });
+  }
   var ora = new Date().getHours();
   var saluto = ora < 14 ? 'Buongiorno' : ora < 18 ? 'Buon pomeriggio' : 'Buonasera';
   var el;

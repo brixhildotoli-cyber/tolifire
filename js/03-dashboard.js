@@ -847,6 +847,10 @@ async function loadDashCapoTecnicoPg(){
   if (typeof caricaRichiesteIntegrazioneDashboard === 'function') {
     try { await caricaRichiesteIntegrazioneDashboard(); } catch(e){ console.warn('caricaRichiesteIntegrazioneDashboard:', e); }
   }
+  // F8.5: lavori extra in cantiere (js/36, solo con sql/38)
+  if (typeof caricaLavoriExtraDashboard === 'function') {
+    try { await caricaLavoriExtraDashboard(); } catch(e){ console.warn('caricaLavoriExtraDashboard:', e); }
+  }
   await loadDashCapoTecnico('ct-cicli-mese');
   await loadRichiesteModifica('ct-richieste-modifica');
   await loadDashTicket('ct-ticket-lista');

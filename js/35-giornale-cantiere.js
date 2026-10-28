@@ -1045,6 +1045,11 @@ async function caricaProposteLavorazioni() {
   } else {
     avviso = 'Le voci del preventivo non sono disponibili qui: aggiungi le lavorazioni a mano.';
   }
+  // F8.5: voci dei preventivi integrativi ACCETTATI dei lavori extra
+  // (js/36, sql/38); i lavori extra non accettati non si propongono.
+  const extra = typeof proposteLavorazioniLavoriExtra === 'function'
+    ? await proposteLavorazioniLavoriExtra(m.commessa.id)
+    : [];
   if (lavorazioniModulo !== m) return;
 
   const lavoro = voci.some(function(x) { return ['manodopera', 'servizio'].includes(x.categoria) || unitaInOre(x.unita_misura); });
@@ -1069,6 +1074,7 @@ async function caricaProposteLavorazioni() {
   fasi.forEach(function(f) {
     proposte.push({ nome: String(f.nome || '').slice(0, 200), unita_misura: null, quantita: null, ore_stimate: '', categoria: 'fase', spuntata: false });
   });
+  proposte.push.apply(proposte, extra);
 
   m.proposte = proposte;
   m.oreManodopera = oreManodopera;
