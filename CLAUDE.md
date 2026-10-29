@@ -1372,10 +1372,15 @@ roadmap (scadenze e ripartenza).
   presidi_contratto di sql/40, contro i trovati dell'audit di
   quell'intervento se c'è, sql/41, altrimenti il registro presidi
   attuale; presidi "non trovati" dell'audit), LAVORI FUORI CONTRATTO,
-  MATERIALE dei DDT (nel PDF senza prezzi, va al cliente), FATTURAZIONE
-  (stato del workflow). Il PDF ora esclude i presidi eliminati e stampa
-  sempre il riquadro dello straordinario (prima spariva se la pagina era
-  piena).
+  MATERIALE dei DDT con l'origine dei prezzi, FATTURAZIONE (stato del
+  workflow; "Crea DDT" non compare su una scheda fatturata). Il PDF che
+  va al cliente riporta SOLO i fatti tecnici: differenze dei presidi con
+  il contratto (se il cliente ha un contratto) e "Presidi da sostituire,
+  ricaricare o riparare"; niente diciture commerciali (senza contratto,
+  fuori periodo, prezzo del catalogo...), niente DDT né prezzi, così esce
+  uguale chiunque lo stampi (correzione del controllo). Il PDF ora
+  esclude i presidi eliminati e stampa sempre il riquadro dello
+  straordinario (prima spariva se la pagina era piena).
 - REGOLA "FUORI CONTRATTO" (scelta dichiarata, nessun dato nuovo):
   a) cliente senza contratto (nessuna riga in clienti_periodicita);
   b) intervento fuori dal periodo del contratto (prima dell'inizio, dopo
@@ -1430,13 +1435,19 @@ roadmap (scadenze e ripartenza).
   corrente. Escluso chi ha già una manutenzione ordinaria programmata
   aperta (da pianificare o pianificata). Schedulando ("+ Schedula
   intervento" della dashboard, che apre la finestra intervento, o
-  "✅ Schedula" del Piano mensile) i controlli del piano del cliente FINO
-  AL MESE DELL'INTERVENTO si collegano all'intervento: alla chiusura
+  "✅ Schedula" del Piano mensile) si collegano all'intervento i controlli
+  del piano del cliente con le stesse regole del box: ultimi 12 mesi,
+  solo i mesi DOPO l'ultima manutenzione programmata completata, fino al
+  mese dell'intervento (quelli più vecchi o già coperti restano
+  com'erano, non diventano "eseguito"). Alla chiusura
   diventano "eseguito" (trigger sql/17) e con sql/43 l'intervento va alla
   segreteria per l'appuntamento (F10.3). Corretto nello stesso giro:
   "+ Schedula intervento" del box "Interventi periodici del mese"
   (creaOdlDaCiclo) non collegava i controlli all'intervento, che
-  restavano "da schedulare" anche dopo la chiusura; ora li collega.
+  restavano "da schedulare" anche dopo la chiusura; ora collega SOLO
+  quelli di quel mese, come "Schedula" del Piano mensile (schedulaOdl).
+  In Documenti lo stato del buono accanto ai DDT si legge a blocchi di
+  100 id.
 Provato in locale (dump + 28-43 + 44 e senza 44, rollback identico allo
 schema di prima) con i ruoli veri: capo tecnico schedula dalla dashboard
 e dal Piano mensile → segreteria fissa l'appuntamento → tecnico chiude

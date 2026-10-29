@@ -4,8 +4,13 @@
 //
 // 1. BUONO DI LAVORO = la scheda di lavoro del tecnico (schede_lavoro) con
 //    i DDT collegati all'intervento (ddt.odl_id o ddt.scheda_lavoro_id).
-//    Nella finestra della scheda (m-scheda, box ms-buono) e nel PDF
-//    "Rapporto" (js/04, sezioniBuonoLavoroPDF) riporta:
+//    Nella finestra della scheda (m-scheda, box ms-buono, la vede l'ufficio)
+//    riporta tutto quello che segue. Il PDF "Rapporto" che va al cliente
+//    (js/04, sezioniBuonoLavoroPDF) riporta SOLO i fatti tecnici: differenze
+//    dei presidi con il contratto e presidi da sostituire, ricaricare o
+//    riparare (lo straordinario ha già il suo riquadro); niente diciture
+//    commerciali, niente DDT né prezzi, così esce uguale chiunque lo stampi.
+//    Il box riporta:
 //    - DIFFERENZE PRESIDI per tipo tra i presidi previsti dal contratto
 //      (clienti_periodicita.presidi_contratto, sql/40) e quelli trovati:
 //      se l'intervento ha l'audit registrato (sql/41) i trovati sono
@@ -49,8 +54,10 @@
 //    testa al Piano mensile del mese corrente: clienti con controlli del
 //    piano degli ultimi 12 mesi mai schedulati o con presidi scaduti o in
 //    scadenza entro 30 giorni, senza una manutenzione ordinaria aperta.
-//    Schedulando, i controlli del piano del cliente fino al mese
-//    dell'intervento si collegano all'intervento (alla chiusura passano a
+//    Schedulando dalla ripartenza si collegano all'intervento i controlli
+//    del piano del cliente degli ultimi 12 mesi, dopo l'ultima manutenzione
+//    programmata completata, fino al mese dell'intervento; da "Interventi
+//    periodici del mese" solo quelli di quel mese (alla chiusura passano a
 //    "eseguito", trigger di sql/17); da lì si riparte con l'appuntamento
 //    della segreteria (F10.3). Anche "+ Schedula intervento" del box
 //    "Interventi periodici del mese" ora collega i controlli (prima no:
@@ -65,7 +72,7 @@ const STATI_PRESIDIO_DA_PREVENTIVARE = { anomalia: 'anomalia', scaduto: 'scaduto
 let prezziContrattoRpc = null;           // null = da provare, true/false dopo il primo tentativo
 const prezziContrattoCache = {};         // cliente -> { contratto, preventivo, voci } | null
 let ddtPrezziContratto = null;           // prezzi del contratto del cliente del DDT aperto
-let collegaCicliDopoSalvataggio = null;  // { cli } dopo "+ Schedula intervento" della dashboard
+let collegaCicliDopoSalvataggio = null;  // { cli, soloMese } dopo "+ Schedula intervento" della dashboard
 
 // ── Utilità ──────────────────────────────────────────────────────────────
 function euroBuono(n) {
@@ -406,7 +413,9 @@ async function leggiDDTBuono(s) {
 }
 
 // s = riga di schede_lavoro (con ordini_lavoro(tipo) se possibile).
-async function datiBuonoLavoro(s) {
+// perPdf: niente DDT e niente prezzi (dipendono dal ruolo): il PDF per il
+// cliente esce uguale chiunque lo stampi.
+async function datiBuonoLavoro(s, perPdf) {
   const giorno = s.data_intervento || dataLocaleISO(new Date());
   const [rc, ra, rp, rd, prezzi, ro] = await Promise.all([
     db.from('clienti_periodicita').select('*').eq('cliente_id', s.cliente_id)
@@ -415,8 +424,8 @@ async function datiBuonoLavoro(s) {
       ? db.from('audit_presidi').select('data_audit,presidi_trovati,presidi_non_trovati').eq('odl_id', s.odl_id).maybeSingle()
       : Promise.resolve({ data: null }),
     leggiPresidiClienteBuono(s.cliente_id),
-    leggiDDTBuono(s),
-    prezziContrattoCliente(s.cliente_id),
+    perPdf ? Promise.resolve({ ddt: [] }) : leggiDDTBuono(s),
+    perPdf ? Promise.resolve(null) : prezziContrattoCliente(s.cliente_id),
     (s.ordini_lavoro && s.ordini_lavoro.tipo) || !s.odl_id
       ? Promise.resolve({ data: s.ordini_lavoro || null })
       : db.from('ordini_lavoro').select('tipo').eq('id', s.odl_id).maybeSingle()
@@ -475,7 +484,7 @@ async function datiBuonoLavoro(s) {
     const elenco = daPreventivare.slice(0, 6).map(function(p) {
       return nomePresidioBuono(p) + ': ' + STATI_PRESIDIO_DA_PREVENTIVARE[p.stato];
     }).join('; ') + (daPreventivare.length > 6 ? '; e altri ' + (daPreventivare.length - 6) : '');
-    fuori.push({ chiave: 'stato', testo: 'Presidi da sostituire, ricaricare o riparare (da preventivare): ' + elenco + '.' });
+    fuori.push({ chiave: 'stato', elenco: elenco, testo: 'Presidi da sostituire, ricaricare o riparare (da preventivare): ' + elenco + '.' });
   }
   if (s.intervento_straordinario_richiesto) {
     fuori.push({ chiave: 'straordinario', testo: 'Intervento straordinario richiesto dal tecnico' + (s.urgenza_straordinario ? ' (urgenza: ' + String(s.urgenza_straordinario).replace(/_/g, ' ') + ')' : '') + (s.descrizione_intervento_necessario ? ': ' + s.descrizione_intervento_necessario : '') + '.' });
@@ -604,14 +613,14 @@ async function caricaBuonoLavoroScheda(id) {
 
   html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">' +
     '<button class="btn sm" data-id="' + esc(s.id) + '" onclick="stampaRapportoIntervento(this.dataset.id)">📋 Scarica il buono (PDF)</button>' +
-    (RUOLI_CREA_DDT_BUONO.includes(ROLE) && s.odl_id ? '<button class="btn sm" data-id="' + esc(s.id) + '" onclick="creaDDTDaBuono(this.dataset.id)">📦 Crea DDT per l\'intervento</button>' : '') +
+    (RUOLI_CREA_DDT_BUONO.includes(ROLE) && s.odl_id && s.stato !== 'fatturata' ? '<button class="btn sm" data-id="' + esc(s.id) + '" onclick="creaDDTDaBuono(this.dataset.id)">📦 Crea DDT per l\'intervento</button>' : '') +
     '</div></div>';
   box.innerHTML = html;
 }
 
 // ── PDF "Rapporto" (js/04): sezioni del buono di lavoro ───────────────────
 async function sezioniBuonoLavoroPDF(doc, s, y, M, W) {
-  const d = await datiBuonoLavoro(s);
+  const d = await datiBuonoLavoro(s, true);
   const pagina = function(spazio) { if (y + spazio > 275) { doc.addPage(); y = 20; } };
   const titolo = function(t) {
     pagina(14);
@@ -649,30 +658,13 @@ async function sezioniBuonoLavoroPDF(doc, s, y, M, W) {
     y += 2;
   }
 
-  // Lo straordinario richiesto ha già il suo riquadro nel PDF.
-  const fuori = d.fuori.filter(function(f) { return f.chiave !== 'straordinario'; });
-  if (fuori.length) {
-    titolo('LAVORI FUORI CONTRATTO (DA PREVENTIVARE O FATTURARE A PARTE)');
-    fuori.forEach(function(f) { testo('- ' + f.testo); });
+  // Solo fatti tecnici (niente diciture commerciali: quelle restano nel box
+  // del buono, che vede l'ufficio). Lo straordinario ha già il suo riquadro.
+  const tecnici = d.fuori.filter(function(f) { return f.chiave === 'stato'; });
+  if (tecnici.length) {
+    titolo('PRESIDI DA SOSTITUIRE, RICARICARE O RIPARARE');
+    tecnici.forEach(function(f) { testo('- ' + f.elenco + '.'); });
     y += 2;
-  }
-
-  const righe = [];
-  d.ddt.forEach(function(dd) {
-    dd.righe.forEach(function(r) { righe.push(['n. ' + (dd.numero || '—'), r.codice || '', r.descrizione || '', String(Number(r.quantita) || 0), r.um || '']); });
-  });
-  if (righe.length) {
-    titolo('MATERIALE FORNITO (DDT)');
-    doc.autoTable({
-      startY: y,
-      head: [['DDT', 'Codice', 'Descrizione', 'Q.tà', 'UM']],
-      body: righe,
-      styles: { fontSize: 8, cellPadding: 2 },
-      headStyles: { fillColor: [8, 80, 65], textColor: 255 },
-      columnStyles: { 0: { cellWidth: 18 }, 1: { cellWidth: 25 }, 3: { cellWidth: 15, halign: 'center' }, 4: { cellWidth: 15 } },
-      margin: { left: M, right: M }
-    });
-    y = doc.lastAutoTable.finalY + 6;
   }
   return y;
 }
@@ -777,12 +769,15 @@ async function decoraDDTFatturazione() {
   const odl = righe.map(function(tr) { return tr.dataset.ddtOdl; }).filter(Boolean);
   const sch = righe.map(function(tr) { return tr.dataset.ddtScheda; }).filter(Boolean);
   if (!odl.length && !sch.length) return;
-  const filtri = [];
-  if (odl.length) filtri.push('odl_id.in.(' + Array.from(new Set(odl)).join(',') + ')');
-  if (sch.length) filtri.push('id.in.(' + Array.from(new Set(sch)).join(',') + ')');
-  const { data, error } = await db.from('schede_lavoro').select('id,odl_id,stato,impossibilitato')
-    .is('eliminato_il', null).not('impossibilitato', 'is', true).or(filtri.join(','));
-  if (error) return;
+  const base = function() {
+    return db.from('schede_lavoro').select('id,odl_id,stato,impossibilitato').is('eliminato_il', null).not('impossibilitato', 'is', true);
+  };
+  const [rOdl, rSch] = await Promise.all([
+    leggiABlocchi(odl, function(b) { return base().in('odl_id', b); }, 100),
+    leggiABlocchi(sch, function(b) { return base().in('id', b); }, 100)
+  ]);
+  if (rOdl.errore || rSch.errore) return;
+  const data = rOdl.righe.concat(rSch.righe);
   righe.forEach(function(tr) {
     const s = (data || []).find(function(x) { return (tr.dataset.ddtScheda && x.id === tr.dataset.ddtScheda) || (tr.dataset.ddtOdl && x.odl_id === tr.dataset.ddtOdl); });
     const td = tr.children[3];
@@ -815,10 +810,7 @@ async function leggiTuttoBuono(query, max) {
 async function controlliDaRipianificare() {
   const oggi = dataLocaleISO(new Date());
   const mese = meseCorrenteISO();
-  const dodici = new Date();
-  dodici.setDate(1);
-  dodici.setMonth(dodici.getMonth() - 12);
-  const meseMinimo = dataLocaleISO(dodici).slice(0, 7);
+  const meseMinimo = meseMinimoArretrati();
   const limite = typeof aggiungiGiorniISO === 'function' ? aggiungiGiorniISO(oggi, GIORNI_PREAVVISO_CONTROLLI) : oggi;
   const [rArr, rPres, rAperti, rMese] = await Promise.all([
     leggiTuttoBuono(function() {
@@ -937,16 +929,45 @@ async function caricaControlliDaRipianificareDashboard() {
 
 async function schedulaRipartenzaDashboard(cliId) {
   await creaOdlDaCiclo(cliId, meseCorrenteISO());
+  // Dalla ripartenza si collegano anche gli arretrati (regole di collegaCicliAlIntervento).
+  collegaCicliDopoSalvataggio = { cli: cliId, soloMese: null };
   const n = ge('mo6');
   if (n) n.value = 'Controlli periodici scaduti — ripartenza del ciclo';
 }
 
-// Collega i controlli del piano ancora da schedulare del cliente, fino al
-// mese dell'intervento, all'intervento appena creato.
-async function collegaCicliAlIntervento(cliId, odlId, meseMax) {
-  if (!cliId || !odlId || !meseMax) return 0;
-  const { data, error } = await db.from('cicli_pianificati').update({ odl_id: odlId })
-    .eq('cliente_id', cliId).eq('stato', 'pianificato').is('odl_id', null).lte('mese_anno', meseMax).select('id');
+// Primo mese dei controlli arretrati che contano: 12 mesi prima del mese corrente.
+function meseMinimoArretrati() {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - 12);
+  return dataLocaleISO(d).slice(0, 7);
+}
+
+// Collega all'intervento appena creato i controlli del piano ancora da
+// schedulare del cliente, con le stesse regole del box "da ripianificare":
+// - solo dal mese minimo (12 mesi fa) al mese dell'intervento;
+// - solo i mesi DOPO l'ultima manutenzione programmata completata (quelli
+//   prima sono già stati fatti, anche se non collegati al piano).
+// Con soloMese collega solo quel mese (come schedulaOdl di js/08).
+async function collegaCicliAlIntervento(cliId, odlId, meseMax, soloMese) {
+  if (!cliId || !odlId || (!meseMax && !soloMese)) return 0;
+  let q = db.from('cicli_pianificati').update({ odl_id: odlId })
+    .eq('cliente_id', cliId).eq('stato', 'pianificato').is('odl_id', null);
+  if (soloMese) {
+    q = q.eq('mese_anno', soloMese);
+  } else {
+    let da = meseMinimoArretrati();
+    const rf = await db.from('ordini_lavoro').select('data_pianificata').eq('cliente_id', cliId).is('eliminato_il', null)
+      .eq('tipo', 'ordinario_programmato').eq('stato', 'completato').neq('id', odlId)
+      .not('data_pianificata', 'is', null).order('data_pianificata', { ascending: false }).limit(1);
+    if (rf.error) { console.warn('Collegamento controlli del piano:', rf.error.message); return 0; }
+    const ultima = (rf.data || [])[0];
+    let dopo = null;
+    if (ultima && meseDiData(ultima.data_pianificata) >= da) dopo = meseDiData(ultima.data_pianificata);
+    q = dopo ? q.gt('mese_anno', dopo) : q.gte('mese_anno', da);
+    q = q.lte('mese_anno', meseMax);
+  }
+  const { data, error } = await q.select('id');
   if (error) { console.warn('Collegamento controlli del piano:', error.message); return 0; }
   return (data || []).length;
 }
@@ -958,9 +979,10 @@ async function idManutenzioniAperte(cliId) {
 }
 
 const creaOdlDaCicloPrimaBuono = creaOdlDaCiclo;
-creaOdlDaCiclo = async function(cliId) {
+creaOdlDaCiclo = async function(cliId, meseAnno) {
   const r = await creaOdlDaCicloPrimaBuono.apply(this, arguments);
-  collegaCicliDopoSalvataggio = cliId ? { cli: cliId } : null;
+  // "Interventi periodici del mese": solo i controlli di quel mese, come schedulaOdl (js/08).
+  collegaCicliDopoSalvataggio = cliId && meseAnno ? { cli: cliId, soloMese: meseAnno } : null;
   return r;
 };
 
@@ -984,7 +1006,7 @@ saveOdl = async function() {
   collegaCicliDopoSalvataggio = null;
   const nuovo = (await idManutenzioniAperte(p.cli)).find(function(id) { return prima.indexOf(id) === -1; });
   if (nuovo) {
-    const n = await collegaCicliAlIntervento(p.cli, nuovo, meseMax);
+    const n = await collegaCicliAlIntervento(p.cli, nuovo, meseMax, p.soloMese || null);
     if (n) toast('Collegati all\'intervento ' + n + (n === 1 ? ' controllo' : ' controlli') + ' del piano', 'ok');
     if (ROLE === 'capo_tecnico' && ge('pg-dashboard') && ge('pg-dashboard').classList.contains('on')) {
       try { await loadDashCapoTecnico('ct-cicli-mese'); await caricaControlliDaRipianificareDashboard(); } catch (e) { console.warn(e); }
