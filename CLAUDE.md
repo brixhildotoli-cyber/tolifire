@@ -2,8 +2,8 @@
 
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
-file unico: `index.html` (markup) + `style.css` + moduli `js/00-…36-*.js`
-caricati in ordine 00–18, poi 20–36, infine `19-init.js` (dettagli in
+file unico: `index.html` (markup) + `style.css` + moduli `js/00-…40-*.js`
+caricati in ordine 00–18, poi 20–40, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -99,6 +99,12 @@ clienti_periodicita.presidi_contratto (jsonb), preventivo_id,
 contratto_stato (lo cambia solo registra_rinnovo_contratto) ed
 evacuatore_fumi (se manca); tabella clienti_periodicita_rinnovi (sola
 lettura, la scrive solo registra_rinnovo_contratto, js/39).
+Dopo sql/41 (F10.2, da eseguire, richiede solo 07; legge sql/40 se c'è):
+colonne nuove impianti.annata (anno di fabbricazione) e
+ordini_lavoro.audit_presidi, audit_presidi_da, audit_presidi_il,
+audit_presidi_nota (le cambia solo il database o
+imposta_audit_presidi_intervento); tabella audit_presidi (sola lettura,
+la scrivono solo le RPC dell'audit, js/40).
 
 Usate dal frontend — fatturazione:
 fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
@@ -159,6 +165,9 @@ annulla_lavoro_extra, voci_lavori_extra_commessa.
 Dopo sql/39 (F9.2, eseguito il 28/10): controllo_chiusura_commessa,
 registra_fattura_finale_commessa, chiudi_commessa.
 Dopo sql/40 (F10.1, da eseguire): registra_rinnovo_contratto.
+Dopo sql/41 (F10.2, da eseguire): registra_audit_presidi,
+imposta_audit_presidi_intervento, audit_presidi_da_esaminare,
+segna_audit_presidi_esaminato.
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
 Sono gli accessi che le policy RLS per il portale dovranno permettere
 (F1.1), sempre filtrati sul cliente del portale (`cliente_id`):
@@ -1094,6 +1103,63 @@ li vede il titolare. Domande per Toli: anche il ruolo commerciale
 poter modificare presidi previsti e preventivo del contratto (oggi solo
 nel rinnovo)? La segreteria deve avere il box in dashboard? Va bene
 "Non rinnovato" anche prima della scadenza (disdetta anticipata)?
+
+Audit dei presidi alla prima manutenzione (F10.2, js/40-audit-presidi.js;
+sql/41-audit-presidi da eseguire, richiede solo 07, NON richiede 40).
+Con sql/41:
+- ANNATA: impianti.annata (anno di fabbricazione, 1900-2100, nel sito
+  fino all'anno prossimo). Campo "Annata" nella finestra del presidio
+  (mp-annata, tutti i tipi; salvato da saveP di js/07 e js/22 con
+  datiAnnataPresidio). L'import CSV non cambia.
+- QUALE INTERVENTO HA L'AUDIT (scelta dichiarata): lo decide il DATABASE
+  quando l'intervento nasce (trigger trg_ordini_lavoro_audit_presidi):
+  manutenzione ordinaria programmata, da pianificare o pianificata, di un
+  cliente con contratto (riga in clienti_periodicita) che non ha MAI
+  avuto una manutenzione programmata completata né un altro intervento
+  con audit. Gli interventi già esistenti quando si esegue sql/41 non si
+  toccano. Titolare e capo tecnico lo mettono o lo tolgono (motivo
+  obbligatorio) dalla finestra dell'intervento (box mo-audit-presidi,
+  RPC imposta_audit_presidi_intervento), solo se non è chiuso. Nessun
+  update diretto lo cambia. Il rinnovo del contratto NON rimette
+  l'audit (si mette a mano se serve).
+- TECNICO ("Esegui intervento"): l'intervento con audit ha "🔎 AUDIT"
+  nella tendina e un avviso; al passo Presidi (loadPC → renderPresidiAudit)
+  ogni presidio non eliminato del cliente (tutte le sedi) va segnato
+  "Trovato" (matricola e annata obbligatorie, stato, note) o "Non
+  trovato"; quelli in più si aggiungono con "+ Aggiungi" (policy nuova
+  impianti_inserimento_audit: il tecnico inserisce presidi solo durante
+  un suo audit aperto). "Avanti" e "Salva e chiudi" si fermano sul primo
+  presidio incompleto. Alla chiusura il sito salva matricola e annata,
+  registra l'audit (registra_audit_presidi: trovati per tipo, non
+  trovati, contratto di quel momento) e poi chiama la salvaInt di
+  sempre. Il database rifiuta la chiusura ('completato') di un
+  intervento con audit senza audit registrato o con presidi senza
+  matricola o annata. "Non ho potuto completare" non è bloccato
+  (l'intervento torna da pianificare e tiene l'audit). Le schede SENZA
+  audit sono identiche a prima (provato in locale dall'inizio alla
+  chiusura).
+- DIFFERENZE: box "🔎 Audit presidi: differenze con il contratto"
+  (caricaAuditPresidiDashboard, RPC audit_presidi_da_esaminare) nelle
+  dashboard del capo tecnico (ct-audit-presidi, Responsabile Service),
+  del rappresentante (rap-audit-presidi, solo i suoi clienti) e del
+  titolare (tit-audit-presidi). Confronto per tipo con il contratto
+  ATTUALE (presidi_contratto di sql/40): quando i numeri coincidono e
+  non ci sono presidi non trovati la riga sparisce da sola; altrimenti
+  "✓ Esaminato" (nota facoltativa, segna_audit_presidi_esaminato).
+  Senza sql/40: "Confronto con il contratto non ancora attivo" con i
+  trovati per tipo. Non c'è in "Tocca a te" (è delle commesse).
+Senza sql/41: nessun campo annata, nessun audit, nessun box, la scheda
+del tecnico si chiude come prima (nessun errore). Corretti anche, perché
+servono all'audit: ✏️ sul presidio dal passo Presidi (editP cercava in
+PA, vuoto per il tecnico) e "+ Aggiungi" carica le sedi del cliente.
+Domande per Toli: va bene il criterio automatico (primo intervento di
+manutenzione programmata di un cliente con contratto e senza
+manutenzioni completate)? L'audit copre tutte le sedi del cliente in un
+solo intervento: va bene o serve un audit per sede? Il rappresentante
+deve poter correggere da solo i presidi previsti del contratto (oggi
+segreteria, capo tecnico, titolare)? Dopo un rinnovo serve un nuovo
+audit? I presidi "non trovati" il capo tecnico li elimina a mano dal
+registro (oggi sì): va bene?
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

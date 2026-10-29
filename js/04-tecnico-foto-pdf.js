@@ -441,6 +441,8 @@ function apriAggiungiPresidioTec() {
   ge('mpt').textContent = 'Nuovo presidio';
   ge('mpeid').value = '';
   ge('mpcl').value = cliId;
+  // F10.2 — sedi del cliente dell'intervento (prima restavano quelle di prima)
+  loadSediPresidio(cliId, v('tc1-sede') || null);
   openM('m-presidio');
 }
 
@@ -448,6 +450,9 @@ async function editPresidioTec(pid) {
   // Carica presidio e apri modal modifica
   var r = await db.from('impianti').select('*').eq('id',pid).single();
   if(r.error) { toast('Errore','err'); return; }
+  // F10.2 — editP cerca il presidio in PA, che nella pagina del tecnico è
+  // vuoto (lo riempie solo la pagina Presidi): si aggiunge quello appena letto.
+  PA = PA.filter(function(p){ return p.id !== pid; }).concat([r.data]);
   editP(pid);
 }
 

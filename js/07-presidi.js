@@ -560,6 +560,13 @@ async function saveP() {
     };
   }
 
+  // F10.2 — annata (anno di fabbricazione), solo con sql/41 (js/40)
+  if (typeof datiAnnataPresidio === 'function') {
+    const annata = datiAnnataPresidio();
+    if (!annata) return;
+    Object.assign(payload, annata);
+  }
+
   let error;
 
   if (eid) {

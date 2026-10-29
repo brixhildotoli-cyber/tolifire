@@ -305,6 +305,10 @@ async function loadDashRappresentante() {
   if (typeof caricaContrattiInScadenzaDashboard === 'function') {
     caricaContrattiInScadenzaDashboard().catch(function(e){ console.warn('caricaContrattiInScadenzaDashboard:', e); });
   }
+  // F10.2: differenze dell'audit dei presidi dei suoi clienti (js/40, solo con sql/41)
+  if (typeof caricaAuditPresidiDashboard === 'function') {
+    caricaAuditPresidiDashboard().catch(function(e){ console.warn('caricaAuditPresidiDashboard:', e); });
+  }
   // F5.2: commesse in cui tocca al rappresentante (js/18, solo con sql/28)
   caricaCommesseToccaAMe().catch(function(e){ console.warn('caricaCommesseToccaAMe:', e); });
   // F8.5: lavori extra dei suoi clienti (js/36, solo con sql/38)

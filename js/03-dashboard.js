@@ -500,6 +500,10 @@ async function loadDashTitolare(){
   if (typeof caricaContrattiInScadenzaDashboard === 'function') {
     caricaContrattiInScadenzaDashboard().catch(function(e){ console.warn('caricaContrattiInScadenzaDashboard:', e); });
   }
+  // F10.2: differenze dell'audit dei presidi con il contratto (js/40, solo con sql/41)
+  if (typeof caricaAuditPresidiDashboard === 'function') {
+    caricaAuditPresidiDashboard().catch(function(e){ console.warn('caricaAuditPresidiDashboard:', e); });
+  }
   var periodo = window._dashTitPeriodo || 'settimana';
   var range = getPeriodoRange(periodo);
   var oggi = new Date(); oggi.setHours(0,0,0,0);
@@ -850,6 +854,10 @@ async function loadDashCapoTecnicoPg(){
   // F10.1: contratti di manutenzione in scadenza (js/39, solo con sql/40)
   if (typeof caricaContrattiInScadenzaDashboard === 'function') {
     try { await caricaContrattiInScadenzaDashboard(); } catch(e){ console.warn('caricaContrattiInScadenzaDashboard:', e); }
+  }
+  // F10.2: differenze dell'audit dei presidi con il contratto (js/40, solo con sql/41)
+  if (typeof caricaAuditPresidiDashboard === 'function') {
+    try { await caricaAuditPresidiDashboard(); } catch(e){ console.warn('caricaAuditPresidiDashboard:', e); }
   }
   // F6.2: consumabili e noli chiesti agli acquisti (js/28, solo con sql/31)
   if (typeof caricaRichiesteIntegrazioneDashboard === 'function') {

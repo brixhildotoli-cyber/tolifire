@@ -248,6 +248,8 @@
 <div id="tit-avviso-preventivi"></div>
 <!-- F10.1 — contratti di manutenzione in scadenza (js/39, solo con sql/40) -->
 <div id="tit-contratti-scadenza"></div>
+<!-- F10.2 — differenze dell'audit dei presidi con il contratto (js/40, solo con sql/41) -->
+<div id="tit-audit-presidi"></div>
       <div class="tit-section">💼 Lavoro</div>
       <div class="kpi-grid">
         <div class="kpi-card clickable success" onclick="gotoPage('interventi')"><div class="kpi-icon">✅</div><div class="kpi-num" id="tit-k-completati">—</div><div class="kpi-label">Completati nel periodo</div></div>
@@ -432,6 +434,9 @@
 
       <!-- F10.1 — contratti di manutenzione in scadenza (js/39, solo con sql/40) -->
       <div id="ct-contratti-scadenza"></div>
+
+      <!-- F10.2 — differenze dell'audit dei presidi con il contratto (js/40, solo con sql/41) -->
+      <div id="ct-audit-presidi"></div>
 
       <!-- F6.2 — consumabili e noli chiesti agli acquisti (js/28, solo con sql/31) -->
       <div id="ct-richieste-integrazione"></div>
@@ -932,6 +937,8 @@
 <div id="rap-promemoria-anticipi"></div>
 <!-- F10.1 — contratti di manutenzione in scadenza dei clienti del rappresentante (js/39, solo con sql/40) -->
 <div id="rap-contratti-scadenza"></div>
+<!-- F10.2 — differenze dell'audit dei presidi dei clienti del rappresentante (js/40, solo con sql/41) -->
+<div id="rap-audit-presidi"></div>
 <!-- F5.2 — commesse il cui prossimo passo è del rappresentante (solo con sql/28) -->
 <div id="rap-commesse-tocca"></div>
 <!-- F8.5 — lavori extra dei clienti del rappresentante (js/36, solo con sql/38) -->
@@ -4159,6 +4166,8 @@
   <div class="f"><label>Tipo *</label><select id="mptp" onchange="switchPF()"><option value="estintore">🧯 Estintore</option><option value="porta_rei">🚪 Porta REI</option><option value="manichetta">🧵 Manichetta</option><option value="idrante">🚿 Idrante</option><option value="naspo">Naspo</option><option value="luce_emergenza">💡 Luce emergenza</option><option value="pompa_antincendio">⚙️ Pompa antincendio</option><option value="centrale_rivelazione">Centrale rivelazione</option><option value="sprinkler">Sprinkler</option><option value="uscita_emergenza">Uscita emergenza</option><option value="evacuatore_fumi">🌫️ Evacuatori fumo</option></select></div>
   <div class="f"><label>Cliente *</label><select id="mpcl" onchange="loadSediPresidio(this.value)"><option value="">Seleziona...</option></select></div>
   <div class="f"><label>Sede</label><select id="mpsede" style="width:100%"><option value="">Sede principale / non specificata</option></select></div>
+  <!-- F10.2 — annata (anno di fabbricazione), solo con sql/41 (js/40) -->
+  <div class="f" id="mp-annata-box" style="display:none"><label>Annata (anno di fabbricazione)</label><input type="number" id="mp-annata" inputmode="numeric" min="1900" max="2100" placeholder="Es. 2019"></div>
   <div id="fe">
     <div class="fr"><div class="f"><label>Matricola *</label><input type="text" id="me1" placeholder="Es: EX-001"></div><div class="f"><label>Marca</label><input type="text" id="me2"></div></div>
     <div class="fr"><div class="f"><label>Agente estinguente</label><select id="me3"><option value="polvere_abc">Polvere ABC</option><option value="co2">CO₂</option><option value="schiuma">Schiuma</option><option value="idrico">Idrico</option></select></div><div class="f"><label>Capacità</label><select id="me4"><option value="1kg">1 kg</option><option value="2kg">2 kg</option><option value="3kg">3 kg</option><option value="6kg" selected>6 kg</option><option value="9kg">9 kg</option><option value="12kg">12 kg</option><option value="2lt">2 lt</option><option value="5lt">5 lt</option></select></div></div>
@@ -4502,6 +4511,9 @@
 
   <!-- F2.2: motivo per cui il tecnico non ha completato (solo interventi da riprogrammare) -->
   <div id="mo-riprogrammare" style="display:none;margin-bottom:14px"></div>
+
+  <!-- F10.2: prima manutenzione con audit dei presidi (js/40, solo con sql/41) -->
+  <div id="mo-audit-presidi" style="display:none;margin-bottom:14px"></div>
 
   <!-- Pianificazione: data, fascia, tecnico -->
   <div id="mo-pian-group" class="mo-section">
@@ -4958,6 +4970,7 @@
 <script defer src="js/37-dichiarazione-messa-in-opera.js"></script>
 <script defer src="js/38-fattura-finale-commessa.js"></script>
 <script defer src="js/39-contratto-manutenzione.js"></script>
+<script defer src="js/40-audit-presidi.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

@@ -103,6 +103,10 @@ saveP = async function() {
       voci_x_si:listaControlliScheda(v('mm-si')),voci_x_no:listaControlliScheda(v('mm-no')),
       voci_x_vuote:listaControlliScheda(v('mm-vuote')),note:v('mm10').trim() || null,
       fonte_pdf:v('mm-fonte').trim() || null};
+    // F10.2 — annata (anno di fabbricazione), solo con sql/41 (js/40)
+    const annata = typeof datiAnnataPresidio === 'function' ? datiAnnataPresidio() : {};
+    if (!annata) return;
+    Object.assign(payload, annata);
     const query = id ? db.from('impianti').update(payload).eq('id',id) : db.from('impianti').insert(payload);
     const {data,error} = await query.select('id');
     if (error) throw error;
