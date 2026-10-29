@@ -125,7 +125,11 @@ Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
 è in costruzione, vedi sotto). Dopo sql/45 (F11.1, da eseguire):
 fatture_righe (lettura; bozze scritte solo con le RPC salva_bozza_fattura
-ed elimina_bozza_fattura, js/43-fatture-bozze.js)
+ed elimina_bozza_fattura, js/43-fatture-bozze.js). Dopo sql/46 (F11.2,
+da eseguire dopo 45): fatture_scadenze (lettura; le scrivono solo le RPC
+di emissione e pagamento) e fatture_pagamenti (tabella nuova, sola
+lettura; RPC registra_pagamento_fattura e annulla_pagamento_fattura,
+js/44-fatture-emissione.js)
 
 Presenti nel DB ma NON usate dal frontend (19, al 22/10/2026; con sql/45
 fatture_righe passa tra le usate):
@@ -199,6 +203,9 @@ Dopo sql/44 (F10.4, DA ESEGUIRE, richiede 07 e 40): prezzi_contratto_cliente
 (sola lettura: preventivo del contratto e prezzi di vendita delle voci).
 Dopo sql/45 (F11.1, DA ESEGUIRE, richiede 07 e 26): salva_bozza_fattura,
 elimina_bozza_fattura.
+Dopo sql/46 (F11.2, DA ESEGUIRE DOPO 45, richiede 25, 26, 39):
+emetti_fattura, emetti_fattura_anticipo, emetti_fattura_finale_commessa,
+registra_pagamento_fattura, annulla_pagamento_fattura, emetti_nota_credito.
 Dopo sql/42 (decisioni del 29/10, eseguito il 29/10): preventivo_firmato_commessa,
 salva_fase_commessa_ore; cambia_stato_ordine_fornitore ridefinita (in
 più: 'confermato' da 'arrivato', solo titolare, con motivo).
@@ -1550,9 +1557,9 @@ una sessione e l'altra.
      con sql/45 le righe si aprono).
    - [x] Fase 3 — Creazione bozza fattura (modal m-fattura, F11.1).
    - [x] Fase 4 — Auto-popolamento righe da scheda/DDT/manodopera (F11.1).
-   - [ ] Fase 5 — Emissione fattura (assegna numero, scadenze).
-   - [ ] Fase 6 — Vista scadenze + KPI dashboard.
-   - [ ] Fase 7 — Registrazione pagamenti.
+   - [x] Fase 5 — Emissione fattura (assegna numero, scadenze) (F11.2).
+   - [x] Fase 6 — Vista scadenze + KPI dashboard (F11.2).
+   - [x] Fase 7 — Registrazione pagamenti (F11.2).
    - [ ] Fase 8 — RIBA: presentazioni e righe.
    - [ ] Fase 9 — Esiti RIBA (accreditato/insoluto).
    - [ ] Fase 10 — Solleciti.
@@ -1630,6 +1637,94 @@ una sessione e l'altra.
    compare. Da F11.2 in poi: emissione via RPC (data in ora italiana,
    numero senza corse tra due utenti, scadenze), blocco della modifica
    diretta di una fattura emessa e del soft-delete delle emesse.
+
+   **Emissione, scadenze, pagamenti, anticipo e finale vere (F11.2,
+   js/44-fatture-emissione.js; sql/46-fatture-emissione-pagamenti DA
+   ESEGUIRE DOPO sql/45)**.
+   EMISSIONE: "📤 Emetti fattura" nella bozza (salva la bozza, poi
+   finestra m-emetti-fattura, id mef-): data (giorno italiano, mai nel
+   futuro, mai prima dell'ultima fattura dello stesso anno e tipo),
+   modalità di pagamento, rate (numero, giorni, importi modificabili;
+   somma = totale IVA compresa; predefinito una rata a giorni_pagamento
+   del cliente, 30). RPC emetti_fattura (titolare, segreteria,
+   contabile): numero dal trigger esistente trg_fatture_genera_numero
+   sotto pg_advisory_xact_lock per anno e tipo (niente doppioni con due
+   utenti insieme; il numero nasce nella stessa transazione, niente
+   buchi), dati fiscali copiati dal trigger esistente (si ferma senza
+   ragione sociale e P.IVA o codice fiscale), scadenze in
+   fatture_scadenze, scheda (e schede delle righe) "fatturata".
+   BLOCCHI (trigger trg_fatture_blocco_emesse e
+   trg_fatture_scadenze_solo_rpc): una fattura nasce solo in bozza; si
+   emette solo dalle RPC; emessa o annullata non si modifica (tranne
+   stato del pagamento e pdf_url) e non si cancella né soft-delete, NEMMENO
+   il titolare (il vecchio "riportare in bozza" di fatture_proteggi_emessa
+   non si fa più dal sito): si annulla solo con la NOTA DI CREDITO. Le
+   scadenze si scrivono solo dalle RPC. Editor SQL libero.
+   NOTA DI CREDITO (RPC emetti_nota_credito, finestra m-nota-credito, id
+   mnc-): storno TOTALE, numerazione NC/ separata, nessuna scadenza, la
+   fattura diventa 'annullata'; solo senza pagamenti registrati e senza
+   rate in RIBA; motivo obbligatorio. La scheda torna "da fatturare";
+   anticipo: il preventivo torna senza fattura d'anticipo; finale: la
+   commessa torna senza fattura finale (non se chiusa). Nota di credito
+   parziale: non prevista.
+   PAGAMENTI (tabella fatture_pagamenti, RPC registra_pagamento_fattura e
+   annulla_pagamento_fattura; finestre m-pagamento-fattura, id mpg-, e
+   m-annulla-pagamento, id map-): titolare, segreteria, contabile; per
+   rata; data non futura, importo non oltre il residuo (predefinito il
+   residuo), modalità (bonifico, contanti, assegno, carta, riba,
+   compensazione, altro), nota, chi/quando dal database. Pagamento
+   parziale: la rata resta aperta (nessuno stato "parziale" per la rata)
+   e la fattura diventa parzialmente_pagata (fatture_aggiorna_stato_
+   pagamento ridefinita: conta anche gli importi pagati). Rata in_riba:
+   niente pagamento a mano (fasi 8-9). Un pagamento sbagliato si
+   annulla con motivo (resta nello storico), non si cancella.
+   SCADENZE E KPI (fase 6): riquadro "💶 Scadenze e incassi"
+   (fat-scadenze-box) nella pagina Fatture con filtri (scadute e prossimi
+   30 giorni, solo scadute, tutte da incassare, pagate 90 giorni) e
+   "Pagamento" per riga; KPI "Incassi" (da incassare, scaduto, in
+   scadenza nei 30 gg, incassato nel mese) nelle dashboard di titolare
+   (tit-incassi), segreteria (seg-incassi) e contabile (dash-incassi),
+   cliccabili verso la pagina Fatture. Il vecchio riquadro "Scadenze
+   pagamenti / solleciti" della dashboard segreteria (testo "non c'è una
+   tabella fatture...") resta com'era: da togliere o aggiornare con la
+   Fase 11 del piano.
+   ANTICIPO VERO (passo 6, scelta dichiarata): RPC emetti_fattura_anticipo
+   (segreteria, titolare; preventivo in_attesa_anticipo senza fattura
+   d'anticipo): crea ed emette la fattura (origine 'anticipo',
+   preventivo_id, una riga con l'importo dell'anticipo, IVA del
+   preventivo, scadenze) e scrive i riferimenti di F4.3 sul preventivo.
+   Quando i pagamenti coprono tutta la fattura, registra_pagamento_fattura
+   porta il preventivo ad 'accettato' con anticipo_accredito_data = data
+   dell'ultimo pagamento (stessi controlli di trg_preventivi_esito) e
+   nasce la commessa (sql/26), che si collega alla fattura (commessa_id,
+   trigger trg_commesse_collega_fatture). Il pagamento dell'anticipo lo
+   registra solo segreteria o titolare (è la verifica dell'accredito).
+   registra_fattura_anticipo e registra_accredito_anticipo (F4.3) restano
+   per la fattura emessa FUORI dal gestionale; con la fattura vera sono
+   bloccate (trigger trg_preventivi_anticipo_fattura_vera) e nel sito i
+   loro bottoni spariscono; con una fattura esterna registrata non se ne
+   emette una vera. Nel sito: "🧾 Emetti fattura d'anticipo" e
+   "💶 Registra pagamento (accredito)" nella lista Anticipi della
+   dashboard segreteria e nella scheda preventivo (titolare). Rifiuto per
+   anticipo non versato: resta come F4.3; la fattura d'anticipo emessa
+   resta e si annulla con la nota di credito.
+   FINALE VERA (passo 12, facoltativa): RPC emetti_fattura_finale_commessa
+   (segreteria, titolare, commessa in fine lavori, senza fattura finale
+   registrata): righe dal calcolo di sql/39 (preventivo, lavori extra se
+   compresi, anticipi in negativo, rettifica con la nota se l'imponibile
+   è diverso), una sola IVA (si ferma se un preventivo integrativo ha
+   un'altra aliquota), scadenze; poi registra_fattura_finale_commessa di
+   sql/39 (sblocca la chiusura). Con la fattura vera i fattura_finale_*
+   della commessa si cambiano solo da qui (trigger
+   trg_commesse_fattura_finale_vera). La registrazione a mano di F9.2
+   resta per la fattura emessa fuori. Bottone "🧾 Emetti fattura finale"
+   nel box della commessa.
+   Colonna nuova fatture.origine (scheda, anticipo, finale); righe con
+   origine anche anticipo, preventivo, lavoro_extra e prezzo
+   'preventivo'. Le RPC che toccano i preventivi hanno search_path
+   'public, pg_temp' (come sql/25: trigger dei 3.000 € con
+   get_user_role() senza schema). Senza sql/46 il sito resta come con il
+   45.
 
 3. **Generazione automatica relazioni tecniche** — da verificare se
    funziona davvero. Il frontend non inserisce mai righe in

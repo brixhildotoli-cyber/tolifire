@@ -252,6 +252,8 @@
 <div id="tit-audit-presidi"></div>
 <!-- F10.3 — interventi che aspettano l'appuntamento della segreteria (js/41, solo con sql/43) -->
 <div id="tit-appuntamenti"></div>
+<!-- F11.2 — scadenze e incassi delle fatture (js/44, solo con sql/46) -->
+<div id="tit-incassi"></div>
       <div class="tit-section">💼 Lavoro</div>
       <div class="kpi-grid">
         <div class="kpi-card clickable success" onclick="gotoPage('interventi')"><div class="kpi-icon">✅</div><div class="kpi-num" id="tit-k-completati">—</div><div class="kpi-label">Completati nel periodo</div></div>
@@ -328,6 +330,9 @@
         <div class="kpi-card clickable" onclick="gotoPage('interventi')"><div class="kpi-icon">✏️</div><div class="kpi-num" id="seg-k-richmod">—</div><div class="kpi-label">Richieste modifica tecnici</div></div>
         <div class="kpi-card clickable attention" id="seg-k-anticipi-card" style="display:none" onclick="ge('seg-anticipi-sezione')?.scrollIntoView({behavior:'smooth'})"><div class="kpi-icon">💶</div><div class="kpi-num" id="seg-k-anticipi">—</div><div class="kpi-label">Anticipi da fatturare o accreditare</div></div>
       </div>
+
+      <!-- F11.2 — scadenze e incassi delle fatture (js/44, solo con sql/46) -->
+      <div id="seg-incassi"></div>
 
       <!-- F4.2 — compare solo con sql/24 eseguito -->
       <div id="seg-anticipi-sezione" style="display:none">
@@ -621,6 +626,8 @@
     <div class="stat p" style="cursor:pointer" onclick="gotoPage('workflow')"><div style="font-size:11px;color:var(--m);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Da fatturare</div><div style="font-size:26px;font-weight:700" id="ds3">—</div></div>
     <div class="stat b" style="cursor:pointer" onclick="gotoPage('clienti')"><div style="font-size:11px;color:var(--m);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Clienti attivi</div><div style="font-size:26px;font-weight:700" id="ds4">—</div></div>
   </div>
+  <!-- F11.2 — scadenze e incassi delle fatture, contabile (js/44, solo con sql/46) -->
+  <div id="dash-incassi"></div>
   <!-- Azioni rapide titolare -->
   <div id="dash-quick-actions" style="display:none;margin-bottom:20px">
     <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--m);margin-bottom:10px">Azioni rapide</div>
@@ -1902,6 +1909,9 @@
 
   <!-- F11.1 — schede di lavoro da fatturare senza bozza (js/43, solo con sql/45) -->
   <div id="fat-schede-box" class="card" style="display:none;margin-bottom:14px"></div>
+
+  <!-- F11.2 — scadenze e pagamenti delle fatture emesse (js/44, solo con sql/46) -->
+  <div id="fat-scadenze-box" class="card" style="display:none;margin-bottom:14px"></div>
 
   <div id="fat-body"><div class="load">Caricamento...</div></div>
 </div>
@@ -3316,11 +3326,145 @@
       </div>
     </div>
     <div id="mfat-totali" class="card" style="margin-bottom:10px"></div>
+    <!-- F11.2 — scadenze, pagamenti e nota di credito della fattura emessa (js/44) -->
+    <div id="mfat-emessa"></div>
     <div id="mfat-errore" class="al2 e" style="display:none;margin-bottom:10px"></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
       <button class="btn" onclick="closeM('m-fattura')">Chiudi</button>
       <button class="btn" id="mfat-elimina" style="color:var(--r);display:none" onclick="eliminaBozzaFattura()">🗑️ Elimina bozza</button>
+      <button class="btn" id="mfat-nota-credito" style="color:var(--r);display:none" onclick="apriNotaCredito()">🔁 Annulla con nota di credito</button>
       <button class="btn p" id="mfat-salva" onclick="salvaBozzaFattura()">💾 Salva bozza</button>
+      <button class="btn p" id="mfat-emetti" style="display:none" onclick="apriEmissioneDaBozza()">📤 Emetti fattura</button>
+    </div>
+  </div>
+</div>
+
+<!-- F11.2 — EMISSIONE DELLA FATTURA: bozza, anticipo, finale (js/44, solo con sql/46) -->
+<div class="mbg" id="m-emetti-fattura">
+  <div class="modal" style="max-width:600px">
+    <button class="x" onclick="closeM('m-emetti-fattura')">×</button>
+    <h3 id="mef-titolo">📤 Emetti fattura</h3>
+    <div id="mef-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px;overflow-wrap:anywhere"></div>
+    <div id="mef-dati" style="margin-bottom:10px"></div>
+    <div class="fr">
+      <div class="f">
+        <label>Data della fattura *</label>
+        <input type="date" id="mef-data" onchange="ricalcolaRateEmissione()">
+      </div>
+      <div class="f">
+        <label>Modalità di pagamento</label>
+        <input type="text" id="mef-modalita" maxlength="200" placeholder="Es. Bonifico 30 gg data fattura">
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:600;color:var(--m);text-transform:uppercase;margin:4px 0 6px">Scadenze (rate)</div>
+    <div class="fr">
+      <div class="f">
+        <label>Numero di rate</label>
+        <select id="mef-n-rate" onchange="ricalcolaRateEmissione()"></select>
+      </div>
+      <div class="f">
+        <label>Prima rata dopo (giorni)</label>
+        <input type="number" id="mef-giorni" min="0" max="365" step="1" inputmode="numeric" oninput="ricalcolaRateEmissione()">
+      </div>
+      <div class="f">
+        <label>Giorni tra le rate</label>
+        <input type="number" id="mef-intervallo" min="1" max="365" step="1" inputmode="numeric" oninput="ricalcolaRateEmissione()">
+      </div>
+    </div>
+    <div id="mef-rate"></div>
+    <div id="mef-somma" style="font-size:12px;margin:4px 0 10px"></div>
+    <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px;font-weight:400">
+      <input type="checkbox" id="mef-conferma" onchange="aggiornaEmissione()" style="margin-top:3px">
+      Ho controllato: dopo l'emissione la fattura ha il suo numero e non si modifica più (si annulla solo con la nota di credito)
+    </label>
+    <div id="mef-errore" class="al2 e" style="display:none;margin-top:10px"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-emetti-fattura')">Annulla</button>
+      <button class="btn p" id="mef-salva" disabled onclick="confermaEmissione()">📤 Emetti</button>
+    </div>
+  </div>
+</div>
+
+<!-- F11.2 — REGISTRA PAGAMENTO di una rata (js/44, solo con sql/46) -->
+<div class="mbg" id="m-pagamento-fattura">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-pagamento-fattura')">×</button>
+    <h3>💶 Registra pagamento</h3>
+    <div id="mpg-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px;overflow-wrap:anywhere"></div>
+    <div id="mpg-riepilogo" class="al2 i" style="margin-bottom:10px"></div>
+    <div class="fr">
+      <div class="f">
+        <label>Data del pagamento *</label>
+        <input type="date" id="mpg-data" onchange="aggiornaPagamentoFattura()">
+      </div>
+      <div class="f">
+        <label>Importo pagato (€) *</label>
+        <input type="text" id="mpg-importo" inputmode="decimal" oninput="aggiornaPagamentoFattura()">
+      </div>
+    </div>
+    <div class="f">
+      <label>Modalità *</label>
+      <select id="mpg-modalita" onchange="aggiornaPagamentoFattura()"></select>
+    </div>
+    <div class="f">
+      <label>Nota</label>
+      <textarea id="mpg-note" rows="2" maxlength="500" placeholder="Es. riferimento del bonifico"></textarea>
+    </div>
+    <div id="mpg-avviso" style="font-size:12px;margin-bottom:6px"></div>
+    <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px;font-weight:400">
+      <input type="checkbox" id="mpg-conferma" onchange="aggiornaPagamentoFattura()" style="margin-top:3px">
+      Ho verificato il pagamento (sul conto o in cassa)
+    </label>
+    <div id="mpg-errore" class="al2 e" style="display:none;margin-top:10px"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-pagamento-fattura')">Annulla</button>
+      <button class="btn p" id="mpg-salva" disabled onclick="salvaPagamentoFattura()">💶 Registra pagamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- F11.2 — ANNULLA UN PAGAMENTO registrato per errore (js/44) -->
+<div class="mbg" id="m-annulla-pagamento">
+  <div class="modal" style="max-width:480px">
+    <button class="x" onclick="closeM('m-annulla-pagamento')">×</button>
+    <h3>↩ Annulla pagamento</h3>
+    <div id="map-riepilogo" class="al2 w" style="margin-bottom:10px"></div>
+    <div class="f">
+      <label>Perché lo annulli? *</label>
+      <textarea id="map-motivo" rows="2" maxlength="500" oninput="ge('map-salva').disabled=!v('map-motivo').trim()" placeholder="Es. registrato sulla fattura sbagliata"></textarea>
+    </div>
+    <div style="font-size:12px;color:var(--m)">Il pagamento resta nello storico come annullato; la rata torna da pagare.</div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-annulla-pagamento')">Chiudi</button>
+      <button class="btn p" id="map-salva" disabled onclick="salvaAnnullaPagamento()">↩ Annulla pagamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- F11.2 — NOTA DI CREDITO a storno totale (js/44) -->
+<div class="mbg" id="m-nota-credito">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-nota-credito')">×</button>
+    <h3>🔁 Annulla con nota di credito</h3>
+    <div id="mnc-riepilogo" class="al2 w" style="margin-bottom:10px"></div>
+    <div class="fr">
+      <div class="f">
+        <label>Data della nota di credito *</label>
+        <input type="date" id="mnc-data" onchange="aggiornaNotaCredito()">
+      </div>
+    </div>
+    <div class="f">
+      <label>Motivo dell'annullamento *</label>
+      <textarea id="mnc-motivo" rows="2" maxlength="500" oninput="aggiornaNotaCredito()" placeholder="Es. prezzo sbagliato, fattura da rifare"></textarea>
+    </div>
+    <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px;font-weight:400">
+      <input type="checkbox" id="mnc-conferma" onchange="aggiornaNotaCredito()" style="margin-top:3px">
+      Confermo: la nota di credito storna tutta la fattura, che diventa annullata
+    </label>
+    <div id="mnc-errore" class="al2 e" style="display:none;margin-top:10px"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-nota-credito')">Chiudi</button>
+      <button class="btn p" id="mnc-salva" disabled onclick="salvaNotaCredito()">🔁 Emetti nota di credito</button>
     </div>
   </div>
 </div>
@@ -5050,6 +5194,7 @@
 <script defer src="js/41-appuntamenti-segreteria.js"></script>
 <script defer src="js/42-buono-lavoro.js"></script>
 <script defer src="js/43-fatture-bozze.js"></script>
+<script defer src="js/44-fatture-emissione.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

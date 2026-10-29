@@ -472,12 +472,15 @@ function erroreFattura(msg) {
   el.scrollIntoView({ block: 'nearest' });
 }
 
-async function salvaBozzaFattura() {
+// opzioni.restaAperta (F11.2, js/44): salva senza chiudere la finestra e
+// restituisce la risposta del database (null se non salvata), per emettere.
+async function salvaBozzaFattura(opzioni) {
+  const restaAperta = !!(opzioni && opzioni.restaAperta);
   const b = fatBozza;
-  if (!b || !b.modificabile) return;
+  if (!b || !b.modificabile) return null;
   ge('mfat-errore').style.display = 'none';
   const scelte = b.righe.filter(function(r) { return r.incl && !r.bloccata; });
-  if (!scelte.length) { erroreFattura('Spunta almeno una riga "In fattura".'); return; }
+  if (!scelte.length) { erroreFattura('Spunta almeno una riga "In fattura".'); return null; }
   const righe = [];
   for (let k = 0; k < scelte.length; k++) {
     const r = scelte[k];
@@ -485,10 +488,10 @@ async function salvaBozzaFattura() {
     const descr = String(r.descrizione || '').trim();
     const q = numeroDaCampo(r.quantita), p = numeroDaCampo(r.prezzo_unitario);
     const sc = String(r.sconto_perc ?? '').trim() === '' ? 0 : numeroDaCampo(r.sconto_perc);
-    if (!descr) { erroreFattura('Riga ' + n + ': scrivi la descrizione.'); return; }
-    if (isNaN(q) || q <= 0) { erroreFattura('Riga ' + n + ': la quantità deve essere un numero maggiore di zero.'); return; }
-    if (isNaN(p)) { erroreFattura('Riga ' + n + ': il prezzo deve essere un numero (anche 0).'); return; }
-    if (isNaN(sc) || sc < 0 || sc > 100) { erroreFattura('Riga ' + n + ': lo sconto va da 0 a 100.'); return; }
+    if (!descr) { erroreFattura('Riga ' + n + ': scrivi la descrizione.'); return null; }
+    if (isNaN(q) || q <= 0) { erroreFattura('Riga ' + n + ': la quantità deve essere un numero maggiore di zero.'); return null; }
+    if (isNaN(p)) { erroreFattura('Riga ' + n + ': il prezzo deve essere un numero (anche 0).'); return null; }
+    if (isNaN(sc) || sc < 0 || sc > 100) { erroreFattura('Riga ' + n + ': lo sconto va da 0 a 100.'); return null; }
     righe.push({
       descrizione: descr, quantita: arrotonda2(q), unita_misura: String(r.unita_misura || '').trim(),
       prezzo_unitario: arrotonda2(p), sconto_perc: arrotonda2(sc), origine: r.origine,
@@ -496,7 +499,7 @@ async function salvaBozzaFattura() {
     });
   }
   const iva = Number(v('mfat-iva'));
-  if (isNaN(iva)) { erroreFattura('Scegli l\'aliquota IVA.'); return; }
+  if (isNaN(iva)) { erroreFattura('Scegli l\'aliquota IVA.'); return null; }
   const btn = ge('mfat-salva');
   btn.disabled = true;
   const { data, error } = await db.rpc('salva_bozza_fattura', {
@@ -507,11 +510,13 @@ async function salvaBozzaFattura() {
     p_righe: righe
   });
   btn.disabled = false;
-  if (error) { erroreFattura('Non salvata: ' + (error.message || 'errore')); return; }
+  if (error) { erroreFattura('Non salvata: ' + (error.message || 'errore')); return null; }
+  if (restaAperta) { b.id = data && data.id; return data; }
   closeM('m-fattura');
   toast((b.id ? 'Bozza aggiornata' : 'Bozza creata') + ' ✓ Totale ' + euroBuono(data && data.totale) + ' (senza numero: lo assegna l\'emissione)', 'ok');
   fatBozza = null;
   aggiornaDopoBozza();
+  return data;
 }
 
 async function eliminaBozzaFattura() {
