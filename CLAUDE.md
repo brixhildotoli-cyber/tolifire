@@ -1224,3 +1224,45 @@ una sessione e l'altra.
    cantiere, per periodo, sommate su tutte le commesse, con il confronto
    ore stimate/effettive per lavorazione. Dati da sql/37 (giornale di
    cantiere). Da pianificare come task a parte dopo F8.5.
+
+7. **Risposte di Erika alle domande aperte (29/10/2026)** — da applicare
+   (task "Decisioni del 29/10") o già in linea con il sito:
+   - Decisioni del 23/10 CONFERMATE (informatico come titolare, cliente di
+     chi lo crea, exwide a Giulio Pistolesi, intervento non completato in
+     coda), TRANNE il tecnico che intesta un intervento a un collega: "da
+     vedere" (resta com'è finché Toli non decide).
+   - Sostituto del capo tecnico: da decidere più avanti. Account di prova:
+     si tengono per ora.
+   - DA FARE: il capo tecnico deve vedere l'ORIGINALE del preventivo
+     firmato (preventivi-documenti `<preventivo>/accettazione/`) delle
+     commesse che legge (policy storage, SQL).
+   - DA FARE: prezzi d'acquisto (ordini fornitori, materiali): il capo
+     tecnico NON li vede; la segreteria sì (ha le fatture).
+   - DA FARE: il titolare può riportare indietro un ordine segnato
+     "arrivato" per errore (RPC di sql/30, SQL).
+   - Noli: il rappresentante non li chiede (già così); va bene chiederli
+     anche a cantiere in corso (già così). Nolo evaso come ordine: da
+     decidere.
+   - DA FARE: l'avviso dei materiali in ritardo arriva anche al
+     rappresentante del cliente.
+   - Faldone: idoneità visibile al capo tecnico senza file (già così);
+     consegna forzata del titolare con motivo (già così); documento che
+     scade durante i lavori = solo avviso (già così). DA FARE: il POS del
+     subappaltatore diventa documento sempre richiesto (sql/33, SQL).
+   - Cantiere: chi scrive accessi/referenti/sicurezza va bene (già così);
+     il capo tecnico può vedere importo commessa e nomi dei fornitori (già
+     così); squadra solo capo tecnico e titolare (già così); documento
+     scaduto in squadra = solo avviso (già così).
+   - DA FARE: cronoprogramma, il peso delle fasi sono le ORE previste
+     (oggi peso a mano 1-100).
+   - Chiusura: il titolare può chiudere con motivo (già così); basta la
+     dichiarazione del gestionale (per ora); i lavori extra vanno di norma
+     nella fattura finale, ma se escono dopo si integra o si rifà la
+     fattura (oggi la spunta "comprende gli extra" e la correzione del
+     titolare dopo la chiusura lo permettono).
+   - DA FARE: il promemoria dei rinnovi va SOLO al rappresentante del
+     cliente (togliere il box dalla dashboard del capo tecnico; il
+     titolare vede comunque tutto).
+   - In sospeso: testo e decreti della dichiarazione (Erika controlla),
+     disdetta anticipata del contratto, lavori extra sotto 3.000 € e
+     importo degli extra nella commessa.
