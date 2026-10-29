@@ -412,12 +412,17 @@ posto di (progetto_tecnico_id, famiglia); policy RLS invariate. In cima
 alla scheda la barra "Scheda 1 | Scheda 2 | … | + Nuova scheda" (nuova =
 stesse voci, vuota, numero = massimo + 1, nasce con "Salva") e il campo
 facoltativo "Nome / riferimento" salvato in `dati.nome_scheda` (non una
-colonna). Con il 48 dopo "Salva" la scheda resta aperta (si vede nella
-barra); passare a un'altra scheda con modifiche non salvate chiede
-conferma. Eliminare: solo le schede in più (numero 2 o oltre), solo
-ingegnere o titolare, solo con il progetto in_verifica_tecnica, con
-conferma (RPC elimina_scheda_rilievo: sulla tabella non c'è policy di
-cancellazione). Titolo "Porte e portoni REI – scheda 2 (Piano terra)"
+colonna). Funziona come le tab di un file Excel (decisione di Erika del
+29/10): si passa da un tab all'altro senza conferma e senza perdere quello
+che si è scritto (le modifiche restano in memoria, pallino arancione sul
+tab non salvato); "Salva" salva TUTTE le schede del tipo modificate,
+comprese le nuove, e la scheda resta aperta; chiudere (Annulla, Indietro,
+✕, clic fuori) con modifiche non salvate chiede conferma. Eliminare:
+qualsiasi scheda, anche la 1, in qualsiasi momento, solo ingegnere,
+titolare e informatico, con conferma (RPC elimina_scheda_rilievo: sulla
+tabella non c'è policy di cancellazione); se era l'unica, quel tipo resta
+senza schede. Una scheda nuova mai salvata si toglie solo dalla memoria.
+Senza sql/48 salvataggio e chiusura come prima (nessuna conferma). Titolo "Porte e portoni REI – scheda 2 (Piano terra)"
 nel preventivo (renderSchedePreventivo), nella scheda progetto (js/17),
 nella copia commerciale (apriModificaSchedaCommerciale per id della
 scheda), nel PDF della richiesta al fornitore e nella scheda cantiere
