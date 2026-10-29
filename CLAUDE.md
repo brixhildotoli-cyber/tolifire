@@ -1656,7 +1656,7 @@ una sessione e l'altra.
    BLOCCHI (trigger trg_fatture_blocco_emesse e
    trg_fatture_scadenze_solo_rpc): una fattura nasce solo in bozza; si
    emette solo dalle RPC; emessa o annullata non si modifica (tranne
-   stato del pagamento e pdf_url) e non si cancella né soft-delete, NEMMENO
+   pdf_url; lo stato del pagamento lo calcolano le RPC) e non si cancella né soft-delete, NEMMENO
    il titolare (il vecchio "riportare in bozza" di fatture_proteggi_emessa
    non si fa più dal sito): si annulla solo con la NOTA DI CREDITO. Le
    scadenze si scrivono solo dalle RPC. Editor SQL libero.
@@ -1670,7 +1670,7 @@ una sessione e l'altra.
    PAGAMENTI (tabella fatture_pagamenti, RPC registra_pagamento_fattura e
    annulla_pagamento_fattura; finestre m-pagamento-fattura, id mpg-, e
    m-annulla-pagamento, id map-): titolare, segreteria, contabile; per
-   rata; data non futura, importo non oltre il residuo (predefinito il
+   rata; data non futura e non prima della fattura, importo non oltre il residuo (predefinito il
    residuo), modalità (bonifico, contanti, assegno, carta, riba,
    compensazione, altro), nota, chi/quando dal database. Pagamento
    parziale: la rata resta aperta (nessuno stato "parziale" per la rata)

@@ -590,6 +590,7 @@ async function apriPagamentoFattura(scadenzaId) {
     (Number(s.importo_pagato) ? ' · già pagato ' + esc(euroBuono(s.importo_pagato)) : '') + ' · <b>da incassare ' + esc(euroBuono(residuo)) + '</b>';
   ge('mpg-data').value = oggi;
   ge('mpg-data').max = oggi;
+  ge('mpg-data').min = f.data_emissione || '';
   ge('mpg-importo').value = residuo.toFixed(2).replace('.', ',');
   ge('mpg-modalita').innerHTML = '<option value="">Scegli...</option>' + MODALITA_PAGAMENTO_FATTURA.map(function(m) { return '<option value="' + m[0] + '">' + esc(m[1]) + '</option>'; }).join('');
   ge('mpg-modalita').value = 'bonifico';
@@ -610,6 +611,7 @@ function erroreDatiPagamento() {
   const imp = arrotonda2(numeroDaCampo(v('mpg-importo')));
   if (!data) return 'Indica la data del pagamento';
   if (data > oggiFattura()) return 'La data del pagamento non può essere nel futuro';
+  if (a.fattura.data_emissione && data < a.fattura.data_emissione) return 'La data del pagamento non può essere prima della fattura (' + fd(a.fattura.data_emissione) + ')';
   if (isNaN(imp) || !(imp > 0)) return 'Indica l\'importo pagato (maggiore di zero)';
   if (imp > a.residuo) return 'L\'importo supera quanto resta da pagare (' + euroBuono(a.residuo) + ')';
   if (!v('mpg-modalita')) return 'Scegli la modalità';
