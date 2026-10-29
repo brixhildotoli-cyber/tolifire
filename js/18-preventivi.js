@@ -4876,7 +4876,22 @@ function eliminaVocePreventivo(voceId) {
   toast('Voce rimossa. Salva il preventivo per confermare.', 'ok');
 }
 
+// Un solo salvataggio delle voci alla volta: con due clic ravvicinati su
+// "Salva" (o "Salva" e subito "Genera PDF cliente") le voci nuove venivano
+// inserite due volte e il totale del PDF raddoppiava.
+let salvataggioVociInCorso = null;
+
 async function salvaVociPreventivo() {
+  if (salvataggioVociInCorso) return salvataggioVociInCorso;
+  salvataggioVociInCorso = eseguiSalvataggioVociPreventivo();
+  try {
+    return await salvataggioVociInCorso;
+  } finally {
+    salvataggioVociInCorso = null;
+  }
+}
+
+async function eseguiSalvataggioVociPreventivo() {
   // F4.3: dopo l'esito non si salva nulla (il PDF si rigenera dalle voci salvate).
   if (vociPreventivoBloccate) return true;
 
@@ -4887,6 +4902,22 @@ async function salvaVociPreventivo() {
   if (vociNonValide) {
     toast('Inserisci una descrizione per ogni voce', 'err');
     return false;
+  }
+
+  // Voci tolte con "Elimina": vanno cancellate davvero, altrimenti al
+  // salvataggio successivo ricompaiono e finiscono nel PDF.
+  if (vociEliminatePreventivo.length) {
+    const { error: erroreElimina } = await db
+      .from('preventivi_voci')
+      .delete()
+      .in('id', vociEliminatePreventivo)
+      .eq('preventivo_id', currentPreventivoId);
+
+    if (erroreElimina) {
+      toast('Errore eliminazione voci: ' + erroreElimina.message, 'err');
+      return false;
+    }
+    vociEliminatePreventivo = [];
   }
 
   const vociEsistenti = vociPreventivoDati.filter(function(voce) {
@@ -4935,14 +4966,22 @@ async function salvaVociPreventivo() {
       };
     });
 
-    const { error } = await db
+    const { data: inserite, error } = await db
       .from('preventivi_voci')
-      .insert(righe);
+      .insert(righe)
+      .select('id, ordinamento');
 
     if (error) {
       toast('Errore inserimento voci: ' + error.message, 'err');
       return false;
     }
+
+    // Le voci appena inserite prendono subito il loro id: un nuovo
+    // salvataggio le aggiorna invece di inserirle di nuovo.
+    (inserite || []).forEach(function(riga) {
+      const voce = vociNuove[riga.ordinamento - vociEsistenti.length];
+      if (voce) voce.id = riga.id;
+    });
   }
 
   const totaleImponibile = vociPreventivoDati.reduce(function(totale, voce) {
