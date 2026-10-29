@@ -1525,3 +1525,16 @@ una sessione e l'altra.
    - In sospeso: testo e decreti della dichiarazione (Erika controlla),
      disdetta anticipata del contratto, lavori extra sotto 3.000 € e
      importo degli extra nella commessa.
+
+8. **Risposte di Erika su F10.3 (29/10/2026)** — appuntamenti:
+   - Obbligo di appuntamento solo per le manutenzioni programmate nuove o
+     anche per quelle esistenti: NON DECISO (resta solo le nuove).
+   - DA FARE: anche il CAPO TECNICO può fissare l'appuntamento (oggi solo
+     segreteria e titolare).
+   - La segreteria può togliere l'obbligo con motivo: CONFERMATO (già così).
+   - DA FARE: il portale clienti mostra l'ORA dell'appuntamento (RPC del
+     portale, SQL).
+   - DA COSTRUIRE (modulo a parte): promemoria al cliente il giorno prima
+     dell'appuntamento. Serve un canale di invio (email o SMS, es. Edge
+     Function Supabase + servizio di posta) e il consenso/recapito del
+     cliente: oggi il gestionale non invia messaggi.
