@@ -8,7 +8,9 @@
 // arrivato. Per chi vede le offerte (rappresentante, commerciale,
 // titolare) anche le offerte selezionate ancora da ordinare.
 // Riepilogo dei ritardi nella dashboard del capo tecnico (box
-// ct-materiali-ritardo).
+// ct-materiali-ritardo) e, dalle decisioni del 29/10, del rappresentante
+// del cliente (box rap-materiali-ritardo: solo le sue commesse, per RLS).
+// Nessun prezzo d'acquisto in questo file (il capo tecnico non li vede).
 // Sola lettura: le azioni (conferma, arrivato, evadi, annulla) restano
 // nei box "Ordini ai fornitori" e "Consumabili e noli".
 // Lo stato "Materiali ordinati" NON cambia da solo (decisione F5.2): lo
@@ -290,14 +292,20 @@ async function caricaMaterialiCommessa(commessa) {
   `;
 }
 
-// ── Dashboard del capo tecnico: materiali in ritardo ────────────────
+// ── Dashboard: materiali in ritardo ─────────────────────────────────
 // Riepilogo di sola lettura (ordini e consumabili/noli con arrivo
-// previsto passato e non arrivati) sulle commesse aperte.
+// previsto passato e non arrivati) sulle commesse aperte. Capo tecnico:
+// tutte; rappresentante: solo le commesse dei suoi clienti (le altre non
+// le legge, policy di sql/26, 30 e 31).
+const BOX_MATERIALI_RITARDO = {
+  capo_tecnico: 'ct-materiali-ritardo',
+  rappresentante: 'rap-materiali-ritardo'
+};
+
 async function caricaMaterialiInRitardoDashboard() {
-  const box = ge('ct-materiali-ritardo');
+  const box = ge(BOX_MATERIALI_RITARDO[ROLE] || '');
   if (!box) return;
   box.innerHTML = '';
-  if (ROLE !== 'capo_tecnico') return;
 
   const [attiveOrdini, attiveRichieste] = await Promise.all([
     typeof verificaOrdiniFornitoriDisponibili === 'function' ? verificaOrdiniFornitoriDisponibili() : false,
@@ -355,7 +363,9 @@ async function caricaMaterialiInRitardoDashboard() {
     <div class="tit-section" style="margin-top:14px">⚠️ Materiali in ritardo (${voci.length})</div>
     <div class="rap-list-card" style="margin-bottom:14px">
       <div style="font-size:12px;color:var(--m);margin-bottom:4px">
-        Arrivo previsto passato e non ancora arrivati. Se sono arrivati segnali nella commessa; altrimenti senti rappresentante (ordini) o acquisti (consumabili e noli).
+        ${ROLE === 'rappresentante'
+          ? 'Materiali delle commesse dei tuoi clienti con l\'arrivo previsto passato e non ancora arrivati: senti il fornitore (ordini) o gli acquisti (consumabili e noli) e, se serve, avvisa il cliente. L\'arrivo lo segna chi lo riceve.'
+          : 'Arrivo previsto passato e non ancora arrivati. Se sono arrivati segnali nella commessa; altrimenti senti rappresentante (ordini) o acquisti (consumabili e noli).'}
       </div>
       ${voci.map(function(x) {
         const c = x.commessa;

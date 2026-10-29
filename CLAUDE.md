@@ -105,6 +105,12 @@ ordini_lavoro.audit_presidi, audit_presidi_da, audit_presidi_il,
 audit_presidi_nota (le cambia solo il database o
 imposta_audit_presidi_intervento); tabella audit_presidi (sola lettura,
 la scrivono solo le RPC dell'audit, js/40).
+Dopo sql/42 (decisioni del 29/10, da eseguire, richiede 07, 22, 26, 30,
+33 e 36, tutti in produzione; NON 40 né 41): colonne nuove
+ordini_fornitori.arrivo_annullato_il, _da, _da_nome, _motivo, _data
+(ultimo ritorno da arrivato a confermato; le scrive solo
+cambia_stato_ordine_fornitore) e commesse_fasi.ore_previste (le scrive
+solo salva_fase_commessa_ore, js/34).
 
 Usate dal frontend — fatturazione:
 fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
@@ -125,7 +131,9 @@ usate senza conferma di Toli.
 Bucket Storage usati dal frontend: documenti-clienti, foto-interventi,
 preventivi-documenti, progetti-tecnici, ticket-allegati,
 certificati-preventivi; dopo sql/29 (F5.3) commesse-documenti; dopo
-sql/32 (F7.1) documenti-team-subappalti.
+sql/32 (F7.1) documenti-team-subappalti. Con sql/42 il capo tecnico apre
+in preventivi-documenti SOLO l'allegato di accettazione dei preventivi
+delle commesse (regola commesse_preventivo_firmato_lettura).
 
 RPC chiamate dal frontend (`db.rpc`): marca_ritardi_pendenti,
 confirm_user_email, impegni_tecnici_dashboard,
@@ -168,6 +176,9 @@ Dopo sql/40 (F10.1, da eseguire): registra_rinnovo_contratto.
 Dopo sql/41 (F10.2, da eseguire): registra_audit_presidi,
 imposta_audit_presidi_intervento, audit_presidi_da_esaminare,
 segna_audit_presidi_esaminato.
+Dopo sql/42 (decisioni del 29/10, da eseguire): preventivo_firmato_commessa,
+salva_fase_commessa_ore; cambia_stato_ordine_fornitore ridefinita (in
+più: 'confermato' da 'arrivato', solo titolare, con motivo).
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
 Sono gli accessi che le policy RLS per il portale dovranno permettere
 (F1.1), sempre filtrati sul cliente del portale (`cliente_id`):
@@ -541,6 +552,27 @@ commessa chiusa o annullata solo il titolare. Lo stato "materiali
 ordinati" resta del rappresentante (sql/28): quando tutte le offerte
 hanno l'ordine il box lo suggerisce ("Segna Materiali ordinati"). Senza
 sql/30 il box mostra "Gli ordini ai fornitori non sono ancora attivi".
+Decisioni del 29/10 (js/27 + sql/42): PREZZI D'ACQUISTO nascosti al
+capo tecnico (la segreteria li vede: ha le fatture): niente importo
+dell'ordine, colonne prezzo e totale delle voci, bottoni "📄 PDF" e
+"💾 Nella cartella" (il PDF ha i prezzi; `vedePrezziAcquisto`,
+RUOLI_VEDONO_PREZZI_ACQUISTO = titolare, segreteria, commerciale,
+rappresentante), niente costo dei consumabili e noli (js/28); nella
+cartella documenti (js/26) i PDF "Ordine_..." della cartella Ordini per
+lui restano in elenco senza "Apri". LIMITE DICHIARATO: lo nasconde solo
+il sito; nel database ordini_fornitori.importo,
+ordini_fornitori_voci.prezzo_unitario, commesse_richieste_integrazione.costo
+e i file della cartella "ordini" restano leggibili dal capo tecnico
+(per chiuderli servirebbero permessi per colonna su tre tabelle, con
+lettura dei prezzi via RPC per gli altri 4 ruoli e la riscrittura delle
+letture di js/27, js/28 e del PDF, più una regola sulla cartella ordini:
+da fare a parte se Toli lo chiede). RITORNO DA "ARRIVATO": il titolare
+(solo lui) con "↩️ Non è arrivato" riporta a "Confermato dal fornitore"
+un ordine segnato arrivato per errore (finestra m-stato-ordine-fornitore,
+motivo obbligatorio, nuovo arrivo previsto facoltativo); la data di
+arrivo si toglie e restano chi, quando, motivo e data tolta (colonne
+arrivo_annullato_*, solo l'ultimo ritorno; nei passaggi dell'ordine).
+Senza sql/42 il bottone non compare.
 
 Passi 8-9, consumabili e noli (F6.2, js/28-richieste-integrazione.js;
 sql/31-richieste-integrazione eseguito il 27/10, richiede 26, non 28, 29 né
@@ -596,7 +628,11 @@ Ordini", bottone solo lì) o, per capo tecnico e segreteria, che il
 rappresentante non l'ha ancora segnato. Dashboard del capo tecnico: box
 "⚠️ Materiali in ritardo" (ct-materiali-ritardo, ordini e
 consumabili/noli in ritardo sulle commesse aperte, solo "Apri
-commessa"; compare solo se ce ne sono). Funziona con nessuna, una o
+commessa"; compare solo se ce ne sono). Decisione del 29/10: lo stesso
+box anche nella dashboard del RAPPRESENTANTE (rap-materiali-ritardo,
+js/13; solo le commesse dei suoi clienti, per RLS; testo: senti
+fornitore o acquisti e avvisa il cliente). Nessun prezzo nel box né
+nell'elenco Materiali. Funziona con nessuna, una o
 entrambe le fonti (senza 30 e 31 il box non compare; con una sola dice
 quale parte manca).
 
@@ -672,7 +708,12 @@ POS o DVR); altre voci (Da fare / Fatto / Non necessario; le
 predefinite non si tolgono). Documenti richiesti fissi (proposta, da
 confermare da Toli; nel DB `faldone_tipi_obbligatori`): dipendenti
 formazione_lavoratori e idoneita_sanitaria; subappaltatori durc,
-visura_camerale, assicurazione_rc. Controllo UNICO nel database
+visura_camerale, assicurazione_rc e, dalle decisioni del 29/10 (sql/42,
+nuova versione di faldone_tipi_obbligatori; stato_faldone_commessa NON
+ridefinita), pos (POS del subappaltatore). Con sql/42 una commessa in
+preparazione con un subappaltatore senza POS in vigore non passa a
+'pronta'; js/31 mostra tra "in più per questa commessa" solo quelli non
+già fissi (un 'pos' rimasto tra gli extra non si ripete). Controllo UNICO nel database
 (`stato_faldone_commessa`, dal sito `controllo_faldone_commessa`):
 documenti IN VIGORE (non sostituiti) validi alla data di inizio (o a
 oggi, se l'inizio è passato). BLOCCANO 'pronta': data di inizio
@@ -724,6 +765,17 @@ commesse_file_tecnici_lettura (funzione file_tecnico_commessa_leggibile):
 chi legge la commessa apre i file del progetto (progetti-tecnici) e i
 certificati del preventivo (certificati-preventivi) di quella commessa.
 Il sostituto del capo tecnico NON è implementato (domanda aperta).
+Decisione del 29/10 (sql/42 + js/26, js/32): il capo tecnico apre
+l'ORIGINALE del preventivo firmato (o mail di approvazione) delle
+commesse: RPC preventivo_firmato_commessa (percorso e nome, per chi legge
+la commessa; il capo tecnico non legge preventivi) e regola storage
+commesse_preventivo_firmato_lettura (funzione
+preventivo_firmato_commessa_leggibile: solo il file
+allegato_accettazione_path del preventivo di una commessa, solo
+apertura). Collegamento "✍️ Preventivo firmato" nella cartella documenti
+(js/26 `leggiPreventivoFirmatoCommessa`) e prima riga degli "Allegati
+tecnici" della scheda Cantiere (js/32). Senza sql/42 il capo tecnico non
+vede il collegamento (come prima).
 Squadra del giorno, mezzi e calendario dei tecnici: F8.2, sotto. Senza
 sql/34 la scheda mostra indirizzo, referente del cliente, materiali e
 certificati della commessa e dice che il resto "non è ancora attivo".
@@ -815,6 +867,23 @@ capo tecnico e titolare vedono "Segna Fine lavori" (apre "Stato e
 storico" di js/18, solo con sql/28). Giornale di cantiere, foto, ore e
 performance: F8.4. Senza sql/36 il box dice "non sono ancora attivi"
 e la colonna non compare.
+Decisione del 29/10 (sql/42 + js/34): il peso delle fasi sono le ORE
+PREVISTE. SCELTA meno invasiva: colonna NUOVA commesse_fasi.ore_previste
+(facoltativa, da 0,25 a 20.000 a quarti d'ora, vincolo
+commesse_fasi_ore_previste_check); peso e suo vincolo 1-100 di sql/36
+NON cambiano (nessuna ridefinizione di salva_fase_commessa). Si scrive
+con la RPC NUOVA salva_fase_commessa_ore (stessi parametri con
+p_ore_previste al posto di p_peso; chiama salva_fase_commessa con il peso
+della fase, quindi stessi controlli e ruoli: capo tecnico e titolare).
+% DELLA COMMESSA (`calcolaAvanzamentoFasi`, scheda, riquadri e pagina
+Commesse, lettura a pagine invariata) = somma(ore x %) / somma(ore); le
+fasi senza ore contano come la media delle ore indicate (avviso sotto
+la barra: "N fasi senza ore contano come la media delle altre"); se
+nessuna fase ha le ore, somma(peso x %) / somma(peso) come prima. 100%
+solo con tutte le fasi finite (invariato). Finestra m-fase-cronoprogramma:
+con sql/42 "Ore previste (facoltative)" (crf-ore) al posto del peso
+(crf-peso-riga nascosto); badge "N h previste" sulla fase. Senza sql/42
+la finestra chiede il peso come prima.
 
 Giornale di cantiere e performance operai (F8.4, js/35-giornale-
 cantiere.js; sql/37-giornale-cantiere eseguito il 28/10, richiede 07, 26 e 32,
@@ -1057,9 +1126,13 @@ cliente, tab Periodicità, card "Contratto di manutenzione"); la tabella
   produzione e già in Impostazioni; vuoto = 60) o già scaduto compare
   nel box "📄 Contratti in scadenza" (caricaContrattiInScadenzaDashboard)
   della dashboard del RAPPRESENTANTE (rap-contratti-scadenza, solo i suoi
-  clienti), del TITOLARE (tit-contratti-scadenza, tutti, con il nome del
-  rappresentante o "Cliente senza rappresentante") e del CAPO TECNICO
-  (ct-contratti-scadenza, Responsabile Service). Bottoni "Apri contratto"
+  clienti) e del TITOLARE (tit-contratti-scadenza, tutti, con il nome del
+  rappresentante o "Cliente senza rappresentante"). Decisione del 29/10:
+  il promemoria va SOLO al rappresentante del cliente: tolti il box
+  ct-contratti-scadenza (index.html), la chiamata nella dashboard del
+  capo tecnico (js/03) e la voce capo_tecnico di BOX_CONTRATTI_SCADENZA
+  (js/39); il capo tecnico registra ancora l'esito dalla scheda cliente.
+  Bottoni "Apri contratto"
   (scheda cliente sul tab Periodicità), "✅ Rinnovato", "❌ Non
   rinnovato". Con l'esito il contratto esce dalla lista. Nella scheda il
   riquadro perio-rinnovo-box mostra fine e giorni mancanti, i bottoni
@@ -1291,44 +1364,56 @@ una sessione e l'altra.
    ore stimate/effettive per lavorazione. Dati da sql/37 (giornale di
    cantiere). Da pianificare come task a parte dopo F8.5.
 
-7. **Risposte di Erika alle domande aperte (29/10/2026)** — da applicare
-   (task "Decisioni del 29/10") o già in linea con il sito:
+7. **Risposte di Erika alle domande aperte (29/10/2026)** — applicate
+   con la task "Decisioni del 29/10" (commit [Decisioni 29/10],
+   sql/42-decisioni-29-10 DA ESEGUIRE, richiede 07, 22, 26, 30, 33, 36) o
+   già in linea con il sito:
    - Decisioni del 23/10 CONFERMATE (informatico come titolare, cliente di
      chi lo crea, exwide a Giulio Pistolesi, intervento non completato in
      coda), TRANNE il tecnico che intesta un intervento a un collega: "da
      vedere" (resta com'è finché Toli non decide).
    - Sostituto del capo tecnico: da decidere più avanti. Account di prova:
      si tengono per ora.
-   - DA FARE: il capo tecnico deve vedere l'ORIGINALE del preventivo
-     firmato (preventivi-documenti `<preventivo>/accettazione/`) delle
-     commesse che legge (policy storage, SQL).
-   - DA FARE: prezzi d'acquisto (ordini fornitori, materiali): il capo
-     tecnico NON li vede; la segreteria sì (ha le fatture).
-   - DA FARE: il titolare può riportare indietro un ordine segnato
-     "arrivato" per errore (RPC di sql/30, SQL).
+   - FATTO (sql/42 + js/26, js/32; vedi F8.1): il capo tecnico vede
+     l'ORIGINALE del preventivo firmato (preventivi-documenti
+     `<preventivo>/accettazione/`) delle commesse che legge (policy
+     storage commesse_preventivo_firmato_lettura, RPC
+     preventivo_firmato_commessa).
+   - FATTO SOLO NEL SITO (js/27, js/28, js/26; vedi F6.1, limite
+     dichiarato): prezzi d'acquisto (ordini fornitori, consumabili e
+     noli, PDF dell'ordine): il capo tecnico NON li vede; la segreteria
+     sì (ha le fatture). Nel database restano leggibili.
+   - FATTO (sql/42 + js/27; vedi F6.1): il titolare riporta a
+     "confermato" un ordine segnato "arrivato" per errore, con motivo
+     (cambia_stato_ordine_fornitore ridefinita, rollback = versione di
+     sql/30).
    - Noli: il rappresentante non li chiede (già così); va bene chiederli
      anche a cantiere in corso (già così). Nolo evaso come ordine: da
      decidere.
-   - DA FARE: l'avviso dei materiali in ritardo arriva anche al
-     rappresentante del cliente.
+   - FATTO (js/29, js/13, index.html; vedi F6.3): l'avviso dei
+     materiali in ritardo arriva anche al rappresentante del cliente
+     (rap-materiali-ritardo).
    - Faldone: idoneità visibile al capo tecnico senza file (già così);
      consegna forzata del titolare con motivo (già così); documento che
-     scade durante i lavori = solo avviso (già così). DA FARE: il POS del
-     subappaltatore diventa documento sempre richiesto (sql/33, SQL).
+     scade durante i lavori = solo avviso (già così). FATTO (sql/42 +
+     js/31; vedi F7.2): il POS del subappaltatore è documento sempre
+     richiesto (faldone_tipi_obbligatori ridefinita, rollback = versione
+     di sql/33).
    - Cantiere: chi scrive accessi/referenti/sicurezza va bene (già così);
      il capo tecnico può vedere importo commessa e nomi dei fornitori (già
      così); squadra solo capo tecnico e titolare (già così); documento
      scaduto in squadra = solo avviso (già così).
-   - DA FARE: cronoprogramma, il peso delle fasi sono le ORE previste
-     (oggi peso a mano 1-100).
+   - FATTO (sql/42 + js/34, index.html; vedi F8.3): cronoprogramma, il
+     peso delle fasi sono le ORE previste (colonna ore_previste, RPC
+     salva_fase_commessa_ore; senza ore resta il peso).
    - Chiusura: il titolare può chiudere con motivo (già così); basta la
      dichiarazione del gestionale (per ora); i lavori extra vanno di norma
      nella fattura finale, ma se escono dopo si integra o si rifà la
      fattura (oggi la spunta "comprende gli extra" e la correzione del
      titolare dopo la chiusura lo permettono).
-   - DA FARE: il promemoria dei rinnovi va SOLO al rappresentante del
-     cliente (togliere il box dalla dashboard del capo tecnico; il
-     titolare vede comunque tutto).
+   - FATTO (js/39, js/03, index.html; vedi F10.1, nessun SQL): il
+     promemoria dei rinnovi va SOLO al rappresentante del cliente (tolto
+     il box dalla dashboard del capo tecnico; il titolare lo tiene).
    - In sospeso: testo e decreti della dichiarazione (Erika controlla),
      disdetta anticipata del contratto, lavori extra sotto 3.000 € e
      importo degli extra nella commessa.

@@ -257,11 +257,19 @@ function htmlFaldoneCommessa(commessa, f) {
 
   // Documenti richiesti
   const elenco = function(tipi) { return (tipi || []).map(nomeTipoDocumentoFaldone).join(', ') || 'nessuno'; };
+  // "In più" senza quelli già sempre richiesti (es. il POS del
+  // subappaltatore, sempre richiesto dalle decisioni del 29/10, sql/42,
+  // può essere rimasto tra quelli in più di una commessa).
+  const inPiu = function(extra, fissi) {
+    return (extra || []).filter(function(t) { return !(fissi || []).includes(t); });
+  };
+  const extraDip = inPiu(f.tipi_extra_dipendenti, f.tipi_obbligatori_dipendenti);
+  const extraSub = inPiu(f.tipi_extra_subappaltatori, f.tipi_obbligatori_subappaltatori);
   const richiesti = `
     <div style="font-size:13px;font-weight:700;margin:12px 0 4px">📋 Documenti richiesti a chi va in cantiere</div>
     <div style="font-size:12px">
-      <div><b>Dipendenti:</b> ${esc(elenco(f.tipi_obbligatori_dipendenti))}${(f.tipi_extra_dipendenti || []).length ? ' + <b>per questa commessa:</b> ' + esc(elenco(f.tipi_extra_dipendenti)) : ''}</div>
-      <div><b>Subappaltatori:</b> ${esc(elenco(f.tipi_obbligatori_subappaltatori))}${(f.tipi_extra_subappaltatori || []).length ? ' + <b>per questa commessa:</b> ' + esc(elenco(f.tipi_extra_subappaltatori)) : ''}</div>
+      <div><b>Dipendenti:</b> ${esc(elenco(f.tipi_obbligatori_dipendenti))}${extraDip.length ? ' + <b>per questa commessa:</b> ' + esc(elenco(extraDip)) : ''}</div>
+      <div><b>Subappaltatori:</b> ${esc(elenco(f.tipi_obbligatori_subappaltatori))}${extraSub.length ? ' + <b>per questa commessa:</b> ' + esc(elenco(extraSub)) : ''}</div>
     </div>
     ${modifica ? '<button class="btn sm" style="margin-top:6px" onclick="apriRequisitiFaldone()">Documenti in più per questa commessa</button>' : ''}
   `;

@@ -310,7 +310,8 @@ function htmlDettaglioRichiestaIntegrazione(r) {
     const dettagli = [
       'arrivo previsto ' + fd(r.arrivo_previsto),
       r.fornitore_nome ? 'fornitore ' + r.fornitore_nome : '',
-      r.costo != null ? 'costo ' + euroPreventivo(r.costo) + ' IVA esclusa' : ''
+      // Decisioni 29/10: il costo (prezzo d'acquisto) non lo vede il capo tecnico.
+      r.costo != null && (typeof vedePrezziAcquisto !== 'function' || vedePrezziAcquisto()) ? 'costo ' + euroPreventivo(r.costo) + ' IVA esclusa' : ''
     ].filter(Boolean).join(', ');
     righe.push('Evasa dagli acquisti (ultimo aggiornamento il ' + dataOraEsitoPreventivo(r.evasa_il) +
       (r.evasa_da_nome ? ' da ' + r.evasa_da_nome : '') + '): ' + dettagli + (r.nota_evasione ? ' · ' + r.nota_evasione : ''));

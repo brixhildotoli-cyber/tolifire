@@ -18,6 +18,12 @@
 // "Stato e storico" di js/18, solo con sql/28).
 // Tutto attivo con sql/36-cronoprogramma-commessa (richiede 26). Senza:
 // il box dice "non ancora attivo" e la colonna non compare.
+// Decisione del 29/10: il peso delle fasi sono le ORE PREVISTE
+// (commesse_fasi.ore_previste di sql/42, facoltative, a quarti d'ora;
+// RPC salva_fase_commessa_ore). % della commessa = somma(ore x %) /
+// somma(ore); le fasi senza ore contano come la media delle ore indicate;
+// se nessuna fase ha le ore si usa il peso (1 = tutte uguali) come prima.
+// Senza sql/42 la finestra chiede il peso come prima.
 // =====================================================================
 
 const RUOLI_SCRIVONO_CRONOPROGRAMMA = ['titolare', 'capo_tecnico'];
@@ -35,6 +41,7 @@ let cronoprogrammaAperto = null;    // { commessa, fasi, datiLavori }
 let faseCronoprogrammaAperta = null; // { commessa, fase } finestra aperta
 let propostaFasiAperta = null;       // { commessa, proposte }
 let avanzamentoCommesse = null;      // { id commessa: riepilogo } per la pagina Commesse; null = non attivo
+let oreFasiDisponibili = null;       // sql/42: colonna commesse_fasi.ore_previste
 
 // ── Disponibilità di sql/36 ─────────────────────────────────────────
 async function verificaCronoprogrammaDisponibile() {
@@ -56,6 +63,27 @@ async function verificaCronoprogrammaDisponibile() {
   return cronoprogrammaDisponibile;
 }
 
+// ── Disponibilità delle ore previste (sql/42) ───────────────────────
+async function verificaOreFasiDisponibili() {
+  if (oreFasiDisponibili !== null) return oreFasiDisponibili;
+  if (!(await verificaCronoprogrammaDisponibile())) return false;
+  const { error } = await db.from('commesse_fasi').select('ore_previste').limit(1);
+  if (!error) oreFasiDisponibili = true;
+  else if (error.code === '42703' || /ore_previste/i.test(error.message || '')) oreFasiDisponibili = false;
+  else return false;
+  return oreFasiDisponibili;
+}
+
+// Colonne delle fasi da leggere (le ore solo con sql/42).
+function colonneFasiCronoprogramma(base) {
+  return base + (oreFasiDisponibili === true ? ', ore_previste' : '');
+}
+
+// Ore leggibili: 7,5 h; 7,75 h.
+function testoOreFase(ore) {
+  return Number(ore).toLocaleString('it-IT', { maximumFractionDigits: 2 }) + ' h';
+}
+
 // ── Chi può fare cosa (le stesse regole le impone il database) ──────
 function puoModificareCronoprogramma(commessa) {
   if (ROLE === 'titolare') return true;
@@ -63,16 +91,23 @@ function puoModificareCronoprogramma(commessa) {
 }
 
 // ── Calcoli (stessa formula ovunque) ────────────────────────────────
-// % della commessa = somma(peso x %) / somma(peso), arrotondata.
+// % della commessa = somma(ore x %) / somma(ore), arrotondata
+// (decisione del 29/10). Le fasi senza ore contano come la media delle ore
+// indicate; se nessuna fase ha le ore: somma(peso x %) / somma(peso).
 function calcolaAvanzamentoFasi(fasi) {
   const oggi = dataLocaleISO();
   const elenco = fasi || [];
+  const conOre = elenco.filter(function(f) { return Number(f.ore_previste) > 0; });
+  const oreTotali = conOre.reduce(function(t, f) { return t + Number(f.ore_previste); }, 0);
+  const mediaOre = conOre.length ? oreTotali / conOre.length : 0;
   let pesi = 0;
   let somma = 0;
   let completate = 0;
   let inRitardo = 0;
   elenco.forEach(function(f) {
-    const peso = Number(f.peso) || 1;
+    const peso = conOre.length
+      ? (Number(f.ore_previste) > 0 ? Number(f.ore_previste) : mediaOre)
+      : (Number(f.peso) || 1);
     const perc = Number(f.percentuale) || 0;
     pesi += peso;
     somma += peso * perc;
@@ -86,7 +121,11 @@ function calcolaAvanzamentoFasi(fasi) {
       ? (completate < elenco.length ? Math.min(99, Math.round(somma / pesi)) : Math.round(somma / pesi))
       : null,
     completate: completate,
-    inRitardo: inRitardo
+    inRitardo: inRitardo,
+    // 'ore' se almeno una fase ha le ore previste, se no 'peso'.
+    base: conOre.length ? 'ore' : 'peso',
+    oreTotali: oreTotali,
+    fasiSenzaOre: conOre.length ? elenco.length - conOre.length : 0
   };
 }
 
@@ -174,10 +213,11 @@ async function caricaCronoprogrammaCommessa(commessa) {
   }
 
   box.innerHTML = `<div class="card crono-card">${titolo}<div class="load">Caricamento...</div></div>`;
+  await verificaOreFasiDisponibili();
 
   const { data: fasi, error } = await db
     .from('commesse_fasi')
-    .select('id, ordine, nome, peso, inizio_previsto, fine_prevista, inizio_effettivo, fine_effettiva, percentuale, note, aggiornato_da_nome, aggiornato_il')
+    .select(colonneFasiCronoprogramma('id, ordine, nome, peso, inizio_previsto, fine_prevista, inizio_effettivo, fine_effettiva, percentuale, note, aggiornato_da_nome, aggiornato_il'))
     .eq('commessa_id', commessa.id)
     .order('ordine');
 
@@ -242,7 +282,7 @@ function htmlCronoprogramma(s, r) {
       <div class="crono-perc grande">${r.percentuale}%</div>
     </div>
     ${htmlBarraAvanzamento(r.percentuale, r.inRitardo > 0)}
-    <div style="font-size:11px;color:var(--m);margin:4px 0 8px">% della commessa: media delle fasi${s.fasi.some(function(f) { return Number(f.peso) !== 1; }) ? ' pesata con il peso di ciascuna' : ''}.</div>
+    <div style="font-size:11px;color:var(--m);margin:4px 0 8px">${esc(testoBaseAvanzamento(s, r))}</div>
   ` : `
     <div class="empty" style="padding:10px 0">Nessuna fase: ${modifica ? 'proponile dalle voci del preventivo o aggiungile una alla volta.' : 'il cronoprogramma lo prepara il capo tecnico.'}</div>
   `;
@@ -267,6 +307,19 @@ function htmlCronoprogramma(s, r) {
   `;
 }
 
+// Come è calcolata la % della commessa (sotto la barra).
+function testoBaseAvanzamento(s, r) {
+  if (r.base === 'ore') {
+    return '% della commessa: media delle fasi pesata con le ore previste (' + testoOreFase(r.oreTotali) + ' in tutto)' +
+      (r.fasiSenzaOre
+        ? '; ' + r.fasiSenzaOre + (r.fasiSenzaOre === 1 ? ' fase senza ore conta' : ' fasi senza ore contano') + ' come la media delle altre.'
+        : '.');
+  }
+  const pesoDiverso = s.fasi.some(function(f) { return Number(f.peso) !== 1; });
+  return '% della commessa: media delle fasi' + (pesoDiverso ? ' pesata con il peso di ciascuna' : '') + '.' +
+    (oreFasiDisponibili === true ? ' Indica le ore previste delle fasi (✏️ Aggiorna) per pesarle con le ore.' : '');
+}
+
 function htmlFaseCronoprogramma(s, f, indice, modifica, oggi) {
   const stato = statoFaseCronoprogramma(f, oggi);
   const perc = Number(f.percentuale) || 0;
@@ -282,7 +335,8 @@ function htmlFaseCronoprogramma(s, f, indice, modifica, oggi) {
           <div style="font-size:14px;font-weight:700;overflow-wrap:anywhere">${indice + 1}. ${esc(f.nome)}</div>
           <div style="margin-top:2px;display:flex;gap:4px;flex-wrap:wrap">
             <span class="bx ${stato.classe}">${esc(stato.etichetta)}</span>
-            ${Number(f.peso) !== 1 ? `<span class="bx bgray">peso ${esc(f.peso)}</span>` : ''}
+            ${Number(f.ore_previste) > 0 ? `<span class="bx bblue">${esc(testoOreFase(f.ore_previste))} previste</span>` : ''}
+            ${Number(f.peso) !== 1 && !s.fasi.some(function(x) { return Number(x.ore_previste) > 0; }) ? `<span class="bx bgray">peso ${esc(f.peso)}</span>` : ''}
             ${fuori ? '<span class="bx bwarn">fuori dalle date dei lavori</span>' : ''}
           </div>
         </div>
@@ -381,6 +435,11 @@ function apriFaseCronoprogramma(faseId) {
   ge('crf-sottotitolo').textContent = 'Commessa ' + c.codice + (c.clienti?.ragione_sociale ? ' · ' + c.clienti.ragione_sociale : '');
   ge('crf-nome').value = fase?.nome || '';
   ge('crf-peso').value = fase?.peso || 1;
+  // Con sql/42 le ore previste al posto del peso.
+  const conOre = oreFasiDisponibili === true;
+  ge('crf-peso-riga').style.display = conOre ? 'none' : '';
+  ge('crf-ore-riga').style.display = conOre ? '' : 'none';
+  ge('crf-ore').value = fase && fase.ore_previste != null ? String(Number(fase.ore_previste)) : '';
   ge('crf-inizio-prev').value = fase?.inizio_previsto || '';
   ge('crf-fine-prev').value = fase?.fine_prevista || '';
   ge('crf-inizio-eff').value = fase?.inizio_effettivo || '';
@@ -425,6 +484,9 @@ async function salvaFaseCronoprogramma() {
   if (!m) return;
   const nome = (v('crf-nome') || '').trim();
   const peso = parseInt(v('crf-peso'), 10);
+  const conOre = oreFasiDisponibili === true;
+  const oreTesto = String(v('crf-ore') || '').trim().replace(',', '.');
+  const ore = oreTesto === '' ? null : Number(oreTesto);
   const perc = parseInt(v('crf-perc'), 10) || 0;
   const iPrev = v('crf-inizio-prev') || null;
   const fPrev = v('crf-fine-prev') || null;
@@ -434,7 +496,13 @@ async function salvaFaseCronoprogramma() {
 
   const errore = function(testo) { ge('crf-avviso').innerHTML = `<div class="al2 e" style="margin:8px 0 0">${esc(testo)}</div>`; };
   if (!nome) return errore('Scrivi il nome della fase.');
-  if (!(peso >= 1 && peso <= 100)) return errore('Il peso va da 1 a 100 (1 = come le altre fasi).');
+  if (!conOre && !(peso >= 1 && peso <= 100)) return errore('Il peso va da 1 a 100 (1 = come le altre fasi).');
+  if (conOre && ge('crf-ore').validity && ge('crf-ore').validity.badInput) {
+    return errore('Ore previste non valide: scrivi un numero a quarti d\'ora (es. 7,5 o 7,75) o lascia vuoto.');
+  }
+  if (conOre && ore !== null && !(Number.isFinite(ore) && ore >= 0.25 && ore <= 20000 && Math.round(ore * 4) === ore * 4)) {
+    return errore('Le ore previste vanno da 0,25 a 20.000, a quarti d\'ora (es. 7,5 o 7,75). Lascia vuoto se non le sai.');
+  }
   if (iPrev && fPrev && fPrev < iPrev) return errore('La fine prevista non può essere prima dell\'inizio previsto.');
   if ((iEff && iEff > oggi) || (fEff && fEff > oggi)) return errore('Le date effettive non possono essere dopo oggi.');
   if (iEff && fEff && fEff < iEff) return errore('La fine effettiva non può essere prima dell\'inizio effettivo.');
@@ -442,18 +510,21 @@ async function salvaFaseCronoprogramma() {
 
   const bottone = ge('crf-salva');
   bottone.disabled = true;
-  const { error } = await db.rpc('salva_fase_commessa', {
+  const parametri = {
     p_commessa_id: m.commessa.id,
     p_fase_id: m.fase ? m.fase.id : null,
     p_nome: nome,
-    p_peso: peso,
     p_inizio_previsto: iPrev,
     p_fine_prevista: fPrev,
     p_inizio_effettivo: iEff,
     p_fine_effettiva: fEff,
     p_percentuale: perc,
     p_note: (v('crf-note') || '').trim() || null
-  });
+  };
+  // Con sql/42 le ore previste (il peso resta quello della fase).
+  if (conOre) parametri.p_ore_previste = ore;
+  else parametri.p_peso = peso;
+  const { error } = await db.rpc(conOre ? 'salva_fase_commessa_ore' : 'salva_fase_commessa', parametri);
   bottone.disabled = false;
 
   if (error) {
@@ -567,7 +638,7 @@ async function confermaPropostaFasi() {
     return;
   }
   closeM('m-proposta-fasi');
-  toast((data || nomi.length) + ' fasi aggiunte: indica date previste e peso con "Aggiorna"', 'ok');
+  toast((data || nomi.length) + ' fasi aggiunte: indica date previste e ' + (oreFasiDisponibili === true ? 'ore previste' : 'peso') + ' con "Aggiorna"', 'ok');
   await ricaricaCronoprogramma(m.commessa);
 }
 
@@ -575,13 +646,14 @@ async function confermaPropostaFasi() {
 async function caricaAvanzamentoCommesse() {
   avanzamentoCommesse = null;
   if (!(await verificaCronoprogrammaDisponibile())) return;
+  await verificaOreFasiDisponibili();
   // Lettura a pagine: Supabase restituisce al massimo 1000 righe per volta
   const data = [];
   const PAGINA = 1000;
   for (let da = 0; ; da += PAGINA) {
     const { data: pagina, error } = await db
       .from('commesse_fasi')
-      .select('id, commessa_id, peso, percentuale, fine_prevista')
+      .select(colonneFasiCronoprogramma('id, commessa_id, peso, percentuale, fine_prevista'))
       .order('id')
       .range(da, da + PAGINA - 1);
     if (error) return;

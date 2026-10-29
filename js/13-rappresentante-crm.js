@@ -311,6 +311,10 @@ async function loadDashRappresentante() {
   }
   // F5.2: commesse in cui tocca al rappresentante (js/18, solo con sql/28)
   caricaCommesseToccaAMe().catch(function(e){ console.warn('caricaCommesseToccaAMe:', e); });
+  // Decisioni 29/10: materiali in ritardo delle commesse dei suoi clienti (js/29)
+  if (typeof caricaMaterialiInRitardoDashboard === 'function') {
+    caricaMaterialiInRitardoDashboard().catch(function(e){ console.warn('caricaMaterialiInRitardoDashboard:', e); });
+  }
   // F8.5: lavori extra dei suoi clienti (js/36, solo con sql/38)
   if (typeof caricaLavoriExtraDashboard === 'function') {
     caricaLavoriExtraDashboard().catch(function(e){ console.warn('caricaLavoriExtraDashboard:', e); });

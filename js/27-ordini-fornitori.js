@@ -13,6 +13,12 @@
 // tecnico e segreteria. Lo stato "materiali ordinati" della commessa
 // resta del rappresentante (sql/28): qui viene solo suggerito.
 // Senza sql/30 la scheda mostra "non ancora attivi".
+// Decisioni del 29/10: il capo tecnico NON vede i prezzi d'acquisto
+// (importi, prezzi unitari, PDF dell'ordine; la segreteria sì: ha le
+// fatture). Lo nasconde il sito (vedePrezziAcquisto, anche in js/26 e
+// js/28): nel database restano leggibili. Il titolare riporta a
+// "confermato" un ordine segnato "arrivato" per errore, con il motivo
+// (cambia_stato_ordine_fornitore di sql/42; senza sql/42 niente bottone).
 // =====================================================================
 
 const ETICHETTE_STATO_ORDINE_FORNITORE = {
@@ -24,6 +30,8 @@ const ETICHETTE_STATO_ORDINE_FORNITORE = {
 
 const RUOLI_CREANO_ORDINI = ['titolare', 'commerciale', 'rappresentante'];
 const RUOLI_ARRIVO_ORDINI = ['titolare', 'commerciale', 'rappresentante', 'capo_tecnico', 'segreteria'];
+// Decisioni 29/10: chi vede i prezzi d'acquisto (ordini, consumabili e noli).
+const RUOLI_VEDONO_PREZZI_ACQUISTO = ['titolare', 'segreteria', 'commerciale', 'rappresentante'];
 
 let ordiniFornitoriDisponibili = null;
 let commessaOrdiniAperta = null;
@@ -33,6 +41,7 @@ let offerteCommessaLette = false; // false se la lettura delle offerte è fallit
 let vociNuovoOrdine = [];
 let offertaNuovoOrdine = null;
 let ordineStatoInModifica = null;
+let ritornoArrivoOrdiniDisponibile = null; // sql/42: colonne arrivo_annullato_*
 
 // ── Disponibilità di sql/30 ─────────────────────────────────────────
 async function verificaOrdiniFornitoriDisponibili() {
@@ -55,7 +64,22 @@ async function verificaOrdiniFornitoriDisponibili() {
   return ordiniFornitoriDisponibili;
 }
 
+// Ritorno da "arrivato" a "confermato" (sql/42): lo fa solo il titolare.
+async function verificaRitornoArrivoOrdiniDisponibile() {
+  if (ritornoArrivoOrdiniDisponibile !== null) return ritornoArrivoOrdiniDisponibile;
+  const { error } = await db.from('ordini_fornitori').select('arrivo_annullato_il').limit(1);
+  if (!error) ritornoArrivoOrdiniDisponibile = true;
+  else if (error.code === '42703' || /arrivo_annullato_il/i.test(error.message || '')) ritornoArrivoOrdiniDisponibile = false;
+  else return false;
+  return ritornoArrivoOrdiniDisponibile;
+}
+
 // ── Chi può fare cosa (le stesse regole le impone il database) ──────
+// Prezzi d'acquisto: il capo tecnico no (decisione del 29/10).
+function vedePrezziAcquisto() {
+  return RUOLI_VEDONO_PREZZI_ACQUISTO.includes(ROLE);
+}
+
 function puoCreareOrdiniFornitori(commessa) {
   return RUOLI_CREANO_ORDINI.includes(ROLE) && (ROLE === 'titolare' || commessaAperta(commessa));
 }
@@ -72,6 +96,10 @@ function puoSegnareArrivoOrdineFornitore(commessa, ordine) {
 
 function puoAnnullareOrdineFornitore(commessa, ordine) {
   return ['ordinato', 'confermato'].includes(ordine.stato) && puoCreareOrdiniFornitori(commessa);
+}
+
+function puoRiportareOrdineConfermato(ordine) {
+  return ordine.stato === 'arrivato' && ROLE === 'titolare' && ritornoArrivoOrdiniDisponibile === true;
 }
 
 // ── Piccoli aiuti ───────────────────────────────────────────────────
@@ -117,6 +145,7 @@ async function caricaOrdiniCommessa(commessa) {
 
   // La cartella documenti (sql/29) serve per salvare il PDF: verifica in cache.
   await verificaDocumentiCommessaDisponibili();
+  if (ROLE === 'titolare') await verificaRitornoArrivoOrdiniDisponibile();
 
   if (!(await verificaOrdiniFornitoriDisponibili())) {
     box.innerHTML = `
@@ -133,7 +162,7 @@ async function caricaOrdiniCommessa(commessa) {
   const richieste = [
     db
       .from('ordini_fornitori')
-      .select('*, ordini_fornitori_voci(id, posizione, descrizione, unita_misura, quantita, prezzo_unitario)')
+      .select('*, ordini_fornitori_voci(id, posizione, descrizione, unita_misura, quantita' + (vedePrezziAcquisto() ? ', prezzo_unitario' : '') + ')')
       .eq('commessa_id', commessa.id)
       .order('numero', { ascending: true })
   ];
@@ -247,7 +276,8 @@ function htmlElencoOrdiniCommessa(commessa) {
     return '<div class="empty" style="margin-top:10px">Nessun ordine ai fornitori per questa commessa.</div>';
   }
 
-  const salvaInCartella = documentiCommessaDisponibili === true && puoCaricareDocumentiCommessa(commessa);
+  const prezzi = vedePrezziAcquisto();
+  const salvaInCartella = prezzi && documentiCommessaDisponibili === true && puoCaricareDocumentiCommessa(commessa);
   const oggi = dataOggiOrdine();
 
   return `
@@ -257,9 +287,10 @@ function htmlElencoOrdiniCommessa(commessa) {
       const arrivo = o.stato === 'arrivato'
         ? 'arrivato il ' + fd(o.data_arrivo)
         : 'arrivo previsto ' + fd(o.arrivo_previsto);
-      const bottoni = [
-        `<button class="btn sm" onclick="scaricaPdfOrdineFornitore('${esc(o.id)}')">📄 PDF</button>`
-      ];
+      // Il PDF dell'ordine ha i prezzi: non per il capo tecnico.
+      const bottoni = prezzi
+        ? [`<button class="btn sm" onclick="scaricaPdfOrdineFornitore('${esc(o.id)}')">📄 PDF</button>`]
+        : [];
       if (salvaInCartella && o.stato !== 'annullato') {
         bottoni.push(`<button class="btn sm" title="Salva il PDF nella cartella Ordini della commessa" onclick="salvaPdfOrdineInCartella('${esc(o.id)}', this)">💾 Nella cartella</button>`);
       }
@@ -272,6 +303,9 @@ function htmlElencoOrdiniCommessa(commessa) {
       if (puoAnnullareOrdineFornitore(commessa, o)) {
         bottoni.push(`<button class="btn sm" style="color:var(--r)" onclick="apriStatoOrdineFornitore('${esc(o.id)}', 'annullato')">Annulla</button>`);
       }
+      if (puoRiportareOrdineConfermato(o)) {
+        bottoni.push(`<button class="btn sm" title="Segnato arrivato per errore: torna a Confermato dal fornitore" onclick="apriStatoOrdineFornitore('${esc(o.id)}', 'riporta')">↩️ Non è arrivato</button>`);
+      }
 
       return `
         <div style="padding:8px 0;border-bottom:1px solid var(--bo)${o.stato === 'annullato' ? ';opacity:.65' : ''}">
@@ -279,7 +313,7 @@ function htmlElencoOrdiniCommessa(commessa) {
             <div style="min-width:0;flex:1">
               <div style="font-weight:700">${esc(o.codice)} · ${esc(o.fornitore_ragione_sociale)} ${badgeStatoOrdineFornitore(o.stato)}</div>
               <div style="font-size:12px;color:var(--m)">
-                ${esc(euroPreventivo(o.importo))} IVA esclusa · ordinato il ${esc(fd(o.data_ordine))} ·
+                ${prezzi ? esc(euroPreventivo(o.importo)) + ' IVA esclusa · ' : ''}ordinato il ${esc(fd(o.data_ordine))} ·
                 <span style="${inRitardo ? 'color:var(--r);font-weight:700' : ''}">${esc(arrivo)}${inRitardo ? ' (in ritardo)' : ''}</span>
               </div>
             </div>
@@ -302,6 +336,12 @@ function htmlDettaglioOrdineFornitore(o) {
     passaggi.push('Confermato dal fornitore (registrato il ' + dataOraEsitoPreventivo(o.confermato_il) +
       (o.confermato_da_nome ? ' da ' + o.confermato_da_nome : '') + ')' + (o.nota_conferma ? ': ' + o.nota_conferma : ''));
   }
+  if (o.arrivo_annullato_il) {
+    passaggi.push('Riportato a confermato il ' + dataOraEsitoPreventivo(o.arrivo_annullato_il) +
+      (o.arrivo_annullato_da_nome ? ' da ' + o.arrivo_annullato_da_nome : '') +
+      (o.arrivo_annullato_data ? ' (era segnato arrivato il ' + fd(o.arrivo_annullato_data) + ')' : '') +
+      ': ' + (o.arrivo_annullato_motivo || ''));
+  }
   if (o.data_arrivo) {
     passaggi.push('Arrivato il ' + fd(o.data_arrivo) + (o.arrivo_registrato_da_nome ? ' (segnato da ' + o.arrivo_registrato_da_nome + ')' : '') +
       (o.nota_arrivo ? ': ' + o.nota_arrivo : ''));
@@ -311,10 +351,11 @@ function htmlDettaglioOrdineFornitore(o) {
       ': ' + (o.motivo_annullamento || ''));
   }
 
+  const prezzi = vedePrezziAcquisto();
   return `
     <div class="tw" style="margin:6px 0">
       <table>
-        <thead><tr><th>Descrizione</th><th>Q.tà</th><th>U.M.</th><th>Prezzo unit.</th><th>Totale</th></tr></thead>
+        <thead><tr><th>Descrizione</th><th>Q.tà</th><th>U.M.</th>${prezzi ? '<th>Prezzo unit.</th><th>Totale</th>' : ''}</tr></thead>
         <tbody>
           ${o.ordini_fornitori_voci.map(function(voce) {
             return `
@@ -322,8 +363,8 @@ function htmlDettaglioOrdineFornitore(o) {
                 <td>${esc(voce.descrizione)}</td>
                 <td style="text-align:right">${esc(quantitaLeggibileOrdine(voce.quantita))}</td>
                 <td>${esc(voce.unita_misura)}</td>
-                <td style="text-align:right;white-space:nowrap">${esc(euroPreventivo(voce.prezzo_unitario))}</td>
-                <td style="text-align:right;white-space:nowrap">${esc(euroPreventivo(numeroPreventivo(voce.quantita) * numeroPreventivo(voce.prezzo_unitario)))}</td>
+                ${prezzi ? `<td style="text-align:right;white-space:nowrap">${esc(euroPreventivo(voce.prezzo_unitario))}</td>
+                <td style="text-align:right;white-space:nowrap">${esc(euroPreventivo(numeroPreventivo(voce.quantita) * numeroPreventivo(voce.prezzo_unitario)))}</td>` : ''}
               </tr>
             `;
           }).join('')}
@@ -561,13 +602,20 @@ function apriStatoOrdineFornitore(ordineId, stato) {
       data: '',
       nota: 'Motivo dell\'annullamento *',
       bottone: 'Annulla l\'ordine'
+    },
+    riporta: {
+      titolo: '↩️ L\'ordine non è arrivato',
+      data: 'Nuovo arrivo previsto (lascia la data se non cambia)',
+      nota: 'Motivo * (es. segnato arrivato per errore, era un altro ordine)',
+      bottone: '↩️ Riporta a confermato'
     }
   }[stato];
 
   if (!testi) return;
 
   ge('mso-titolo').textContent = testi.titolo;
-  ge('mso-sottotitolo').textContent = ordine.codice + ' · ' + ordine.fornitore_ragione_sociale + ' · ' + euroPreventivo(ordine.importo) + ' IVA esclusa';
+  ge('mso-sottotitolo').textContent = ordine.codice + ' · ' + ordine.fornitore_ragione_sociale +
+    (vedePrezziAcquisto() ? ' · ' + euroPreventivo(ordine.importo) + ' IVA esclusa' : '');
   ge('mso-data-riga').style.display = testi.data ? '' : 'none';
   ge('mso-data-etichetta').textContent = testi.data;
   ge('mso-data').min = ordine.data_ordine || '';
@@ -577,7 +625,10 @@ function apriStatoOrdineFornitore(ordineId, stato) {
   ge('mso-nota').value = '';
   ge('mso-avviso').innerHTML = stato === 'annullato'
     ? '<div class="al2 w">L\'ordine resta nell\'elenco come annullato e non si può riattivare. Se serve, si rifà un ordine nuovo dalla stessa offerta. Avvisa il fornitore.</div>'
-    : '';
+    : (stato === 'riporta'
+      ? '<div class="al2 w">L\'ordine torna <b>Confermato dal fornitore</b>: la data di arrivo del ' + esc(fd(ordine.data_arrivo)) +
+        ' si toglie (resta scritta nei passaggi con il motivo). Quando arriva davvero si segna di nuovo "Arrivato".</div>'
+      : '');
 
   const bottone = ge('mso-conferma');
   bottone.textContent = testi.bottone;
@@ -594,6 +645,7 @@ async function salvaStatoOrdineFornitore() {
   const data = v('mso-data');
 
   if (modifica.stato === 'annullato' && !nota) { toast('Scrivi il motivo dell\'annullamento', 'err'); return; }
+  if (modifica.stato === 'riporta' && !nota) { toast('Scrivi il motivo: perché l\'ordine non è arrivato', 'err'); return; }
   if (modifica.stato === 'arrivato' && !data) { toast('Indica la data di arrivo', 'err'); return; }
 
   const bottone = ge('mso-conferma');
@@ -601,7 +653,8 @@ async function salvaStatoOrdineFornitore() {
 
   const { error } = await db.rpc('cambia_stato_ordine_fornitore', {
     p_ordine_id: modifica.id,
-    p_stato: modifica.stato,
+    // "riporta" = ritorno da arrivato a confermato (sql/42).
+    p_stato: modifica.stato === 'riporta' ? 'confermato' : modifica.stato,
     p_data: modifica.stato === 'annullato' ? null : (data || null),
     p_nota: nota || null
   });
@@ -614,7 +667,9 @@ async function salvaStatoOrdineFornitore() {
 
   closeM('m-stato-ordine-fornitore');
   ordineStatoInModifica = null;
-  toast('Ordine: ' + ETICHETTE_STATO_ORDINE_FORNITORE[modifica.stato], 'ok');
+  toast(modifica.stato === 'riporta'
+    ? 'Ordine riportato a: ' + ETICHETTE_STATO_ORDINE_FORNITORE.confermato
+    : 'Ordine: ' + ETICHETTE_STATO_ORDINE_FORNITORE[modifica.stato], 'ok');
   if (commessaApertaId) await caricaSchedaCommessa(commessaApertaId);
 }
 
@@ -622,6 +677,10 @@ async function salvaStatoOrdineFornitore() {
 // Rilegge ordine e commessa dal database e restituisce { doc, nomeFile,
 // ordine } (null se qualcosa non va: il messaggio lo mostra lei).
 async function creaPdfOrdineFornitore(ordineId) {
+  if (!vedePrezziAcquisto()) {
+    toast('Il PDF dell\'ordine ha i prezzi d\'acquisto: non disponibile per il tuo ruolo', 'err');
+    return null;
+  }
   if (!(await preparaPDF())) return null;
 
   const { data: ordine, error } = await db

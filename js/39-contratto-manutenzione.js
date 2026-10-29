@@ -16,7 +16,9 @@
 //   - promemoria: lista "Contratti in scadenza" (contratti attivi che
 //     finiscono entro impostazioni.giorni_preavviso_rinnovo giorni,
 //     predefinito 60, o già scaduti) nella dashboard del rappresentante
-//     (suoi clienti), del titolare (tutti) e del capo tecnico. Con
+//     (suoi clienti) e del titolare (tutti). Decisione del 29/10: il
+//     promemoria va SOLO al rappresentante del cliente (tolto dalla
+//     dashboard del capo tecnico; il titolare vede comunque tutto). Con
 //     l'esito il contratto esce dalla lista.
 // Scelta (da confermare da Toli): il "Commerciale" della roadmap è il
 // ruolo rappresentante (D1), il promemoria va al rappresentante del
@@ -29,10 +31,10 @@
 const RUOLI_ESITO_RINNOVO = ['titolare', 'segreteria', 'capo_tecnico', 'rappresentante'];
 const RUOLI_PREVENTIVO_CONTRATTO = ['titolare', 'segreteria'];
 const RUOLI_PIANO_INTERVENTI = ['titolare', 'capo_tecnico'];
+// Decisione del 29/10: niente box per il capo tecnico.
 const BOX_CONTRATTI_SCADENZA = {
   rappresentante: 'rap-contratti-scadenza',
-  titolare: 'tit-contratti-scadenza',
-  capo_tecnico: 'ct-contratti-scadenza'
+  titolare: 'tit-contratti-scadenza'
 };
 const ETICHETTE_STATO_PREVENTIVO_CONTRATTO = {
   bozza: 'Bozza',
@@ -522,8 +524,7 @@ async function caricaContrattiInScadenzaDashboard() {
 
   const aiuti = {
     rappresentante: 'Contratti di manutenzione dei tuoi clienti che scadono entro ' + preavviso + ' giorni o già scaduti: senti il cliente e registra l\'esito del rinnovo. Con l\'esito il contratto esce dalla lista.',
-    titolare: 'Contratti di manutenzione che scadono entro ' + preavviso + ' giorni (preavviso in Impostazioni) o già scaduti, senza esito del rinnovo. Li segue il rappresentante del cliente.',
-    capo_tecnico: 'Contratti che scadono entro ' + preavviso + ' giorni o già scaduti: il rinnovo lo segue il rappresentante; dopo il rinnovo rigenera il piano interventi.'
+    titolare: 'Contratti di manutenzione che scadono entro ' + preavviso + ' giorni (preavviso in Impostazioni) o già scaduti, senza esito del rinnovo. Li segue il rappresentante del cliente.'
   };
 
   const righe = contratti.map(function(c) {

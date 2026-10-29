@@ -455,6 +455,9 @@ async function caricaDocumentiCommessa(commessa) {
   if (!box) return;
 
   const disponibili = await verificaDocumentiCommessaDisponibili();
+  // Decisioni 29/10: il capo tecnico apre l'originale firmato (sql/42).
+  commessa.preventivoFirmato = await leggiPreventivoFirmatoCommessa(commessa);
+  if (commessaApertaId && commessaApertaId !== commessa.id) return; // aperta un'altra commessa
   const firmato = htmlPreventivoFirmatoCommessa(commessa);
 
   if (!disponibili) {
@@ -507,17 +510,47 @@ async function caricaDocumentiCommessa(commessa) {
 }
 
 // Il preventivo firmato resta nel bucket del preventivo: qui solo il
-// collegamento, per chi può aprirlo (regole di sql/22).
-function htmlPreventivoFirmatoCommessa(commessa) {
+// collegamento, per chi può aprirlo (regole di sql/22; il capo tecnico
+// con la regola commesse_preventivo_firmato_lettura di sql/42).
+// Restituisce { path, nome } o null. Chi legge i preventivi trova il file
+// nella commessa (preventivi(allegato_accettazione_*)); il capo tecnico
+// non legge i preventivi (sql/10): per lui la funzione
+// preventivo_firmato_commessa (sql/42). Senza sql/42: null, come prima.
+async function leggiPreventivoFirmatoCommessa(commessa) {
+  if (!commessa) return null;
   const path = commessa.preventivi?.allegato_accettazione_path;
-  if (!path) return '';
+  if (path) return { path: path, nome: commessa.preventivi.allegato_accettazione_nome || '' };
+  if (ROLE !== 'capo_tecnico' || !commessa.preventivo_id) return null;
 
-  const puoAprire = ['titolare', 'segreteria', 'commerciale', 'rappresentante'].includes(ROLE);
+  const { data, error } = await db.rpc('preventivo_firmato_commessa', { p_commessa_id: commessa.id });
+  if (error) {
+    // Funzione assente = sql/42 non ancora eseguito: nessun collegamento.
+    if (!(error.code === 'PGRST202' || /preventivo_firmato_commessa/i.test(error.message || ''))) {
+      console.warn('Preventivo firmato della commessa:', error.message);
+    }
+    return null;
+  }
+  return data && data.path ? { path: data.path, nome: data.nome || '' } : null;
+}
+
+function puoAprirePreventivoFirmato() {
+  return ['titolare', 'segreteria', 'commerciale', 'rappresentante', 'capo_tecnico'].includes(ROLE);
+}
+
+function htmlPreventivoFirmatoCommessa(commessa) {
+  const firmato = commessa.preventivoFirmato ||
+    (commessa.preventivi?.allegato_accettazione_path
+      ? { path: commessa.preventivi.allegato_accettazione_path, nome: commessa.preventivi.allegato_accettazione_nome || '' }
+      : null);
+  if (!firmato) return '';
+  const path = firmato.path;
+
+  const puoAprire = puoAprirePreventivoFirmato();
   return `
     <div style="padding:8px 0;border-bottom:1px solid var(--bo)">
       <div style="font-size:13px;font-weight:700">✍️ Preventivo firmato</div>
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px">
-        <div style="font-size:13px">${esc(commessa.preventivi?.allegato_accettazione_nome || 'Preventivo firmato')}</div>
+        <div style="font-size:13px;word-break:break-word">${esc(firmato.nome || 'Preventivo firmato')}</div>
         ${puoAprire
           ? `<button class="btn sm" data-path="${esc(path)}" onclick="apriAllegatoPreventivoFornitore(this.dataset.path)">Apri</button>`
           : '<span style="font-size:11px;color:var(--m)">nella scheda del preventivo</span>'}
@@ -538,6 +571,11 @@ function htmlDocumentoCommessa(commessa, d) {
     ? d.caricato_da_nome + (d.caricato_da_ruolo ? ' (' + etichettaRuolo(d.caricato_da_ruolo) + ')' : '')
     : '';
   const dettagli = [dataOraEsitoPreventivo(d.caricato_il), chi, dimensioneLeggibile(d.dimensione)].filter(Boolean).join(' · ');
+  // Decisioni 29/10: il capo tecnico non vede i prezzi d'acquisto. Il PDF
+  // dell'ordine al fornitore fatto dal sito (js/27, nome "Ordine_...") li
+  // contiene: per lui il file resta in elenco ma senza "Apri".
+  const pdfOrdineConPrezzi = d.cartella === 'ordini' && /^Ordine_/.test(d.nome_file || '') &&
+    typeof vedePrezziAcquisto === 'function' && !vedePrezziAcquisto();
 
   return `
     <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0 0 18px">
@@ -546,7 +584,9 @@ function htmlDocumentoCommessa(commessa, d) {
         <div style="font-size:11px;color:var(--m)">${esc(dettagli)}${d.nota ? ' · ' + esc(d.nota) : ''}</div>
       </div>
       <div style="display:flex;gap:6px">
-        <button class="btn sm p" data-path="${esc(d.storage_path)}" onclick="scaricaDocumentoCommessa(this.dataset.path)">⬇️ Apri</button>
+        ${pdfOrdineConPrezzi
+          ? '<span style="font-size:11px;color:var(--m);max-width:160px">PDF con i prezzi d\'acquisto: non visibile per il tuo ruolo</span>'
+          : `<button class="btn sm p" data-path="${esc(d.storage_path)}" onclick="scaricaDocumentoCommessa(this.dataset.path)">⬇️ Apri</button>`}
         ${puoTogliereDocumentoCommessa(commessa, d)
           ? `<button class="btn sm" style="color:var(--r)" title="Togli dalla cartella" onclick="togliDocumentoCommessa('${esc(d.id)}')">🗑️</button>`
           : ''}

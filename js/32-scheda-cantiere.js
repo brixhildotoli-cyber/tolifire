@@ -397,7 +397,15 @@ function htmlAllegatiCantiere(x) {
     `;
   }
 
+  // Decisioni 29/10: l'originale del preventivo firmato (letto da js/26
+  // con la cartella documenti; per il capo tecnico serve sql/42).
+  const firmato = x.commessa && x.commessa.preventivoFirmato &&
+    typeof puoAprirePreventivoFirmato === 'function' && puoAprirePreventivoFirmato()
+    ? x.commessa.preventivoFirmato
+    : null;
+
   const righe = []
+    .concat(firmato ? [riga('✍️', firmato.nome || 'Preventivo firmato', 'Preventivo firmato dal cliente (originale)', 'preventivi-documenti', firmato.path)] : [])
     .concat(allegati.map(function(a) { return riga('📐', a.nome_file, 'Progetto tecnico' + (a.dimensione ? ' · ' + dimensioneLeggibile(a.dimensione) : ''), 'progetti-tecnici', a.storage_path); }))
     .concat(certificati.map(function(cf) { return riga('🏅', cf.nome_file, 'Certificato del preventivo' + (cf.dimensione ? ' · ' + dimensioneLeggibile(cf.dimensione) : ''), 'certificati-preventivi', cf.storage_path); }))
     .concat(documenti.map(function(d) { return riga('🏅', d.nome_file, 'Cartella della commessa' + (d.nota ? ' · ' + d.nota : ''), 'commesse-documenti', d.storage_path); }));
@@ -430,7 +438,7 @@ function htmlAllegatiCantiere(x) {
 
 // ── Apertura dei file ───────────────────────────────────────────────
 async function apriFileCantiere(bucket, path) {
-  if (!['progetti-tecnici', 'certificati-preventivi', 'commesse-documenti'].includes(bucket) || !path) return;
+  if (!['progetti-tecnici', 'certificati-preventivi', 'commesse-documenti', 'preventivi-documenti'].includes(bucket) || !path) return;
   const { data, error } = await db.storage.from(bucket).createSignedUrl(path, 3600);
   if (error || !data?.signedUrl) {
     toast('Impossibile aprire il file: ' + (error?.message || 'file non disponibile'), 'err');

@@ -851,10 +851,8 @@ async function loadDashCapoTecnicoPg(){
   if (typeof caricaDocumentiInScadenzaDashboard === 'function') {
     try { await caricaDocumentiInScadenzaDashboard('ct-documenti-scadenza'); } catch(e){ console.warn('caricaDocumentiInScadenzaDashboard:', e); }
   }
-  // F10.1: contratti di manutenzione in scadenza (js/39, solo con sql/40)
-  if (typeof caricaContrattiInScadenzaDashboard === 'function') {
-    try { await caricaContrattiInScadenzaDashboard(); } catch(e){ console.warn('caricaContrattiInScadenzaDashboard:', e); }
-  }
+  // F10.1: i contratti in scadenza NON sono nella dashboard del capo tecnico
+  // (decisione del 29/10: il promemoria va solo al rappresentante).
   // F10.2: differenze dell'audit dei presidi con il contratto (js/40, solo con sql/41)
   if (typeof caricaAuditPresidiDashboard === 'function') {
     try { await caricaAuditPresidiDashboard(); } catch(e){ console.warn('caricaAuditPresidiDashboard:', e); }
