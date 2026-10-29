@@ -1290,3 +1290,34 @@ pre {
 .dmo-riga:last-child{border-bottom:none}
 .dmo-riga input{margin-top:3px;flex-shrink:0;width:auto}
 .dmo-quantita{font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0}
+
+/* F12.1 — "Cosa tocca a me" in cima alle dashboard (js/46) */
+.tam-card{background:var(--w);border-radius:14px;padding:10px 14px 8px;margin:10px 4px 14px;border:0.5px solid var(--bo);border-left:4px solid var(--g);box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.tam-head{display:flex;align-items:center;gap:8px;min-height:26px}
+.tam-titolo{font-size:12px;font-weight:700;color:var(--g);text-transform:uppercase;letter-spacing:.05em}
+.tam-totale{font-size:11px;color:var(--m)}
+.tam-stato{font-size:12px;color:var(--m);margin-left:auto}
+.tam-agg{background:none;border:0;color:var(--m);font-size:16px;line-height:1;cursor:pointer;padding:4px 6px;border-radius:6px}
+.tam-agg:hover{background:var(--bg);color:var(--t)}
+.tam-righe{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));column-gap:16px;margin-top:4px}
+.tam-riga{display:flex;align-items:center;gap:8px;width:100%;min-height:38px;background:none;border:0;border-bottom:0.5px solid var(--bo);padding:6px 2px;text-align:left;cursor:pointer;font:inherit;color:var(--t)}
+.tam-riga:hover{background:var(--bg)}
+.tam-ico{flex:0 0 22px;text-align:center;font-size:15px}
+.tam-testo{flex:1;min-width:0;font-size:13px;line-height:1.25;overflow-wrap:anywhere}
+.tam-nota{display:block;font-size:11px;color:var(--m);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tam-num{flex:0 0 auto;min-width:26px;height:22px;padding:0 7px;border-radius:11px;background:var(--al);color:var(--a);font-weight:700;font-size:12px;display:inline-flex;align-items:center;justify-content:center}
+.tam-riga.urgente .tam-num{background:var(--rl);color:var(--r)}
+.tam-chev{flex:0 0 auto;color:var(--m);font-size:16px}
+.tam-vuoto{font-size:13px;color:var(--g);font-weight:600;padding:6px 2px 4px}
+.tam-vuoto.attesa{color:var(--m);font-weight:400}
+.tam-altre{background:none;border:0;color:var(--b);font-size:12px;font-weight:600;cursor:pointer;padding:6px 2px 2px}
+.tam-info{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tam-chip{font:inherit;font-size:12px;background:var(--bl);color:var(--b);border:0;border-radius:12px;padding:4px 10px;cursor:pointer;text-align:left;max-width:100%;overflow-wrap:anywhere}
+.tam-chip-nota{color:var(--m)}
+.tam-evidenza{animation:tamEvidenza 1.8s ease-out}
+@keyframes tamEvidenza{0%{box-shadow:0 0 0 3px rgba(239,159,39,.85);border-radius:12px}100%{box-shadow:0 0 0 0 rgba(239,159,39,0);border-radius:12px}}
+@media (max-width: 700px){
+  .tam-card{margin:8px 8px 12px;padding:8px 12px 6px}
+  .tam-righe{grid-template-columns:1fr}
+  .tam-riga{min-height:36px;padding:5px 0}
+}

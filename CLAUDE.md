@@ -2,8 +2,8 @@
 
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
-file unico: `index.html` (markup) + `style.css` + moduli `js/00-…43-*.js`
-caricati in ordine 00–18, poi 20–43, infine `19-init.js` (dettagli in
+file unico: `index.html` (markup) + `style.css` + moduli `js/00-…46-*.js`
+caricati in ordine 00–18, poi 20–46, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -1534,6 +1534,54 @@ cliente deve mostrare i prezzi?; 30 giorni di preavviso fissi o in
 Impostazioni?; i controlli del piano rimasti indietro di più di 12 mesi
 vanno segnati "saltato"?; serve il box della ripartenza anche nella
 dashboard del titolare?
+
+"Cosa tocca a me" in cima alle dashboard (F12.1, js/46-cosa-tocca-a-me.js,
+nessun SQL): sotto il saluto di ogni dashboard (titolare/informatico,
+segreteria, capo_tecnico, commerciale, rappresentante, tecnico,
+ingegnere, contabile; contenitori `tam-<ruolo>` in index.html) un
+riquadro compatto con il CONTEGGIO di ogni cosa da fare del ruolo, righe
+a zero nascoste, "Niente da fare 🎉" se non c'è nulla, prime 6 righe e
+"Mostra altre". Ogni riga porta al box della dashboard (scorre e lo
+evidenzia; se il box è vuoto apre la pagina) o alla pagina giusta; con
+una sola commessa apre direttamente la commessa. Scelta: REGISTRO DELLE
+FONTI. Ogni cosa da fare è una fonte `registraFonteToccaAMe({ id, ruoli,
+icona, titolo, conta, vai, livello, priorita, tipo })`; `conta` usa le
+verifiche dei moduli (verifica*Disponibili) e le stesse regole dei box,
+con richieste count/head dove si può, e restituisce null se la fonte non
+è attiva (SQL non eseguito, errore): la riga si salta senza errori. Chi
+aggiunge un modulo con una cosa da fare aggiunge una fonte (dal suo file
+caricato dopo js/46). Al massimo 4 fonti lette insieme, righe disegnate
+man mano. Si aggiorna con ↻, tornando alla Dashboard dal menu e da solo
+dopo un'azione che ricarica uno dei box riassunti (non con il refresh
+automatico dei ticket ogni 60 s). Contenuto per ruolo (roadmap Fase 12):
+titolare = preventivi da controllare, lead dal sito, anticipi non
+accreditati, interventi e materiali in ritardo, contratti in scadenza,
+audit, appuntamenti da fissare, schede da approvare, bozze di fattura,
+insoluti, documenti team; in fondo come dati "commesse aperte per stato"
+e "fatturato del mese" (performance squadre: resta nella commessa, non è
+una cosa da fare). Rappresentante = preventivi da far approvare, anticipi
+da ricordare, commesse da ordinare (passo 7), lead, progetti da
+integrare, sede del cantiere, lavori extra, contratti da rinnovare,
+materiali in ritardo, audit, insoluti. Commerciale (acquisti) = progetti
+da preventivare, consumabili e noli da procurare, richieste ai fornitori
+in attesa, ordini in ritardo, lavori extra. Capo tecnico (Capo Operativo
+e Responsabile Service) = da pianificare (di cui da riprogrammare), in
+ritardo, richieste di modifica, commesse da esaminare (passo 8),
+cantieri da avviare e in corso, giornale da compilare (giorni di
+squadra degli ultimi 7 giorni senza giornale; servono sql/35 e 37),
+materiali in ritardo e in arrivo (7 giorni), lavori extra, audit,
+controlli da ripianificare, periodici del mese, ticket, documenti team.
+Segreteria = anticipi, sede del cantiere, faldoni (passo 10), commesse da
+chiudere (passo 12), appuntamenti, ticket, schede da approvare, buoni da
+fatturare, bozze di fattura, anagrafiche da completare, RIBA, insoluti e
+scadute da sollecitare, documenti team. Tecnico = interventi di oggi (con
+l'ora del primo: appuntamento fissato o fascia), prossimi 6 giorni,
+interventi passati non chiusi, giorni di cantiere, i suoi documenti.
+Ingegnere = verifiche tecniche, certificati nuovi, scadenze 7 giorni.
+Contabile = buoni da fatturare, bozze, rate scadute, RIBA. L'avviso
+"lead dal sito" del titolare ora ha il suo posto fisso sotto il
+riquadro (prima si creava sotto il saluto). Provato in locale (dump +
+28-42 e poi + 43-48) con tutti i ruoli, a 390 px e a 1280 px.
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
