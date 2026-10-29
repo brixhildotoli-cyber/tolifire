@@ -2,8 +2,8 @@
 
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
-file unico: `index.html` (markup) + `style.css` + moduli `js/00-…41-*.js`
-caricati in ordine 00–18, poi 20–41, infine `19-init.js` (dettagli in
+file unico: `index.html` (markup) + `style.css` + moduli `js/00-…42-*.js`
+caricati in ordine 00–18, poi 20–42, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -189,6 +189,8 @@ Dopo sql/43 (F10.3, da eseguire): fissa_appuntamento_intervento,
 rimanda_appuntamento_segreteria, imposta_appuntamento_richiesto;
 portale_ticket ridefinita (in più l'ora dell'appuntamento fissato;
 rollback = versione di sql/13).
+Dopo sql/44 (F10.4, DA ESEGUIRE, richiede 07 e 40): prezzi_contratto_cliente
+(sola lettura: preventivo del contratto e prezzi di vendita delle voci).
 Dopo sql/42 (decisioni del 29/10, eseguito il 29/10): preventivo_firmato_commessa,
 salva_fase_commessa_ore; cambia_stato_ordine_fornitore ridefinita (in
 più: 'confermato' da 'arrivato', solo titolare, con motivo).
@@ -1356,6 +1358,102 @@ manutenzioni programmate ancora da pianificare)? (Risposte di Erika del
 29/10 nel punto 8 dei Moduli da costruire: capo tecnico che fissa e ora
 nel portale FATTI; promemoria al cliente da costruire a parte.)
 
+Buono di lavoro, fattura e ripartenza del ciclo (F10.4, js/42-buono-
+lavoro.js; sql/44-prezzi-contratto DA ESEGUIRE, richiede 07 e 40; non
+richiede 41 né 43, li usa se ci sono). Comprende anche la 10.5 della
+roadmap (scadenze e ripartenza).
+- BUONO DI LAVORO = la scheda di lavoro del tecnico (schede_lavoro, js/11,
+  nessun campo nuovo) + i DDT dell'intervento (ddt.odl_id o
+  ddt.scheda_lavoro_id). Box "🧾 Buono di lavoro" nella finestra della
+  scheda (m-scheda, ms-buono: workflow, Documenti, per tutti i ruoli che
+  la aprono) e sezioni nuove nel PDF "📋 Rapporto" (js/04 chiama
+  sezioniBuonoLavoroPDF): contratto (periodo, in vigore/scaduto/non
+  rinnovato), DIFFERENZE PRESIDI per tipo (previsti dal contratto,
+  presidi_contratto di sql/40, contro i trovati dell'audit di
+  quell'intervento se c'è, sql/41, altrimenti il registro presidi
+  attuale; presidi "non trovati" dell'audit), LAVORI FUORI CONTRATTO,
+  MATERIALE dei DDT (nel PDF senza prezzi, va al cliente), FATTURAZIONE
+  (stato del workflow). Il PDF ora esclude i presidi eliminati e stampa
+  sempre il riquadro dello straordinario (prima spariva se la pagina era
+  piena).
+- REGOLA "FUORI CONTRATTO" (scelta dichiarata, nessun dato nuovo):
+  a) cliente senza contratto (nessuna riga in clienti_periodicita);
+  b) intervento fuori dal periodo del contratto (prima dell'inizio, dopo
+  la fine, non rinnovato); c) tipo diverso da manutenzione ordinaria
+  programmata (su chiamata, straordinario, corso); d) presidi in più
+  rispetto al contratto, per tipo; e) presidi controllati in
+  quell'intervento (data ultimo controllo = data della scheda) rimasti in
+  anomalia, scaduti o fuori servizio (sostituzione, ricarica, riparazione
+  da preventivare); f) straordinario richiesto dal tecnico (campo già
+  esistente); g) righe dei DDT senza voce nel preventivo del contratto
+  (solo per chi vede i prezzi e se il preventivo è collegato). I presidi
+  in meno sono solo "differenze" (adeguamento del contratto).
+- PREZZI DAL PREVENTIVO DEL CONTRATTO (nel DDT, m-ddt, box
+  ddt-contratto-box; solo ruoli che vedono i prezzi, RUOLI_PREZZI di
+  js/14): preventivi_voci NON ha un collegamento a prodotti_catalogo,
+  quindi la voce corrisponde a una riga se la descrizione è uguale
+  (senza maiuscole, accenti, punteggiatura) oppure se la descrizione
+  della voce contiene il codice del prodotto (almeno 3 caratteri). Una
+  riga presa dal catalogo con voce corrispondente prende il prezzo della
+  voce; senza, resta il prezzo del catalogo come oggi. In più "Aggiungi
+  una voce del contratto" e "Applica i prezzi del contratto"; accanto a
+  ogni riga "📄 prezzo del contratto" / "⚠️ nel contratto € X" / "fuori
+  contratto". Il prezzo resta modificabile a mano. Nessun dato salvato
+  in più (l'origine si ricalcola). Le voci le dà la RPC
+  prezzi_contratto_cliente (sql/44: titolare, segreteria, contabile,
+  commerciale, rappresentante solo i suoi clienti; prezzo di vendita,
+  MAI il costo): oggi le voci le leggono solo il titolare e il
+  commerciale autore. Senza sql/44: il titolare vede i prezzi del
+  contratto (lettura diretta), la segreteria legge "voci non ancora
+  leggibili per il tuo ruolo", prezzi dal catalogo come prima. Primo
+  passo del modulo "Listini per cliente" (punto 1 dei Moduli): per un
+  cliente con contratto il listino è il preventivo del contratto.
+  "📦 Crea DDT per l'intervento" dal buono (titolare, segreteria, capo
+  tecnico): DDT con cliente, intervento e causale già messi.
+- FATTURA: il modulo Fatture non c'è. Scelta dichiarata: buono e DDT
+  arrivano pronti e segnati "da fatturare" con il workflow che esiste
+  (firmata → approvata → inviata → da fatturare → fatturata). Nelle card
+  del workflow (decoraWorkflowBuoni) DDT collegati con importo e avvisi
+  rapidi di fuori contratto; in Documenti accanto a ogni DDT lo stato del
+  buono collegato ("Buono: Da fatturare/Fatturata"; js/10 aggiunge gli
+  attributi data-ddt-*). Il vincolo "senza buono non si emette fattura"
+  sarà del modulo Fatture (decisione già presa, Fase 3 del modulo).
+- RIPARTENZA DEL CICLO: box "🔁 Controlli scaduti: da ripianificare"
+  nella dashboard del capo tecnico (ct-ripartenza, prima di "Interventi
+  periodici del mese") e in testa al Piano mensile del mese corrente
+  (titolare e capo tecnico; id rip-d-/rip-t-<cliente>). Ci finisce un
+  cliente con: controlli del piano (cicli_pianificati 'pianificato'
+  senza intervento) degli ULTIMI 12 MESI prima del mese corrente, non
+  seguiti da una manutenzione programmata completata; oppure presidi con
+  prossimo controllo scaduto o entro 30 giorni (fisso, come la dashboard
+  standard), se il cliente non ha già controlli nel piano del mese
+  corrente. Escluso chi ha già una manutenzione ordinaria programmata
+  aperta (da pianificare o pianificata). Schedulando ("+ Schedula
+  intervento" della dashboard, che apre la finestra intervento, o
+  "✅ Schedula" del Piano mensile) i controlli del piano del cliente FINO
+  AL MESE DELL'INTERVENTO si collegano all'intervento: alla chiusura
+  diventano "eseguito" (trigger sql/17) e con sql/43 l'intervento va alla
+  segreteria per l'appuntamento (F10.3). Corretto nello stesso giro:
+  "+ Schedula intervento" del box "Interventi periodici del mese"
+  (creaOdlDaCiclo) non collegava i controlli all'intervento, che
+  restavano "da schedulare" anche dopo la chiusura; ora li collega.
+Provato in locale (dump + 28-43 + 44 e senza 44, rollback identico allo
+schema di prima) con i ruoli veri: capo tecnico schedula dalla dashboard
+e dal Piano mensile → segreteria fissa l'appuntamento → tecnico chiude
+con audit e senza → segreteria apre il buono, crea il DDT con i prezzi
+del contratto, approva e passa a fatturazione → contabile vede "Da
+fatturare" e segna "Fatturata" → alla scadenza dei presidi il cliente
+torna nel box del capo tecnico.
+Domande per Toli: va bene la regola "fuori contratto" (in particolare:
+"su chiamata" è sempre fuori contratto? un cliente senza contratto è
+tutto a consuntivo?); la corrispondenza voce-prodotto per descrizione
+basta o serve un collegamento vero voce↔prodotto (colonna nuova su
+preventivi_voci, con il modulo Listini)?; il PDF del buono che va al
+cliente deve mostrare i prezzi?; 30 giorni di preavviso fissi o in
+Impostazioni?; i controlli del piano rimasti indietro di più di 12 mesi
+vanno segnati "saltato"?; serve il box della ripartenza anche nella
+dashboard del titolare?
+
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
 - Riutilizzare le helper esistenti: `ge`, `v`, `toast`, `fd`, `openM`,
@@ -1401,6 +1499,10 @@ una sessione e l'altra.
    corretti a mano riga per riga. Serve una tabella `listini_cliente`
    (o equivalente sconto-per-cliente) con storico applicabile in
    automatico al momento della creazione del DDT/fattura.
+   Primo passo FATTO in F10.4 (js/42, sql/44): per i clienti con
+   contratto di manutenzione il DDT prende i prezzi dal preventivo del
+   contratto (corrispondenza per descrizione o codice); per gli altri
+   resta il catalogo.
 
 2. **Modulo Fatture / RIBA / Solleciti** — IN COSTRUZIONE (12 fasi).
    Decisioni di progetto approvate:
@@ -1431,6 +1533,9 @@ una sessione e l'altra.
    - [ ] Fase 12 — Export PDF fattura.
    Dipendenza esterna: `clienti.rappresentante_id` da aggiungere
    prima della Fase 11 (per filtro insoluti rappresentante).
+   Da F10.4: il buono di lavoro (scheda + DDT dell'intervento, box
+   ms-buono di js/42) arriva "da fatturare" con i lavori fuori contratto
+   e l'origine dei prezzi: la Fase 4 (righe da scheda/DDT) parte da lì.
 
    **Stati canonici (decisi e da rispettare ovunque)**:
    - `fatture.stato`: `bozza → emessa → annullata`

@@ -446,6 +446,9 @@
       <!-- F6.2 — consumabili e noli chiesti agli acquisti (js/28, solo con sql/31) -->
       <div id="ct-richieste-integrazione"></div>
 
+      <!-- F10.4 — controlli scaduti da ripianificare: ripartenza del ciclo (js/42) -->
+      <div id="ct-ripartenza"></div>
+
       <!-- Pannelli esistenti riusati con target ID diversi -->
       <div class="ct-section-title">📅 Interventi periodici del mese</div>
       <div class="ct-pane"><div id="ct-cicli-mese"><div class="ct-empty">⏳ Caricamento...</div></div></div>
@@ -4455,6 +4458,8 @@
     <button class="btn sm" onclick="aggiungiRigaManuale()">+ Riga manuale</button>
   </div>
   <div id="ddt-search-results" style="max-height:180px;overflow-y:auto;border:0.5px solid var(--bo);border-radius:var(--rs);margin-bottom:10px;display:none"></div>
+  <!-- F10.4 — prezzi dal preventivo del contratto di manutenzione (js/42) -->
+  <div id="ddt-contratto-box" style="display:none;margin-bottom:10px"></div>
   <div id="ddt-righe-list" style="margin-bottom:12px"></div>
   <div class="f"><label>Note</label><textarea id="ddt-note" style="min-height:55px"></textarea></div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
@@ -4596,6 +4601,8 @@
   <div style="font-size:12px;font-weight:600;color:var(--m);text-transform:uppercase;margin-bottom:6px">Anomalie</div>
   <div id="ms-anomalie" style="background:var(--bg);padding:12px;border-radius:var(--rs);font-size:13px;margin-bottom:14px"></div>
   <div id="ms-note-interne" style="display:none;margin-bottom:16px"></div>
+  <!-- F10.4 — buono di lavoro: contratto, differenze presidi, lavori fuori contratto, DDT e fatturazione (js/42) -->
+  <div id="ms-buono" style="display:none;margin-bottom:16px"></div>
   <div style="font-size:12px;font-weight:600;color:var(--m);text-transform:uppercase;margin-bottom:8px">Workflow</div>
   <div id="ms-wf"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px" id="ms-actions"></div>
@@ -5005,6 +5012,7 @@
 <script defer src="js/39-contratto-manutenzione.js"></script>
 <script defer src="js/40-audit-presidi.js"></script>
 <script defer src="js/41-appuntamenti-segreteria.js"></script>
+<script defer src="js/42-buono-lavoro.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

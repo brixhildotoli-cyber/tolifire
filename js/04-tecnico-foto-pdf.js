@@ -80,6 +80,7 @@ async function stampaRapportoIntervento(schedaId) {
   var rp = await db.from('impianti')
     .select('tipo,matricola,ubicazione,data_ultimo_controllo,stato,note')
     .eq('cliente_id', s.cliente_id)
+    .is('eliminato_il', null)
     .order('tipo');
   var presidi = rp.data || [];
 
@@ -211,7 +212,14 @@ async function stampaRapportoIntervento(schedaId) {
     y = doc.lastAutoTable.finalY + 6;
   }
 
+  // ── BUONO DI LAVORO (F10.4, js/42): differenze presidi rispetto al
+  // contratto, lavori fuori contratto, materiale dei DDT dell'intervento.
+  if(typeof sezioniBuonoLavoroPDF === 'function') {
+    try { y = await sezioniBuonoLavoroPDF(doc, s, y, M, W); } catch(e) { console.warn('Buono di lavoro nel PDF:', e); }
+  }
+
   // ── STRAORDINARIO ─────────────────────────
+  if(s.intervento_straordinario_richiesto && y >= 240) { doc.addPage(); y = 20; }
   if(s.intervento_straordinario_richiesto && y < 240) {
     doc.setFillColor(255, 235, 235);
     var strLines = doc.splitTextToSize('INTERVENTO STRAORDINARIO RICHIESTO: ' + (s.descrizione_intervento_necessario||''), W-M*2-4);

@@ -38,7 +38,7 @@ ge('dtbody').innerHTML = !dt.length
   ? '<tr><td colspan="5"><div class="empty">Nessun DDT</div></td></tr>'
   : dt.map(function(d) {
       var puoModificare = ROLE === 'segreteria' || ROLE === 'titolare';
-      return `<tr>
+      return `<tr data-ddt-id="${esc(d.id)}" data-ddt-odl="${esc(d.odl_id || '')}" data-ddt-scheda="${esc(d.scheda_lavoro_id || '')}">
         <td>#${d.numero || '—'}</td>
         <td>${esc(d.clienti?.ragione_sociale || '—')}</td>
         <td>${fd(d.data_emissione)}</td>

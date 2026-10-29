@@ -883,6 +883,10 @@ async function loadDashCapoTecnicoPg(){
   if (typeof caricaLavoriExtraDashboard === 'function') {
     try { await caricaLavoriExtraDashboard(); } catch(e){ console.warn('caricaLavoriExtraDashboard:', e); }
   }
+  // F10.4: controlli scaduti da ripianificare, ripartenza del ciclo (js/42)
+  if (typeof caricaControlliDaRipianificareDashboard === 'function') {
+    try { await caricaControlliDaRipianificareDashboard(); } catch(e){ console.warn('caricaControlliDaRipianificareDashboard:', e); }
+  }
   await loadDashCapoTecnico('ct-cicli-mese');
   await loadRichiesteModifica('ct-richieste-modifica');
   await loadDashTicket('ct-ticket-lista');
