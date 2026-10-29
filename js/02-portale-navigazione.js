@@ -252,7 +252,8 @@ async function portaleCaricaTicket() {
       var dataInt = new Date(odl.data_pianificata+'T00:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
       schedInfo = '<div style="background:var(--gl);border-left:3px solid var(--g);border-radius:var(--rs);padding:10px;margin-top:10px">' +
         '<div style="font-size:12px;font-weight:600;color:var(--g)">✅ Intervento schedulato</div>' +
-        '<div style="font-size:13px;margin-top:3px">📅 ' + dataInt + (odl.fascia_oraria ? ' · ' + odl.fascia_oraria : '') + '</div>' +
+        // F10.3: con sql/43 l'ora dell'appuntamento fissato (solo se fissato per quella data)
+        '<div style="font-size:13px;margin-top:3px">📅 ' + dataInt + (odl.appuntamento_ora ? ' · ore ' + esc(odl.appuntamento_ora) : (odl.fascia_oraria ? ' · ' + esc(odl.fascia_oraria) : '')) + '</div>' +
       '</div>';
     } else if(t.stato === 'in_lavorazione') {
       schedInfo = '<div style="background:var(--bl);border-left:3px solid var(--b);border-radius:var(--rs);padding:10px;margin-top:10px">' +

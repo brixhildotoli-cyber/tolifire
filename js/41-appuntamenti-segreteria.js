@@ -12,7 +12,8 @@
 //     lista "📞 Appuntamenti da fissare" (dashboard seg-appuntamenti; la
 //     vedono anche capo tecnico, ct-appuntamenti, come "da confermare", e
 //     titolare, tit-appuntamenti);
-//   - la segreteria chiama il cliente e registra giorno e ora esatti, con
+//   - la segreteria (o il capo tecnico, decisione del 29/10, o il titolare)
+//     chiama il cliente e registra giorno e ora esatti, con
 //     chi ha parlato e quando (finestra m-fissa-appuntamento, RPC
 //     fissa_appuntamento_intervento; chi = utente collegato);
 //   - il tecnico vede l'intervento SOLO con l'appuntamento fissato (regola
@@ -28,7 +29,8 @@
 // mo-appuntamento, moap-*.
 // =====================================================================
 
-const RUOLI_FISSA_APPUNTAMENTO = ['titolare', 'segreteria'];
+// Decisione di Erika del 29/10: anche il capo tecnico fissa l'appuntamento.
+const RUOLI_FISSA_APPUNTAMENTO = ['titolare', 'segreteria', 'capo_tecnico'];
 const RUOLI_GESTISCI_APPUNTAMENTO = ['titolare', 'capo_tecnico', 'segreteria'];
 const BOX_APPUNTAMENTI = {
   segreteria: 'seg-appuntamenti',
@@ -156,7 +158,7 @@ async function caricaAppuntamentiDaFissare() {
 
   const aiuti = {
     segreteria: 'Interventi pianificati dal capo tecnico che aspettano la tua telefonata al cliente. Il tecnico li vede solo dopo che hai fissato giorno e ora.',
-    capo_tecnico: 'Interventi da confermare: la segreteria deve ancora fissare l\'appuntamento con il cliente. Il tecnico non li vede finché non sono fissati.',
+    capo_tecnico: 'Interventi da confermare: l\'appuntamento con il cliente non è ancora fissato (di solito chiama la segreteria; puoi fissarlo anche tu). Il tecnico non li vede finché non sono fissati.',
     titolare: 'Interventi che aspettano l\'appuntamento della segreteria: il tecnico non li vede finché non sono fissati.'
   };
   const oggi = dataLocaleISO();
@@ -190,7 +192,7 @@ async function caricaAppuntamentiDaFissare() {
     '</div>';
   }).join('');
 
-  const titolo = ROLE === 'capo_tecnico' ? '⏳ Da confermare: appuntamento della segreteria' : '📞 Appuntamenti da fissare';
+  const titolo = ROLE === 'capo_tecnico' ? '⏳ Da confermare: appuntamento con il cliente' : '📞 Appuntamenti da fissare';
   box.innerHTML = '<div class="tit-section" style="margin-top:14px">' + titolo + ' (' + odls.length + ')</div>' +
     '<div class="rap-list-card" style="margin-bottom:14px">' +
     '<div style="font-size:12px;color:var(--m);margin-bottom:4px">' + esc(aiuti[ROLE] || '') + '</div>' +
@@ -204,7 +206,7 @@ function oraLocaleInput(d) {
 }
 
 async function apriFissaAppuntamento(odlId) {
-  if (!RUOLI_FISSA_APPUNTAMENTO.includes(ROLE)) { toast('L\'appuntamento lo fissano la segreteria e il titolare', 'err'); return; }
+  if (!RUOLI_FISSA_APPUNTAMENTO.includes(ROLE)) { toast('L\'appuntamento lo fissano segreteria, capo tecnico e titolare', 'err'); return; }
   if (!(await verificaAppuntamentiDisponibile())) { toast('Gli appuntamenti non sono ancora attivi', 'err'); return; }
   const { data: o, error } = await db.from('ordini_lavoro')
     .select('id,numero,tipo,stato,data_pianificata,fascia_oraria,sede_id,tecnico_id,' + COLONNE_APPUNTAMENTO +

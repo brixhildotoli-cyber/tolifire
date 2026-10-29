@@ -186,7 +186,9 @@ Dopo sql/41 (F10.2, eseguito il 29/10): registra_audit_presidi,
 imposta_audit_presidi_intervento, audit_presidi_da_esaminare,
 segna_audit_presidi_esaminato.
 Dopo sql/43 (F10.3, da eseguire): fissa_appuntamento_intervento,
-rimanda_appuntamento_segreteria, imposta_appuntamento_richiesto.
+rimanda_appuntamento_segreteria, imposta_appuntamento_richiesto;
+portale_ticket ridefinita (in più l'ora dell'appuntamento fissato;
+rollback = versione di sql/13).
 Dopo sql/42 (decisioni del 29/10, eseguito il 29/10): preventivo_firmato_commessa,
 salva_fase_commessa_ore; cambia_stato_ordine_fornitore ridefinita (in
 più: 'confermato' da 'arrivato', solo titolare, con motivo).
@@ -1275,10 +1277,13 @@ segreteria.js; sql/43-appuntamento-segreteria DA ESEGUIRE, richiede solo
   compare nella lista "📞 Appuntamenti da fissare"
   (caricaAppuntamentiDaFissare) della dashboard della SEGRETERIA
   (seg-appuntamenti), del CAPO TECNICO come "⏳ Da confermare"
-  (ct-appuntamenti, sola lettura + "Apri intervento") e del TITOLARE
+  (ct-appuntamenti, con "📞 Fissa appuntamento" e "Apri intervento") e
+  del TITOLARE
   (tit-appuntamenti). Nella lista: cliente, data indicativa (rossa se
   passata), tecnico, sede, referente con telefono cliccabile, motivo del
-  ritorno. "📞 Fissa appuntamento" (segreteria e titolare; finestra
+  ritorno. "📞 Fissa appuntamento" (segreteria, capo tecnico e titolare;
+  il capo tecnico per decisione di Erika del 29/10, anche dalla finestra
+  dell'intervento; finestra
   m-fissa-appuntamento, id fap-): giorno e ora esatti, con chi ha parlato
   (precompilato col referente), quando (data e ora della telefonata,
   predefinita adesso), note per il tecnico; chi = utente collegato. Avvisi
@@ -1298,7 +1303,11 @@ segreteria.js; sql/43-appuntamento-segreteria DA ESEGUIRE, richiede solo
   (tornati in coda) restano come oggi; chiusura e "Non ho potuto
   completare" funzionano come prima (provati in locale).
 - DI NUOVO ALLA SEGRETERIA: appuntamento_fissato è vera solo se il giorno
-  fissato è uguale alla data dell'intervento. Se il capo tecnico sposta
+  fissato è uguale alla data dell'intervento. SCELTA DICHIARATA (va bene
+  per il controllo): se la data torna al giorno fissato l'appuntamento
+  torna valido da solo, con l'ora fissata allora (stesso giorno
+  concordato con il cliente); per far richiamare il cliente si usa
+  "Rimanda alla segreteria". Se il capo tecnico sposta
   la data (da qualunque pagina; trascinando nel calendario settimanale e
   salvando la finestra intervento il sito chiede prima conferma, nella
   finestra del calendario c'è l'avviso) l'appuntamento non vale più e
@@ -1320,6 +1329,14 @@ segreteria.js; sql/43-appuntamento-segreteria DA ESEGUIRE, richiede solo
   interventi del calendario settimanale e della lista "Da pianificare"
   (dashboard capo tecnico), del calendario team e del Piano mensile; riga
   nella finestra del calendario (m-cal-edit).
+- PORTALE CLIENTI (decisione di Erika del 29/10): portale_ticket
+  (sql/13) ridefinita in sql/43 con appuntamento_ora ("09:30") per
+  l'intervento collegato alla richiesta, SOLO se l'appuntamento è fissato
+  per quella data; in "Le mie richieste" (js/02 portaleCaricaTicket) si
+  legge "📅 venerdì 30 ottobre 2026 · ore 09:30" al posto della fascia.
+  Data cambiata o appuntamento non fissato: data e fascia come prima. Il
+  rollback rimette esattamente la funzione di sql/13 (permessi
+  invariati, anche anon).
 Senza sql/43: nessuna lista, nessun box, il tecnico vede tutto come prima
 (provato in locale anche dopo il rollback, che riporta lo schema identico).
 Corretto nello stesso giro (anche senza sql/43): la dashboard del tecnico
@@ -1335,12 +1352,9 @@ Domande per Toli: va bene che l'appuntamento valga solo per la
 manutenzione ordinaria programmata nata dopo sql/43 (gli interventi già
 pianificati restano visibili al tecnico senza appuntamento)? Va
 segnato d'ufficio anche qualche intervento già esistente (es. le
-manutenzioni programmate ancora da pianificare)? Il capo tecnico deve
-poter fissare lui l'appuntamento (oggi solo segreteria e titolare; lui
-lo vede, lo rimanda, toglie l'obbligo)? La segreteria deve poter
-togliere l'obbligo ("non serve l'appuntamento")? Il portale clienti
-deve mostrare l'ora dell'appuntamento (oggi mostra data e fascia)? Serve
-un promemoria al cliente (SMS/mail) il giorno prima?
+manutenzioni programmate ancora da pianificare)? (Risposte di Erika del
+29/10 nel punto 8 dei Moduli da costruire: capo tecnico che fissa e ora
+nel portale FATTI; promemoria al cliente da costruire a parte.)
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
@@ -1529,11 +1543,13 @@ una sessione e l'altra.
 8. **Risposte di Erika su F10.3 (29/10/2026)** — appuntamenti:
    - Obbligo di appuntamento solo per le manutenzioni programmate nuove o
      anche per quelle esistenti: NON DECISO (resta solo le nuove).
-   - DA FARE: anche il CAPO TECNICO può fissare l'appuntamento (oggi solo
-     segreteria e titolare).
+   - FATTO (sql/43 + js/41): anche il CAPO TECNICO fissa l'appuntamento
+     (fissa_appuntamento_intervento; bottone nella sua dashboard e nella
+     finestra dell'intervento).
    - La segreteria può togliere l'obbligo con motivo: CONFERMATO (già così).
-   - DA FARE: il portale clienti mostra l'ORA dell'appuntamento (RPC del
-     portale, SQL).
+   - FATTO (sql/43 + js/02): il portale clienti mostra l'ORA
+     dell'appuntamento (portale_ticket ridefinita, solo se fissato per
+     quella data; rollback = versione di sql/13).
    - DA COSTRUIRE (modulo a parte): promemoria al cliente il giorno prima
      dell'appuntamento. Serve un canale di invio (email o SMS, es. Edge
      Function Supabase + servizio di posta) e il consenso/recapito del
