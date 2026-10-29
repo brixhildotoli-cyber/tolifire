@@ -196,7 +196,7 @@ async function apriDichiarazionePosa() {
     cantiereOk
       ? db.rpc('scheda_cantiere_commessa', { p_commessa_id: commessa.id })
       : (commessa.preventivo_id
-          ? db.from('preventivi_voci').select('categoria, descrizione, unita_misura, quantita').eq('preventivo_id', commessa.preventivo_id).order('ordinamento', { ascending: true })
+          ? db.from('preventivi_voci').select('categoria, descrizione, unita_misura, quantita').eq('preventivo_id', commessa.preventivo_id).order('ordinamento', { ascending: true }).order('creato_il', { ascending: true })
           : null),
     colonne ? db.from('commesse').select(colonne).eq('id', commessa.id).maybeSingle() : null,
     db.from('commesse_storico').select('cambiato_il').eq('commessa_id', commessa.id).eq('a_stato', 'fine_lavori')

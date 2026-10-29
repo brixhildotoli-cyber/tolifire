@@ -150,7 +150,7 @@ async function prezziContrattoLetturaDiretta(cliId) {
   const [rp, rv] = await Promise.all([
     db.from('preventivi').select('id,numero,data_emissione,stato').eq('id', c.preventivo_id).maybeSingle(),
     db.from('preventivi_voci').select('id,categoria,descrizione,unita_misura,quantita,prezzo_unitario,ordinamento')
-      .eq('preventivo_id', c.preventivo_id).order('ordinamento', { ascending: true })
+      .eq('preventivo_id', c.preventivo_id).order('ordinamento', { ascending: true }).order('creato_il', { ascending: true })
   ]);
   if (rp.error || !rp.data) return ris;
   ris.preventivo = rp.data;

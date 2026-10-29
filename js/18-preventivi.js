@@ -3538,6 +3538,16 @@ async function usaQuotazioneFornitoreNelPreventivo(selezioneId) {
     return;
   }
 
+  // Modifiche alle voci non ancora salvate: si salvano prima, altrimenti
+  // il ricaricamento qui sotto le perderebbe.
+  if (modificheVociNonSalvatePreventivo()) {
+    const salvato = await salvaVociPreventivo();
+    if (!salvato) {
+      toast('Salva prima le voci del preventivo (tab Costi), poi usa la quotazione', 'err');
+      return;
+    }
+  }
+
   const percentuale = ricaricoFornituraDaCosto(costo);
   const prezzoCliente = Math.round(
     costo * (1 + percentuale / 100) * 100
@@ -3552,12 +3562,23 @@ async function usaQuotazioneFornitoreNelPreventivo(selezioneId) {
     ' — ' +
     nomeFornitore;
 
-  const { data: voceEsistente } = await db
+  // Voce già creata da questa quotazione: si aggiorna (niente doppioni).
+  // Niente .maybeSingle(): con due righe già presenti dava errore, la voce
+  // risultava "non trovata" e se ne inseriva un'altra.
+  const { data: vociQuotazione, error: erroreVoceEsistente } = await db
     .from('preventivi_voci')
     .select('id')
     .eq('preventivo_id', currentPreventivoId)
     .eq('preventivo_fornitore_id', selezioneId)
-    .maybeSingle();
+    .order('creato_il')
+    .limit(1);
+
+  if (erroreVoceEsistente) {
+    toast('Errore controllo voce del fornitore: ' + erroreVoceEsistente.message, 'err');
+    return;
+  }
+
+  const voceEsistente = (vociQuotazione || [])[0] || null;
 
   const datiVoce = {
     categoria: 'materiale',
@@ -3570,18 +3591,40 @@ async function usaQuotazioneFornitoreNelPreventivo(selezioneId) {
     aggiornato_il: new Date().toISOString()
   };
 
-  const risultato = voceEsistente
-    ? await db
-        .from('preventivi_voci')
-        .update(datiVoce)
-        .eq('id', voceEsistente.id)
-    : await db
-        .from('preventivi_voci')
-        .insert({
-          ...datiVoce,
-          preventivo_id: currentPreventivoId,
-          ordinamento: 0
-        });
+  let risultato;
+
+  if (voceEsistente) {
+    risultato = await db
+      .from('preventivi_voci')
+      .update(datiVoce)
+      .eq('id', voceEsistente.id);
+  } else {
+    // La voce nuova va in fondo, come ultima creata (prima ordinamento 0:
+    // finiva in cima o in mezzo alle altre).
+    const { data: ultima, error: erroreUltima } = await db
+      .from('preventivi_voci')
+      .select('ordinamento')
+      .eq('preventivo_id', currentPreventivoId)
+      .order('ordinamento', { ascending: false })
+      .limit(1);
+
+    if (erroreUltima) {
+      toast('Errore lettura voci del preventivo: ' + erroreUltima.message, 'err');
+      return;
+    }
+
+    const ordinamento = ultima && ultima.length
+      ? numeroPreventivo(ultima[0].ordinamento) + 1
+      : 0;
+
+    risultato = await db
+      .from('preventivi_voci')
+      .insert({
+        ...datiVoce,
+        preventivo_id: currentPreventivoId,
+        ordinamento: ordinamento
+      });
+  }
 
   if (risultato.error) {
     toast(
@@ -3635,6 +3678,12 @@ let storicoUndoPreventivo = [];
 let vociEliminatePreventivo = [];
 let chiaveModificaPreventivo = '';
 let timerModificaPreventivo = null;
+
+// true se nell'editor delle voci ci sono modifiche non ancora salvate
+// (ogni modifica lascia un punto di "Annulla"; il ricaricamento li azzera).
+function modificheVociNonSalvatePreventivo() {
+  return storicoUndoPreventivo.length > 0 || vociEliminatePreventivo.length > 0;
+}
 
 function registraStatoUndoPreventivo(chiave) {
   clearTimeout(timerModificaPreventivo);
@@ -4838,6 +4887,9 @@ function aggiungiVocePreventivo() {
   registraStatoUndoPreventivo('aggiungi-' + Date.now());
   vociPreventivoDati.push({
     id: null,
+    // chiave interna (non va nel database): lega la voce nuova ai punti
+    // di "Annulla" per dargli l'id quando viene inserita.
+    _chiave: 'nuova-' + Date.now() + '-' + Math.random().toString(36).slice(2),
     categoria: 'materiale',
     descrizione: '',
     unita_misura: 'pz',
@@ -4904,32 +4956,70 @@ async function eseguiSalvataggioVociPreventivo() {
     return false;
   }
 
+  // Le voci di questo salvataggio, nell'ordine a schermo (= ordine di
+  // creazione: le voci nuove vanno sempre in fondo). Si fissa qui perché
+  // durante il salvataggio la lista a schermo può ancora cambiare.
+  const vociDaSalvare = vociPreventivoDati.slice();
+
+  const totaleImponibile = vociDaSalvare.reduce(function(totale, voce) {
+    return totale + totaleVocePreventivo(voce, 'vendita');
+  }, 0);
+
+  const datiPreventivo = {
+    totale_imponibile: totaleImponibile,
+    note: notePreventivoCliente.trim() || null,
+    condizioni_pagamento: condizioniPagamentoPreventivo.trim() || null,
+    aggiornato_il: new Date().toISOString()
+  };
+
+  // F4.2: anticipo (solo con sql/24 e finché il cliente non ha risposto).
+  // Si controlla PRIMA di scrivere le voci: prima le voci nuove venivano
+  // inserite e poi il salvataggio si fermava sull'anticipo; con "Annulla"
+  // tornavano senza id e il salvataggio dopo le inseriva una seconda volta.
+  if (anticipoPreventivoEditor.disponibile && !anticipoPreventivoEditor.bloccato) {
+    const anticipo = datiAnticipoValidi(
+      anticipoPreventivoEditor.richiesto,
+      anticipoPreventivoEditor.tipo,
+      anticipoPreventivoEditor.valore,
+      totaleImponibile,
+      true
+    );
+
+    if (anticipo.errore) {
+      toast(anticipo.errore + ' (oppure scegli "Non indicato")', 'err');
+      return false;
+    }
+
+    datiPreventivo.anticipo_richiesto = anticipo.richiesto;
+    datiPreventivo.anticipo_tipo = anticipo.tipo;
+    datiPreventivo.anticipo_valore = anticipo.valore;
+  }
+
   // Voci tolte con "Elimina": vanno cancellate davvero, altrimenti al
   // salvataggio successivo ricompaiono e finiscono nel PDF.
   if (vociEliminatePreventivo.length) {
+    const idEliminati = vociEliminatePreventivo.slice();
     const { error: erroreElimina } = await db
       .from('preventivi_voci')
       .delete()
-      .in('id', vociEliminatePreventivo)
+      .in('id', idEliminati)
       .eq('preventivo_id', currentPreventivoId);
 
     if (erroreElimina) {
       toast('Errore eliminazione voci: ' + erroreElimina.message, 'err');
       return false;
     }
-    vociEliminatePreventivo = [];
+    vociEliminatePreventivo = vociEliminatePreventivo.filter(function(id) {
+      return !idEliminati.includes(id);
+    });
+    allineaStoricoUndoPreventivo(null, idEliminati);
   }
 
-  const vociEsistenti = vociPreventivoDati.filter(function(voce) {
-    return voce.id;
-  });
-
-  const vociNuove = vociPreventivoDati.filter(function(voce) {
-    return !voce.id;
-  });
-
-  for (let indice = 0; indice < vociEsistenti.length; indice++) {
-    const voce = vociEsistenti[indice];
+  // ordinamento = posizione della voce nella lista (esistenti e nuove):
+  // al ricaricamento e nel PDF l'ordine resta quello a schermo.
+  for (let indice = 0; indice < vociDaSalvare.length; indice++) {
+    const voce = vociDaSalvare[indice];
+    if (!voce.id) continue;
 
     const { error } = await db
       .from('preventivi_voci')
@@ -4952,20 +5042,22 @@ async function eseguiSalvataggioVociPreventivo() {
     }
   }
 
-  if (vociNuove.length) {
-    const righe = vociNuove.map(function(voce, indice) {
-      return {
-        preventivo_id: currentPreventivoId,
-        categoria: voce.categoria,
-        descrizione: String(voce.descrizione).trim(),
-        unita_misura: voce.unita_misura || 'pz',
-        quantita: numeroPreventivo(voce.quantita),
-        costo_unitario: numeroPreventivo(voce.costo_unitario),
-        prezzo_unitario: numeroPreventivo(voce.prezzo_unitario),
-        ordinamento: vociEsistenti.length + indice
-      };
+  const righe = [];
+  vociDaSalvare.forEach(function(voce, indice) {
+    if (voce.id) return;
+    righe.push({
+      preventivo_id: currentPreventivoId,
+      categoria: voce.categoria,
+      descrizione: String(voce.descrizione).trim(),
+      unita_misura: voce.unita_misura || 'pz',
+      quantita: numeroPreventivo(voce.quantita),
+      costo_unitario: numeroPreventivo(voce.costo_unitario),
+      prezzo_unitario: numeroPreventivo(voce.prezzo_unitario),
+      ordinamento: indice
     });
+  });
 
+  if (righe.length) {
     const { data: inserite, error } = await db
       .from('preventivi_voci')
       .insert(righe)
@@ -4976,43 +5068,18 @@ async function eseguiSalvataggioVociPreventivo() {
       return false;
     }
 
-    // Le voci appena inserite prendono subito il loro id: un nuovo
-    // salvataggio le aggiorna invece di inserirle di nuovo.
+    // Le voci appena inserite prendono subito il loro id (anche nei punti
+    // di "Annulla"): un nuovo salvataggio le aggiorna invece di inserirle
+    // di nuovo.
+    const idNuovi = {};
     (inserite || []).forEach(function(riga) {
-      const voce = vociNuove[riga.ordinamento - vociEsistenti.length];
-      if (voce) voce.id = riga.id;
+      const voce = vociDaSalvare[riga.ordinamento];
+      if (voce && !voce.id) {
+        voce.id = riga.id;
+        if (voce._chiave) idNuovi[voce._chiave] = riga.id;
+      }
     });
-  }
-
-  const totaleImponibile = vociPreventivoDati.reduce(function(totale, voce) {
-    return totale + totaleVocePreventivo(voce, 'vendita');
-  }, 0);
-
-  const datiPreventivo = {
-    totale_imponibile: totaleImponibile,
-    note: notePreventivoCliente.trim() || null,
-    condizioni_pagamento: condizioniPagamentoPreventivo.trim() || null,
-    aggiornato_il: new Date().toISOString()
-  };
-
-  // F4.2: anticipo (solo con sql/24 e finché il cliente non ha risposto).
-  if (anticipoPreventivoEditor.disponibile && !anticipoPreventivoEditor.bloccato) {
-    const anticipo = datiAnticipoValidi(
-      anticipoPreventivoEditor.richiesto,
-      anticipoPreventivoEditor.tipo,
-      anticipoPreventivoEditor.valore,
-      totaleImponibile,
-      true
-    );
-
-    if (anticipo.errore) {
-      toast(anticipo.errore, 'err');
-      return false;
-    }
-
-    datiPreventivo.anticipo_richiesto = anticipo.richiesto;
-    datiPreventivo.anticipo_tipo = anticipo.tipo;
-    datiPreventivo.anticipo_valore = anticipo.valore;
+    allineaStoricoUndoPreventivo(idNuovi, null);
   }
 
   const { error: erroreTotale } = await db
@@ -5028,6 +5095,30 @@ async function eseguiSalvataggioVociPreventivo() {
   toast('Voci e totale preventivo salvati', 'ok');
   await renderCostiPreventivo();
   return true;
+}
+
+// Dopo un salvataggio (anche fermato a metà) i punti di "Annulla" devono
+// sapere cosa c'è ormai nel database:
+// - idNuovi {chiave: id}: voci appena inserite, prendono il loro id;
+// - idEliminati: voci cancellate davvero; se l'utente annulla
+//   l'eliminazione tornano come voci nuove (si reinseriscono).
+function allineaStoricoUndoPreventivo(idNuovi, idEliminati) {
+  storicoUndoPreventivo.forEach(function(stato) {
+    stato.voci.forEach(function(voce) {
+      if (idNuovi && !voce.id && voce._chiave && idNuovi[voce._chiave]) {
+        voce.id = idNuovi[voce._chiave];
+      }
+      if (idEliminati && voce.id && idEliminati.includes(voce.id)) {
+        voce._chiave = 'ripristinata-' + voce.id;
+        voce.id = null;
+      }
+    });
+    if (idEliminati) {
+      stato.eliminate = stato.eliminate.filter(function(id) {
+        return !idEliminati.includes(id);
+      });
+    }
+  });
 }
 
 async function generaPreventivoClientePDF() {
@@ -5066,6 +5157,7 @@ async function generaPreventivoClientePDF() {
       .select('descrizione,unita_misura,quantita,prezzo_unitario,ordinamento')
       .eq('preventivo_id', currentPreventivoId)
       .order('ordinamento')
+      .order('creato_il')
   ]);
 
   if (preventivoRes.error || vociRes.error) {
@@ -8073,11 +8165,22 @@ function htmlAnticipoEditorPreventivo(totaleImponibile) {
       <div style="font-size:12px;color:var(--m);margin-bottom:10px">
         Facoltativo. Il cliente paga un anticipo prima dei lavori? Se lo indichi
         qui, il rappresentante lo trova già compilato quando il cliente accetta
-        (e può correggerlo). Il testo delle modalità di pagamento qui sopra resta
-        quello del PDF.
+        (e può correggerlo). Per togliere l'anticipo scegli "Non indicato" (o
+        "No") e salva: si può cambiare finché il cliente non ha risposto. Il
+        testo delle modalità di pagamento qui sopra resta quello del PDF.
       </div>
 
       <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13px;margin-bottom:10px">
+        <label style="display:flex;gap:6px;align-items:center;cursor:pointer">
+          <input
+            type="radio"
+            name="pvv-anticipo"
+            value="nd"
+            ${a.richiesto !== true && a.richiesto !== false ? 'checked' : ''}
+            onchange="impostaAnticipoEditor('richiesto', null)"
+          >
+          Non indicato (lo decide il rappresentante)
+        </label>
         <label style="display:flex;gap:6px;align-items:center;cursor:pointer">
           <input
             type="radio"
