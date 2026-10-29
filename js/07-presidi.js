@@ -454,7 +454,10 @@ function editP(id) {
     ge('me1').value = p.matricola || '';
     ge('me2').value = p.marca || '';
     ge('me3').value = p.modello || 'polvere_abc';
-    ge('me4').value = p.marca || '6kg';
+    // F10.2 — la capacità non ha una colonna: prima editP la leggeva dalla
+    // marca e saveP scriveva la capacità nella marca (la marca vera si perdeva).
+    // Il select si precompila solo se la marca è una capacità (dati vecchi).
+    ge('me4').value = [...ge('me4').options].some(function(o) { return o.value === p.marca; }) ? p.marca : '6kg';
     ge('me5').value = p.ubicazione || '';
     ge('me6').value = p.piano || '';
     ge('me7').value = p.locale || '';
@@ -545,7 +548,8 @@ async function saveP() {
     payload = {
       ...payload,
       matricola: mat,
-      marca: v('me4'),
+      // F10.2 — la marca è il campo Marca (me2), non la capacità (me4)
+      marca: v('me2').trim() || null,
       modello: v('me3'),
       ubicazione: v('me5') || null,
       piano: v('me6') || null,

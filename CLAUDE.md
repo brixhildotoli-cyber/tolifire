@@ -1225,6 +1225,15 @@ Senza sql/41: nessun campo annata, nessun audit, nessun box, la scheda
 del tecnico si chiude come prima (nessun errore). Corretti anche, perché
 servono all'audit: ✏️ sul presidio dal passo Presidi (editP cercava in
 PA, vuoto per il tecnico) e "+ Aggiungi" carica le sedi del cliente.
+Dopo il salvataggio di un presidio dal passo Presidi l'elenco si
+ricarica tenendo spunte, stato e note già scritti (anche senza audit e
+senza sql/41). Corretti nello stesso giro: la spunta del presidio al
+passo Presidi apre di nuovo il pannello stato/note (js/11, prima
+togglePresidioDetail riceveva l'id e il pannello restava chiuso);
+estintori (js/07): saveP scriveva nella marca la capacità (me4) e la
+marca vera (me2) si perdeva; ora la marca è il campo Marca e la
+capacità, che non ha una colonna nel database, non si salva (da
+decidere con Toli se aggiungerla).
 Domande per Toli: va bene il criterio automatico (primo intervento di
 manutenzione programmata di un cliente con contratto e senza
 manutenzioni completate)? L'audit copre tutte le sedi del cliente in un

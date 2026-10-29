@@ -117,15 +117,50 @@ editP = function(id) {
   if (el) el.value = p && p.annata ? String(p.annata) : '';
 };
 
+// Spunte, stato e note già scritti al passo Presidi (chiave: id del presidio).
+function leggiLavoroPassoPresidi() {
+  const lavoro = {};
+  document.querySelectorAll('#pcl input[type=checkbox][id^="upd-"]').forEach(function(cb) {
+    const pid = cb.id.slice(4);
+    lavoro[pid] = {
+      spuntato: cb.checked,
+      stato: ge('stato-' + pid) ? ge('stato-' + pid).value : null,
+      note: ge('note-' + pid) ? ge('note-' + pid).value : null
+    };
+  });
+  return lavoro;
+}
+
+function rimettiLavoroPassoPresidi(lavoro) {
+  Object.keys(lavoro).forEach(function(pid) {
+    const l = lavoro[pid];
+    const cb = ge('upd-' + pid);
+    if (!cb) return;
+    cb.checked = l.spuntato;
+    const det = ge('detail-' + pid);
+    if (det) det.style.display = l.spuntato ? 'block' : 'none';
+    if (l.stato !== null && ge('stato-' + pid)) ge('stato-' + pid).value = l.stato;
+    if (l.note !== null && ge('note-' + pid)) ge('note-' + pid).value = l.note;
+  });
+}
+
 // Dopo il salvataggio di un presidio dal passo Presidi del tecnico si
-// ricarica l'elenco (con l'audit si vede subito il presidio aggiunto).
+// ricarica l'elenco (si vede subito il presidio aggiunto o corretto)
+// tenendo il lavoro già fatto: spunte, stato e note degli altri presidi.
+// Con l'audit i valori restano in auditValori (renderPresidiAudit).
 const savePPrimaAudit = saveP;
 saveP = async function() {
+  const sulPassoPresidi = ge('pg-tecnico') && ge('pg-tecnico').classList.contains('on') &&
+    ge('ts3') && ge('ts3').classList.contains('on');
+  const lavoro = sulPassoPresidi ? leggiLavoroPassoPresidi() : {};
   const r = await savePPrimaAudit.apply(this, arguments);
   const finestraChiusa = !(ge('m-presidio') && ge('m-presidio').classList.contains('on'));
-  if (finestraChiusa && ge('pg-tecnico') && ge('pg-tecnico').classList.contains('on') &&
-      ge('ts3') && ge('ts3').classList.contains('on')) {
-    try { await loadPC(); } catch (e) { console.warn('loadPC dopo il presidio:', e); }
+  if (finestraChiusa && sulPassoPresidi) {
+    try {
+      const conAudit = auditAttivoSuScheda();
+      await loadPC();
+      if (!conAudit) rimettiLavoroPassoPresidi(lavoro);
+    } catch (e) { console.warn('loadPC dopo il presidio:', e); }
   }
   return r;
 };

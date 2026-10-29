@@ -161,7 +161,7 @@ async function loadPC(){
         var statoIcon={ok:'✅',anomalia:'⚠️',scaduto:'❌',fuori_servizio:'🔴'}[p.stato]||'•';
         return '<div style="background:var(--bg);border-radius:var(--rs);padding:10px;margin-bottom:6px">' +
           '<div style="display:flex;align-items:flex-start;gap:10px">' +
-            '<input type="checkbox" id="upd-'+p.id+'" data-mesi="'+mesi+'" style="width:18px;height:18px;accent-color:var(--g);margin-top:3px" onchange="togglePresidioDetail(this.dataset.pid)" data-pid="'+p.id+'">' +
+            '<input type="checkbox" id="upd-'+p.id+'" data-mesi="'+mesi+'" style="width:18px;height:18px;accent-color:var(--g);margin-top:3px" onchange="togglePresidioDetail(this)" data-pid="'+p.id+'">' +
             '<div style="flex:1">' +
               '<div style="font-size:13px;font-weight:600">'+statoIcon+' '+tpl(p.tipo)+' — '+( esc(p.matricola)||'N/A')+'</div>' +
               '<div style="font-size:12px;color:var(--m)">'+( esc(p.ubicazione)||'—')+(p.piano?' · Piano '+p.piano:'')+' · '+periLabel+'</div>' +
