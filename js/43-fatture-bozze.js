@@ -73,7 +73,7 @@ function totaleRigaBozza(r) {
 
 function testoFatturaBreve(f) {
   if (!f) return '';
-  return f.numero ? 'n. ' + f.numero : 'bozza del ' + fd(String(f.creato_il || '').slice(0, 10));
+  return f.numero ? 'n. ' + f.numero : 'bozza del ' + (f.creato_il ? fd(dataLocaleISO(new Date(f.creato_il))) : '');
 }
 
 // true se sql/45 è stato eseguito (colonna origine delle righe).
