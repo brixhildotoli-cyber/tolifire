@@ -310,8 +310,10 @@ function apriNuovaAttivitaCommerciale(dataSelezionata = null) {
 async function loadDashTecnico(){
   var today = new Date(); today.setHours(0,0,0,0);
   var weekEnd = new Date(today); weekEnd.setDate(weekEnd.getDate()+6);
-  var todayStr = today.toISOString().split('T')[0];
-  var weekEndStr = weekEnd.toISOString().split('T')[0];
+  // F10.3: date in ora locale (toISOString le spostava al giorno prima e
+  // "Oggi" restava vuoto: gli interventi di oggi finivano nella settimana)
+  var todayStr = dataLocaleISO(today);
+  var weekEndStr = dataLocaleISO(weekEnd);
 
   // Saluto + data
   var greet = ge('tec-greet-nome');
@@ -324,8 +326,11 @@ async function loadDashTecnico(){
   if(gd) gd.textContent = new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
 
   // Carica tutti gli OdL del tecnico da oggi a +6 giorni
+  // F10.3: con sql/43 anche l'ora dell'appuntamento fissato (js/41); gli
+  // interventi senza appuntamento fissato il database non li restituisce.
+  var colApp = (typeof colonneAppuntamento === 'function') ? await colonneAppuntamento() : '';
   var r = await db.from('ordini_lavoro')
-    .select('id,numero,tipo,stato,data_pianificata,fascia_oraria,note_per_tecnico,sede_id,clienti(ragione_sociale,referente_telefono)')
+    .select('id,numero,tipo,stato,data_pianificata,fascia_oraria,note_per_tecnico,sede_id,clienti(ragione_sociale,referente_telefono)' + colApp)
     .is('eliminato_il', null)
     .eq('tecnico_id', ME.id)
     .gte('data_pianificata', todayStr)
@@ -434,7 +439,8 @@ function tecRigaSettimana(o){
   ricordaPosizionePagina();
   var cls = tecTipoCls(o.tipo);
   var cli = o.clienti?.ragione_sociale || '—';
-  var fascia = o.fascia_oraria || '';
+  // F10.3: tecOrario mostra l'ora dell'appuntamento fissato (js/41), altrimenti la fascia
+  var fascia = tecOrario(o); if(fascia === '—') fascia = '';
   var tipoL = tecTipoLabel(o.tipo);
   return '<div class="tec-week-item" onclick="apriInterventoDiretto(\'' + o.id + '\')">' +
     '<div class="tec-week-dot ' + cls + '"></div>' +
@@ -503,6 +509,10 @@ async function loadDashTitolare(){
   // F10.2: differenze dell'audit dei presidi con il contratto (js/40, solo con sql/41)
   if (typeof caricaAuditPresidiDashboard === 'function') {
     caricaAuditPresidiDashboard().catch(function(e){ console.warn('caricaAuditPresidiDashboard:', e); });
+  }
+  // F10.3: interventi che aspettano l'appuntamento della segreteria (js/41, solo con sql/43)
+  if (typeof caricaAppuntamentiDaFissare === 'function') {
+    caricaAppuntamentiDaFissare().catch(function(e){ console.warn('caricaAppuntamentiDaFissare:', e); });
   }
   var periodo = window._dashTitPeriodo || 'settimana';
   var range = getPeriodoRange(periodo);
@@ -708,6 +718,10 @@ async function loadDashSegreteriaPg(){
 
   // F4.2: preventivi accettati con anticipo da fatturare (js/18, solo con sql/24)
   try { await loadAnticipiDaFatturare(); } catch(e){ console.warn('loadAnticipiDaFatturare:', e); }
+  // F10.3: appuntamenti da fissare con i clienti (js/41, solo con sql/43)
+  if (typeof caricaAppuntamentiDaFissare === 'function') {
+    try { await caricaAppuntamentiDaFissare(); } catch(e){ console.warn('caricaAppuntamentiDaFissare:', e); }
+  }
   // F5.2: commesse in cui tocca alla segreteria (js/18, solo con sql/28)
   try { await caricaCommesseToccaAMe(); } catch(e){ console.warn('caricaCommesseToccaAMe:', e); }
   // F7.1: documenti di team e subappalti scaduti o in scadenza (js/30, solo con sql/32)
@@ -839,6 +853,10 @@ async function loadDashCapoTecnicoPg(){
   // Carica lista da pianificare + calendario settimanale
   await ctLoadListaDaPianificare();
   await ctLoadCalendarioSettimana();
+  // F10.3: interventi da confermare, in attesa dell'appuntamento della segreteria (js/41, solo con sql/43)
+  if (typeof caricaAppuntamentiDaFissare === 'function') {
+    try { await caricaAppuntamentiDaFissare(); } catch(e){ console.warn('caricaAppuntamentiDaFissare:', e); }
+  }
 
   // Pannelli riusati (refactored per accettare targetId)
   // F5.2: commesse in cui tocca al capo tecnico (js/18, solo con sql/28)
@@ -923,8 +941,8 @@ async function ctLoadCalendarioSettimana(){
     db.from('ordini_lavoro')
       .select('id,numero,tipo,tecnico_id,data_pianificata,fascia_oraria,stato,in_ritardo_il,clienti(ragione_sociale)')
       .is('eliminato_il', null)
-      .gte('data_pianificata', monday.toISOString().split('T')[0])
-      .lte('data_pianificata', sunday.toISOString().split('T')[0])
+      .gte('data_pianificata', dataLocaleISO(monday))
+      .lte('data_pianificata', dataLocaleISO(sunday))
       .neq('stato','annullato')
   ]);
   var tecnici = rTec.data || [];
@@ -950,7 +968,9 @@ async function ctLoadCalendarioSettimana(){
     html += '<td><div class="ct-cal-tec" title="'+esc(t.nome+' '+t.cognome)+'">'+esc(t.nome+' '+(t.cognome||'').charAt(0)+'.')+'</div></td>';
     for(var i=0; i<7; i++){
       var d = new Date(monday); d.setDate(d.getDate()+i);
-      var ds = d.toISOString().split('T')[0];
+      // F10.3: giorno della colonna in ora locale (con toISOString la colonna
+      // del martedì portava la data del lunedì e il trascinamento sbagliava giorno)
+      var ds = dataLocaleISO(d);
       var isToday = d.getTime() === today.getTime();
       var dayInts = interventi.filter(function(o){ return o.tecnico_id === t.id && o.data_pianificata === ds; });
       var cellHtml = dayInts.map(function(o){

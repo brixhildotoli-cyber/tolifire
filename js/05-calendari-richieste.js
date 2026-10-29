@@ -517,12 +517,17 @@ async function loadCalendarioTecnico() {
   var titEl = ge('cal-tec-title');
   if(titEl) titEl.textContent = mesi[_calTecMese] + ' ' + _calTecAnno;
 
-  var dataInizio = new Date(_calTecAnno, _calTecMese, 1).toISOString().split('T')[0];
-  var dataFine = new Date(_calTecAnno, _calTecMese+1, 0).toISOString().split('T')[0];
+  // F10.3: date in ora locale (con toISOString il mese partiva dall'ultimo
+  // giorno del mese prima e perdeva l'ultimo giorno del mese)
+  var dataInizio = dataLocaleISO(new Date(_calTecAnno, _calTecMese, 1));
+  var dataFine = dataLocaleISO(new Date(_calTecAnno, _calTecMese+1, 0));
 
   // Carica OdL assegnati al tecnico
+  // F10.3: con sql/43 anche l'ora dell'appuntamento fissato (js/41); gli
+  // interventi senza appuntamento fissato il database non li restituisce.
+  var colApp = (typeof colonneAppuntamento === 'function') ? await colonneAppuntamento() : '';
   var r = await db.from('ordini_lavoro')
-    .select('id,numero,tipo,stato,data_pianificata,fascia_oraria,note_per_tecnico,sede_id,clienti(ragione_sociale)')
+    .select('id,numero,tipo,stato,data_pianificata,fascia_oraria,note_per_tecnico,sede_id,clienti(ragione_sociale)' + colApp)
     .eq('tecnico_id', ME.id)
     .gte('data_pianificata', dataInizio)
     .lte('data_pianificata', dataFine)
@@ -548,7 +553,8 @@ async function loadCalendarioTecnico() {
     el.innerHTML = odls.map(function(o) {
       var cli = o.clienti?.ragione_sociale || '—';
       var data = o.data_pianificata ? new Date(o.data_pianificata+'T00:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long'}) : '—';
-      var fasciaStr = o.fascia_oraria ? ' · ' + o.fascia_oraria : '';
+      var oraApp = (typeof oraAppuntamento === 'function') ? oraAppuntamento(o) : '';
+      var fasciaStr = oraApp ? ' · 📞 ore ' + oraApp + ' (appuntamento con il cliente)' : (o.fascia_oraria ? ' · ' + o.fascia_oraria : '');
       var sedeObj = o.sede_id ? sediMap[o.sede_id] : null;
       var sede = sedeObj ? (sedeObj.tipo||'').toUpperCase() + (sedeObj.nome?' — '+sedeObj.nome:'') + ': ' + (sedeObj.via||'') + ' ' + (sedeObj.civico||'') + (sedeObj.citta?' ('+sedeObj.citta+')':'') : null;
       var canRichiedi = o.stato !== 'completato';
@@ -556,7 +562,7 @@ async function loadCalendarioTecnico() {
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">' +
           '<div style="flex:1">' +
             '<div style="font-size:13px;font-weight:600;margin-bottom:3px">' + cli + '</div>' +
-            '<div style="font-size:12px;color:var(--m)">' + (tipi[o.tipo]||o.tipo) + fasciaStr + '</div>' +
+            '<div style="font-size:12px;color:var(--m)">' + (tipi[o.tipo]||o.tipo) + esc(fasciaStr) + '</div>' +
             '<div style="font-size:13px;font-weight:500;color:var(--b);margin-top:4px">📅 ' + data + '</div>' +
             (sede ? '<div style="font-size:12px;color:var(--m);margin-top:3px">📍 ' + sede + '</div>' : '<div style="font-size:12px;color:var(--m);margin-top:3px">📍 Sede principale</div>') +
             (esc(o.note_per_tecnico) ? '<div style="font-size:12px;color:var(--a);margin-top:4px;padding:6px 8px;background:var(--al);border-radius:6px">📝 ' + esc(o.note_per_tecnico) + '</div>' : '') +
@@ -658,7 +664,10 @@ function apriRichiestaModifica(odlId, dataAttuale, nomeCliente) {
     '<div id="rich-data-field" class="f"><label>Nuova data richiesta</label><input type="date" id="rich-data"></div>' +
     '<div id="rich-ora-field" class="f" style="display:none"><label>Orario richiesto</label><input type="text" id="rich-ora" placeholder="Es: mattina, 09:00-12:00"></div>' +
     '<div class="f"><label>Motivo / note</label><textarea id="rich-note" style="min-height:80px" placeholder="Spiega il motivo della richiesta..."></textarea></div>' +
-    '<div class="al2 i" style="margin-top:8px">La richiesta verrà inviata al capo tecnico e al titolare per approvazione.</div>' +
+    '<div class="al2 i" style="margin-top:8px">La richiesta verrà inviata al capo tecnico e al titolare per approvazione.' +
+      // F10.3: con sql/43 un cambio di data, orario o un rinvio approvato torna alla segreteria (js/41)
+      ((typeof appuntamentiAttivi === 'function' && appuntamentiAttivi()) ? ' Se cambia data, orario o è un rinvio, dopo l\'approvazione la segreteria richiama il cliente: l\'intervento ricompare nel tuo calendario con il nuovo appuntamento.' : '') +
+    '</div>' +
     '<div style="display:flex;gap:8px;margin-top:14px">' +
       '<button class="btn" data-mid="m-richiesta-modifica" onclick="closeM(this.dataset.mid)">Annulla</button>' +
       '<button class="btn p" data-odl="'+odlId+'" onclick="inviaRichiestaModifica(this.dataset.odl)">📤 Invia richiesta</button>' +

@@ -250,6 +250,8 @@
 <div id="tit-contratti-scadenza"></div>
 <!-- F10.2 — differenze dell'audit dei presidi con il contratto (js/40, solo con sql/41) -->
 <div id="tit-audit-presidi"></div>
+<!-- F10.3 — interventi che aspettano l'appuntamento della segreteria (js/41, solo con sql/43) -->
+<div id="tit-appuntamenti"></div>
       <div class="tit-section">💼 Lavoro</div>
       <div class="kpi-grid">
         <div class="kpi-card clickable success" onclick="gotoPage('interventi')"><div class="kpi-icon">✅</div><div class="kpi-num" id="tit-k-completati">—</div><div class="kpi-label">Completati nel periodo</div></div>
@@ -332,6 +334,9 @@
         <div class="tit-section">💶 Anticipi da fatturare</div>
         <div id="seg-anticipi-lista"><div class="rap-list-card"><div class="tit-empty">⏳ Caricamento...</div></div></div>
       </div>
+
+      <!-- F10.3 — appuntamenti da fissare con i clienti (js/41, solo con sql/43) -->
+      <div id="seg-appuntamenti"></div>
 
       <!-- F5.2 — commesse il cui prossimo passo è della segreteria (solo con sql/28) -->
       <div id="seg-commesse-tocca"></div>
@@ -419,6 +424,9 @@
           <div class="ct-cal-grid" id="ct-cal-grid"><div class="ct-empty">⏳ Caricamento...</div></div>
         </div>
       </div>
+
+      <!-- F10.3 — interventi da confermare: appuntamento della segreteria (js/41, solo con sql/43) -->
+      <div id="ct-appuntamenti"></div>
 
       <!-- F5.2 — commesse il cui prossimo passo è del capo tecnico (solo con sql/28) -->
       <div id="ct-commesse-tocca" style="margin-top:14px"></div>
@@ -4520,6 +4528,9 @@
   <!-- F10.2: prima manutenzione con audit dei presidi (js/40, solo con sql/41) -->
   <div id="mo-audit-presidi" style="display:none;margin-bottom:14px"></div>
 
+  <!-- F10.3: appuntamento fissato dalla segreteria (js/41, solo con sql/43) -->
+  <div id="mo-appuntamento" style="display:none;margin-bottom:14px"></div>
+
   <!-- Pianificazione: data, fascia, tecnico -->
   <div id="mo-pian-group" class="mo-section">
     <div id="mo-pian-header" class="mo-section-title">Pianificazione</div>
@@ -4546,6 +4557,23 @@
   </div>
 
   <div id="mo-actions" style="display:flex;gap:8px;margin-top:16px"><button class="btn" onclick="closeM('m-odl')">Annulla</button><button class="btn p" id="mo-btn-save" onclick="saveOdl()">Crea intervento</button></div>
+</div></div>
+
+<!-- F10.3: la segreteria fissa l'appuntamento con il cliente (js/41, solo con sql/43) -->
+<div class="mbg" id="m-fissa-appuntamento"><div class="modal" style="max-width:520px">
+  <div class="mh" id="fap-titolo">Fissa appuntamento <button class="mx" onclick="closeM('m-fissa-appuntamento')">✕</button></div>
+  <div id="fap-riepilogo" style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px"></div>
+  <div class="fr">
+    <div class="f"><label>Giorno *</label><input type="date" id="fap-giorno" onchange="aggiornaAvvisoAppuntamento()"></div>
+    <div class="f"><label>Ora *</label><input type="time" id="fap-ora" step="300"></div>
+  </div>
+  <div id="fap-avviso" class="al2 w" style="display:none;margin-bottom:10px"></div>
+  <div class="f"><label>Con chi hai parlato *</label><input type="text" id="fap-contatto" maxlength="200" placeholder="Es. sig. Rossi, responsabile della manutenzione"></div>
+  <div class="f"><label>Quando hai parlato con il cliente *</label><input type="datetime-local" id="fap-contattato-il"></div>
+  <div class="f"><label>Note per il tecnico <span style="font-weight:400;color:var(--m);font-size:11px">(facoltative)</span></label><textarea id="fap-nota" maxlength="1000" style="min-height:60px" placeholder="Es. chiedere di Marco in portineria, accesso dal cancello sul retro"></textarea></div>
+  <div id="fap-chi" style="font-size:12px;color:var(--m);margin-bottom:6px"></div>
+  <div class="al2 i">Con l'appuntamento salvato il tecnico vede l'intervento nel suo calendario con l'ora esatta.</div>
+  <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="btn" onclick="closeM('m-fissa-appuntamento')">Annulla</button><button class="btn p" id="fap-btn-salva" onclick="salvaAppuntamento()">📞 Salva appuntamento</button></div>
 </div></div>
 
 <div class="mbg" id="m-user"><div class="modal">
@@ -4976,6 +5004,7 @@
 <script defer src="js/38-fattura-finale-commessa.js"></script>
 <script defer src="js/39-contratto-manutenzione.js"></script>
 <script defer src="js/40-audit-presidi.js"></script>
+<script defer src="js/41-appuntamenti-segreteria.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

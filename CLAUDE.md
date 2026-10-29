@@ -2,8 +2,8 @@
 
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
-file unico: `index.html` (markup) + `style.css` + moduli `js/00-…40-*.js`
-caricati in ordine 00–18, poi 20–40, infine `19-init.js` (dettagli in
+file unico: `index.html` (markup) + `style.css` + moduli `js/00-…41-*.js`
+caricati in ordine 00–18, poi 20–41, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -105,6 +105,15 @@ ordini_lavoro.audit_presidi, audit_presidi_da, audit_presidi_il,
 audit_presidi_nota (le cambia solo il database o
 imposta_audit_presidi_intervento); tabella audit_presidi (sola lettura,
 la scrivono solo le RPC dell'audit, js/40).
+Dopo sql/43 (F10.3, DA ESEGUIRE, richiede solo 07; non richiede 40 né 41):
+colonne nuove ordini_lavoro.appuntamento_richiesto, appuntamento_giorno,
+_ora, _contatto, _contattato_il, _nota, _fissato_da, _fissato_da_nome,
+_fissato_il, _motivo, _motivo_il (le cambiano solo il database e le RPC
+dell'appuntamento) e appuntamento_fissato (calcolata dal database);
+tabella ordini_lavoro_appuntamenti (storico, sola lettura per titolare,
+capo_tecnico, segreteria; la scrivono solo funzioni e trigger di sql/43,
+js/41); policy RESTRITTIVE ordini_lavoro_tecnico_appuntamento e
+_modifica (il tecnico non vede gli interventi senza appuntamento fissato).
 Dopo sql/42 (decisioni del 29/10, eseguito il 29/10, richiede 07, 22, 26, 30,
 33 e 36, tutti in produzione; NON 40 né 41): colonne nuove
 ordini_fornitori.arrivo_annullato_il, _da, _da_nome, _motivo, _data
@@ -176,6 +185,8 @@ Dopo sql/40 (F10.1, eseguito il 29/10): registra_rinnovo_contratto.
 Dopo sql/41 (F10.2, eseguito il 29/10): registra_audit_presidi,
 imposta_audit_presidi_intervento, audit_presidi_da_esaminare,
 segna_audit_presidi_esaminato.
+Dopo sql/43 (F10.3, da eseguire): fissa_appuntamento_intervento,
+rimanda_appuntamento_segreteria, imposta_appuntamento_richiesto.
 Dopo sql/42 (decisioni del 29/10, eseguito il 29/10): preventivo_firmato_commessa,
 salva_fase_commessa_ore; cambia_stato_ordine_fornitore ridefinita (in
 più: 'confermato' da 'arrivato', solo titolare, con motivo).
@@ -1242,6 +1253,94 @@ deve poter correggere da solo i presidi previsti del contratto (oggi
 segreteria, capo tecnico, titolare)? Dopo un rinnovo serve un nuovo
 audit? I presidi "non trovati" il capo tecnico li elimina a mano dal
 registro (oggi sì): va bene?
+
+Appuntamento fissato dalla Segreteria (F10.3, js/41-appuntamenti-
+segreteria.js; sql/43-appuntamento-segreteria DA ESEGUIRE, richiede solo
+07). Con sql/43:
+- QUALI INTERVENTI (scelta dichiarata, transizione sicura): l'obbligo
+  dell'appuntamento (ordini_lavoro.appuntamento_richiesto) lo mette il
+  DATABASE quando nasce l'intervento (trigger
+  trg_ordini_lavoro_appuntamento): sì per la manutenzione ordinaria
+  programmata ('ordinario_programmato'), da pianificare o pianificata,
+  creata da titolare, capo tecnico, segreteria o rappresentante; no per
+  su chiamata, straordinari, corsi, interventi creati da un tecnico e
+  interventi nati già completati. Gli interventi che esistono quando si
+  esegue sql/43 NON si toccano: il tecnico li vede come oggi. Titolare,
+  capo tecnico e segreteria mettono o tolgono l'obbligo su un intervento
+  aperto dalla finestra dell'intervento (box mo-appuntamento, "Serve
+  l'appuntamento" / "Non serve l'appuntamento" con motivo; RPC
+  imposta_appuntamento_richiesto).
+- FLUSSO: il capo tecnico pianifica come oggi (data indicativa e
+  tecnico: dashboard, Piano mensile, finestra intervento); l'intervento
+  compare nella lista "📞 Appuntamenti da fissare"
+  (caricaAppuntamentiDaFissare) della dashboard della SEGRETERIA
+  (seg-appuntamenti), del CAPO TECNICO come "⏳ Da confermare"
+  (ct-appuntamenti, sola lettura + "Apri intervento") e del TITOLARE
+  (tit-appuntamenti). Nella lista: cliente, data indicativa (rossa se
+  passata), tecnico, sede, referente con telefono cliccabile, motivo del
+  ritorno. "📞 Fissa appuntamento" (segreteria e titolare; finestra
+  m-fissa-appuntamento, id fap-): giorno e ora esatti, con chi ha parlato
+  (precompilato col referente), quando (data e ora della telefonata,
+  predefinita adesso), note per il tecnico; chi = utente collegato. Avvisi
+  se il giorno è diverso dalla data indicativa (l'intervento si sposta a
+  quel giorno e resta allo stesso tecnico) e se il tecnico ha altri
+  interventi quel giorno. RPC fissa_appuntamento_intervento: mette anche
+  data_pianificata = giorno fissato (lo stato non cambia).
+- IL TECNICO (regola nel DATABASE, policy restrittive di sql/43; le
+  policy di sql/09 non si toccano): un intervento che chiede
+  l'appuntamento, da pianificare o pianificato, con una data, ma senza
+  appuntamento fissato per QUELLA data, per il tecnico non esiste
+  (dashboard, calendario, tendina e scheda di "Esegui intervento"); non
+  può nemmeno modificarlo. Con l'appuntamento lo vede con l'ora esatta
+  ("ore 09:30" in dashboard, "📞 ore 09:30 (appuntamento con il cliente)"
+  nel calendario, nella tendina, e la card "📞 Appuntamento con il
+  cliente" nella scheda). Completati, annullati e interventi senza data
+  (tornati in coda) restano come oggi; chiusura e "Non ho potuto
+  completare" funzionano come prima (provati in locale).
+- DI NUOVO ALLA SEGRETERIA: appuntamento_fissato è vera solo se il giorno
+  fissato è uguale alla data dell'intervento. Se il capo tecnico sposta
+  la data (da qualunque pagina; trascinando nel calendario settimanale e
+  salvando la finestra intervento il sito chiede prima conferma, nella
+  finestra del calendario c'è l'avviso) l'appuntamento non vale più e
+  torna nella lista con il motivo
+  ("Data cambiata ... Richiamare il cliente"). Richiesta di modifica del
+  tecnico di data, orario o rinvio APPROVATA dal capo tecnico o dal
+  titolare (trigger trg_richieste_modifica_odl_appuntamento): torna alla
+  segreteria con il testo della richiesta. "↩️ Rimanda alla segreteria"
+  (titolare, capo tecnico, segreteria; motivo obbligatorio; RPC
+  rimanda_appuntamento_segreteria), per esempio quando il cliente chiama
+  o scrive dal portale per spostare: la segreteria può anche usare
+  direttamente "Cambia appuntamento". Il tecnico non può spostare da solo
+  un appuntamento fissato (messaggio: usa "Richiedi modifica"). Il
+  "non completato" lo rimette in coda senza data con il motivo.
+- STORICO: ordini_lavoro_appuntamenti (fissato, rimandato, data cambiata,
+  richiesta approvata, obbligo messo/tolto; chi con nome e ruolo copiati,
+  quando), in fondo al box della finestra intervento.
+- Etichette per chi pianifica: "📞 09:30" / "⏳ Da confermare" sugli
+  interventi del calendario settimanale e della lista "Da pianificare"
+  (dashboard capo tecnico), del calendario team e del Piano mensile; riga
+  nella finestra del calendario (m-cal-edit).
+Senza sql/43: nessuna lista, nessun box, il tecnico vede tutto come prima
+(provato in locale anche dopo il rollback, che riporta lo schema identico).
+Corretto nello stesso giro (anche senza sql/43): la dashboard del tecnico
+calcolava "oggi" con toISOString (UTC) e in Italia la sezione "Oggi"
+restava vuota (gli interventi di oggi finivano nella settimana); il
+calendario del tecnico perdeva l'ultimo giorno del mese; nel calendario
+settimanale del capo tecnico ogni colonna portava la data del giorno
+prima (trascinando su martedì si pianificava lunedì). Ora date in ora
+locale (dataLocaleISO). Restano con toISOString, da controllare in una
+task a parte: calendario team (js/05 loadCalendarioTeam), calendario
+generale (js/12 loadCalendario), dashboard segreteria e titolare.
+Domande per Toli: va bene che l'appuntamento valga solo per la
+manutenzione ordinaria programmata nata dopo sql/43 (gli interventi già
+pianificati restano visibili al tecnico senza appuntamento)? Va
+segnato d'ufficio anche qualche intervento già esistente (es. le
+manutenzioni programmate ancora da pianificare)? Il capo tecnico deve
+poter fissare lui l'appuntamento (oggi solo segreteria e titolare; lui
+lo vede, lo rimanda, toglie l'obbligo)? La segreteria deve poter
+togliere l'obbligo ("non serve l'appuntamento")? Il portale clienti
+deve mostrare l'ora dell'appuntamento (oggi mostra data e fascia)? Serve
+un promemoria al cliente (SMS/mail) il giorno prima?
 
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.

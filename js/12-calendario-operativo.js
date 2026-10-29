@@ -376,8 +376,10 @@ async function loadOdlTecnico() {
   var sel = ge('tc-odl');
   if(!sel) return;
   nascondiCampoTecnico();
+  // F10.3: con sql/43 anche l'ora dell'appuntamento fissato (js/41)
+  var colApp = (typeof colonneAppuntamento === 'function') ? await colonneAppuntamento() : '';
   var res = await db.from('ordini_lavoro')
-    .select('id,numero,tipo,stato,data_pianificata,fascia_oraria,note_per_tecnico,clienti(ragione_sociale,referente_telefono)')
+    .select('id,numero,tipo,stato,data_pianificata,fascia_oraria,note_per_tecnico,clienti(ragione_sociale,referente_telefono)' + colApp)
     .eq('tecnico_id', ME.id)
     .in('stato', ['da_pianificare','pianificato'])
     .order('data_pianificata');
@@ -393,7 +395,8 @@ async function loadOdlTecnico() {
     odls.map(function(o) {
       var cli = o.clienti && o.clienti.ragione_sociale ? o.clienti.ragione_sociale : '—';
       var tel = o.clienti && o.clienti.referente_telefono ? ' 📞' + o.clienti.referente_telefono : '';
-      var fascia = o.fascia_oraria ? ' (' + o.fascia_oraria + ')' : '';
+      var oraApp = (typeof oraAppuntamento === 'function') ? oraAppuntamento(o) : '';
+      var fascia = oraApp ? ' (ore ' + oraApp + ')' : (o.fascia_oraria ? ' (' + o.fascia_oraria + ')' : '');
       var tipo = {ordinario_programmato:'Manutenzione',ordinario_chiamata:'Su chiamata',straordinario:'Straordinario',corso:'Corso'}[o.tipo] || o.tipo || '';
       return '<option value="' + o.id + '">' + fd(o.data_pianificata) + fascia + ' — ' + cli + ' — ' + tipo + '</option>';
     }).join('');
@@ -423,8 +426,9 @@ async function preloadFromOdl() {
     }
     return;
   }
+  var colApp = (typeof colonneAppuntamento === 'function') ? await colonneAppuntamento() : '';
   var res = await db.from('ordini_lavoro')
-    .select('cliente_id,tipo,data_pianificata,tecnico_id,note_per_tecnico,sede_id,materiali_da_portare,note_capo_tecnico,clienti(ragione_sociale,referente_telefono)')
+    .select('cliente_id,tipo,data_pianificata,tecnico_id,note_per_tecnico,sede_id,materiali_da_portare,note_capo_tecnico,clienti(ragione_sociale,referente_telefono)' + colApp)
     .eq('id', odlId).single();
   var o = res.data;
   if(!o) return;
@@ -458,6 +462,8 @@ function renderInfoIntervento(o){
   html += '<div style="font-weight:600;font-size:14px;margin-bottom:4px">'+esc(c.ragione_sociale||'—')+'</div>';
   if(tel) html += '<div>'+tel+'</div>';
   html += '</div>';
+  // F10.3: appuntamento fissato dalla segreteria, con l'ora esatta (js/41, solo con sql/43)
+  if(typeof htmlAppuntamentoTecnico === 'function') html += htmlAppuntamentoTecnico(o);
   // Card materiali da portare
   if(o.materiali_da_portare){
     html += '<div style="background:var(--gl);border-left:3px solid var(--gm);border-radius:10px;padding:12px;font-size:13px;margin-bottom:10px">';
