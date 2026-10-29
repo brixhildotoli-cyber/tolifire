@@ -10233,3 +10233,24 @@ async function caricaCommesseToccaAMe() {
     </div>
   `;
 }
+
+// Un solo salvataggio di scheda di rilievo alla volta: con un doppio clic su
+// "Salva" di una scheda nuova (sql/48) ne nascevano due uguali.
+let salvataggioSchedaRilievoInCorso = false;
+[
+  'salvaSchedaPorteRei', 'salvaSchedaEstintori', 'salvaSchedaRilevazioneIncendi',
+  'salvaSchedaCompartimentazione', 'salvaSchedaVerniceIntumescente',
+  'salvaSchedaCoppelle', 'salvaSchedaImpiantiSpegnimento'
+].forEach(function(nome) {
+  const originale = window[nome];
+  if (typeof originale !== 'function') return;
+  window[nome] = async function() {
+    if (salvataggioSchedaRilievoInCorso) return;
+    salvataggioSchedaRilievoInCorso = true;
+    try {
+      return await originale.apply(this, arguments);
+    } finally {
+      salvataggioSchedaRilievoInCorso = false;
+    }
+  };
+});
