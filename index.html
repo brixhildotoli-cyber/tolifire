@@ -254,6 +254,8 @@
 <div id="tit-appuntamenti"></div>
 <!-- F11.2 — scadenze e incassi delle fatture (js/44, solo con sql/46) -->
 <div id="tit-incassi"></div>
+<!-- F11.3 — fatturato, incassato, insoluti (js/45, solo con sql/47) -->
+<div id="tit-fatturato"></div>
       <div class="tit-section">💼 Lavoro</div>
       <div class="kpi-grid">
         <div class="kpi-card clickable success" onclick="gotoPage('interventi')"><div class="kpi-icon">✅</div><div class="kpi-num" id="tit-k-completati">—</div><div class="kpi-label">Completati nel periodo</div></div>
@@ -366,14 +368,10 @@
       <div class="tit-section">💳 Clienti con modalità RIBA</div>
       <div id="seg-riba-lista"><div class="rap-list-card"><div class="tit-empty">⏳ Caricamento...</div></div></div>
 
-      <div class="tit-section">📅 Scadenze pagamenti / solleciti</div>
-      <div id="seg-pagamenti-box">
-        <div class="rap-insoluti">
-          <h4>Funzione da costruire</h4>
-          Oggi nel database non c'è una tabella <code>fatture</code> popolata né un meccanismo per scadenze, stato pagato/insoluto, o solleciti. Vedi voce 2 di <code>MODULI DA COSTRUIRE</code> in <code>CLAUDE.md</code>.
-          <br><br>
-          Quando il modulo sarà costruito, qui appariranno: scadenze in arrivo, insoluti, e pulsanti per inviare solleciti.
-        </div>
+      <!-- F11.3 — RIBA da presentare, esiti da registrare, insoluti e solleciti (js/45, solo con sql/47) -->
+      <div class="tit-section">🏦 RIBA, insoluti e solleciti</div>
+      <div id="seg-riba-solleciti">
+        <div class="rap-list-card"><div class="tit-empty">RIBA, insoluti e solleciti si attivano con il modulo Fatture (sql/47).</div></div>
       </div>
 
       <div class="tit-section">Azioni rapide</div>
@@ -628,6 +626,8 @@
   </div>
   <!-- F11.2 — scadenze e incassi delle fatture, contabile (js/44, solo con sql/46) -->
   <div id="dash-incassi"></div>
+  <!-- F11.3 — RIBA, insoluti e solleciti, contabile (js/45, solo con sql/47) -->
+  <div id="dash-riba-solleciti"></div>
   <!-- Azioni rapide titolare -->
   <div id="dash-quick-actions" style="display:none;margin-bottom:20px">
     <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--m);margin-bottom:10px">Azioni rapide</div>
@@ -1050,17 +1050,11 @@
     <div id="rap-scadenze-lista"><div class="rap-list-card"><div class="tit-empty">⏳ Caricamento...</div></div></div>
 
     <!-- Insoluti (secondo piano) -->
-    <div class="rap-section">💔 Insoluti comunicati dalla segreteria</div>
+    <!-- F11.3 — insoluti dei clienti del rappresentante (js/45, solo con sql/47) -->
+    <div class="rap-section">💔 Insoluti dei tuoi clienti</div>
     <div id="rap-insoluti-box">
       <div class="rap-insoluti">
-        <h4>Funzione da configurare</h4>
-        Oggi nel database non c'è un meccanismo per tracciare gli insoluti.
-        Per attivare questo pannello servono:
-        <ul style="margin:8px 0 0 18px;line-height:1.6">
-          <li>un campo <code>flag_insoluto</code> + <code>nota_insoluto</code> su <code>clienti</code>, attivabile dalla segreteria, oppure</li>
-          <li>una tabella <code>comunicazioni_segreteria(cliente_id, tipo, messaggio, creato_il)</code> con tipi inclusi <code>'insoluto'</code></li>
-        </ul>
-        Quando uno dei due sarà disponibile, la lista degli insoluti comparirà qui automaticamente.
+        Gli insoluti dei tuoi clienti (RIBA non pagate, rate sollecitate dalla segreteria) compaiono qui quando il modulo Fatture è attivo.
       </div>
     </div>
 
@@ -1913,6 +1907,12 @@
   <!-- F11.2 — scadenze e pagamenti delle fatture emesse (js/44, solo con sql/46) -->
   <div id="fat-scadenze-box" class="card" style="display:none;margin-bottom:14px"></div>
 
+  <!-- F11.3 — distinte RIBA e rate da presentare (js/45, solo con sql/47) -->
+  <div id="fat-riba-box" class="card" style="display:none;margin-bottom:14px"></div>
+
+  <!-- F11.3 — insoluti e solleciti (js/45, solo con sql/47) -->
+  <div id="fat-solleciti-box" class="card" style="display:none;margin-bottom:14px"></div>
+
   <div id="fat-body"><div class="load">Caricamento...</div></div>
 </div>
 
@@ -2230,6 +2230,11 @@
         <div class="f"><label>P.IVA</label><input type="text" id="si5"></div>
         <div class="f"><label>Telefono</label><input type="text" id="si6"></div>
         <div class="f"><label>Email</label><input type="email" id="si7"></div>
+        <!-- F11.3 — banca dell'azienda: PDF della fattura e distinte RIBA (js/45, solo con sql/47) -->
+        <div id="si-banca-azienda" style="display:none">
+          <div class="f"><label>Banca dell'azienda</label><input type="text" id="si8" maxlength="200" placeholder="Es. Banca di Pisa e Fornacette"></div>
+          <div class="f"><label>IBAN dell'azienda</label><input type="text" id="si9" maxlength="40" placeholder="IT00 X000 0000 0000 0000 0000 000"><div style="font-size:11px;color:var(--m);margin-top:4px">Nel PDF della fattura (coordinate per il bonifico) e come banca delle distinte RIBA.</div></div>
+        </div>
         <button class="btn p" onclick="saveImp()">Salva</button>
       </div>
       <div class="card" style="margin-top:14px">
@@ -3469,6 +3474,195 @@
   </div>
 </div>
 
+<!-- F11.3 — DISTINTA RIBA: nuova o da cambiare (js/45, solo con sql/47) -->
+<div class="mbg" id="m-riba-distinta">
+  <div class="modal" style="max-width:720px">
+    <button class="x" onclick="closeM('m-riba-distinta')">×</button>
+    <h3 id="mrd-titolo">🏦 Nuova distinta RIBA</h3>
+    <div class="al2 i" style="margin-bottom:10px;font-size:13px">
+      Scegli le rate da presentare in banca. Messe in distinta passano "in RIBA": non si pagano a mano,
+      il pagamento arriva con l'esito della banca. Finché la distinta non è inviata si può cambiare o eliminare.
+    </div>
+    <div class="fr">
+      <div class="f">
+        <label>Banca a cui la presenti *</label>
+        <input type="text" id="mrd-banca" maxlength="200" oninput="aggiornaDistintaRiba()" placeholder="Es. Banca di Pisa e Fornacette">
+      </div>
+      <div class="f">
+        <label>IBAN di accredito</label>
+        <input type="text" id="mrd-iban" maxlength="40" oninput="aggiornaDistintaRiba()" placeholder="IT00 X000 0000 0000 0000 0000 000">
+      </div>
+    </div>
+    <div class="f">
+      <label>Note</label>
+      <textarea id="mrd-note" rows="2" maxlength="1000"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+      <label style="display:flex;gap:6px;align-items:center;font-size:13px;font-weight:400;cursor:pointer;margin:0">
+        <input type="checkbox" id="mrd-solo-riba" checked onchange="disegnaRateDistintaRiba()"> Solo fatture con pagamento RIBA
+      </label>
+      <select id="mrd-entro" onchange="disegnaRateDistintaRiba()" style="width:auto;max-width:100%">
+        <option value="30">Scadenza entro 30 giorni</option>
+        <option value="60" selected>Scadenza entro 60 giorni</option>
+        <option value="120">Scadenza entro 120 giorni</option>
+        <option value="tutte">Tutte le scadenze</option>
+      </select>
+    </div>
+    <div id="mrd-rate" style="max-height:45vh;overflow-y:auto;margin-bottom:8px"></div>
+    <div id="mrd-totale" style="font-size:13px;margin-bottom:8px"></div>
+    <div id="mrd-errore" class="al2 e" style="display:none;margin-top:6px"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-riba-distinta')">Annulla</button>
+      <button class="btn p" id="mrd-salva" disabled onclick="salvaDistintaRiba()">💾 Salva distinta</button>
+    </div>
+  </div>
+</div>
+
+<!-- F11.3 — DISTINTA RIBA: dettaglio, invio, esiti, PDF e CSV (js/45) -->
+<div class="mbg" id="m-riba-dettaglio">
+  <div class="modal" style="max-width:720px">
+    <button class="x" onclick="closeM('m-riba-dettaglio')">×</button>
+    <h3 id="mrv-titolo">🏦 Distinta RIBA</h3>
+    <div id="mrv-dati" style="font-size:13px;margin-bottom:10px;overflow-wrap:anywhere"></div>
+    <div id="mrv-righe"></div>
+    <div id="mrv-errore" class="al2 e" style="display:none;margin-top:10px"></div>
+    <div id="mrv-azioni" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- F11.3 — DISTINTA RIBA presentata in banca (js/45) -->
+<div class="mbg" id="m-riba-invio">
+  <div class="modal" style="max-width:480px">
+    <button class="x" onclick="closeM('m-riba-invio')">×</button>
+    <h3>📤 Distinta presentata in banca</h3>
+    <div id="mrn-riepilogo" class="al2 i" style="margin-bottom:10px"></div>
+    <div class="f">
+      <label>Data di presentazione *</label>
+      <input type="date" id="mrn-data" onchange="aggiornaInvioRiba()">
+    </div>
+    <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px;font-weight:400">
+      <input type="checkbox" id="mrn-conferma" onchange="aggiornaInvioRiba()" style="margin-top:3px">
+      Confermo: la distinta è stata consegnata alla banca. Da qui non si cambia più; si registrano gli esiti
+    </label>
+    <div id="mrn-errore" class="al2 e" style="display:none;margin-top:10px"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-riba-invio')">Annulla</button>
+      <button class="btn p" id="mrn-salva" disabled onclick="salvaInvioRiba()">📤 Segna inviata</button>
+    </div>
+  </div>
+</div>
+
+<!-- F11.3 — ESITO di una RIBA: accreditata o insoluta (js/45) -->
+<div class="mbg" id="m-riba-esito">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-riba-esito')">×</button>
+    <h3>🏦 Esito della RIBA</h3>
+    <div id="mre-riepilogo" class="al2 i" style="margin-bottom:10px"></div>
+    <div class="f">
+      <label>Esito *</label>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px">
+        <label style="display:flex;gap:6px;align-items:center;font-weight:400;cursor:pointer;margin:0"><input type="radio" name="mre-esito" id="mre-esito-acc" value="accreditato" onchange="aggiornaEsitoRiba()"> ✅ Accreditata (pagata)</label>
+        <label style="display:flex;gap:6px;align-items:center;font-weight:400;cursor:pointer;margin:0"><input type="radio" name="mre-esito" id="mre-esito-ins" value="insoluto" onchange="aggiornaEsitoRiba()"> ❌ Insoluta</label>
+      </div>
+    </div>
+    <div class="f">
+      <label id="mre-data-label">Data *</label>
+      <input type="date" id="mre-data" onchange="aggiornaEsitoRiba()">
+    </div>
+    <div class="f">
+      <label>Nota</label>
+      <textarea id="mre-note" rows="2" maxlength="500" placeholder="Es. comunicazione della banca del ..."></textarea>
+    </div>
+    <div id="mre-avviso" style="font-size:12px;margin-bottom:6px"></div>
+    <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px;font-weight:400">
+      <input type="checkbox" id="mre-conferma" onchange="aggiornaEsitoRiba()" style="margin-top:3px">
+      Ho verificato l'esito sull'estratto conto o sulla comunicazione della banca
+    </label>
+    <div id="mre-errore" class="al2 e" style="display:none;margin-top:10px"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-riba-esito')">Annulla</button>
+      <button class="btn p" id="mre-salva" disabled onclick="salvaEsitoRiba()">💾 Registra esito</button>
+    </div>
+  </div>
+</div>
+
+<!-- F11.3 — ANNULLA L'ESITO di una RIBA registrato per errore (js/45) -->
+<div class="mbg" id="m-annulla-esito-riba">
+  <div class="modal" style="max-width:480px">
+    <button class="x" onclick="closeM('m-annulla-esito-riba')">×</button>
+    <h3>↩ Annulla esito RIBA</h3>
+    <div id="mae-riepilogo" class="al2 w" style="margin-bottom:10px"></div>
+    <div class="f">
+      <label>Perché lo annulli? *</label>
+      <textarea id="mae-motivo" rows="2" maxlength="500" oninput="ge('mae-salva').disabled=!v('mae-motivo').trim()" placeholder="Es. esito registrato sulla riga sbagliata"></textarea>
+    </div>
+    <div style="font-size:12px;color:var(--m)">L'esito resta nello storico della riga; la rata torna in RIBA, in attesa dell'esito.</div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-annulla-esito-riba')">Chiudi</button>
+      <button class="btn p" id="mae-salva" disabled onclick="salvaAnnullaEsitoRiba()">↩ Annulla esito</button>
+    </div>
+  </div>
+</div>
+
+<!-- F11.3 — REGISTRA SOLLECITO (manuale) di una rata (js/45) -->
+<div class="mbg" id="m-sollecito">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-sollecito')">×</button>
+    <h3>📞 Registra sollecito</h3>
+    <div id="msl-riepilogo" class="al2 i" style="margin-bottom:10px"></div>
+    <div class="fr">
+      <div class="f">
+        <label>Data *</label>
+        <input type="date" id="msl-data" onchange="aggiornaSollecito()">
+      </div>
+      <div class="f">
+        <label>Come *</label>
+        <select id="msl-mezzo" onchange="aggiornaSollecito()"></select>
+      </div>
+    </div>
+    <div class="f">
+      <label>A chi (persona, email, numero)</label>
+      <input type="text" id="msl-destinatario" maxlength="200">
+    </div>
+    <div class="f">
+      <label>Cosa vi siete detti</label>
+      <textarea id="msl-note" rows="3" maxlength="2000" placeholder="Es. promette il bonifico entro venerdì"></textarea>
+    </div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:6px">Il sollecito si fa fuori dal gestionale (telefono, email, lettera): qui si registra. La rata diventa "sollecitata".</div>
+    <div id="msl-errore" class="al2 e" style="display:none;margin-top:10px"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-sollecito')">Annulla</button>
+      <button class="btn p" id="msl-salva" disabled onclick="salvaSollecito()">📞 Registra sollecito</button>
+    </div>
+  </div>
+</div>
+
+<!-- F11.3 — ESITO o RIMOZIONE di un sollecito (js/45) -->
+<div class="mbg" id="m-esito-sollecito">
+  <div class="modal" style="max-width:480px">
+    <button class="x" onclick="closeM('m-esito-sollecito')">×</button>
+    <h3 id="mse-titolo">📞 Esito del sollecito</h3>
+    <div id="mse-riepilogo" class="al2 i" style="margin-bottom:10px"></div>
+    <div class="f" id="mse-esito-box">
+      <label>Esito *</label>
+      <select id="mse-esito" onchange="aggiornaEsitoSollecito()">
+        <option value="">Scegli...</option>
+        <option value="risposto">Ha risposto</option>
+        <option value="ignorato">Nessuna risposta</option>
+      </select>
+    </div>
+    <div class="f">
+      <label id="mse-note-label">Nota</label>
+      <textarea id="mse-note" rows="2" maxlength="500" oninput="aggiornaEsitoSollecito()"></textarea>
+    </div>
+    <div id="mse-errore" class="al2 e" style="display:none;margin-top:10px"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-esito-sollecito')">Chiudi</button>
+      <button class="btn p" id="mse-salva" disabled onclick="salvaEsitoSollecito()">💾 Salva</button>
+    </div>
+  </div>
+</div>
+
 <!-- F9.2 — FATTURA FINALE DELLA COMMESSA (js/38, solo con sql/39) -->
 <div class="mbg" id="m-fattura-finale">
   <div class="modal" style="max-width:540px">
@@ -4672,8 +4866,14 @@
     <div class="f"><label>Indirizzo fatturazione</label><input type="text" id="mf2"></div>
     <div class="fr"><div class="f"><label>CAP</label><input type="text" id="mf3"></div><div class="f"><label>Città</label><input type="text" id="mf4"></div><div class="f"><label>Provincia</label><input type="text" id="mf5" placeholder="Es: PI"></div></div>
     <div class="fr"><div class="f"><label>Codice SDI</label><input type="text" id="mf6" placeholder="Es: XXXXXXX"></div><div class="f"><label>PEC</label><input type="email" id="mf7" placeholder="pec@esempio.it"></div></div>
-    <div class="fr"><div class="f"><label>Modalità pagamento</label><select id="mf8"><option value="">Seleziona...</option><option value="bonifico_30">Bonifico 30gg</option><option value="bonifico_60">Bonifico 60gg</option><option value="bonifico_90">Bonifico 90gg</option><option value="rimessa_diretta">Rimessa diretta</option><option value="rid">RID/SDD</option><option value="contanti">Contanti</option></select></div><div class="f"><label>Giorni pagamento</label><input type="number" id="mf9" value="30"></div></div>
-    <div class="f"><label>IBAN</label><input type="text" id="mf10" placeholder="IT00 X000 0000 0000 0000 0000 000"></div>
+    <div class="fr"><div class="f"><label>Modalità pagamento</label><select id="mf8"><option value="">Seleziona...</option><option value="bonifico_30">Bonifico 30gg</option><option value="bonifico_60">Bonifico 60gg</option><option value="bonifico_90">Bonifico 90gg</option><option value="rimessa_diretta">Rimessa diretta</option><option value="riba_30">RIBA 30gg</option><option value="riba_60">RIBA 60gg</option><option value="riba_90">RIBA 90gg</option><option value="rid">RID/SDD</option><option value="contanti">Contanti</option></select></div><div class="f"><label>Giorni pagamento</label><input type="number" id="mf9" value="30"></div></div>
+    <div class="f"><label>IBAN</label><input type="text" id="mf10" placeholder="IT00 X000 0000 0000 0000 0000 000" oninput="suggerisciAbiCabCliente()"></div>
+    <!-- F11.3 — banca d'appoggio per le RIBA (js/45, solo con sql/47; titolare e segreteria) -->
+    <div id="mf-banca-riba" style="display:none">
+      <div class="f"><label>Banca d'appoggio (RIBA)</label><input type="text" id="mf12" maxlength="200" placeholder="Es. Banca di Pisa, filiale di Ospedaletto"></div>
+      <div class="fr"><div class="f"><label>ABI</label><input type="text" id="mf13" maxlength="5" inputmode="numeric" placeholder="5 cifre"></div><div class="f"><label>CAB</label><input type="text" id="mf14" maxlength="5" inputmode="numeric" placeholder="5 cifre"></div></div>
+      <div id="mf-banca-riba-aiuto" style="font-size:11px;color:var(--m);margin:-6px 0 10px">Servono per presentare le RIBA. Vuoti: si ricavano dall'IBAN italiano.</div>
+    </div>
     <div class="f"><label>Note fatturazione</label><textarea id="mf11" style="min-height:60px"></textarea></div>
   </div>
   <!-- SEDI -->
@@ -5195,6 +5395,7 @@
 <script defer src="js/42-buono-lavoro.js"></script>
 <script defer src="js/43-fatture-bozze.js"></script>
 <script defer src="js/44-fatture-emissione.js"></script>
+<script defer src="js/45-fatture-riba-solleciti.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

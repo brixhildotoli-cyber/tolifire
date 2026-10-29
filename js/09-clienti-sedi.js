@@ -1413,6 +1413,12 @@ async function saveCli(){
     codice_sdi:v('mf6')||null,pec:v('mf7')||null,modalita_pagamento:v('mf8')||null,
     giorni_pagamento:parseInt(v('mf9'))||30,iban:v('mf10')||null,note_fatturazione:v('mf11')||null,
   };
+  // F11.3: banca d'appoggio per le RIBA (js/45; vuoto senza sql/47 o per gli altri ruoli)
+  if (typeof datiBancaRibaCliente === 'function') {
+    const banca = datiBancaRibaCliente();
+    if (banca === null) return;
+    Object.assign(payload, banca);
+  }
 
   if (completamentoLead) {
   const mancanti = [];

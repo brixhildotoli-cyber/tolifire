@@ -129,10 +129,17 @@ ed elimina_bozza_fattura, js/43-fatture-bozze.js). Dopo sql/46 (F11.2,
 da eseguire dopo 45): fatture_scadenze (lettura; le scrivono solo le RPC
 di emissione e pagamento) e fatture_pagamenti (tabella nuova, sola
 lettura; RPC registra_pagamento_fattura e annulla_pagamento_fattura,
-js/44-fatture-emissione.js)
+js/44-fatture-emissione.js). Dopo sql/47 (F11.3, da eseguire dopo 46):
+riba_presentazioni, riba_righe (lettura per titolare, segreteria,
+contabile; le scrivono solo le RPC delle distinte RIBA), solleciti
+(lettura; anche il rappresentante per i suoi clienti; li scrivono solo
+le RPC dei solleciti), js/45-fatture-riba-solleciti.js; colonne nuove
+clienti.banca_appoggio/abi_appoggio/cab_appoggio e
+impostazioni.banca_azienda/iban_azienda (scritte dal sito).
 
 Presenti nel DB ma NON usate dal frontend (19, al 22/10/2026; con sql/45
-fatture_righe passa tra le usate):
+fatture_righe passa tra le usate, con sql/46 fatture_scadenze, con sql/47
+riba_presentazioni, riba_righe e solleciti):
 ads_crm_nuovi_contatti, ads_crm_qualificazioni, calendario_slot, contratti,
 fatture_righe, fatture_scadenze, indirizzi_cliente, listini, notifiche,
 periodicita_presidi, portale_clienti, preventivi_righe,
@@ -150,7 +157,10 @@ da rieseguire. sql/45 aggiunge con ALTER solo quello che manca.
 Bucket Storage usati dal frontend: documenti-clienti, foto-interventi,
 preventivi-documenti, progetti-tecnici, ticket-allegati,
 certificati-preventivi; dopo sql/29 (F5.3) commesse-documenti; dopo
-sql/32 (F7.1) documenti-team-subappalti. Con sql/42 il capo tecnico apre
+sql/32 (F7.1) documenti-team-subappalti; dopo sql/47 (F11.3) fatture-pdf
+(copie PDF delle fatture emesse: <id fattura>/<file>.pdf; legge chi
+legge la fattura, caricano titolare, segreteria, contabile; niente
+sovrascrittura né cancellazione dal sito). Con sql/42 il capo tecnico apre
 in preventivi-documenti SOLO l'allegato di accettazione dei preventivi
 delle commesse (regola commesse_preventivo_firmato_lettura).
 
@@ -206,9 +216,16 @@ elimina_bozza_fattura.
 Dopo sql/46 (F11.2, DA ESEGUIRE DOPO 45, richiede 25, 26, 39):
 emetti_fattura, emetti_fattura_anticipo, emetti_fattura_finale_commessa,
 registra_pagamento_fattura, annulla_pagamento_fattura, emetti_nota_credito.
+Dopo sql/47 (F11.3, DA ESEGUIRE DOPO 46): salva_presentazione_riba,
+elimina_presentazione_riba, segna_presentazione_riba_inviata,
+registra_esito_riba, annulla_esito_riba, registra_sollecito,
+esito_sollecito, elimina_sollecito.
 Dopo sql/42 (decisioni del 29/10, eseguito il 29/10): preventivo_firmato_commessa,
 salva_fase_commessa_ore; cambia_stato_ordine_fornitore ridefinita (in
 più: 'confermato' da 'arrivato', solo titolare, con motivo).
+Dopo sql/48 (schede di rilievo multiple, DA ESEGUIRE, richiede 07 e 34;
+prima si pubblica il sito): elimina_scheda_rilievo; scheda_cantiere_commessa
+ridefinita (in più numero e nome della scheda; rollback = versione di sql/34).
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
 Sono gli accessi che le policy RLS per il portale dovranno permettere
 (F1.1), sempre filtrati sul cliente del portale (`cliente_id`):
@@ -381,6 +398,35 @@ lunghezza, tratti, spessore), classe di resistenza EI e reazione al fuoco,
 attraversamenti, finitura, ambiente, altezza/PLE, ostacoli, foto,
 certificazione, note. Nessun campo obbligatorio. Compare come le altre nel
 preventivo, nella copia del commerciale e nel PDF per il fornitore.
+
+Schede di rilievo multiple (richiesta di Erika del 29/10, js/18;
+sql/48-schede-tecniche-multiple DA ESEGUIRE, richiede 07 e 34; ORDINE:
+prima si pubblica il sito, poi si esegue il 48, perché il sito vecchio
+salva per il vincolo che il 48 toglie): ognuna delle 7 schede
+dell'ingegnere (rilevazione incendi, porte REI, estintori,
+compartimentazione, vernice intumescente, impianti di spegnimento,
+coppelle) può avere più schede nello stesso progetto, es. una per piano.
+Colonna `progetti_tecnici_schede.numero` (1-99, le schede esistenti
+diventano la 1), vincolo UNIQUE (progetto_tecnico_id, famiglia, numero) al
+posto di (progetto_tecnico_id, famiglia); policy RLS invariate. In cima
+alla scheda la barra "Scheda 1 | Scheda 2 | … | + Nuova scheda" (nuova =
+stesse voci, vuota, numero = massimo + 1, nasce con "Salva") e il campo
+facoltativo "Nome / riferimento" salvato in `dati.nome_scheda` (non una
+colonna). Con il 48 dopo "Salva" la scheda resta aperta (si vede nella
+barra); passare a un'altra scheda con modifiche non salvate chiede
+conferma. Eliminare: solo le schede in più (numero 2 o oltre), solo
+ingegnere o titolare, solo con il progetto in_verifica_tecnica, con
+conferma (RPC elimina_scheda_rilievo: sulla tabella non c'è policy di
+cancellazione). Titolo "Porte e portoni REI – scheda 2 (Piano terra)"
+nel preventivo (renderSchedePreventivo), nella scheda progetto (js/17),
+nella copia commerciale (apriModificaSchedaCommerciale per id della
+scheda), nel PDF della richiesta al fornitore e nella scheda cantiere
+(js/32; scheda_cantiere_commessa ridefinita con numero e nome_scheda). Nella
+finestra Verifica tecnica il riepilogo "Schede salvate" per tipo. La
+rilevazione incendi "dal preventivo" (preventivi_schede_tecniche) resta una
+per tipo: nel sito non si apre mai. Senza sql/48 tutto come prima (una
+scheda per tipo, nessuna barra; controllo
+`verificaSchedeMultipleDisponibili`). Nessun campo obbligatorio.
 
 Rimanda indietro un preventivo avviato (richiesta di Erika del 28/10,
 js/18 `apriRimandaPreventivoAvviato`, finestra m-rimanda-preventivo-avviato;
@@ -1560,11 +1606,11 @@ una sessione e l'altra.
    - [x] Fase 5 — Emissione fattura (assegna numero, scadenze) (F11.2).
    - [x] Fase 6 — Vista scadenze + KPI dashboard (F11.2).
    - [x] Fase 7 — Registrazione pagamenti (F11.2).
-   - [ ] Fase 8 — RIBA: presentazioni e righe.
-   - [ ] Fase 9 — Esiti RIBA (accreditato/insoluto).
-   - [ ] Fase 10 — Solleciti.
-   - [ ] Fase 11 — Aggiornamento dashboard ruoli.
-   - [ ] Fase 12 — Export PDF fattura.
+   - [x] Fase 8 — RIBA: presentazioni e righe (F11.3).
+   - [x] Fase 9 — Esiti RIBA (accreditato/insoluto) (F11.3).
+   - [x] Fase 10 — Solleciti (F11.3).
+   - [x] Fase 11 — Aggiornamento dashboard ruoli (F11.3).
+   - [x] Fase 12 — Export PDF fattura (F11.3).
    Dipendenza esterna: `clienti.rappresentante_id` da aggiungere
    prima della Fase 11 (per filtro insoluti rappresentante). Verificato in
    F11.1: la colonna ESISTE già (export del 26/10, usata dalle policy di
@@ -1685,9 +1731,8 @@ una sessione e l'altra.
    scadenza nei 30 gg, incassato nel mese) nelle dashboard di titolare
    (tit-incassi), segreteria (seg-incassi) e contabile (dash-incassi),
    cliccabili verso la pagina Fatture. Il vecchio riquadro "Scadenze
-   pagamenti / solleciti" della dashboard segreteria (testo "non c'è una
-   tabella fatture...") resta com'era: da togliere o aggiornare con la
-   Fase 11 del piano.
+   pagamenti / solleciti" della dashboard segreteria è stato sostituito
+   in F11.3 (riquadro "RIBA, insoluti e solleciti").
    ANTICIPO VERO (passo 6, scelta dichiarata): RPC emetti_fattura_anticipo
    (segreteria, titolare; preventivo in_attesa_anticipo senza fattura
    d'anticipo): crea ed emette la fattura (origine 'anticipo',
@@ -1725,6 +1770,74 @@ una sessione e l'altra.
    'public, pg_temp' (come sql/25: trigger dei 3.000 € con
    get_user_role() senza schema). Senza sql/46 il sito resta come con il
    45.
+
+   **RIBA, solleciti, dashboard, PDF (F11.3, js/45-fatture-riba-
+   solleciti.js; sql/47-fatture-riba-solleciti DA ESEGUIRE DOPO sql/46)**.
+   RIBA (fasi 8-9; titolare, segreteria, contabile): riquadro
+   fat-riba-box nella pagina Fatture. DISTINTA (riba_presentazioni,
+   numero AAAA/NNN dal database sotto blocco per anno): banca e IBAN di
+   accredito (predefiniti dalle Impostazioni), rate scelte tra quelle
+   aperte (anche insolute o sollecitate, per ripresentarle; filtro "solo
+   fatture con pagamento RIBA" = modalità che contiene "riba"). Ogni riga
+   copia i dati del debitore dalla fattura emessa e ABI/CAB della sua
+   banca (clienti.abi_appoggio/cab_appoggio, altrimenti dall'IBAN
+   italiano del cliente): senza ABI e CAB la rata non entra. Le rate
+   messe in distinta diventano 'in_riba'. Stati: preparata (si cambia,
+   salva_presentazione_riba, o si elimina, elimina_presentazione_riba:
+   resta con il numero, le rate tornano com'erano) → inviata
+   (segna_presentazione_riba_inviata, data non futura) → esiti per riga
+   (registra_esito_riba): ACCREDITATO = pagamento registrato con
+   registra_pagamento_fattura di sql/46 (modalità riba, rata pagata;
+   l'anticipo pagato sblocca il preventivo come in F11.2); INSOLUTO = rata
+   e fattura 'insoluta'. SCELTA DICHIARATA: lo stato finale lo calcola il
+   database quando tutte le righe hanno l'esito: tutte accreditate =
+   accreditata, miste = parzialmente_accreditata, tutte insolute = chiusa;
+   prima resta inviata. Esito sbagliato: annulla_esito_riba (titolare e
+   segreteria, motivo, storico nella riga): il pagamento si annulla con
+   annulla_pagamento_fattura e la rata torna in RIBA; un insoluto si
+   annulla solo se dopo non ci sono solleciti, pagamenti o un'altra
+   distinta. Il pagamento nato da una RIBA non si annulla dalla fattura
+   (trigger trg_fatture_pagamenti_blocco_riba). FILE PER LA BANCA:
+   distinta in PDF e CSV (niente tracciato CBI, domanda per Toli).
+   SOLLECITI (fase 10; solo segreteria e titolare, il contabile vede):
+   registra_sollecito su rata insoluta, sollecitata o aperta e scaduta
+   (data, mezzo telefono/email/PEC/lettera/raccomandata/altro, a chi,
+   nota; livello 1, 2, 3...): rata e fattura 'sollecitata'.
+   esito_sollecito (inviato → risposto | ignorato, nota); elimina_sollecito
+   (solo l'ultimo della rata, motivo, resta come eliminato; la rata torna
+   com'era). Riquadro fat-solleciti-box (filtri: insoluti, scadute non
+   sollecitate, solleciti senza risposta) e box "RIBA e solleciti" nella
+   fattura. Stato della rata non pagata ricavato dalla sua storia
+   (stato_aperto_scadenza_fattura: in RIBA, poi l'ultimo tra insoluto e
+   sollecito, altrimenti aperta), usato anche quando si annulla un
+   pagamento (ricalcola_scadenza_fattura ridefinita);
+   fatture_aggiorna_stato_pagamento ridefinita: pagata > insoluta >
+   sollecitata > parzialmente pagata > in RIBA > da pagare.
+   DASHBOARD (fase 11): titolare "📈 Fatturato e insoluti" (tit-fatturato:
+   fatturato del mese e dell'anno, imponibile con le note di credito
+   tolte; incassato dell'anno; insoluti); segreteria
+   (seg-riba-solleciti, al posto del vecchio riquadro) e contabile
+   (dash-riba-solleciti): RIBA da presentare entro 60 giorni, distinte da
+   portare in banca, esiti da registrare, insoluti da sollecitare,
+   scadute non sollecitate, solleciti senza risposta, primi insoluti con
+   "📞 Sollecito"; rappresentante (rap-insoluti-box): insoluti e rate
+   sollecitate dei clienti con clienti.rappresentante_id = lui (RLS di
+   sql/10 + filtro nel sito), con commessa, righe della fattura e ultimo
+   sollecito.
+   PDF (fase 12): "📄 Scarica PDF" nella fattura emessa, annullata o
+   nota di credito (chi vede la fattura), intestazione TOLI FIRE come gli
+   altri PDF, dati dallo snapshot, righe, IVA, totali, scadenze,
+   pagamento (RIBA: ABI/CAB d'appoggio; altrimenti IBAN dell'azienda dalle
+   Impostazioni), dicitura "Copia di cortesia. Non sostituisce la
+   fattura elettronica trasmessa tramite il Sistema di Interscambio
+   (SDI)" (domanda per Toli). "💾 Salva copia" (titolare, segreteria,
+   contabile) nel bucket fatture-pdf e in fatture.pdf_url; "📂 Copia
+   salvata". DATI BANCARI: banca d'appoggio, ABI, CAB nella finestra
+   cliente (scheda Fatturazione) e nella scheda cliente per titolare e
+   segreteria (js/09 saveCli li aggiunge solo con sql/47); modalità di
+   pagamento del cliente con "RIBA 30/60/90gg"; banca e IBAN
+   dell'azienda nelle Impostazioni. Senza sql/47 il sito resta come con
+   il 46.
 
 3. **Generazione automatica relazioni tecniche** — da verificare se
    funziona davvero. Il frontend non inserisce mai righe in
