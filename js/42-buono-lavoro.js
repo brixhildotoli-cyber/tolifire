@@ -609,7 +609,7 @@ async function caricaBuonoLavoroScheda(id) {
     fatturata: '✅ Fatturato.'
   }[s.stato] || ('Stato: ' + String(s.stato || '—').replace(/_/g, ' '));
   html += '<div style="font-size:12px">' + bs(s.stato) + ' ' + esc(testoStato) + '</div>' +
-    '<div style="font-size:11px;color:var(--m);margin-top:3px">La fattura si emette fuori dal gestionale finché il modulo Fatture non è pronto.</div>';
+    '<div id="ms-buono-fattura" style="font-size:11px;color:var(--m);margin-top:3px">La fattura si emette fuori dal gestionale finché il modulo Fatture non è pronto.</div>'; // F11.1: con sql/45 js/43 la sostituisce con la bozza
 
   html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">' +
     '<button class="btn sm" data-id="' + esc(s.id) + '" onclick="stampaRapportoIntervento(this.dataset.id)">📋 Scarica il buono (PDF)</button>' +

@@ -2,8 +2,8 @@
 
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
-file unico: `index.html` (markup) + `style.css` + moduli `js/00-…42-*.js`
-caricati in ordine 00–18, poi 20–42, infine `19-init.js` (dettagli in
+file unico: `index.html` (markup) + `style.css` + moduli `js/00-…43-*.js`
+caricati in ordine 00–18, poi 20–43, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -122,10 +122,13 @@ cambia_stato_ordine_fornitore) e commesse_fasi.ore_previste (le scrive
 solo salva_fase_commessa_ore, js/34).
 
 Usate dal frontend — fatturazione:
-fatture (solo lista in lettura, js/06-fatture-workflow.js `loadFatture`;
-il modulo Fatture è in costruzione, vedi sotto)
+fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
+è in costruzione, vedi sotto). Dopo sql/45 (F11.1, da eseguire):
+fatture_righe (lettura; bozze scritte solo con le RPC salva_bozza_fattura
+ed elimina_bozza_fattura, js/43-fatture-bozze.js)
 
-Presenti nel DB ma NON usate dal frontend (19, al 22/10/2026):
+Presenti nel DB ma NON usate dal frontend (19, al 22/10/2026; con sql/45
+fatture_righe passa tra le usate):
 ads_crm_nuovi_contatti, ads_crm_qualificazioni, calendario_slot, contratti,
 fatture_righe, fatture_scadenze, indirizzi_cliente, listini, notifiche,
 periodicita_presidi, portale_clienti, preventivi_righe,
@@ -135,7 +138,10 @@ Nota: le tabelle del modulo Fatture (fatture_righe, fatture_scadenze,
 riba_presentazioni, riba_righe, solleciti) esistono già in produzione
 (0 righe): prima di eseguire la Fase 1 del modulo, confrontare lo schema
 reale in `sql/schema/` con l'SQL preparato. Non cancellare le tabelle non
-usate senza conferma di Toli.
+usate senza conferma di Toli. Confronto FATTO in F11.1 (29/10): la Fase 1
+era già stata eseguita a maggio (tabelle, 6 trigger, policy di sql/10),
+ma senza vincoli sugli stati; nel repository non c'era un "SQL pronto"
+da rieseguire. sql/45 aggiunge con ALTER solo quello che manca.
 
 Bucket Storage usati dal frontend: documenti-clienti, foto-interventi,
 preventivi-documenti, progetti-tecnici, ticket-allegati,
@@ -191,6 +197,8 @@ portale_ticket ridefinita (in più l'ora dell'appuntamento fissato;
 rollback = versione di sql/13).
 Dopo sql/44 (F10.4, DA ESEGUIRE, richiede 07 e 40): prezzi_contratto_cliente
 (sola lettura: preventivo del contratto e prezzi di vendita delle voci).
+Dopo sql/45 (F11.1, DA ESEGUIRE, richiede 07 e 26): salva_bozza_fattura,
+elimina_bozza_fattura.
 Dopo sql/42 (decisioni del 29/10, eseguito il 29/10): preventivo_firmato_commessa,
 salva_fase_commessa_ore; cambia_stato_ordine_fornitore ridefinita (in
 più: 'confermato' da 'arrivato', solo titolare, con motivo).
@@ -1423,6 +1431,10 @@ roadmap (scadenze e ripartenza).
   buono collegato ("Buono: Da fatturare/Fatturata"; js/10 aggiunge gli
   attributi data-ddt-*). Il vincolo "senza buono non si emette fattura"
   sarà del modulo Fatture (decisione già presa, Fase 3 del modulo).
+  Da F11.1 (con sql/45): la bozza di fattura nasce solo da una scheda di
+  lavoro e ne riprende le righe (vedi Moduli da costruire, punto 2); nel
+  box Fatturazione del buono la riga ms-buono-fattura mostra la bozza o
+  "Crea bozza fattura".
 - RIPARTENZA DEL CICLO: box "🔁 Controlli scaduti: da ripianificare"
   nella dashboard del capo tecnico (ct-ripartenza, prima di "Interventi
   periodici del mese") e in testa al Piano mensile del mese corrente
@@ -1530,10 +1542,14 @@ una sessione e l'altra.
    - Numerazione separata per fatture e note di credito.
 
    Fasi:
-   - [ ] Fase 1 — Schema DB (tabelle, RLS, trigger). SQL pronto.
-   - [ ] Fase 2 — Lista fatture read-only (pagina pg-fatture).
-   - [ ] Fase 3 — Creazione bozza fattura (modal m-fattura).
-   - [ ] Fase 4 — Auto-popolamento righe da scheda/DDT/manodopera.
+   - [x] Fase 1 — Schema DB (tabelle, RLS, trigger). Tabelle, trigger e
+     policy già in produzione da maggio; completata da sql/45 (F11.1, da
+     eseguire): stati canonici imposti, righe solo nella bozza, origine
+     delle righe.
+   - [x] Fase 2 — Lista fatture read-only (pagina pg-fatture, maggio;
+     con sql/45 le righe si aprono).
+   - [x] Fase 3 — Creazione bozza fattura (modal m-fattura, F11.1).
+   - [x] Fase 4 — Auto-popolamento righe da scheda/DDT/manodopera (F11.1).
    - [ ] Fase 5 — Emissione fattura (assegna numero, scadenze).
    - [ ] Fase 6 — Vista scadenze + KPI dashboard.
    - [ ] Fase 7 — Registrazione pagamenti.
@@ -1543,10 +1559,15 @@ una sessione e l'altra.
    - [ ] Fase 11 — Aggiornamento dashboard ruoli.
    - [ ] Fase 12 — Export PDF fattura.
    Dipendenza esterna: `clienti.rappresentante_id` da aggiungere
-   prima della Fase 11 (per filtro insoluti rappresentante).
+   prima della Fase 11 (per filtro insoluti rappresentante). Verificato in
+   F11.1: la colonna ESISTE già (export del 26/10, usata dalle policy di
+   sql/08 e da cliente_visibile); la policy fatture_lettura di sql/10 fa
+   già vedere al rappresentante le fatture dei suoi clienti (tutte, non
+   solo gli insoluti: il filtro sugli insoluti è della Fase 11).
    Da F10.4: il buono di lavoro (scheda + DDT dell'intervento, box
    ms-buono di js/42) arriva "da fatturare" con i lavori fuori contratto
-   e l'origine dei prezzi: la Fase 4 (righe da scheda/DDT) parte da lì.
+   e l'origine dei prezzi: la Fase 4 (righe da scheda/DDT) parte da lì
+   (fatto in F11.1).
 
    **Stati canonici (decisi e da rispettare ovunque)**:
    - `fatture.stato`: `bozza → emessa → annullata`
@@ -1557,6 +1578,58 @@ una sessione e l'altra.
    - `solleciti.esito`: `inviato → risposto | ignorato`
    Default applicati con ALTER post-Fase 1: `fatture.stato='bozza'`
    (era 'da_emettere' pre-esistente, allineato dopo decisione).
+   Con sql/45 (F11.1) questi stati sono VINCOLI del database (CHECK), e
+   stato, tipo, stato del pagamento, stato delle scadenze e delle
+   presentazioni RIBA, esito dei solleciti non possono essere vuoti.
+
+   **Bozza di fattura dalla scheda di lavoro (F11.1, js/43-fatture-
+   bozze.js; sql/45-fatture-bozze DA ESEGUIRE, richiede 07 e 26)**.
+   Chi: titolare, segreteria, contabile (scrivono le fatture per sql/10);
+   il commerciale vede lista e fatture in sola lettura; il rappresentante
+   per ora non ha la pagina (Fase 11 del piano). Dove: pagina Fatture
+   (riquadro "Schede da fatturare senza bozza", fat-schede-box; ogni riga
+   della lista apre la fattura), workflow (bottone "🧾 Crea bozza
+   fattura" / "🧾 Apri bozza" sulle schede approvate, inviate, da
+   fatturare), finestra della scheda (riga ms-buono-fattura nel box
+   Fatturazione del buono di lavoro, js/42). Finestra m-fattura (id
+   mfat-). Si fattura una scheda approvata, inviata al cliente o da
+   fatturare, completata, non eliminata, non già in una fattura attiva
+   (indice uq_fatture_scheda_attiva: una scheda, una fattura). Righe
+   proposte dal buono di lavoro di F10.4 (datiBuonoLavoro): descrizione
+   dell'intervento (prezzo 0, da completare o lasciare descrittiva),
+   righe dei DDT dell'intervento con il loro prezzo (per i clienti con
+   contratto già quello del preventivo del contratto) e "(DDT n. X del
+   ...)" nella descrizione (fattura differita), manodopera = ore_lavorate
+   × impostazioni.tariffa_oraria_standard. SCELTA: per la manutenzione
+   ordinaria programmata con contratto in vigore la manodopera è proposta
+   ma NON spuntata (di solito compresa nel contratto). In più: righe
+   libere, "+ Manodopera", voci del preventivo del contratto
+   (prezzi_contratto_cliente di sql/44; senza sql/44 solo il titolare).
+   Ogni riga ha origine (scheda, ddt, manodopera, contratto, manuale) e
+   origine del prezzo (contratto, ddt, tariffa_oraria, manuale = cambiato
+   a mano). Un DDT già in un'altra fattura attiva è proposto bloccato e il
+   database lo rifiuta. Una sola aliquota IVA (22, 10, 5, 4, 0). Totali
+   calcolati dal database (trigger esistenti, arrotondamento a 2
+   decimali). La bozza NON ha numero né data di emissione: li assegna
+   l'emissione (F11.2, trigger esistente trg_fatture_genera_numero,
+   numerazione già separata per fatture e note di credito: anno + tipo +
+   progressivo, "NC/"). SCELTA: creando la bozza la scheda approvata o
+   inviata passa "da fatturare"; diventa "fatturata" solo all'emissione
+   (F11.2); il bottone "✅ Fatturata" del contabile resta per le fatture
+   emesse fuori dal gestionale. "Elimina bozza" (soft) rende di nuovo
+   fatturabile la scheda. Le righe di una fattura emessa, annullata o
+   eliminata non si toccano più (trigger trg_fatture_righe_solo_bozza).
+   Colonne previste e NON ancora usate: fatture.commessa_id e
+   fatture.preventivo_id, per collegare la fattura d'anticipo (oggi
+   preventivi.anticipo_fattura_*, F4.3) e la fattura finale (oggi
+   commesse.fattura_finale_*, F9.2) quando il modulo le emetterà.
+   Corretto in sql/45: fatture_proteggi_emessa (trigger di maggio) chiamava
+   get_user_role() senza schema e senza search_path: le si fissa il
+   search_path, altrimenti il ricalcolo dei totali fallisce dentro le RPC.
+   Senza sql/45 la pagina Fatture resta la lista in sola lettura e nulla
+   compare. Da F11.2 in poi: emissione via RPC (data in ora italiana,
+   numero senza corse tra due utenti, scadenze), blocco della modifica
+   diretta di una fattura emessa e del soft-delete delle emesse.
 
 3. **Generazione automatica relazioni tecniche** — da verificare se
    funziona davvero. Il frontend non inserisce mai righe in

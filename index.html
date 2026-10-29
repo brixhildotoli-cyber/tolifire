@@ -1876,7 +1876,7 @@
   <div class="sh">
     <div>
       <div class="st">💰 Fatture</div>
-      <div style="font-size:13px;color:var(--m);margin-top:2px">Documenti emessi, bozze e note di credito (sola lettura)</div>
+      <div id="fat-sottotitolo" style="font-size:13px;color:var(--m);margin-top:2px">Documenti emessi, bozze e note di credito (sola lettura)</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <span id="fat-count" style="font-size:12px;color:var(--m)"></span>
@@ -1899,6 +1899,9 @@
       <input type="text" id="fat-fil-search" placeholder="Cerca per cliente o numero..." oninput="loadFatture()" style="flex:1;min-width:200px">
     </div>
   </div>
+
+  <!-- F11.1 — schede di lavoro da fatturare senza bozza (js/43, solo con sql/45) -->
+  <div id="fat-schede-box" class="card" style="display:none;margin-bottom:14px"></div>
 
   <div id="fat-body"><div class="load">Caricamento...</div></div>
 </div>
@@ -3285,6 +3288,39 @@
     <div class="ma">
       <button class="btn" onclick="closeM('m-dati-cantiere')">Annulla</button>
       <button class="btn p" id="cant-mod-salva" onclick="salvaDatiCantiere()">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- F11.1 — BOZZA DI FATTURA DALLA SCHEDA DI LAVORO (js/43, solo con sql/45) -->
+<div class="mbg" id="m-fattura">
+  <div class="modal" style="max-width:720px">
+    <div class="mh"><span id="mfat-titolo">🧾 Bozza di fattura</span><button class="mx" onclick="closeM('m-fattura')">✕</button></div>
+    <div id="mfat-sottotitolo" style="font-size:13px;margin-bottom:10px;overflow-wrap:anywhere"></div>
+    <div id="mfat-info" class="al2 i" style="margin-bottom:10px">
+      La bozza non ha numero e non va al cliente: il numero lo assegna l'emissione.
+      Spunta le righe da fatturare, correggi descrizioni e prezzi, poi salva.
+    </div>
+    <div id="mfat-promemoria"></div>
+    <div style="font-size:12px;font-weight:600;color:var(--m);text-transform:uppercase;margin-bottom:6px">Righe</div>
+    <div id="mfat-righe"></div>
+    <div id="mfat-aggiungi"></div>
+    <div class="fr">
+      <div class="f">
+        <label>Aliquota IVA (una per fattura)</label>
+        <select id="mfat-iva" onchange="aggiornaTotaliFattura()"></select>
+      </div>
+      <div class="f">
+        <label>Note</label>
+        <textarea id="mfat-note" rows="2" maxlength="2000"></textarea>
+      </div>
+    </div>
+    <div id="mfat-totali" class="card" style="margin-bottom:10px"></div>
+    <div id="mfat-errore" class="al2 e" style="display:none;margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+      <button class="btn" onclick="closeM('m-fattura')">Chiudi</button>
+      <button class="btn" id="mfat-elimina" style="color:var(--r);display:none" onclick="eliminaBozzaFattura()">🗑️ Elimina bozza</button>
+      <button class="btn p" id="mfat-salva" onclick="salvaBozzaFattura()">💾 Salva bozza</button>
     </div>
   </div>
 </div>
@@ -5013,6 +5049,7 @@
 <script defer src="js/40-audit-presidi.js"></script>
 <script defer src="js/41-appuntamenti-segreteria.js"></script>
 <script defer src="js/42-buono-lavoro.js"></script>
+<script defer src="js/43-fatture-bozze.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

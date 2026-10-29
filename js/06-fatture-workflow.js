@@ -53,7 +53,7 @@ async function loadFatture(){
         ? '<span class="bx bpur">🔁 Nota credito</span>'
         : '<span class="bx bblue">📄 Fattura</span>';
       var totale = (f.totale||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
-      return '<tr>' +
+      return '<tr data-fattura-id="'+esc(f.id)+'">' + // F11.1: js/43 la rende apribile (con sql/45)
         '<td>'+numCell+'</td>' +
         '<td>'+esc(cli)+'</td>' +
         '<td>'+tipoLbl+'</td>' +
