@@ -607,6 +607,459 @@ function valoreSchedaTecnica(valore) {
     });
 }
 
+// ── Schede di rilievo multiple (richiesta di Erika del 29/10, sql/48) ──
+// Con sql/48 un progetto può avere più schede dello stesso tipo (colonna
+// progetti_tecnici_schede.numero: "Porte REI – scheda 2", per esempio una
+// per piano). In cima a ogni scheda dell'ingegnere c'è la barra
+// "Scheda 1 | Scheda 2 | … | + Nuova scheda" e il campo facoltativo
+// "Nome / riferimento" (salvato in dati.nome_scheda, non in una colonna).
+// Senza sql/48 tutto come prima: una scheda per tipo, nessuna barra.
+// Nessun campo obbligatorio (decisione di Erika del 28/10).
+let schedeMultipleDisponibili = null; // null = non ancora verificato
+// Scheda aperta nella finestra m-rilievo-tecnico (contesto progetto):
+// { famiglia, numero, nuova, elenco (null senza sql/48), id,
+//   statoProgetto, nomeOriginale, modificata }
+let schedaRilievoAperta = null;
+
+async function verificaSchedeMultipleDisponibili() {
+  if (schedeMultipleDisponibili !== null) return schedeMultipleDisponibili;
+
+  const { error } = await db
+    .from('progetti_tecnici_schede')
+    .select('numero')
+    .limit(1);
+
+  if (!error) {
+    schedeMultipleDisponibili = true;
+  } else if (error.code === '42703' || /numero/i.test(error.message || '')) {
+    schedeMultipleDisponibili = false;
+  } else {
+    return false;
+  }
+  return schedeMultipleDisponibili;
+}
+
+// true solo dopo la verifica e con sql/48 eseguito.
+function schedeMultipleAttive() {
+  return schedeMultipleDisponibili === true;
+}
+
+// Titolo di una scheda nelle liste e nei PDF: "Porte e portoni REI" se è
+// l'unica del suo tipo, "Porte e portoni REI – scheda 2 (Piano terra)"
+// se ce ne sono più. quanteStesse (facoltativo) sostituisce il conteggio
+// fatto sull'elenco.
+function titoloSchedaRilievo(scheda, schede, quanteStesse) {
+  const base = etichettaFamigliaTecnica(scheda.famiglia);
+  const numero = Number(scheda.numero) || 1;
+  const stesse = quanteStesse !== undefined
+    ? quanteStesse
+    : (schede || []).filter(function(s) { return s.famiglia === scheda.famiglia; }).length;
+
+  let titolo = (stesse > 1 || numero > 1)
+    ? base + ' – scheda ' + numero
+    : base;
+
+  const nome = String(scheda.nome_scheda || (scheda.dati && scheda.dati.nome_scheda) || '').trim();
+  if (nome) titolo += ' (' + nome + ')';
+
+  return titolo;
+}
+
+// Il nome della scheda va nel titolo, non tra i campi.
+function campoSchedaDaElencare(chiave) {
+  return chiave !== 'nome_scheda';
+}
+
+// Con sql/48: tipi nell'ordine di oggi (il più recente prima), dentro lo
+// stesso tipo per numero. Senza sql/48 l'ordine resta quello ricevuto.
+function ordinaSchedeRilievo(schede) {
+  const lista = (schede || []).slice();
+  if (!lista.some(function(s) { return s.numero !== undefined && s.numero !== null; })) {
+    return lista;
+  }
+
+  const ordineFamiglie = [];
+  lista.forEach(function(s) {
+    if (!ordineFamiglie.includes(s.famiglia)) ordineFamiglie.push(s.famiglia);
+  });
+
+  return lista.sort(function(a, b) {
+    return (ordineFamiglie.indexOf(a.famiglia) - ordineFamiglie.indexOf(b.famiglia)) ||
+      ((Number(a.numero) || 1) - (Number(b.numero) || 1));
+  });
+}
+
+// Legge la scheda da aprire (contesto progetto). numeroRichiesto vuoto =
+// la prima scheda salvata del tipo (o la 1, nuova). Restituisce
+// { dati } oppure { error }.
+async function leggiSchedaRilievo(famiglia, numeroRichiesto) {
+  const progettoId = currentRilievoProgettoId;
+  const box = ge('mrt-content');
+
+  if (box) {
+    box.oninput = segnaSchedaRilievoModificata;
+    box.onchange = segnaSchedaRilievoModificata;
+  }
+
+  if (!(await verificaSchedeMultipleDisponibili())) {
+    const { data, error } = await db
+      .from('progetti_tecnici_schede')
+      .select('dati')
+      .eq('progetto_tecnico_id', progettoId)
+      .eq('famiglia', famiglia)
+      .maybeSingle();
+
+    if (error) return { error: error };
+
+    schedaRilievoAperta = {
+      famiglia: famiglia,
+      numero: 1,
+      nuova: !data,
+      elenco: null,
+      id: null,
+      statoProgetto: null,
+      nomeOriginale: String((data && data.dati && data.dati.nome_scheda) || ''),
+      modificata: false
+    };
+    return { dati: (data && data.dati) || {} };
+  }
+
+  const [schedeRes, progettoRes] = await Promise.all([
+    db
+      .from('progetti_tecnici_schede')
+      .select('id,numero,dati,aggiornato_il')
+      .eq('progetto_tecnico_id', progettoId)
+      .eq('famiglia', famiglia)
+      .order('numero', { ascending: true }),
+    db
+      .from('progetti_tecnici')
+      .select('stato')
+      .eq('id', progettoId)
+      .maybeSingle()
+  ]);
+
+  if (schedeRes.error) return { error: schedeRes.error };
+
+  const elenco = schedeRes.data || [];
+  const numero = Number(numeroRichiesto) ||
+    (elenco.length ? Number(elenco[0].numero) : 1);
+  const trovata = elenco.find(function(s) { return Number(s.numero) === numero; }) || null;
+
+  schedaRilievoAperta = {
+    famiglia: famiglia,
+    numero: numero,
+    nuova: !trovata,
+    elenco: elenco,
+    id: trovata ? trovata.id : null,
+    statoProgetto: (progettoRes.data && progettoRes.data.stato) || null,
+    nomeOriginale: String((trovata && trovata.dati && trovata.dati.nome_scheda) || ''),
+    modificata: false
+  };
+
+  return { dati: (trovata && trovata.dati) || {} };
+}
+
+function segnaSchedaRilievoModificata() {
+  if (schedaRilievoAperta) schedaRilievoAperta.modificata = true;
+}
+
+function puoEliminareSchedaRilievo() {
+  const s = schedaRilievoAperta;
+  return !!(
+    s && s.elenco && !s.nuova && s.id && s.numero > 1 &&
+    ['ingegnere', 'titolare'].includes(ROLE) &&
+    s.statoProgetto === 'in_verifica_tecnica'
+  );
+}
+
+// Barra in cima alla scheda: "Scheda 1 | Scheda 2 | … | + Nuova scheda",
+// nome/riferimento ed eliminazione. Vuota senza sql/48.
+function htmlBarraSchedeRilievo() {
+  const s = schedaRilievoAperta;
+  if (!s || !s.elenco) return '';
+
+  const numeri = s.elenco.map(function(x) { return Number(x.numero); });
+  if (!numeri.includes(s.numero)) numeri.push(s.numero);
+  numeri.sort(function(a, b) { return a - b; });
+
+  const attuale = s.elenco.find(function(x) { return Number(x.numero) === s.numero; }) || null;
+  const nomeAttuale = String((attuale && attuale.dati && attuale.dati.nome_scheda) || '');
+
+  const tab = numeri.map(function(n) {
+    const riga = s.elenco.find(function(x) { return Number(x.numero) === n; }) || null;
+    const nome = String((riga && riga.dati && riga.dati.nome_scheda) || '');
+    const attiva = n === s.numero;
+    const nomeBreve = nome.length > 18 ? nome.slice(0, 17) + '…' : nome;
+
+    return `
+      <button
+        type="button"
+        class="tab${attiva ? ' on' : ''}"
+        id="rsm-tab-${n}"
+        ${attiva ? 'aria-current="true"' : ''}
+        title="${esc(nome || ('Scheda ' + n))}"
+        style="line-height:1.25;text-align:left"
+        onclick="cambiaSchedaRilievo(${n})"
+      >
+        Scheda ${n}${riga ? '' : ' (nuova)'}
+        ${nomeBreve ? `<br><span style="font-size:11px;color:var(--m)">${esc(nomeBreve)}</span>` : ''}
+      </button>
+    `;
+  }).join('');
+
+  const pulsanteNuova = numeri.length >= 99
+    ? ''
+    : `
+      <button
+        type="button"
+        class="tab"
+        id="rsm-tab-nuova"
+        style="color:var(--g);font-weight:600"
+        onclick="nuovaSchedaRilievo()"
+      >
+        + Nuova scheda
+      </button>
+    `;
+
+  const salvataggio = attuale && attuale.aggiornato_il
+    ? 'Ultimo salvataggio: ' + new Date(attuale.aggiornato_il).toLocaleString('it-IT')
+    : 'Scheda nuova: si crea con "Salva scheda", con le stesse voci delle altre.';
+
+  return `
+    <div class="tabs" id="rsm-barra" role="tablist" aria-label="Schede di questo tipo" style="margin-bottom:10px">
+      ${tab}
+      ${pulsanteNuova}
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="f" style="margin-bottom:6px">
+        <label for="rsm-nome">
+          Nome / riferimento della scheda
+          <span style="font-weight:400;color:var(--m)">(facoltativo)</span>
+        </label>
+        <input
+          type="text"
+          id="rsm-nome"
+          maxlength="80"
+          value="${esc(nomeAttuale)}"
+          placeholder="Es. Piano terra, porte del magazzino"
+        >
+      </div>
+
+      <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+        <div style="font-size:12px;color:var(--m)">${esc(salvataggio)}</div>
+        ${
+          puoEliminareSchedaRilievo()
+            ? `
+              <button type="button" class="btn sm warn" id="rsm-elimina" onclick="eliminaSchedaRilievo()">
+                🗑 Elimina scheda ${s.numero}
+              </button>
+            `
+            : ''
+        }
+      </div>
+    </div>
+  `;
+}
+
+// Apre la scheda del tipo indicato (numero vuoto = la prima).
+async function apriFamigliaSchedaRilievo(famiglia, numero) {
+  switch (famiglia) {
+    case 'rilevazione_incendi':
+      contestoSchedaRilevazione = 'progetto';
+      return apriSchedaRilevazioneIncendi(numero);
+    case 'porte_rei': return apriSchedaPorteRei(numero);
+    case 'estintori': return apriSchedaEstintori(numero);
+    case 'compartimentazione': return apriSchedaCompartimentazione(numero);
+    case 'vernice_intumescente': return apriSchedaVerniceIntumescente(numero);
+    case 'impianti_spegnimento': return apriSchedaImpiantiSpegnimento(numero);
+    case 'coppelle': return apriSchedaCoppelle(numero);
+  }
+}
+
+function confermaAbbandonoSchedaRilievo() {
+  const s = schedaRilievoAperta;
+  if (!s || !s.modificata) return true;
+  return confirm('Le modifiche a questa scheda non sono salvate e andranno perse. Continuare?');
+}
+
+async function cambiaSchedaRilievo(numero) {
+  const s = schedaRilievoAperta;
+  if (!s || Number(numero) === s.numero) return;
+  if (!confermaAbbandonoSchedaRilievo()) return;
+
+  await apriFamigliaSchedaRilievo(s.famiglia, Number(numero));
+}
+
+async function nuovaSchedaRilievo() {
+  const s = schedaRilievoAperta;
+  if (!s || !s.elenco) return;
+
+  if (s.nuova) {
+    toast('Stai già compilando una scheda nuova: salvala prima di crearne un’altra', 'err');
+    return;
+  }
+
+  if (!confermaAbbandonoSchedaRilievo()) return;
+
+  const massimo = s.elenco.reduce(function(m, x) {
+    return Math.max(m, Number(x.numero) || 0);
+  }, 0);
+
+  if (massimo >= 99) {
+    toast('Si possono creare al massimo 99 schede dello stesso tipo', 'err');
+    return;
+  }
+
+  await apriFamigliaSchedaRilievo(s.famiglia, massimo + 1);
+  const campoNome = ge('rsm-nome');
+  if (campoNome) campoNome.focus();
+}
+
+// Salva la riga della scheda aperta. Con sql/48: per (progetto, tipo,
+// numero); la scheda nuova si inserisce (se nel frattempo qualcuno ha
+// preso lo stesso numero, prende il successivo). Senza sql/48 come prima.
+async function salvaRigaSchedaRilievo(riga) {
+  const s = schedaRilievoAperta;
+  const multiple = schedeMultipleAttive() && s && s.elenco && s.famiglia === riga.famiglia;
+
+  if (!multiple) {
+    if (s && s.nomeOriginale && riga.dati && !riga.dati.nome_scheda) {
+      riga.dati.nome_scheda = s.nomeOriginale;
+    }
+    return db
+      .from('progetti_tecnici_schede')
+      .upsert(riga, { onConflict: 'progetto_tecnico_id,famiglia' });
+  }
+
+  const nome = String(v('rsm-nome') || '').trim();
+  if (nome) {
+    riga.dati.nome_scheda = nome;
+  } else {
+    delete riga.dati.nome_scheda;
+  }
+
+  if (!s.nuova) {
+    riga.numero = s.numero;
+    return db
+      .from('progetti_tecnici_schede')
+      .upsert(riga, { onConflict: 'progetto_tecnico_id,famiglia,numero' });
+  }
+
+  let risultato = null;
+  for (let tentativo = 0; tentativo < 3; tentativo++) {
+    riga.numero = s.numero;
+    risultato = await db.from('progetti_tecnici_schede').insert(riga);
+
+    if (!risultato.error || risultato.error.code !== '23505') break;
+
+    const { data: ultima } = await db
+      .from('progetti_tecnici_schede')
+      .select('numero')
+      .eq('progetto_tecnico_id', riga.progetto_tecnico_id)
+      .eq('famiglia', riga.famiglia)
+      .order('numero', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    s.numero = (Number(ultima && ultima.numero) || s.numero) + 1;
+  }
+
+  return risultato;
+}
+
+// Dopo il salvataggio: con sql/48 la scheda resta aperta (si vede nella
+// barra e si può creare la successiva), senza sql/48 si chiude come prima.
+async function dopoSalvataggioSchedaRilievo(messaggio) {
+  const s = schedaRilievoAperta;
+
+  if (schedeMultipleAttive() && s && s.elenco) {
+    await apriFamigliaSchedaRilievo(s.famiglia, s.numero);
+    toast(messaggio + ' (scheda ' + s.numero + ')', 'ok');
+    aggiornaRiepilogoSchedeVerifica();
+    return;
+  }
+
+  toast(messaggio, 'ok');
+  closeM('m-rilievo-tecnico');
+}
+
+// Elimina una scheda in più (numero 2 o oltre): solo ingegnere o
+// titolare, solo con il progetto in verifica tecnica. Lo impone anche il
+// database (RPC elimina_scheda_rilievo di sql/48).
+async function eliminaSchedaRilievo() {
+  const s = schedaRilievoAperta;
+  if (!puoEliminareSchedaRilievo()) return;
+
+  const nome = s.nomeOriginale ? ' (' + s.nomeOriginale + ')' : '';
+  const ok = confirm(
+    'Eliminare ' + etichettaFamigliaTecnica(s.famiglia) + ' – scheda ' + s.numero + nome + '?\n\n' +
+    'I dati di questa scheda si perdono e non si possono recuperare. ' +
+    'Le altre schede restano.'
+  );
+  if (!ok) return;
+
+  const { error } = await db.rpc('elimina_scheda_rilievo', { p_scheda_id: s.id });
+
+  if (error) {
+    toast('Errore eliminazione scheda: ' + error.message, 'err');
+    return;
+  }
+
+  const numeroEliminato = s.numero;
+  s.modificata = false;
+  await apriFamigliaSchedaRilievo(s.famiglia, null);
+  toast('Scheda ' + numeroEliminato + ' eliminata', 'ok');
+  aggiornaRiepilogoSchedeVerifica();
+}
+
+// Riepilogo delle schede salvate nella finestra "Verifica tecnica"
+// (solo con sql/48): quante schede per tipo.
+async function aggiornaRiepilogoSchedeVerifica(progettoId) {
+  const id = progettoId || v('mvt-id');
+  const pulsante = document.querySelector(
+    '#m-verifica-tecnica [onclick^="apriSchedaRilevazioneIngegnere"]'
+  );
+  let box = ge('mvt-schede-riepilogo');
+
+  if (!pulsante || !id || !(await verificaSchedeMultipleDisponibili())) {
+    if (box) box.remove();
+    return;
+  }
+
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'mvt-schede-riepilogo';
+    box.style.cssText = 'font-size:12px;color:var(--m);margin-top:10px';
+    pulsante.parentElement.insertAdjacentElement('afterend', box);
+  }
+
+  const { data, error } = await db
+    .from('progetti_tecnici_schede')
+    .select('famiglia,numero')
+    .eq('progetto_tecnico_id', id);
+
+  if (error) {
+    box.textContent = '';
+    return;
+  }
+
+  const conteggio = {};
+  (data || []).forEach(function(s) {
+    conteggio[s.famiglia] = (conteggio[s.famiglia] || 0) + 1;
+  });
+
+  const voci = Object.keys(conteggio).map(function(famiglia) {
+    const n = conteggio[famiglia];
+    return esc(etichettaFamigliaTecnica(famiglia)) + ': ' + n + (n === 1 ? ' scheda' : ' schede');
+  });
+
+  box.innerHTML = voci.length
+    ? '<b>Schede salvate</b> — ' + voci.join(' · ') +
+      '<br>Per un’altra scheda dello stesso tipo (es. un altro piano) apri la scheda e usa “+ Nuova scheda”.'
+    : 'Nessuna scheda salvata. Ogni tipo può avere più schede (es. una per piano): apri la scheda e usa “+ Nuova scheda”.';
+}
+
 async function renderSchedePreventivo() {
   ricordaPosizionePagina();
   const box = ge('pvd-schede-content');
@@ -618,7 +1071,7 @@ async function renderSchedePreventivo() {
 
   const { data, error } = await db
     .from('progetti_tecnici_schede')
-    .select('id,famiglia,dati,dati_commerciali,stato,aggiornato_il')
+    .select('*')
     .eq('progetto_tecnico_id', currentPreventivoProgettoId)
     .order('aggiornato_il', { ascending: false });
 
@@ -646,14 +1099,15 @@ async function renderSchedePreventivo() {
       Il commerciale può modificare la copia destinata ai fornitori.
     </div>
 
-    ${data.map(function(scheda) {
+    ${ordinaSchedeRilievo(data).map(function(scheda, indice, schede) {
       const modificataCommerciale = schedaHaDatiCommerciali(scheda);
       const datiVisualizzati = datiSchedaDaMostrare(scheda);
 
       const campi = Object.entries(datiVisualizzati)
         .filter(function(entry) {
           const valore = entry[1];
-          return valore !== null &&
+          return campoSchedaDaElencare(entry[0]) &&
+            valore !== null &&
             valore !== undefined &&
             valore !== '';
         });
@@ -663,7 +1117,7 @@ async function renderSchedePreventivo() {
           <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px">
             <div>
               <div style="font-size:15px;font-weight:700">
-                📝 ${esc(etichettaFamigliaTecnica(scheda.famiglia))}
+                📝 ${esc(titoloSchedaRilievo(scheda, schede))}
               </div>
 
               <div style="font-size:12px;color:var(--m);margin-top:4px">
@@ -693,7 +1147,8 @@ async function renderSchedePreventivo() {
                     class="btn sm p"
                     onclick="apriModificaSchedaCommerciale(
                       '${currentPreventivoProgettoId}',
-                      '${scheda.famiglia}'
+                      '${scheda.famiglia}',
+                      '${scheda.id}'
                     )"
                   >
                     ✏️ Modifica copia
@@ -776,25 +1231,20 @@ function chiudiSchedaPorteRei() {
    renderSchedePreventivo();
 }
 
-async function apriSchedaPorteRei() {
+async function apriSchedaPorteRei(numero) {
   ricordaPosizionePagina();
   const box = ge('mrt-content');
 
-  const { data, error } = await db
-    .from('progetti_tecnici_schede')
-    .select('dati')
-    .eq('progetto_tecnico_id', currentRilievoProgettoId)
-    .eq('famiglia', 'porte_rei')
-    .maybeSingle();
+  const lettura = await leggiSchedaRilievo('porte_rei', numero);
 
-  if (error) {
-    toast('Errore apertura scheda: ' + error.message, 'err');
+  if (lettura.error) {
+    toast('Errore apertura scheda: ' + lettura.error.message, 'err');
     return;
   }
 
-  const d = data?.dati || {};
+  const d = lettura.dati;
 
-  box.innerHTML = `
+  box.innerHTML = htmlBarraSchedeRilievo() + `
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
       <div>
         <div style="font-size:16px;font-weight:700">
@@ -990,19 +1440,14 @@ async function salvaSchedaPorteRei() {
     aggiornato_il: new Date().toISOString()
   };
 
-  const { error } = await db
-    .from('progetti_tecnici_schede')
-    .upsert(riga, {
-      onConflict: 'progetto_tecnico_id,famiglia'
-    });
+  const { error } = await salvaRigaSchedaRilievo(riga);
 
   if (error) {
     toast('Errore salvataggio scheda: ' + error.message, 'err');
     return;
   }
 
-  toast('Scheda Porte REI salvata', 'ok');
-  closeM('m-rilievo-tecnico');
+  await dopoSalvataggioSchedaRilievo('Scheda Porte REI salvata');
 }
 
 
@@ -1027,25 +1472,20 @@ function chiudiSchedaEstintori() {
 
 }
 
-async function apriSchedaEstintori() {
+async function apriSchedaEstintori(numero) {
   ricordaPosizionePagina();
   const box = ge('mrt-content');
 
-  const { data, error } = await db
-    .from('progetti_tecnici_schede')
-    .select('dati')
-    .eq('progetto_tecnico_id', currentRilievoProgettoId)
-    .eq('famiglia', 'estintori')
-    .maybeSingle();
+  const lettura = await leggiSchedaRilievo('estintori', numero);
 
-  if (error) {
-    toast('Errore apertura scheda: ' + error.message, 'err');
+  if (lettura.error) {
+    toast('Errore apertura scheda: ' + lettura.error.message, 'err');
     return;
   }
 
-  const d = data?.dati || {};
+  const d = lettura.dati;
 
-  box.innerHTML = `
+  box.innerHTML = htmlBarraSchedeRilievo() + `
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
       <div>
         <div style="font-size:16px;font-weight:700">
@@ -1229,29 +1669,24 @@ async function salvaSchedaEstintori() {
 
   // Nessun campo obbligatorio nelle schede tecniche (decisione di Erika del 28/10)
 
-  const { error } = await db
-    .from('progetti_tecnici_schede')
-    .upsert({
-      progetto_tecnico_id: currentRilievoProgettoId,
-      famiglia: 'estintori',
-      dati: dati,
-      stato: 'bozza',
-      compilato_da: ME.id,
-      aggiornato_il: new Date().toISOString()
-    }, {
-      onConflict: 'progetto_tecnico_id,famiglia'
-    });
+  const { error } = await salvaRigaSchedaRilievo({
+    progetto_tecnico_id: currentRilievoProgettoId,
+    famiglia: 'estintori',
+    dati: dati,
+    stato: 'bozza',
+    compilato_da: ME.id,
+    aggiornato_il: new Date().toISOString()
+  });
 
   if (error) {
     toast('Errore salvataggio scheda: ' + error.message, 'err');
     return;
   }
 
-  toast('Scheda estintori salvata', 'ok');
-  closeM('m-rilievo-tecnico');
+  await dopoSalvataggioSchedaRilievo('Scheda estintori salvata');
 }
 
-async function apriSchedaRilevazioneIncendi() {
+async function apriSchedaRilevazioneIncendi(numero) {
   ricordaPosizionePagina();
   const usaProgetto = contestoSchedaRilevazione === 'progetto';
 
@@ -1271,21 +1706,31 @@ async function apriSchedaRilevazioneIncendi() {
     ? currentRilievoProgettoId
     : currentPreventivoId;
 
-  const { data, error } = await db
-    .from(tabella)
-    .select('dati')
-    .eq(colonnaId, riferimentoId)
-    .eq('famiglia', 'rilevazione_incendi')
-    .maybeSingle();
+  // Dal progetto: schede multiple con sql/48 (barra in cima). Dal
+  // preventivo (preventivi_schede_tecniche): una scheda, come prima.
+  let lettura;
 
-  if (error) {
-    toast('Errore apertura scheda: ' + error.message, 'err');
+  if (usaProgetto) {
+    lettura = await leggiSchedaRilievo('rilevazione_incendi', numero);
+  } else {
+    schedaRilievoAperta = null;
+    const { data, error } = await db
+      .from(tabella)
+      .select('dati')
+      .eq(colonnaId, riferimentoId)
+      .eq('famiglia', 'rilevazione_incendi')
+      .maybeSingle();
+    lettura = error ? { error: error } : { dati: data?.dati || {} };
+  }
+
+  if (lettura.error) {
+    toast('Errore apertura scheda: ' + lettura.error.message, 'err');
     return;
   }
 
-  const d = data?.dati || {};
+  const d = lettura.dati;
 
-  box.innerHTML = `
+  box.innerHTML = (usaProgetto ? htmlBarraSchedeRilievo() : '') + `
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
       <div>
         <div style="font-size:16px;font-weight:700">
@@ -1604,28 +2049,23 @@ if (usaProgetto && ROLE === 'commerciale') {
     new Date().toISOString();
 }
 
-const { error } = await db
-  .from(tabella)
-  .upsert(
-    riga,
-    {
-      onConflict: usaProgetto
-        ? 'progetto_tecnico_id,famiglia'
-        : 'preventivo_id,famiglia'
-    }
-  );
+const { error } = usaProgetto
+  ? await salvaRigaSchedaRilievo(riga)
+  : await db
+    .from(tabella)
+    .upsert(riga, { onConflict: 'preventivo_id,famiglia' });
 
   if (error) {
     toast('Errore salvataggio scheda: ' + error.message, 'err');
     return;
   }
 
- toast('Scheda rilevazione incendi salvata', 'ok');
-
 if (usaProgetto) {
-  closeM('m-rilievo-tecnico');
+  await dopoSalvataggioSchedaRilievo('Scheda rilevazione incendi salvata');
   return;
 }
+
+toast('Scheda rilevazione incendi salvata', 'ok');
 
 await renderSchedePreventivo();
 }
@@ -1650,25 +2090,20 @@ function chiudiSchedaCompartimentazione() {
    renderSchedePreventivo();
 }
 
-async function apriSchedaCompartimentazione() {
+async function apriSchedaCompartimentazione(numero) {
   ricordaPosizionePagina();
   const box = ge('mrt-content');
 
-  const { data, error } = await db
-    .from('progetti_tecnici_schede')
-    .select('dati')
-    .eq('progetto_tecnico_id', currentRilievoProgettoId)
-    .eq('famiglia', 'compartimentazione')
-    .maybeSingle();
+  const lettura = await leggiSchedaRilievo('compartimentazione', numero);
 
-  if (error) {
-    toast('Errore apertura scheda: ' + error.message, 'err');
+  if (lettura.error) {
+    toast('Errore apertura scheda: ' + lettura.error.message, 'err');
     return;
   }
 
-  const d = data?.dati || {};
+  const d = lettura.dati;
 
-  box.innerHTML = `
+  box.innerHTML = htmlBarraSchedeRilievo() + `
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
       <div>
         <div style="font-size:16px;font-weight:700">
@@ -1863,26 +2298,21 @@ async function salvaSchedaCompartimentazione() {
 
   // Nessun campo obbligatorio nelle schede tecniche (decisione di Erika del 28/10)
 
-  const { error } = await db
-    .from('progetti_tecnici_schede')
-    .upsert({
-      progetto_tecnico_id: currentRilievoProgettoId,
-      famiglia: 'compartimentazione',
-      dati: dati,
-      stato: 'bozza',
-      compilato_da: ME.id,
-      aggiornato_il: new Date().toISOString()
-    }, {
-      onConflict: 'progetto_tecnico_id,famiglia'
-    });
+  const { error } = await salvaRigaSchedaRilievo({
+    progetto_tecnico_id: currentRilievoProgettoId,
+    famiglia: 'compartimentazione',
+    dati: dati,
+    stato: 'bozza',
+    compilato_da: ME.id,
+    aggiornato_il: new Date().toISOString()
+  });
 
   if (error) {
     toast('Errore salvataggio scheda: ' + error.message, 'err');
     return;
   }
 
-  toast('Scheda compartimentazione salvata', 'ok');
-  closeM('m-rilievo-tecnico');
+  await dopoSalvataggioSchedaRilievo('Scheda compartimentazione salvata');
 }
 
 async function apriSchedaVerniceIntumescenteIngegnere() {
@@ -1905,25 +2335,20 @@ function chiudiSchedaVerniceIntumescente() {
    renderSchedePreventivo();
 }
 
-async function apriSchedaVerniceIntumescente() {
+async function apriSchedaVerniceIntumescente(numero) {
   ricordaPosizionePagina();
   const box = ge('mrt-content');
 
-  const { data, error } = await db
-    .from('progetti_tecnici_schede')
-    .select('dati')
-    .eq('progetto_tecnico_id', currentRilievoProgettoId)
-    .eq('famiglia', 'vernice_intumescente')
-    .maybeSingle();
+  const lettura = await leggiSchedaRilievo('vernice_intumescente', numero);
 
-  if (error) {
-    toast('Errore apertura scheda: ' + error.message, 'err');
+  if (lettura.error) {
+    toast('Errore apertura scheda: ' + lettura.error.message, 'err');
     return;
   }
 
-  const d = data?.dati || {};
+  const d = lettura.dati;
 
-  box.innerHTML = `
+  box.innerHTML = htmlBarraSchedeRilievo() + `
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
       <div>
         <div style="font-size:16px;font-weight:700">
@@ -2152,26 +2577,21 @@ async function salvaSchedaVerniceIntumescente() {
 
   // Nessun campo obbligatorio nelle schede tecniche (decisione di Erika del 28/10)
 
-  const { error } = await db
-    .from('progetti_tecnici_schede')
-    .upsert({
-      progetto_tecnico_id: currentRilievoProgettoId,
-      famiglia: 'vernice_intumescente',
-      dati: dati,
-      stato: 'bozza',
-      compilato_da: ME.id,
-      aggiornato_il: new Date().toISOString()
-    }, {
-      onConflict: 'progetto_tecnico_id,famiglia'
-    });
+  const { error } = await salvaRigaSchedaRilievo({
+    progetto_tecnico_id: currentRilievoProgettoId,
+    famiglia: 'vernice_intumescente',
+    dati: dati,
+    stato: 'bozza',
+    compilato_da: ME.id,
+    aggiornato_il: new Date().toISOString()
+  });
 
   if (error) {
     toast('Errore salvataggio scheda: ' + error.message, 'err');
     return;
   }
 
-  toast('Scheda vernice intumescente salvata', 'ok');
-  closeM('m-rilievo-tecnico');
+  await dopoSalvataggioSchedaRilievo('Scheda vernice intumescente salvata');
 }
 
 
@@ -2199,25 +2619,20 @@ function chiudiSchedaCoppelle() {
   renderSchedePreventivo();
 }
 
-async function apriSchedaCoppelle() {
+async function apriSchedaCoppelle(numero) {
   ricordaPosizionePagina();
   const box = ge('mrt-content');
 
-  const { data, error } = await db
-    .from('progetti_tecnici_schede')
-    .select('dati')
-    .eq('progetto_tecnico_id', currentRilievoProgettoId)
-    .eq('famiglia', 'coppelle')
-    .maybeSingle();
+  const lettura = await leggiSchedaRilievo('coppelle', numero);
 
-  if (error) {
-    toast('Errore apertura scheda: ' + error.message, 'err');
+  if (lettura.error) {
+    toast('Errore apertura scheda: ' + lettura.error.message, 'err');
     return;
   }
 
-  const d = data?.dati || {};
+  const d = lettura.dati;
 
-  box.innerHTML = `
+  box.innerHTML = htmlBarraSchedeRilievo() + `
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
       <div>
         <div style="font-size:16px;font-weight:700">
@@ -2426,26 +2841,21 @@ async function salvaSchedaCoppelle() {
 
   // Nessun campo obbligatorio nelle schede tecniche (decisione di Erika del 28/10)
 
-  const { error } = await db
-    .from('progetti_tecnici_schede')
-    .upsert({
-      progetto_tecnico_id: currentRilievoProgettoId,
-      famiglia: 'coppelle',
-      dati: dati,
-      stato: 'bozza',
-      compilato_da: ME.id,
-      aggiornato_il: new Date().toISOString()
-    }, {
-      onConflict: 'progetto_tecnico_id,famiglia'
-    });
+  const { error } = await salvaRigaSchedaRilievo({
+    progetto_tecnico_id: currentRilievoProgettoId,
+    famiglia: 'coppelle',
+    dati: dati,
+    stato: 'bozza',
+    compilato_da: ME.id,
+    aggiornato_il: new Date().toISOString()
+  });
 
   if (error) {
     toast('Errore salvataggio scheda: ' + error.message, 'err');
     return;
   }
 
-  toast('Scheda coppelle salvata', 'ok');
-  closeM('m-rilievo-tecnico');
+  await dopoSalvataggioSchedaRilievo('Scheda coppelle salvata');
 }
 
 async function apriSchedaImpiantiSpegnimentoIngegnere() {
@@ -2469,25 +2879,20 @@ function chiudiSchedaImpiantiSpegnimento() {
 
 }
 
-async function apriSchedaImpiantiSpegnimento() {
+async function apriSchedaImpiantiSpegnimento(numero) {
   ricordaPosizionePagina();
   const box = ge('mrt-content');
 
-  const { data, error } = await db
-    .from('progetti_tecnici_schede')
-    .select('dati')
-    .eq('progetto_tecnico_id', currentRilievoProgettoId)
-    .eq('famiglia', 'impianti_spegnimento')
-    .maybeSingle();
+  const lettura = await leggiSchedaRilievo('impianti_spegnimento', numero);
 
-  if (error) {
-    toast('Errore apertura scheda: ' + error.message, 'err');
+  if (lettura.error) {
+    toast('Errore apertura scheda: ' + lettura.error.message, 'err');
     return;
   }
 
-  const d = data?.dati || {};
+  const d = lettura.dati;
 
-  box.innerHTML = `
+  box.innerHTML = htmlBarraSchedeRilievo() + `
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
       <div>
         <div style="font-size:16px;font-weight:700">
@@ -2709,26 +3114,21 @@ async function salvaSchedaImpiantiSpegnimento() {
 
   // Nessun campo obbligatorio nelle schede tecniche (decisione di Erika del 28/10)
 
-  const { error } = await db
-    .from('progetti_tecnici_schede')
-    .upsert({
-      progetto_tecnico_id: currentRilievoProgettoId,
-      famiglia: 'impianti_spegnimento',
-      dati: dati,
-      stato: 'bozza',
-      compilato_da: ME.id,
-      aggiornato_il: new Date().toISOString()
-    }, {
-      onConflict: 'progetto_tecnico_id,famiglia'
-    });
+  const { error } = await salvaRigaSchedaRilievo({
+    progetto_tecnico_id: currentRilievoProgettoId,
+    famiglia: 'impianti_spegnimento',
+    dati: dati,
+    stato: 'bozza',
+    compilato_da: ME.id,
+    aggiornato_il: new Date().toISOString()
+  });
 
   if (error) {
     toast('Errore salvataggio scheda: ' + error.message, 'err');
     return;
   }
 
-  toast('Scheda impianti di spegnimento salvata', 'ok');
-  closeM('m-rilievo-tecnico');
+  await dopoSalvataggioSchedaRilievo('Scheda impianti di spegnimento salvata');
 }
 
 
@@ -6507,7 +6907,7 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
 
   const { data: schede, error: erroreSchede } = await db
     .from('progetti_tecnici_schede')
-    .select('famiglia,dati,dati_commerciali,aggiornato_il')
+    .select('*')
     .eq('progetto_tecnico_id', preventivo.progetto_tecnico_id)
     .order('aggiornato_il', { ascending: false });
 
@@ -6692,8 +7092,9 @@ if (progetto.materiali_note) {
   if (schede && schede.length) {
   titolo('Rilievi tecnici dell’ingegnere');
 
-  schede.forEach(function(scheda) {
-      titolo(etichettaFamigliaTecnica(scheda.famiglia));
+  // Più schede dello stesso tipo (sql/48): "Porte e portoni REI – scheda 2"
+  ordinaSchedeRilievo(schede).forEach(function(scheda, indice, elenco) {
+      titolo(titoloSchedaRilievo(scheda, elenco));
 
      const campi = Object.entries(
   datiSchedaDaMostrare(scheda)
@@ -6702,6 +7103,7 @@ if (progetto.materiali_note) {
 
         // Le note interne per il calcolo non vanno al fornitore (decisione 28/10)
         if (entry[0] === 'note_calcolo') return false;
+        if (!campoSchedaDaElencare(entry[0])) return false;
 
         return valore !== null &&
           valore !== undefined &&

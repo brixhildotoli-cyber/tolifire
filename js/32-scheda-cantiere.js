@@ -410,11 +410,12 @@ function htmlAllegatiCantiere(x) {
     .concat(certificati.map(function(cf) { return riga('🏅', cf.nome_file, 'Certificato del preventivo' + (cf.dimensione ? ' · ' + dimensioneLeggibile(cf.dimensione) : ''), 'certificati-preventivi', cf.storage_path); }))
     .concat(documenti.map(function(d) { return riga('🏅', d.nome_file, 'Cartella della commessa' + (d.nota ? ' · ' + d.nota : ''), 'commesse-documenti', d.storage_path); }));
 
+  // Con sql/48 più schede dello stesso tipo: "Porte e portoni REI – scheda 2"
   const htmlSchede = schede.map(function(sc) {
-    const campi = Object.entries(sc.dati || {}).filter(function(e) { return e[1] !== null && e[1] !== undefined && e[1] !== ''; });
+    const campi = Object.entries(sc.dati || {}).filter(function(e) { return campoSchedaDaElencare(e[0]) && e[1] !== null && e[1] !== undefined && e[1] !== ''; });
     return `
       <details class="cant-campo">
-        <summary style="font-size:13px;cursor:pointer">📝 <b>Rilievo: ${esc(etichettaFamigliaTecnica(sc.famiglia))}</b>${sc.stato === 'bozza' ? ' <span class="bx bwarn">bozza</span>' : ''}</summary>
+        <summary style="font-size:13px;cursor:pointer">📝 <b>Rilievo: ${esc(titoloSchedaRilievo(sc, schede))}</b>${sc.stato === 'bozza' ? ' <span class="bx bwarn">bozza</span>' : ''}</summary>
         ${campi.length
           ? campi.map(function(e) {
               return `<div style="padding:4px 0;border-bottom:1px solid var(--bo)"><div style="font-size:11px;color:var(--m)">${esc(etichettaCampoTecnico(e[0]))}</div><div style="font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(valoreSchedaTecnica(e[1]))}</div></div>`;

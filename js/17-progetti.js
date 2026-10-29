@@ -3081,14 +3081,7 @@ async function renderSchedeProgettoCommerciale(progettoId) {
   const { data, error } = await db
     .from('progetti_tecnici_schede')
     .select(`
-      id,
-      famiglia,
-      dati,
-      dati_commerciali,
-      stato,
-      compilato_da,
-      aggiornato_il,
-      ultima_modifica_commerciale_il,
+      *,
       utenti!progetti_tecnici_schede_compilato_da_fkey(
         nome,
         cognome
@@ -3115,14 +3108,15 @@ async function renderSchedeProgettoCommerciale(progettoId) {
     return;
   }
 
-  box.innerHTML = data.map(function(scheda) {
+  box.innerHTML = ordinaSchedeRilievo(data).map(function(scheda, indice, schede) {
     const modificataCommerciale = schedaHaDatiCommerciali(scheda);
     const datiVisualizzati = datiSchedaDaMostrare(scheda);
 
     const campi = Object.entries(datiVisualizzati).filter(function(entry) {
       const valore = entry[1];
 
-      return valore !== null &&
+      return campoSchedaDaElencare(entry[0]) &&
+        valore !== null &&
         valore !== undefined &&
         valore !== '';
     });
@@ -3138,7 +3132,7 @@ async function renderSchedeProgettoCommerciale(progettoId) {
         <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px">
           <div>
             <div style="font-size:15px;font-weight:700">
-              📝 ${esc(etichettaFamigliaTecnica(scheda.famiglia))}
+              📝 ${esc(titoloSchedaRilievo(scheda, schede))}
             </div>
 
             <div style="font-size:12px;color:var(--m);margin-top:4px">
@@ -3169,7 +3163,8 @@ async function renderSchedeProgettoCommerciale(progettoId) {
                   class="btn sm p"
                   onclick="apriModificaSchedaCommerciale(
                     '${progettoId}',
-                    '${scheda.famiglia}'
+                    '${scheda.famiglia}',
+                    '${scheda.id}'
                   )"
                 >
                   ✏️ Modifica copia
@@ -3205,19 +3200,25 @@ async function renderSchedeProgettoCommerciale(progettoId) {
   }).join('');
 }
 
-async function apriModificaSchedaCommerciale(progettoId, famiglia) {
+// schedaId: la scheda precisa (con sql/48 ci possono essere più schede
+// dello stesso tipo). Senza schedaId si apre la scheda del tipo, come prima.
+async function apriModificaSchedaCommerciale(progettoId, famiglia, schedaId) {
   ricordaPosizionePagina();
  if (!['commerciale', 'titolare'].includes(ROLE)) {
   toast('Solo commerciale o titolare possono modificare la copia', 'err');
   return;
 }
 
-  const { data: scheda, error } = await db
+  let query = db
     .from('progetti_tecnici_schede')
-    .select('id,famiglia,dati,dati_commerciali')
-    .eq('progetto_tecnico_id', progettoId)
-    .eq('famiglia', famiglia)
-    .single();
+    .select('*')
+    .eq('progetto_tecnico_id', progettoId);
+
+  query = schedaId
+    ? query.eq('id', schedaId)
+    : query.eq('famiglia', famiglia).order('creato_il', { ascending: true }).limit(1);
+
+  const { data: scheda, error } = await query.maybeSingle();
 
   if (error || !scheda) {
     toast(
@@ -3228,8 +3229,24 @@ async function apriModificaSchedaCommerciale(progettoId, famiglia) {
     return;
   }
 
+  // La finestra non è una scheda dell'ingegnere: niente barra delle schede.
+  schedaRilievoAperta = null;
+
+  // Quante schede dello stesso tipo (solo con sql/48), per il titolo.
+  let quanteStesse = 1;
+  if (scheda.numero !== undefined && scheda.numero !== null) {
+    const { count } = await db
+      .from('progetti_tecnici_schede')
+      .select('id', { count: 'exact', head: true })
+      .eq('progetto_tecnico_id', progettoId)
+      .eq('famiglia', scheda.famiglia);
+    quanteStesse = count || 1;
+  }
+
   const datiDaModificare = datiSchedaDaMostrare(scheda);
-  const campi = Object.entries(datiDaModificare);
+  const campi = Object.entries(datiDaModificare).filter(function(entry) {
+    return campoSchedaDaElencare(entry[0]);
+  });
 
   const box = ge('mrt-content');
 
@@ -3237,7 +3254,7 @@ async function apriModificaSchedaCommerciale(progettoId, famiglia) {
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
       <div>
         <div style="font-size:16px;font-weight:700">
-          ✏️ Copia commerciale — ${esc(etichettaFamigliaTecnica(famiglia))}
+          ✏️ Copia commerciale — ${esc(titoloSchedaRilievo(scheda, null, quanteStesse))}
         </div>
 
         <div style="font-size:12px;color:var(--m);margin-top:3px">
@@ -3413,6 +3430,11 @@ if (inputAllegati) {
 if (ge('mvt-allegati')) {
   await caricaAllegatiVerifica(progetto.id);
 }
+
+  // Schede di rilievo salvate per tipo (solo con sql/48, js/18)
+  if (typeof aggiornaRiepilogoSchedeVerifica === 'function') {
+    await aggiornaRiepilogoSchedeVerifica(progetto.id);
+  }
 
   openM('m-verifica-tecnica');
 }
