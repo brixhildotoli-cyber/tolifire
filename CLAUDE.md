@@ -94,18 +94,18 @@ commesse.fattura_finale_* (numero, data, importo, calcolato, con_extra,
 dettaglio, nota, registrata_da, registrata_da_nome, registrata_il) e
 chiusura_forzata, chiusura_motivo_forzatura, chiusura_problemi (sola
 lettura per chi legge la commessa; le scrivono solo le RPC di js/38).
-Dopo sql/40 (F10.1, da eseguire, richiede solo 07): colonne nuove
+Dopo sql/40 (F10.1, eseguito il 29/10, richiede solo 07): colonne nuove
 clienti_periodicita.presidi_contratto (jsonb), preventivo_id,
 contratto_stato (lo cambia solo registra_rinnovo_contratto) ed
 evacuatore_fumi (se manca); tabella clienti_periodicita_rinnovi (sola
 lettura, la scrive solo registra_rinnovo_contratto, js/39).
-Dopo sql/41 (F10.2, da eseguire, richiede solo 07; legge sql/40 se c'è):
+Dopo sql/41 (F10.2, eseguito il 29/10, richiede solo 07; legge sql/40 se c'è):
 colonne nuove impianti.annata (anno di fabbricazione) e
 ordini_lavoro.audit_presidi, audit_presidi_da, audit_presidi_il,
 audit_presidi_nota (le cambia solo il database o
 imposta_audit_presidi_intervento); tabella audit_presidi (sola lettura,
 la scrivono solo le RPC dell'audit, js/40).
-Dopo sql/42 (decisioni del 29/10, da eseguire, richiede 07, 22, 26, 30,
+Dopo sql/42 (decisioni del 29/10, eseguito il 29/10, richiede 07, 22, 26, 30,
 33 e 36, tutti in produzione; NON 40 né 41): colonne nuove
 ordini_fornitori.arrivo_annullato_il, _da, _da_nome, _motivo, _data
 (ultimo ritorno da arrivato a confermato; le scrive solo
@@ -172,11 +172,11 @@ Dopo sql/38 (F8.5, eseguito il 28/10): registra_lavoro_extra,
 annulla_lavoro_extra, voci_lavori_extra_commessa.
 Dopo sql/39 (F9.2, eseguito il 28/10): controllo_chiusura_commessa,
 registra_fattura_finale_commessa, chiudi_commessa.
-Dopo sql/40 (F10.1, da eseguire): registra_rinnovo_contratto.
-Dopo sql/41 (F10.2, da eseguire): registra_audit_presidi,
+Dopo sql/40 (F10.1, eseguito il 29/10): registra_rinnovo_contratto.
+Dopo sql/41 (F10.2, eseguito il 29/10): registra_audit_presidi,
 imposta_audit_presidi_intervento, audit_presidi_da_esaminare,
 segna_audit_presidi_esaminato.
-Dopo sql/42 (decisioni del 29/10, da eseguire): preventivo_firmato_commessa,
+Dopo sql/42 (decisioni del 29/10, eseguito il 29/10): preventivo_firmato_commessa,
 salva_fase_commessa_ore; cambia_stato_ordine_fornitore ridefinita (in
 più: 'confermato' da 'arrivato', solo titolare, con motivo).
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
@@ -1107,7 +1107,7 @@ legge le commesse)?
 
 ## Service: manutenzioni ordinarie (Fase 10)
 Contratto di manutenzione e rinnovo (F10.1, js/39-contratto-
-manutenzione.js; sql/40-contratto-manutenzione-rinnovo da eseguire,
+manutenzione.js; sql/40-contratto-manutenzione-rinnovo eseguito il 29/10,
 richiede solo 07). Il contratto resta in clienti_periodicita (scheda
 cliente, tab Periodicità, card "Contratto di manutenzione"); la tabella
 `contratti` (mai usata) NON si usa e non si tocca. Con sql/40:
@@ -1178,7 +1178,7 @@ nel rinnovo)? La segreteria deve avere il box in dashboard? Va bene
 "Non rinnovato" anche prima della scadenza (disdetta anticipata)?
 
 Audit dei presidi alla prima manutenzione (F10.2, js/40-audit-presidi.js;
-sql/41-audit-presidi da eseguire, richiede solo 07, NON richiede 40).
+sql/41-audit-presidi eseguito il 29/10, richiede solo 07, NON richiede 40).
 Con sql/41:
 - ANNATA: impianti.annata (anno di fabbricazione, 1900-2100, nel sito
   fino all'anno prossimo). Campo "Annata" nella finestra del presidio
@@ -1375,7 +1375,7 @@ una sessione e l'altra.
 
 7. **Risposte di Erika alle domande aperte (29/10/2026)** — applicate
    con la task "Decisioni del 29/10" (commit [Decisioni 29/10],
-   sql/42-decisioni-29-10 DA ESEGUIRE, richiede 07, 22, 26, 30, 33, 36) o
+   sql/42-decisioni-29-10 ESEGUITO il 29/10, richiede 07, 22, 26, 30, 33, 36) o
    già in linea con il sito:
    - Decisioni del 23/10 CONFERMATE (informatico come titolare, cliente di
      chi lo crea, exwide a Giulio Pistolesi, intervento non completato in
