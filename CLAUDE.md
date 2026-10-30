@@ -216,7 +216,7 @@ elimina_bozza_fattura.
 Dopo sql/46 (F11.2, ESEGUITO il 30/10, richiede 25, 26, 39):
 emetti_fattura, emetti_fattura_anticipo, emetti_fattura_finale_commessa,
 registra_pagamento_fattura, annulla_pagamento_fattura, emetti_nota_credito.
-Dopo sql/49 (file CBI RiBa, DA ESEGUIRE, richiede 47): nessuna RPC
+Dopo sql/49 (file CBI RiBa, ESEGUITO il 30/10, richiede 47): nessuna RPC
 nuova; colonna impostazioni.codice_sia (letta da tutti, scritta dal
 titolare), js/48-riba-cbi.js.
 Dopo sql/47 (F11.3, ESEGUITO il 30/10): salva_presentazione_riba,
@@ -1915,7 +1915,7 @@ una sessione e l'altra.
    (trigger trg_fatture_pagamenti_blocco_riba). FILE PER LA BANCA:
    distinta in PDF e CSV, e file CBI RiBa (vedi sotto).
    FILE CBI RiBa (js/48-riba-cbi.js; codice SIA con sql/49-codice-sia,
-   DA ESEGUIRE, richiede 47): "🏦 Scarica file CBI" nel dettaglio della
+   ESEGUITO il 30/10, richiede 47): "🏦 Scarica file CBI" nel dettaglio della
    distinta (titolare, segreteria, contabile), accanto a CSV e PDF.
    Tracciato standard CBI "Ri.Ba.": record da 120 caratteri con CR LF,
    ASCII maiuscolo senza accenti; IB (testa), per ogni ricevuta 14, 20,
