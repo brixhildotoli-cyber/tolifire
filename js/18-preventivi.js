@@ -4375,6 +4375,54 @@ function numeroPreventivo(valore) {
   return Number.isFinite(numero) ? numero : 0;
 }
 
+// Importi delle voci scritti con la virgola (richiesta di Erika del 30/10):
+// campi di testo, quindi niente frecce né rotellina che cambiano il
+// numero; il punto digitato diventa virgola; si incollano anche importi
+// presi da Excel, PDF o mail ("1.234,56", "1234.56", "€ 12,50").
+function leggiImportoPreventivo(testo) {
+  let s = String(testo == null ? '' : testo).replace(/[\s\u00a0€]/g, '');
+  if (!s) return 0;
+  const virgola = s.lastIndexOf(',');
+  const punto = s.lastIndexOf('.');
+  if (virgola >= 0 && punto >= 0) {
+    // Il separatore dei decimali è l'ultimo dei due, l'altro sono le migliaia.
+    s = virgola > punto
+      ? s.replace(/\./g, '').replace(',', '.')
+      : s.replace(/,/g, '');
+  } else if (virgola >= 0) {
+    s = s.replace(/,(?=.*,)/g, '').replace(',', '.');
+  } else if (punto >= 0 && (/\..*\./.test(s) || /^-?[1-9]\d{0,2}\.\d{3}$/.test(s))) {
+    // "1.500" o "1.250.000": punti delle migliaia, come si scrive in Italia.
+    s = s.replace(/\./g, '');
+  }
+  const numero = Number(s.replace(/[^0-9.\-]/g, ''));
+  return Number.isFinite(numero) ? numero : 0;
+}
+
+function importoConVirgolaPreventivo(valore, decimaliMinimi) {
+  const numero = numeroPreventivo(valore);
+  return numero.toLocaleString('it-IT', {
+    useGrouping: false,
+    minimumFractionDigits: decimaliMinimi || 0,
+    maximumFractionDigits: 4
+  });
+}
+
+function virgolaCampoImportoPreventivo(campo) {
+  if (campo.value.indexOf('.') < 0) return;
+  const posizione = campo.selectionStart;
+  campo.value = campo.value.replace(/\./g, ',');
+  try { campo.setSelectionRange(posizione, posizione); } catch (e) {}
+}
+
+function incollaImportoPreventivo(evento, campo) {
+  const testo = (evento.clipboardData || window.clipboardData).getData('text');
+  if (!testo) return;
+  evento.preventDefault();
+  campo.value = importoConVirgolaPreventivo(leggiImportoPreventivo(testo));
+  campo.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 function euroPreventivo(valore) {
   return numeroPreventivo(valore).toLocaleString('it-IT', {
     style: 'currency',
@@ -4621,22 +4669,26 @@ function disegnaVociPreventivo() {
                   <div class="f">
                     <label>Quantità</label>
                     <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value="${numeroPreventivo(voce.quantita)}"
-                      oninput="aggiornaCampoVocePreventivo(${indice}, 'quantita', this.value)"
+                      type="text"
+                      inputmode="decimal"
+                      autocomplete="off"
+                      value="${importoConVirgolaPreventivo(voce.quantita)}"
+                      oninput="virgolaCampoImportoPreventivo(this); aggiornaCampoVocePreventivo(${indice}, 'quantita', leggiImportoPreventivo(this.value))"
+                      onpaste="incollaImportoPreventivo(event, this)"
+                      onblur="this.value = importoConVirgolaPreventivo(leggiImportoPreventivo(this.value))"
                     >
                   </div>
 
                   <div class="f">
                     <label>Costo unitario interno (€)</label>
                     <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value="${numeroPreventivo(voce.costo_unitario)}"
-                      oninput="aggiornaCampoVocePreventivo(${indice}, 'costo_unitario', this.value)"
+                      type="text"
+                      inputmode="decimal"
+                      autocomplete="off"
+                      value="${importoConVirgolaPreventivo(voce.costo_unitario, 2)}"
+                      oninput="virgolaCampoImportoPreventivo(this); aggiornaCampoVocePreventivo(${indice}, 'costo_unitario', leggiImportoPreventivo(this.value))"
+                      onpaste="incollaImportoPreventivo(event, this)"
+                      onblur="this.value = importoConVirgolaPreventivo(leggiImportoPreventivo(this.value), 2)"
                     >
                   </div>
                 </div>
@@ -4644,11 +4696,13 @@ function disegnaVociPreventivo() {
                 <div class="f">
                   <label>Prezzo unitario cliente (€)</label>
                   <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value="${numeroPreventivo(voce.prezzo_unitario)}"
-                    oninput="aggiornaCampoVocePreventivo(${indice}, 'prezzo_unitario', this.value)"
+                    type="text"
+                    inputmode="decimal"
+                    autocomplete="off"
+                    value="${importoConVirgolaPreventivo(voce.prezzo_unitario, 2)}"
+                    oninput="virgolaCampoImportoPreventivo(this); aggiornaCampoVocePreventivo(${indice}, 'prezzo_unitario', leggiImportoPreventivo(this.value))"
+                    onpaste="incollaImportoPreventivo(event, this)"
+                    onblur="this.value = importoConVirgolaPreventivo(leggiImportoPreventivo(this.value), 2)"
                   >
                 </div>
 
