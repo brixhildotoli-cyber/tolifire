@@ -225,10 +225,16 @@ function rapDisegnaCalendarioImpegni(impegni, nomeMese, calendario, lista) {
 }
 
 
+// D3: riquadro "Impegni del team tecnico" (prossimi 14 giorni) della
+// dashboard del rappresentante. Dati anonimi dalla RPC
+// impegni_tecnici_dashboard: solo data, fascia oraria e tecnico, nessun
+// cliente. Chiamata da loadDashRappresentante.
 async function loadImpegniTeamAnonimi() {
-  const box = ge('rap-impegni-team-lista');
+  const box = ge('rap-impegni-team-14gg');
 
   if (!box) return;
+
+  box.innerHTML = '<div class="load">Caricamento...</div>';
 
   const oggi = new Date();
   oggi.setHours(0, 0, 0, 0);
@@ -236,9 +242,10 @@ async function loadImpegniTeamAnonimi() {
   const tra14Giorni = new Date(oggi);
   tra14Giorni.setDate(tra14Giorni.getDate() + 14);
 
+  // Date in ora locale (con toISOString in Italia si partiva da ieri).
   const { data, error } = await db.rpc('impegni_tecnici_dashboard', {
-    p_dal: oggi.toISOString().split('T')[0],
-    p_al: tra14Giorni.toISOString().split('T')[0]
+    p_dal: rapDataIso(oggi.getFullYear(), oggi.getMonth(), oggi.getDate()),
+    p_al: rapDataIso(tra14Giorni.getFullYear(), tra14Giorni.getMonth(), tra14Giorni.getDate())
   });
 
   if (error) {
@@ -281,7 +288,7 @@ async function loadImpegniTeamAnonimi() {
           return `
             <div style="display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--bo)">
               <span style="font-weight:600">
-                👷 ${esc(impegno.ruolo)} — ${esc(impegno.tecnico)}
+                👷 ${esc(impegno.tecnico || 'Tecnico')}
               </span>
 
               <span class="bx bblue">
@@ -301,6 +308,8 @@ async function loadDashRappresentante() {
   caricaAvvisiLeadAssegnate();
   caricaAvvisiPreventiviRappresentante();
   caricaPromemoriaAnticipiRappresentante();
+  // D3: impegni del team tecnico nei prossimi 14 giorni (dati anonimi)
+  loadImpegniTeamAnonimi().catch(function(e){ console.warn('loadImpegniTeamAnonimi:', e); });
   // F10.1: contratti di manutenzione in scadenza dei suoi clienti (js/39, solo con sql/40)
   if (typeof caricaContrattiInScadenzaDashboard === 'function') {
     caricaContrattiInScadenzaDashboard().catch(function(e){ console.warn('caricaContrattiInScadenzaDashboard:', e); });

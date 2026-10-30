@@ -1954,21 +1954,36 @@ una sessione e l'altra.
 
 5. **Da F2.4 (risposte di Erika del 26/10)** — lavori nuovi emersi
    dall'analisi del codice non usato (CODICE-MORTO.md §8):
-   - D3: far funzionare il riquadro "Impegni del team tecnico" nella
-     dashboard del rappresentante (oggi id duplicato, resta su
-     "Caricamento..."; `loadImpegniTeamAnonimi` in js/13 mai chiamata).
-   - D4: pulsante "Elimina attività" nel calendario dell'ingegnere
-     (`eliminaAttivitaIngegnere` esiste ma non è collegata).
+   - D3: FATTO (30/10, nessun SQL) — riquadro "Impegni del team tecnico"
+     nella dashboard del rappresentante: il riquadro dei 14 giorni ha
+     ora l'id `rap-impegni-team-14gg` (l'elenco del mese resta
+     `rap-impegni-team-lista`) e `loadImpegniTeamAnonimi` (js/13) è
+     chiamata da `loadDashRappresentante`. Dati anonimi dalla RPC
+     impegni_tecnici_dashboard (data, fascia, tecnico; nessun cliente),
+     date in ora locale.
+   - D4: FATTO (30/10, nessun SQL) — bottone "🗑️ Elimina attività"
+     nella finestra m-attivita-ingegnere (`mai-elimina`, visibile solo
+     aprendo un'attività già salvata): conferma, chiude la finestra e
+     ricarica il calendario (js/05 `eliminaAttivitaIngegnere`). RLS: la
+     policy calendario_personale_delete_proprio (utente_id = auth.uid())
+     permette già all'ingegnere di togliere le proprie attività; se il
+     database non cancella nulla compare un avviso.
    - D5: CHIUSA (26/10) — nessuna approvazione obbligatoria del
      titolare. Il titolare può fare tutto quello che fanno gli altri
      ruoli e intervenire quando vuole, ma non è mai un passaggio
      obbligato del flusso. `inviaPreventivoPerApprovazione` resta non
      collegata (candidata a rimozione con conferma di Toli).
+   - D6: CHIUSA (30/10), superata — la posizione delle pagine la gestisce
+     ora js/47-posizione-pagine.js per tutte le pagine (ricorda la
+     posizione a ogni cambio di pagina e la rimette tornando indietro);
+     `ricordaPosizionePagina`/`ripristinaPosizionePagina` di js/01 sono
+     rese vuote da js/47, quindi non c'è più nulla da rimettere in
+     renderPC (js/09).
    - D7: costruire le schede di manutenzione ordinaria del tecnico
      (`apriManutenzioneOrdinaria`/`salvaManutenzioneOrdinaria` chiamate da
-     index.html ma mai scritte: oggi il bottone non fa nulla).
-   - D6: `ricordaPosizionePagina` è solo nella copia morta di renderPC
-     (js/07): rimetterla nella versione usata (js/09).
+     index.html ma mai scritte: oggi il bottone non fa nulla). Decisione
+     di Erika del 30/10: farlo funzionare, non toglierlo. Contenuti della
+     scheda da definire (si aspettano le specifiche di Erika).
 
 6. **Riepilogo ore degli operai su tutte le commesse** — chiesto da Erika
    il 28/10 (risposta alla domanda 4 di F8.4). Pagina per il titolare

@@ -1060,7 +1060,8 @@
       Prossimi 14 giorni. Sono visibili solo data, fascia oraria e tecnico assegnato.
   </div>
 
-  <div id="rap-impegni-team-lista">
+  <!-- D3: id distinto dall'elenco del mese (rap-impegni-team-lista); lo riempie loadImpegniTeamAnonimi (js/13) -->
+  <div id="rap-impegni-team-14gg">
     <div class="load">Caricamento...</div>
   </div>
 </div>
@@ -6857,12 +6858,18 @@
       </textarea>
     </div>
 
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn" onclick="closeM('m-attivita-ingegnere')">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">
+      <button class="btn" style="white-space:nowrap" onclick="closeM('m-attivita-ingegnere')">
         Annulla
       </button>
 
-      <button class="btn p" onclick="salvaAttivitaIngegnere()">
+      <!-- D4: solo su un'attività già salvata (modificaAttivitaIngegnere) -->
+      <button class="btn" id="mai-elimina" style="color:var(--r);white-space:nowrap;display:none"
+        onclick="eliminaAttivitaIngegnere(v('mai-id'))">
+        🗑️ Elimina attività
+      </button>
+
+      <button class="btn p" style="white-space:nowrap" onclick="salvaAttivitaIngegnere()">
         Salva attività
       </button>
     </div>

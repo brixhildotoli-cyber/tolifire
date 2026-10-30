@@ -401,6 +401,7 @@ function apriNuovaAttivitaIngegnere(dataSelezionata = null) {
   ge('mai-inizio').value = '';
   ge('mai-fine').value = '';
   ge('mai-descrizione').value = '';
+  ge('mai-elimina').style.display = 'none';
 
   openM('m-attivita-ingegnere');
 }
@@ -427,6 +428,7 @@ function modificaAttivitaIngegnere(id) {
     ? attivita.ora_fine.slice(0, 5)
     : '';
   ge('mai-descrizione').value = attivita.descrizione || '';
+  ge('mai-elimina').style.display = '';
 
   openM('m-attivita-ingegnere');
 }
@@ -485,21 +487,34 @@ async function salvaAttivitaIngegnere() {
   await loadCalendarioIngegnere();
 }
 
+// D4: bottone "Elimina attività" della finestra m-attivita-ingegnere.
+// RLS: calendario_personale_delete_proprio (utente_id = auth.uid()).
 async function eliminaAttivitaIngegnere(id) {
+  if (!id) return;
+
   if (!confirm('Eliminare questa attività dal calendario?')) {
     return;
   }
 
-  const { error } = await db
+  // .select() restituisce le righe tolte: se le regole del database non
+  // permettono la cancellazione non c'è errore ma nessuna riga.
+  const { data, error } = await db
     .from('calendario_personale')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .select('id');
 
   if (error) {
     toast('Errore eliminazione: ' + error.message, 'err');
     return;
   }
 
+  if (!data || !data.length) {
+    toast('Attività non eliminata: puoi togliere solo le tue attività', 'err');
+    return;
+  }
+
+  closeM('m-attivita-ingegnere');
   toast('Attività eliminata', 'ok');
   if (ROLE === 'commerciale') {
   await loadDashCommerciale();
