@@ -105,7 +105,7 @@ ordini_lavoro.audit_presidi, audit_presidi_da, audit_presidi_il,
 audit_presidi_nota (le cambia solo il database o
 imposta_audit_presidi_intervento); tabella audit_presidi (sola lettura,
 la scrivono solo le RPC dell'audit, js/40).
-Dopo sql/43 (F10.3, DA ESEGUIRE, richiede solo 07; non richiede 40 né 41):
+Dopo sql/43 (F10.3, ESEGUITO il 30/10, richiede solo 07; non richiede 40 né 41):
 colonne nuove ordini_lavoro.appuntamento_richiesto, appuntamento_giorno,
 _ora, _contatto, _contattato_il, _nota, _fissato_da, _fissato_da_nome,
 _fissato_il, _motivo, _motivo_il (le cambiano solo il database e le RPC
@@ -123,13 +123,13 @@ solo salva_fase_commessa_ore, js/34).
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
-è in costruzione, vedi sotto). Dopo sql/45 (F11.1, da eseguire):
+è in costruzione, vedi sotto). Dopo sql/45 (F11.1, eseguito il 30/10):
 fatture_righe (lettura; bozze scritte solo con le RPC salva_bozza_fattura
 ed elimina_bozza_fattura, js/43-fatture-bozze.js). Dopo sql/46 (F11.2,
-da eseguire dopo 45): fatture_scadenze (lettura; le scrivono solo le RPC
+eseguito il 30/10): fatture_scadenze (lettura; le scrivono solo le RPC
 di emissione e pagamento) e fatture_pagamenti (tabella nuova, sola
 lettura; RPC registra_pagamento_fattura e annulla_pagamento_fattura,
-js/44-fatture-emissione.js). Dopo sql/47 (F11.3, da eseguire dopo 46):
+js/44-fatture-emissione.js). Dopo sql/47 (F11.3, eseguito il 30/10):
 riba_presentazioni, riba_righe (lettura per titolare, segreteria,
 contabile; le scrivono solo le RPC delle distinte RIBA), solleciti
 (lettura; anche il rappresentante per i suoi clienti; li scrivono solo
@@ -205,25 +205,25 @@ Dopo sql/40 (F10.1, eseguito il 29/10): registra_rinnovo_contratto.
 Dopo sql/41 (F10.2, eseguito il 29/10): registra_audit_presidi,
 imposta_audit_presidi_intervento, audit_presidi_da_esaminare,
 segna_audit_presidi_esaminato.
-Dopo sql/43 (F10.3, da eseguire): fissa_appuntamento_intervento,
+Dopo sql/43 (F10.3, eseguito il 30/10): fissa_appuntamento_intervento,
 rimanda_appuntamento_segreteria, imposta_appuntamento_richiesto;
 portale_ticket ridefinita (in più l'ora dell'appuntamento fissato;
 rollback = versione di sql/13).
-Dopo sql/44 (F10.4, DA ESEGUIRE, richiede 07 e 40): prezzi_contratto_cliente
+Dopo sql/44 (F10.4, ESEGUITO il 30/10, richiede 07 e 40): prezzi_contratto_cliente
 (sola lettura: preventivo del contratto e prezzi di vendita delle voci).
-Dopo sql/45 (F11.1, DA ESEGUIRE, richiede 07 e 26): salva_bozza_fattura,
+Dopo sql/45 (F11.1, ESEGUITO il 30/10, richiede 07 e 26): salva_bozza_fattura,
 elimina_bozza_fattura.
-Dopo sql/46 (F11.2, DA ESEGUIRE DOPO 45, richiede 25, 26, 39):
+Dopo sql/46 (F11.2, ESEGUITO il 30/10, richiede 25, 26, 39):
 emetti_fattura, emetti_fattura_anticipo, emetti_fattura_finale_commessa,
 registra_pagamento_fattura, annulla_pagamento_fattura, emetti_nota_credito.
-Dopo sql/47 (F11.3, DA ESEGUIRE DOPO 46): salva_presentazione_riba,
+Dopo sql/47 (F11.3, ESEGUITO il 30/10): salva_presentazione_riba,
 elimina_presentazione_riba, segna_presentazione_riba_inviata,
 registra_esito_riba, annulla_esito_riba, registra_sollecito,
 esito_sollecito, elimina_sollecito.
 Dopo sql/42 (decisioni del 29/10, eseguito il 29/10): preventivo_firmato_commessa,
 salva_fase_commessa_ore; cambia_stato_ordine_fornitore ridefinita (in
 più: 'confermato' da 'arrivato', solo titolare, con motivo).
-Dopo sql/48 (schede di rilievo multiple, DA ESEGUIRE, richiede 07 e 34;
+Dopo sql/48 (schede di rilievo multiple, ESEGUITO il 30/10, richiede 07 e 34;
 prima si pubblica il sito): elimina_scheda_rilievo; scheda_cantiere_commessa
 ridefinita (in più numero e nome della scheda; rollback = versione di sql/34).
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
@@ -400,7 +400,7 @@ certificazione, note. Nessun campo obbligatorio. Compare come le altre nel
 preventivo, nella copia del commerciale e nel PDF per il fornitore.
 
 Schede di rilievo multiple (richiesta di Erika del 29/10, js/18;
-sql/48-schede-tecniche-multiple DA ESEGUIRE, richiede 07 e 34; ORDINE:
+sql/48-schede-tecniche-multiple ESEGUITO il 30/10, richiede 07 e 34; ORDINE:
 prima si pubblica il sito, poi si esegue il 48, perché il sito vecchio
 salva per il vincolo che il 48 toglie): ognuna delle 7 schede
 dell'ingegnere (rilevazione incendi, porte REI, estintori,
@@ -1325,7 +1325,7 @@ audit? I presidi "non trovati" il capo tecnico li elimina a mano dal
 registro (oggi sì): va bene?
 
 Appuntamento fissato dalla Segreteria (F10.3, js/41-appuntamenti-
-segreteria.js; sql/43-appuntamento-segreteria DA ESEGUIRE, richiede solo
+segreteria.js; sql/43-appuntamento-segreteria ESEGUITO il 30/10, richiede solo
 07). Con sql/43:
 - QUALI INTERVENTI (scelta dichiarata, transizione sicura): l'obbligo
   dell'appuntamento (ordini_lavoro.appuntamento_richiesto) lo mette il
@@ -1425,7 +1425,7 @@ manutenzioni programmate ancora da pianificare)? (Risposte di Erika del
 nel portale FATTI; promemoria al cliente da costruire a parte.)
 
 Buono di lavoro, fattura e ripartenza del ciclo (F10.4, js/42-buono-
-lavoro.js; sql/44-prezzi-contratto DA ESEGUIRE, richiede 07 e 40; non
+lavoro.js; sql/44-prezzi-contratto ESEGUITO il 30/10, richiede 07 e 40; non
 richiede 41 né 43, li usa se ci sono). Comprende anche la 10.5 della
 roadmap (scadenze e ripartenza).
 - BUONO DI LAVORO = la scheda di lavoro del tecnico (schede_lavoro, js/11,
@@ -1693,7 +1693,7 @@ una sessione e l'altra.
    presentazioni RIBA, esito dei solleciti non possono essere vuoti.
 
    **Bozza di fattura dalla scheda di lavoro (F11.1, js/43-fatture-
-   bozze.js; sql/45-fatture-bozze DA ESEGUIRE, richiede 07 e 26)**.
+   bozze.js; sql/45-fatture-bozze ESEGUITO il 30/10, richiede 07 e 26)**.
    Chi: titolare, segreteria, contabile (scrivono le fatture per sql/10);
    il commerciale vede lista e fatture in sola lettura; il rappresentante
    per ora non ha la pagina (Fase 11 del piano). Dove: pagina Fatture
@@ -1742,8 +1742,8 @@ una sessione e l'altra.
    diretta di una fattura emessa e del soft-delete delle emesse.
 
    **Emissione, scadenze, pagamenti, anticipo e finale vere (F11.2,
-   js/44-fatture-emissione.js; sql/46-fatture-emissione-pagamenti DA
-   ESEGUIRE DOPO sql/45)**.
+   js/44-fatture-emissione.js; sql/46-fatture-emissione-pagamenti
+   ESEGUITO il 30/10)**.
    EMISSIONE: "📤 Emetti fattura" nella bozza (salva la bozza, poi
    finestra m-emetti-fattura, id mef-): data (giorno italiano, mai nel
    futuro, mai prima dell'ultima fattura dello stesso anno e tipo),
@@ -1829,7 +1829,7 @@ una sessione e l'altra.
    45.
 
    **RIBA, solleciti, dashboard, PDF (F11.3, js/45-fatture-riba-
-   solleciti.js; sql/47-fatture-riba-solleciti DA ESEGUIRE DOPO sql/46)**.
+   solleciti.js; sql/47-fatture-riba-solleciti ESEGUITO il 30/10)**.
    RIBA (fasi 8-9; titolare, segreteria, contabile): riquadro
    fat-riba-box nella pagina Fatture. DISTINTA (riba_presentazioni,
    numero AAAA/NNN dal database sotto blocco per anno): banca e IBAN di
