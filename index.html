@@ -2042,6 +2042,47 @@
   </div>
 </div>
 
+<!-- ORE CANTIERE: riepilogo ore su tutte le commesse (js/49; dati di sql/37). Titolare e capo tecnico -->
+<div class="page" id="pg-ore-cantiere">
+  <div class="sh">
+    <div>
+      <div class="st">⏱️ Ore cantiere</div>
+      <div style="font-size:12px;color:var(--m);margin-top:3px">Ore di dipendenti e subappaltatori dal giornale di cantiere, sommate su tutte le commesse. Le vedono solo titolare e capo tecnico.</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="orec-btn-csv" onclick="scaricaCsvOreCantiere()">⬇️ CSV per persona</button>
+      <button class="btn" onclick="loadOreCantiere(true)" title="Rileggi le ore">↻ Aggiorna</button>
+    </div>
+  </div>
+  <div class="al2 i" id="orec-non-attivo" style="display:none">Il riepilogo delle ore di cantiere non è ancora attivo: si attiva dopo l'aggiornamento del database (giornale di cantiere).</div>
+  <div id="orec-contenuto">
+    <div class="sb orec-filtri">
+      <select id="orec-periodo" onchange="cambiaPeriodoOreCantiere()">
+        <option value="mese">Questo mese</option>
+        <option value="mese-scorso">Mese scorso</option>
+        <option value="tre-mesi">Ultimi 3 mesi</option>
+        <option value="anno">Quest'anno</option>
+        <option value="libere">Date libere</option>
+      </select>
+      <span id="orec-date-libere" class="orec-date" style="display:none">
+        <label>dal <input type="date" id="orec-dal" onchange="disegnaOreCantierePagina()"></label>
+        <label>al <input type="date" id="orec-al" onchange="disegnaOreCantierePagina()"></label>
+      </span>
+      <select id="orec-commessa" onchange="disegnaOreCantierePagina()"><option value="">Tutte le commesse</option></select>
+      <select id="orec-persona" onchange="disegnaOreCantierePagina()"><option value="">Tutte le persone</option></select>
+    </div>
+    <div id="orec-riassunto"></div>
+    <div class="tabs">
+      <button class="tab on" onclick="stab(this,'orec-tab-persone')">👷 Persone</button>
+      <button class="tab" onclick="stab(this,'orec-tab-commesse')">📁 Commesse <span id="orec-oltre-conta"></span></button>
+      <button class="tab" onclick="stab(this,'orec-tab-lavorazioni')">🔧 Lavorazioni</button>
+    </div>
+    <div class="tc on" id="orec-tab-persone"><div id="orec-persone"><div class="load">Caricamento...</div></div></div>
+    <div class="tc" id="orec-tab-commesse"><div id="orec-commesse"><div class="load">Caricamento...</div></div></div>
+    <div class="tc" id="orec-tab-lavorazioni"><div id="orec-lavorazioni"><div class="load">Caricamento...</div></div></div>
+  </div>
+</div>
+
 <!-- SCHEDA DOCUMENTI di un dipendente o di un subappaltatore (F7.1, js/30) -->
 <div class="page" id="pg-scheda-documenti">
   <div class="sh">
@@ -3519,6 +3560,28 @@
 
       <hr class="sep">
 
+      <h4 id="info-ct-16">16. Ore cantiere: le ore di tutte le commesse</h4>
+
+      <p>
+        In <b>⏱️ Ore cantiere</b> vedi le ore del giornale sommate su tutte le
+        commesse. Scegli il periodo (<b>Questo mese</b>, <b>Mese scorso</b>,
+        <b>Ultimi 3 mesi</b>, <b>Quest’anno</b>, <b>Date libere</b>), una
+        commessa o una persona. Tab <b>👷 Persone</b>: ore, giorni e media al
+        giorno di ogni dipendente e subappaltatore (premi <b>▸ N commesse</b>
+        per il dettaglio); <b>📁 Commesse</b>: ore contro stime, in rosso
+        quelle oltre la stima; <b>🔧 Lavorazioni</b>: le stesse lavorazioni
+        sommate tra le commesse. <b>⬇️ CSV per persona</b> scarica il
+        riepilogo per Excel.
+      </p>
+
+      <div class="al2 i">
+        Per i subappaltatori le ore sono ore × persone, come nel giornale.
+        Le ore sono quelle che scrivi nel giornale: se manca un giorno, manca
+        anche qui.
+      </div>
+
+      <hr class="sep">
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -3690,6 +3753,20 @@
         La soglia dei 3.000 € del rappresentante è fissa nel database e non si
         cambia da qui.
       </div>
+
+      <hr class="sep">
+
+      <h4 id="info-tit-7">7. Ore cantiere e stime</h4>
+
+      <p>
+        In <b>⏱️ Ore cantiere</b> trovi le ore di dipendenti e subappaltatori
+        di tutte le commesse, per periodo, commessa o persona, con il
+        confronto tra ore stimate ed effettive per commessa e per
+        lavorazione. In “Cosa tocca a me” la riga
+        <b>⏱️ Commesse oltre la stima delle ore</b> compare quando una
+        commessa aperta ha superato le ore stimate. <b>⬇️ CSV per persona</b>
+        scarica il riepilogo per Excel.
+      </p>
 
       <hr class="sep">
 
@@ -7055,6 +7132,7 @@
 <script defer src="js/46-cosa-tocca-a-me.js"></script>
 <script defer src="js/47-posizione-pagine.js"></script>
 <script defer src="js/48-riba-cbi.js"></script>
+<script defer src="js/49-ore-cantiere.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

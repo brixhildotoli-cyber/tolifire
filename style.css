@@ -1372,3 +1372,38 @@ pre {
   .tam-righe{grid-template-columns:minmax(0,1fr)}
   .tam-riga{min-height:36px;padding:5px 0}
 }
+
+/* Ore cantiere: riepilogo ore su tutte le commesse (js/49) */
+.orec-filtri select{width:auto;min-width:150px}
+.orec-date{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--m)}
+.orec-date input{width:auto}
+.orec-sezione{font-size:13px;font-weight:700;margin:12px 0 6px}
+.orec-tab .orec-num{text-align:right;white-space:nowrap}
+.orec-tab tr.orec-oltre td{background:var(--rl)}
+.orec-dettaglio td{background:var(--bg);padding:6px 12px}
+.orec-dett-riga{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:0.5px solid var(--bo)}
+.orec-dett-riga:last-child{border-bottom:0}
+.orec-evidenza .orec-dett-riga{border-bottom-color:rgba(0,0,0,.08)}
+.orec-kpi .kpi-num{font-size:24px}
+@media (max-width: 700px){
+  .orec-kpi{gap:8px}
+  .orec-kpi .kpi-card{padding:9px 10px 8px}
+  .orec-kpi .kpi-icon{display:none}
+  .orec-kpi .kpi-num{font-size:20px}
+  .orec-filtri select,.orec-filtri .orec-date{width:100%}
+  .orec-filtri .orec-date label{flex:1;display:flex;gap:6px;align-items:center}
+  .orec-filtri .orec-date input{flex:1;min-width:0}
+  .orec-tw{overflow:visible;border:0;background:transparent}
+  .orec-tab,.orec-tab tbody,.orec-tab tr,.orec-tab td{display:block;width:100%}
+  .orec-tab thead{display:none}
+  .orec-tab tr{background:var(--w);border:0.5px solid var(--bo);border-radius:var(--rd);margin-bottom:10px;padding:6px 12px}
+  .orec-tab tr.orec-oltre{border-left:4px solid #E24B4A}
+  .orec-tab tr.orec-oltre td{background:transparent}
+  .orec-tab td{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--bo);overflow-wrap:anywhere;text-align:right}
+  .orec-tab td:first-child{display:block;text-align:left}
+  .orec-tab td:last-child{border-bottom:0}
+  .orec-tab td::before{content:attr(data-label);flex:0 0 auto;color:var(--m);font-size:11px;font-weight:600;text-transform:uppercase;text-align:left}
+  .orec-tab td:first-child::before,.orec-tab td[data-label=""]::before,.orec-tab td[colspan]::before{display:none}
+  .orec-tab tr.orec-dettaglio{margin-top:-8px;border-top:0;border-radius:0 0 var(--rd) var(--rd);background:var(--bg)}
+  .orec-tab tr.orec-dettaglio td{display:block;text-align:left;background:transparent;padding:4px 0}
+}

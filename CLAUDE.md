@@ -3,7 +3,7 @@
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
 file unico: `index.html` (markup) + `style.css` + moduli `js/00-…46-*.js`
-caricati in ordine 00–18, poi 20–46, infine `19-init.js` (dettagli in
+caricati in ordine 00–18, poi 20–49, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -281,10 +281,12 @@ js/02-portale-navigazione.js; controllo in `canAccessPage`):
   preventivi-titolare, preventivo-detail, progetti-da-preventivare, presidi,
   workflow, interventi, clienti, documenti, fatture, catalogo, impostazioni,
   cliente-detail, progetto-detail, fornitore-detail, tecnico, sopralluogo,
-  commesse, commessa-detail, team-subappalti, scheda-documenti, info
+  commesse, commessa-detail, team-subappalti, scheda-documenti,
+  ore-cantiere, info
 - capo_tecnico: dashboard, calendario, calendario-team, piano-mensile,
   presidi, interventi, tecnico, clienti, documenti, cliente-detail,
-  commesse, commessa-detail, team-subappalti, scheda-documenti, info
+  commesse, commessa-detail, team-subappalti, scheda-documenti,
+  ore-cantiere, info
 - segreteria: dashboard, calendario, workflow, presidi, interventi, tecnico,
   clienti, documenti, fatture, catalogo, cliente-detail, fornitore-detail,
   commesse, commessa-detail, team-subappalti, scheda-documenti, info
@@ -1603,6 +1605,46 @@ approvare" conta solo quelli con il PDF per il cliente (come js/13) e
 "Progetti da preventivare" segue le regole della lista di js/17. Provato in locale (dump +
 28-42 e poi + 43-48) con tutti i ruoli, a 390 px e a 1280 px.
 
+Ore cantiere: riepilogo ore su tutte le commesse (Moduli da costruire
+punto 6, js/49-ore-cantiere.js, NESSUN SQL: legge i dati di sql/37 e 32
+già in produzione). Pagina `ore-cantiere` (pg-ore-cantiere), voce
+"⏱️ Ore cantiere" nel menu di titolare (e informatico) e capo_tecnico,
+dopo Commesse. Capo tecnico: SÌ, scelta dichiarata (organizza le
+squadre e per RLS legge già le ore per persona, policy
+commesse_giornale_ore_lettura di sql/37); segreteria, tecnico,
+commerciale, rappresentante, contabile, ingegnere: NO (non leggono le
+ore per persona). Nessuna RPC, niente costi né prezzi (le commesse si
+leggono senza importo). Letture a pagine da 1000 (`leggiTutteLeRigheOre`)
+di commesse_giornale_ore, commesse_lavorazioni, commesse, utenti,
+subappaltatori; dati tenuti 2 minuti (tornando dalla scheda commessa non
+si rilegge; "↻ Aggiorna" rilegge). Filtri: periodo (Questo mese, Mese
+scorso, Ultimi 3 mesi = questo mese e i 2 precedenti, Quest'anno, Date
+libere dal/al; date invertite si scambiano), commessa, persona
+(dipendenti e subappaltatori). In cima: ore nel periodo, dipendenti,
+subappaltatori, commesse e giorni di cantiere. Tab: PERSONE (dipendenti
+poi subappaltatori: ore, giorni di presenza, media al giorno, "▸ N
+commesse" espande le ore per commessa); COMMESSE (ore nel periodo con i
+filtri; ore TOTALI = tutto il giornale e tutte le persone, ore stimate =
+somma delle ore_stimate delle lavorazioni, scostamento in ore e in %,
+stesse regole e stessi numeri del box "⏱️ Ore stimate e ore effettive"
+di js/35; commesse oltre la stima in rosso e per prime; riquadro in cima
+"Commesse APERTE oltre la stima", qualunque sia il filtro, con "Apri");
+LAVORAZIONI (scelta: lavorazioni con lo stesso nome, maiuscole e spazi a
+parte, sommate tra le commesse della vista Commesse; lo scostamento usa
+solo le commesse che hanno la stima; "Altro (non in elenco)" in fondo).
+Subappaltatori: ore × persone (oreRigaGiornale di js/35). Export "⬇️ CSV
+per persona" (Excel italiano: `;`, virgola decimale, BOM UTF-8; righe per
+persona più dettaglio persona × commessa; i nomi che cominciano con = + -
+@ prendono un apostrofo). Sul telefono le tabelle diventano schede.
+"Cosa tocca a me" del titolare (js/46): dato informativo (tipo 'info')
+"⏱️ Commesse oltre la stima delle ore: N", solo commesse aperte, nascosto
+se 0; porta alla pagina sul tab Commesse. Guide Info: titolare
+(info-tit-7) e capo tecnico (info-ct-16). Senza sql/37 la pagina dice
+"non è ancora attivo". Provato in locale (dump-26 + sql/28-48, 1476
+righe di ore su 5 commesse) con titolare, informatico e capo tecnico a
+390 e 1280 px; segreteria, tecnico e rappresentante non hanno la pagina;
+totali uguali ai box della scheda commessa e a una somma SQL.
+
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
 - Riutilizzare le helper esistenti: `ge`, `v`, `toast`, `fd`, `openM`,
@@ -1985,12 +2027,10 @@ una sessione e l'altra.
      di Erika del 30/10: farlo funzionare, non toglierlo. Contenuti della
      scheda da definire (si aspettano le specifiche di Erika).
 
-6. **Riepilogo ore degli operai su tutte le commesse** — chiesto da Erika
-   il 28/10 (risposta alla domanda 4 di F8.4). Pagina per il titolare
-   (e capo tecnico?) con le ore di ogni dipendente e subappaltatore in
-   cantiere, per periodo, sommate su tutte le commesse, con il confronto
-   ore stimate/effettive per lavorazione. Dati da sql/37 (giornale di
-   cantiere). Da pianificare come task a parte dopo F8.5.
+6. **Riepilogo ore degli operai su tutte le commesse** — FATTO il 30/10
+   (js/49-ore-cantiere.js, nessun SQL; vedi "Ore cantiere" sotto F12.1):
+   pagina "⏱️ Ore cantiere" per titolare (e informatico) e capo tecnico.
+   Chiesto da Erika il 28/10 (risposta alla domanda 4 di F8.4).
 
 7. **Risposte di Erika alle domande aperte (29/10/2026)** — applicate
    con la task "Decisioni del 29/10" (commit [Decisioni 29/10],
