@@ -216,6 +216,9 @@ elimina_bozza_fattura.
 Dopo sql/46 (F11.2, ESEGUITO il 30/10, richiede 25, 26, 39):
 emetti_fattura, emetti_fattura_anticipo, emetti_fattura_finale_commessa,
 registra_pagamento_fattura, annulla_pagamento_fattura, emetti_nota_credito.
+Dopo sql/49 (file CBI RiBa, DA ESEGUIRE, richiede 47): nessuna RPC
+nuova; colonna impostazioni.codice_sia (letta da tutti, scritta dal
+titolare), js/48-riba-cbi.js.
 Dopo sql/47 (F11.3, ESEGUITO il 30/10): salva_presentazione_riba,
 elimina_presentazione_riba, segna_presentazione_riba_inviata,
 registra_esito_riba, annulla_esito_riba, registra_sollecito,
@@ -1868,7 +1871,28 @@ una sessione e l'altra.
    annulla solo se dopo non ci sono solleciti, pagamenti o un'altra
    distinta. Il pagamento nato da una RIBA non si annulla dalla fattura
    (trigger trg_fatture_pagamenti_blocco_riba). FILE PER LA BANCA:
-   distinta in PDF e CSV (niente tracciato CBI, domanda per Toli).
+   distinta in PDF e CSV, e file CBI RiBa (vedi sotto).
+   FILE CBI RiBa (js/48-riba-cbi.js; codice SIA con sql/49-codice-sia,
+   DA ESEGUIRE, richiede 47): "🏦 Scarica file CBI" nel dettaglio della
+   distinta (titolare, segreteria, contabile), accanto a CSV e PDF.
+   Tracciato standard CBI "Ri.Ba.": record da 120 caratteri con CR LF,
+   ASCII maiuscolo senza accenti; IB (testa), per ogni ricevuta 14, 20,
+   30, 40, 50, 51, 70, EF (coda: numero ricevute, totale in centesimi,
+   numero record). Dati: creditore da Impostazioni (altrimenti i dati
+   dell'intestazione dei PDF), codice SIA impostazioni.codice_sia (5
+   caratteri A-Z 0-9, CHECK; lo scrive il titolare in Impostazioni >
+   Dati aziendali, campo si10), ABI/CAB/conto della banca assuntrice
+   dall'IBAN della distinta o dell'azienda, debitore dalla riga della
+   distinta (snapshot della fattura, ABI/CAB del cliente), provincia
+   dalla scheda cliente. Se manca un dato obbligatorio (SIA, IBAN
+   italiano, ABI/CAB, P.IVA o C.F. del cliente) il file non si genera e
+   la finestra elenca cosa manca. Senza sql/49 il bottone dice
+   "Inserisci il codice SIA in Impostazioni (serve aggiornare il
+   database)". IL FILE È DA VERIFICARE CON LA BANCA AL PRIMO INVIO: le
+   varianti delle banche (tipo flusso e qualificatore nel record IB,
+   codice azienda nel record 14, causale, estensione .txt/.cbi) sono
+   nella costante CBI_RIBA_VARIANTI in cima a js/48; le posizioni di
+   ogni campo sono commentate nel codice.
    SOLLECITI (fase 10; solo segreteria e titolare, il contabile vede):
    registra_sollecito su rata insoluta, sollecitata o aperta e scaduta
    (data, mezzo telefono/email/PEC/lettera/raccomandata/altro, a chi,

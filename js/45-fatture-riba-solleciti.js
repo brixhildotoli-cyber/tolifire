@@ -12,7 +12,8 @@
 //   (m-riba-invio, id mrn-), esito per riga (m-riba-esito, id mre-:
 //   accreditata = pagamento registrato, insoluta = rata e fattura
 //   insolute), "Annulla esito" (m-annulla-esito-riba, id mae-, titolare
-//   e segreteria), distinta in PDF e CSV per la banca (niente file CBI).
+//   e segreteria), distinta in PDF e CSV e file CBI RiBa per l'home
+//   banking (js/48-riba-cbi.js, codice SIA con sql/49).
 //   Lo fanno titolare, segreteria, contabile (salva_presentazione_riba,
 //   segna_presentazione_riba_inviata, registra_esito_riba...).
 // - SOLLECITI (fase 10). Riquadro fat-solleciti-box (insoluti, rate
@@ -35,7 +36,8 @@
 //   fattura elettronica SDI.
 // - DATI BANCARI: banca d'appoggio, ABI e CAB del cliente (scheda
 //   cliente e finestra cliente, titolare e segreteria); banca e IBAN
-//   dell'azienda nelle Impostazioni (titolare).
+//   dell'azienda nelle Impostazioni (titolare); con sql/49 anche il codice
+//   SIA (file CBI della distinta, js/48).
 // =====================================================================
 
 const RUOLI_RIBA = ['titolare', 'segreteria', 'contabile'];
@@ -243,6 +245,11 @@ loadImp = async function() {
       box.style.display = '';
       ge('si8').value = IMPOSTAZIONI.banca_azienda || '';
       ge('si9').value = IMPOSTAZIONI.iban_azienda || '';
+      // Codice SIA (file CBI della distinta, js/48): solo con sql/49.
+      const sia = ge('si-sia-box');
+      const conSia = Object.prototype.hasOwnProperty.call(IMPOSTAZIONI, 'codice_sia');
+      if (sia) sia.style.display = conSia ? '' : 'none';
+      if (conSia) ge('si10').value = IMPOSTAZIONI.codice_sia || '';
     }
   } catch (e) { console.warn('Banca azienda:', e); }
   return r;
@@ -255,9 +262,15 @@ saveImp = async function() {
   const banca = attiva ? (v('si8') || '').trim() : '';
   const iban = attiva ? ibanPulito(v('si9')) : '';
   if (attiva && iban && !ibanValido(iban)) { toast('IBAN dell\'azienda non valido', 'err'); return; }
+  const boxSia = ge('si-sia-box');
+  const conSia = attiva && boxSia && boxSia.style.display !== 'none';
+  const sia = conSia ? (v('si10') || '').replace(/\s/g, '').toUpperCase() : '';
+  if (conSia && sia && !/^[A-Z0-9]{5}$/.test(sia)) { toast('Il codice SIA ha 5 caratteri, lettere e cifre (lo dà la banca)', 'err'); return; }
   const r = await saveImpPrimaRiba.apply(this, arguments);
   if (attiva && typeof IMPOSTAZIONI !== 'undefined' && IMPOSTAZIONI) {
-    const { error } = await db.from('impostazioni').update({ banca_azienda: banca || null, iban_azienda: iban || null }).eq('id', 1);
+    const campi = { banca_azienda: banca || null, iban_azienda: iban || null };
+    if (conSia) campi.codice_sia = sia || null;
+    const { error } = await db.from('impostazioni').update(campi).eq('id', 1);
     if (error) toast('Banca dell\'azienda non salvata: ' + error.message, 'err');
     else await loadImp();
   }
@@ -658,7 +671,7 @@ async function apriDettaglioDistinta(id) {
       (p.data_presentazione ? ' · presentata in banca il ' + esc(fd(p.data_presentazione)) + (p.inviata_da_nome ? ' (' + esc(p.inviata_da_nome) + ')' : '') : '') + '</div>' +
     (p.note ? '<div style="font-size:12px;margin-top:2px">' + esc(p.note) + '</div>' : '') +
     (p.eliminato_il ? '<div style="color:var(--r);font-size:12px">Eliminata' + (p.eliminato_da_nome ? ' da ' + esc(p.eliminato_da_nome) : '') + (p.motivo_eliminazione ? ': ' + esc(p.motivo_eliminazione) : '') + '</div>' : '') +
-    (p.stato === 'preparata' && !p.eliminato_il ? '<div class="al2 i" style="margin:8px 0 0;font-size:12px">Scarica la distinta (PDF o CSV) e portala in banca, poi "Segna inviata". Da lì si registrano gli esiti.</div>' : '');
+    (p.stato === 'preparata' && !p.eliminato_il ? '<div class="al2 i" style="margin:8px 0 0;font-size:12px">Scarica il file CBI e caricalo nell\'home banking (oppure porta in banca il PDF o il CSV), poi "Segna inviata". Da lì si registrano gli esiti. Il file CBI è da verificare con la banca al primo invio.</div>' : '');
   const oggi = oggiFattura();
   const puoEsito = puoRiba() && p.stato !== 'preparata' && !p.eliminato_il;
   ge('mrv-righe').innerHTML = !righe.length ? '<div class="empty" style="padding:10px">Nessuna riga</div>' : righe.map(function(x) {
@@ -693,6 +706,7 @@ async function apriDettaglioDistinta(id) {
   if (righe.length) {
     az.push('<button class="btn" onclick="scaricaCsvDistintaRiba()">⬇️ CSV</button>');
     az.push('<button class="btn" onclick="scaricaPdfDistintaRiba()">📄 PDF distinta</button>');
+    if (puoRiba() && typeof scaricaCbiDistintaRiba === 'function') az.push('<button class="btn" onclick="scaricaCbiDistintaRiba()" title="Tracciato CBI Ri.Ba. per l\'home banking: da verificare con la banca al primo invio">🏦 Scarica file CBI</button>');
   }
   if (p.stato === 'preparata' && !p.eliminato_il && puoRiba() && righe.length) {
     az.push('<button class="btn p" onclick="apriInvioRiba()">📤 Segna inviata</button>');
@@ -956,7 +970,7 @@ async function scaricaPdfDistintaRiba() {
   if (yf > 270) { doc.addPage(); yf = 20; }
   doc.setFontSize(8);
   doc.setTextColor(90, 90, 90);
-  doc.text(doc.splitTextToSize('Distinta preparata con il gestionale TOLI FIRE. Non è il file elettronico (tracciato CBI) per la banca: le ricevute si caricano dall\'home banking o allo sportello con questi dati.', 178), 16, yf);
+  doc.text(doc.splitTextToSize('Distinta preparata con il gestionale TOLI FIRE. Non è il file elettronico per la banca: quello è il file CBI ("Scarica file CBI" nella distinta, da verificare con la banca al primo invio), oppure le ricevute si caricano dall\'home banking o allo sportello con questi dati.', 178), 16, yf);
   numeraPaginePdf(doc, 'Distinta RIBA ' + d.p.numero);
   doc.save('Distinta_RIBA_' + String(d.p.numero).replace(/[^0-9A-Za-z]+/g, '-') + '.pdf');
 }

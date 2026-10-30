@@ -2253,6 +2253,8 @@
         <div id="si-banca-azienda" style="display:none">
           <div class="f"><label>Banca dell'azienda</label><input type="text" id="si8" maxlength="200" placeholder="Es. Banca di Pisa e Fornacette"></div>
           <div class="f"><label>IBAN dell'azienda</label><input type="text" id="si9" maxlength="40" placeholder="IT00 X000 0000 0000 0000 0000 000"><div style="font-size:11px;color:var(--m);margin-top:4px">Nel PDF della fattura (coordinate per il bonifico) e come banca delle distinte RIBA.</div></div>
+          <!-- Codice SIA: file CBI RiBa della distinta (js/48, solo con sql/49) -->
+          <div class="f" id="si-sia-box" style="display:none"><label>Codice SIA dell'azienda</label><input type="text" id="si10" maxlength="5" autocomplete="off" style="text-transform:uppercase" placeholder="Es. A1B2C"><div style="font-size:11px;color:var(--m);margin-top:4px">5 caratteri, lettere e cifre: lo dà la banca. Serve per il file CBI delle distinte RIBA (da verificare con la banca al primo invio).</div></div>
         </div>
         <button class="btn p" onclick="saveImp()">Salva</button>
       </div>
@@ -7045,6 +7047,7 @@
 <script defer src="js/45-fatture-riba-solleciti.js"></script>
 <script defer src="js/46-cosa-tocca-a-me.js"></script>
 <script defer src="js/47-posizione-pagine.js"></script>
+<script defer src="js/48-riba-cbi.js"></script>
 <script defer src="js/19-init.js"></script>
 
 
