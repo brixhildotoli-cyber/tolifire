@@ -1580,7 +1580,11 @@ interventi passati non chiusi, giorni di cantiere, i suoi documenti.
 Ingegnere = verifiche tecniche, certificati nuovi, scadenze 7 giorni.
 Contabile = buoni da fatturare, bozze, rate scadute, RIBA. L'avviso
 "lead dal sito" del titolare ora ha il suo posto fisso sotto il
-riquadro (prima si creava sotto il saluto). Provato in locale (dump +
+riquadro (prima si creava sotto il saluto). "Interventi in ritardo" del
+capo tecnico apre la pagina Interventi (la sua dashboard non ha
+l'elenco dei ritardi; il titolare va al suo box). "Preventivi da far
+approvare" conta solo quelli con il PDF per il cliente (come js/13) e
+"Progetti da preventivare" segue le regole della lista di js/17. Provato in locale (dump +
 28-42 e poi + 43-48) con tutti i ruoli, a 390 px e a 1280 px.
 
 ## Convenzioni di codice (rispettare SEMPRE)

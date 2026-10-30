@@ -1299,8 +1299,8 @@ pre {
 .tam-stato{font-size:12px;color:var(--m);margin-left:auto}
 .tam-agg{background:none;border:0;color:var(--m);font-size:16px;line-height:1;cursor:pointer;padding:4px 6px;border-radius:6px}
 .tam-agg:hover{background:var(--bg);color:var(--t)}
-.tam-righe{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));column-gap:16px;margin-top:4px}
-.tam-riga{display:flex;align-items:center;gap:8px;width:100%;min-height:38px;background:none;border:0;border-bottom:0.5px solid var(--bo);padding:6px 2px;text-align:left;cursor:pointer;font:inherit;color:var(--t)}
+.tam-righe{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));column-gap:16px;margin-top:4px}
+.tam-riga{display:flex;align-items:center;gap:8px;width:100%;min-width:0;min-height:38px;background:none;border:0;border-bottom:0.5px solid var(--bo);padding:6px 2px;text-align:left;cursor:pointer;font:inherit;color:var(--t)}
 .tam-riga:hover{background:var(--bg)}
 .tam-ico{flex:0 0 22px;text-align:center;font-size:15px}
 .tam-testo{flex:1;min-width:0;font-size:13px;line-height:1.25;overflow-wrap:anywhere}
@@ -1318,6 +1318,6 @@ pre {
 @keyframes tamEvidenza{0%{box-shadow:0 0 0 3px rgba(239,159,39,.85);border-radius:12px}100%{box-shadow:0 0 0 0 rgba(239,159,39,0);border-radius:12px}}
 @media (max-width: 700px){
   .tam-card{margin:8px 8px 12px;padding:8px 12px 6px}
-  .tam-righe{grid-template-columns:1fr}
+  .tam-righe{grid-template-columns:minmax(0,1fr)}
   .tam-riga{min-height:36px;padding:5px 0}
 }

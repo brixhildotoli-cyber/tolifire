@@ -428,7 +428,9 @@ registraFonteToccaAMe({
   vai: { pagina: 'preventivi-rapp' },
   conta: function() {
     return numeroTAM(contaTAM('preventivi', 'id, clienti!inner(rappresentante_id)')
-      .eq('stato', 'inviato_a_rappresentante').eq('clienti.rappresentante_id', ME.id), 'preventivi da far approvare');
+      .eq('stato', 'inviato_a_rappresentante').eq('clienti.rappresentante_id', ME.id)
+      // come la pagina I miei preventivi (js/13): solo quelli con il PDF per il cliente
+      .or('preventivo_cliente_pdf_path.not.is.null,pdf_esterno_titolare_path.not.is.null'), 'preventivi da far approvare');
   }
 });
 
@@ -529,7 +531,14 @@ registraFonteToccaAMe({
 registraFonteToccaAMe({
   id: 'in-ritardo', ruoli: ['capo_tecnico', 'titolare'], icona: '⏰',
   titolo: 'Interventi in ritardo', livello: 'urgente',
-  vai: { box: function() { return ROLE === 'titolare' ? 'tit-ritardo-lista' : 'ct-list-content'; }, pagina: 'interventi' },
+  // titolare: il box "Interventi in ritardo" della sua dashboard; capo
+  // tecnico: la sua dashboard non ha un elenco dei ritardi, si apre la
+  // pagina Interventi (non ha un filtro "in ritardo")
+  vai: function() {
+    const el = ROLE === 'titolare' ? ge('tit-ritardo-lista') : null;
+    if (boxVisibileConContenuto(el)) evidenziaBoxTAM(el);
+    else gotoPage('interventi');
+  },
   // stessa regola del KPI "In ritardo" delle dashboard (js/03)
   conta: function() {
     return numeroTAM(contaTAM('ordini_lavoro').is('eliminato_il', null).not('in_ritardo_il', 'is', null), 'in ritardo');
@@ -949,8 +958,27 @@ registraFonteToccaAMe({
   id: 'progetti-da-preventivare', ruoli: ['commerciale'], priorita: 10, icona: '📐',
   titolo: 'Progetti da preventivare',
   vai: { pagina: 'progetti-da-preventivare' },
-  conta: function() {
-    return numeroTAM(contaTAM('progetti_tecnici').in('stato', ['inviato_a_commerciale', 'pronto_per_preventivo']), 'progetti da preventivare');
+  // stesse regole della lista "Da preventivare" (js/17): un progetto con
+  // preventivo esce, tranne se il preventivo è in bozza e il progetto è
+  // stato rimandato al commerciale (inviato o pronto)
+  conta: async function() {
+    const { data, error } = await db.from('progetti_tecnici').select('id, stato')
+      .in('stato', ['inviato_a_commerciale', 'pronto_per_preventivo', 'in_preventivazione']).limit(2000);
+    if (error) { console.warn('Cosa tocca a me (progetti da preventivare):', error.message); return null; }
+    const progetti = data || [];
+    if (!progetti.length) return 0;
+    const ids = progetti.map(function(p) { return p.id; });
+    const preventivi = {};
+    for (let i = 0; i < ids.length; i += 100) {
+      const r = await db.from('preventivi').select('stato, progetto_tecnico_id').in('progetto_tecnico_id', ids.slice(i, i + 100));
+      if (r.error) { console.warn('Cosa tocca a me (progetti da preventivare):', r.error.message); return null; }
+      (r.data || []).forEach(function(pr) { if (pr.progetto_tecnico_id) preventivi[pr.progetto_tecnico_id] = pr; });
+    }
+    return progetti.filter(function(p) {
+      const pr = preventivi[p.id];
+      if (!pr) return true;
+      return pr.stato === 'bozza' && ['inviato_a_commerciale', 'pronto_per_preventivo'].includes(p.stato);
+    }).length;
   }
 });
 
