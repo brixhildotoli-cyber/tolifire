@@ -5462,6 +5462,11 @@ function fileNonTrovatoCertificato(errore) {
 }
 
 async function caricaCertificatoPreventivo(origine, certificatoId) {
+  if (caricamentoCertificatiInCorso) {
+    toast('Caricamento già in corso, attendi…', 'warn');
+    return;
+  }
+
   const input = ge(`certificato-file-${certificatoId}`);
   const file = input?.files?.[0];
 
@@ -5470,11 +5475,17 @@ async function caricaCertificatoPreventivo(origine, certificatoId) {
     return;
   }
 
-  const risultato = await salvaCertificatoPreventivo(
-    origine,
-    file,
-    certificatoId
-  );
+  caricamentoCertificatiInCorso = true;
+  let risultato;
+  try {
+    risultato = await salvaCertificatoPreventivo(
+      origine,
+      file,
+      certificatoId
+    );
+  } finally {
+    caricamentoCertificatiInCorso = false;
+  }
 
   if (!risultato.ok) {
     toast(risultato.messaggio, 'err');
@@ -5489,7 +5500,17 @@ async function caricaCertificatoPreventivo(origine, certificatoId) {
   await renderCertificatiPreventivo();
 }
 
+// Un caricamento alla volta: senza questo blocco, ogni clic in più su
+// "Carica certificati selezionati" durante l'invio ricaricava di nuovo tutti
+// i PDF scelti (4 file e diversi clic = decine di certificati doppi).
+let caricamentoCertificatiInCorso = false;
+
 async function caricaNuoviCertificatiPreventivo(origine) {
+  if (caricamentoCertificatiInCorso) {
+    toast('Caricamento già in corso, attendi…', 'warn');
+    return;
+  }
+
   const input = ge(`certificati-file-nuovi-${origine}`);
   const fileDaCaricare = Array.from(input?.files || []);
 
@@ -5498,20 +5519,43 @@ async function caricaNuoviCertificatiPreventivo(origine) {
     return;
   }
 
+  caricamentoCertificatiInCorso = true;
+  const bottone = input?.parentElement?.querySelector('button');
+  const testoBottone = bottone ? bottone.textContent : '';
+  if (bottone) bottone.disabled = true;
+  if (input) input.disabled = true;
+
   let caricati = 0;
   const errori = [];
 
-  for (const file of fileDaCaricare) {
-    const risultato = await salvaCertificatoPreventivo(
-      origine,
-      file,
-      null
-    );
+  try {
+    for (const [posizione, file] of fileDaCaricare.entries()) {
+      if (bottone) {
+        bottone.textContent =
+          `⏳ Caricamento ${posizione + 1} di ${fileDaCaricare.length}…`;
+      }
 
-    if (risultato.ok) {
-      caricati++;
-    } else {
-      errori.push(`${file.name}: ${risultato.messaggio}`);
+      const risultato = await salvaCertificatoPreventivo(
+        origine,
+        file,
+        null
+      );
+
+      if (risultato.ok) {
+        caricati++;
+      } else {
+        errori.push(`${file.name}: ${risultato.messaggio}`);
+      }
+    }
+  } finally {
+    caricamentoCertificatiInCorso = false;
+    if (input) {
+      input.value = '';
+      input.disabled = false;
+    }
+    if (bottone) {
+      bottone.disabled = false;
+      bottone.textContent = testoBottone;
     }
   }
 
