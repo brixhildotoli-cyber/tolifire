@@ -30,10 +30,14 @@ function paginaApertaId() {
   return pagina && pagina.id ? pagina.id.replace(/^pg-/, '') : null;
 }
 
+// Gesti con cui l'utente scorre davvero la pagina (un semplice tocco o
+// clic mentre l'elenco si carica non fa perdere il punto).
+const GESTI_SCORRIMENTO = ['wheel', 'touchmove', 'keydown'];
+
 function fermaRimessaPosizione() {
   if (!rimessaPosizioneAttiva) return;
   clearInterval(rimessaPosizioneAttiva.timer);
-  ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(function(evento) {
+  GESTI_SCORRIMENTO.forEach(function(evento) {
     window.removeEventListener(evento, fermaRimessaPosizione, true);
   });
   rimessaPosizioneAttiva = null;
@@ -50,7 +54,7 @@ function rimettiPosizionePagina(y) {
   rimessaPosizioneAttiva = stato;
 
   // Se l'utente scorre o tocca, la posizione non si forza più.
-  ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(function(evento) {
+  GESTI_SCORRIMENTO.forEach(function(evento) {
     window.addEventListener(evento, fermaRimessaPosizione, { capture: true, passive: true });
   });
 
@@ -67,9 +71,36 @@ function rimettiPosizionePagina(y) {
       ferma++;
       if (ferma >= 4) fermaRimessaPosizione();
     }
-    if (Date.now() - inizio > 3000) fermaRimessaPosizione();
+    // Su rete lenta l'elenco può arrivare tardi (Commesse fa più letture):
+    // finché la pagina è più corta del punto si aspetta fino a 10 secondi,
+    // altrimenti ci si ferma dopo 3.
+    const limite = massimo < y - 2 ? 10000 : 3000;
+    if (Date.now() - inizio > limite) fermaRimessaPosizione();
   }, 100);
 }
+
+// La vecchia pila di js/01 (ricordaPosizionePagina / ripristinaPosizionePagina)
+// si riempiva senza svuotarsi e, aprendo il menu, riportava la pagina a una
+// posizione vecchia. Ora la posizione la gestisce questo file: le due
+// funzioni restano (molti moduli le chiamano) ma non fanno più nulla.
+ricordaPosizionePagina = function() {};
+ripristinaPosizionePagina = function() {};
+
+// "← Preventivi" della scheda preventivo: se ci si è arrivati da un'altra
+// pagina (commessa, cliente, dashboard) si torna lì, non all'elenco.
+(function() {
+  if (typeof tornaDaPreventivo !== 'function') return;
+  const tornaDaPreventivoElenco = tornaDaPreventivo;
+  tornaDaPreventivo = function() {
+    const precedente = cronologiaPagine[cronologiaPagine.length - 2];
+    if (paginaApertaId() === 'preventivo-detail' && precedente &&
+        precedente !== 'preventivo-detail' && canAccessPage(precedente)) {
+      gotoPage(precedente);
+      return;
+    }
+    return tornaDaPreventivoElenco.apply(this, arguments);
+  };
+})();
 
 (function() {
   if (typeof gotoPage !== 'function') return;
