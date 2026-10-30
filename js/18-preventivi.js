@@ -4907,7 +4907,7 @@ function cardCertificatoPreventivo(certificato, origine) {
 
       <div class="actions" style="margin-top:12px">
         <button class="btn" onclick="apriCertificatoPreventivo('${certificato.id}')">
-          👁 Apri / scarica
+          Apri / scarica
         </button>
 
         ${puoGestire ? `
@@ -4933,6 +4933,14 @@ function cardCertificatoPreventivo(certificato, origine) {
             onclick="caricaCertificatoPreventivo('${origine}', '${certificato.id}')"
           >
             🔄 Sostituisci questo PDF
+          </button>
+
+          <button
+            class="btn"
+            style="margin-top:10px;color:var(--r)"
+            onclick="eliminaCertificatoPreventivo('${certificato.id}')"
+          >
+            🗑️ Elimina
           </button>
         ` : ''}
       </div>
@@ -5011,6 +5019,8 @@ async function renderCertificatiPreventivo() {
 
       ${caricatoreCertificatiPreventivo('commerciale')}
 
+      ${bottoneEliminaTuttiCertificati('commerciale', certificatiCommerciale.length)}
+
       ${
         certificatiCommerciale.length
           ? certificatiCommerciale.map(function(certificato) {
@@ -5033,6 +5043,8 @@ async function renderCertificatiPreventivo() {
         Certificati del commerciale
       </h3>
 
+      ${bottoneEliminaTuttiCertificati('commerciale', certificatiCommerciale.length)}
+
       ${
         certificatiCommerciale.length
           ? certificatiCommerciale.map(function(certificato) {
@@ -5046,6 +5058,8 @@ async function renderCertificatiPreventivo() {
       </h3>
 
       ${caricatoreCertificatiPreventivo('titolare')}
+
+      ${bottoneEliminaTuttiCertificati('titolare', certificatiTitolare.length)}
 
       ${
         certificatiTitolare.length
@@ -5307,6 +5321,134 @@ async function salvaCertificatoPreventivo(origine, file, certificatoId) {
 
 // F2.3 — l'errore di lettura dallo storage indica un file che non c'è
 // (già sparito): in quel caso la sostituzione può procedere.
+// Eliminare i certificati del preventivo (richiesta di Erika del 30/10):
+// uno alla volta o tutti quelli di una sezione. Permessi già nel database
+// (certificati_delete e certificati_storage_delete): titolare tutto,
+// commerciale solo i suoi. Prima il PDF, poi la riga: senza la riga il
+// commerciale non vedrebbe più il file e resterebbe orfano nel bucket.
+function bottoneEliminaTuttiCertificati(origine, quanti) {
+  const puoGestire =
+    ROLE === 'titolare' ||
+    (ROLE === 'commerciale' && origine === 'commerciale');
+
+  if (!puoGestire || quanti < 1) return '';
+
+  return `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <button class="btn sm" style="color:var(--r)" onclick="eliminaTuttiCertificatiPreventivo('${origine}')">
+        🗑️ Elimina tutti (${quanti})
+      </button>
+    </div>
+  `;
+}
+
+async function eliminaRigaCertificatoPreventivo(certificato) {
+  if (certificato.storage_path) {
+    const { error: erroreFile } = await db.storage
+      .from('certificati-preventivi')
+      .remove([certificato.storage_path]);
+
+    if (erroreFile && !fileNonTrovatoCertificato(erroreFile)) {
+      return 'PDF non eliminato: ' + (erroreFile.message || 'errore sconosciuto');
+    }
+  }
+
+  const { data, error } = await db
+    .from('preventivi_certificati')
+    .delete()
+    .eq('id', certificato.id)
+    .select('id');
+
+  if (error) return error.message;
+  if (!(data || []).length) return 'permessi insufficienti';
+  return '';
+}
+
+async function eliminaCertificatoPreventivo(certificatoId) {
+  const { data: certificato, error } = await db
+    .from('preventivi_certificati')
+    .select('id, nome_file, storage_path, inviato_il')
+    .eq('id', certificatoId)
+    .eq('preventivo_id', currentPreventivoId)
+    .maybeSingle();
+
+  if (error || !certificato) {
+    toast('Certificato non trovato', 'err');
+    return;
+  }
+
+  if (!confirm(
+    'Eliminare il certificato "' + certificato.nome_file + '"?' +
+    (certificato.inviato_il ? '\nL’ingegnere non lo vedrà più.' : '') +
+    '\nL’operazione non si può annullare.'
+  )) return;
+
+  const problema = await eliminaRigaCertificatoPreventivo(certificato);
+
+  if (problema) {
+    toast('Errore eliminazione certificato: ' + problema, 'err');
+  } else {
+    toast('Certificato eliminato', 'ok');
+  }
+
+  await renderCertificatiPreventivo();
+}
+
+async function eliminaTuttiCertificatiPreventivo(origine) {
+  const puoGestire =
+    ROLE === 'titolare' ||
+    (ROLE === 'commerciale' && origine === 'commerciale');
+
+  if (!puoGestire || !currentPreventivoId) return;
+
+  const { data, error } = await db
+    .from('preventivi_certificati')
+    .select('id, nome_file, storage_path')
+    .eq('preventivo_id', currentPreventivoId)
+    .eq('origine', origine);
+
+  if (error) {
+    toast('Errore lettura certificati: ' + error.message, 'err');
+    return;
+  }
+
+  const certificati = data || [];
+  if (!certificati.length) {
+    toast('Nessun certificato da eliminare', 'warn');
+    return;
+  }
+
+  const sezione = origine === 'commerciale'
+    ? 'del commerciale'
+    : 'riservati del titolare';
+
+  if (!confirm(
+    'Eliminare TUTTI i ' + certificati.length + ' certificati ' + sezione +
+    ' di questo preventivo?\nL’operazione non si può annullare.'
+  )) return;
+
+  let eliminati = 0;
+  const problemi = [];
+
+  for (const certificato of certificati) {
+    const problema = await eliminaRigaCertificatoPreventivo(certificato);
+    if (problema) problemi.push(certificato.nome_file + ': ' + problema);
+    else eliminati++;
+  }
+
+  if (problemi.length) {
+    toast(
+      'Eliminati ' + eliminati + ' su ' + certificati.length +
+      '. Non eliminati: ' + problemi.join('; '),
+      'error'
+    );
+  } else {
+    toast('Eliminati ' + eliminati + ' certificati', 'ok');
+  }
+
+  await renderCertificatiPreventivo();
+}
+
 function fileNonTrovatoCertificato(errore) {
   if (!errore) return false;
 
