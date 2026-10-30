@@ -278,15 +278,15 @@ js/02-portale-navigazione.js; controllo in `canAccessPage`):
   preventivi-titolare, preventivo-detail, progetti-da-preventivare, presidi,
   workflow, interventi, clienti, documenti, fatture, catalogo, impostazioni,
   cliente-detail, progetto-detail, fornitore-detail, tecnico, sopralluogo,
-  commesse, commessa-detail, team-subappalti, scheda-documenti
+  commesse, commessa-detail, team-subappalti, scheda-documenti, info
 - capo_tecnico: dashboard, calendario, calendario-team, piano-mensile,
   presidi, interventi, tecnico, clienti, documenti, cliente-detail,
-  commesse, commessa-detail, team-subappalti, scheda-documenti
+  commesse, commessa-detail, team-subappalti, scheda-documenti, info
 - segreteria: dashboard, calendario, workflow, presidi, interventi, tecnico,
   clienti, documenti, fatture, catalogo, cliente-detail, fornitore-detail,
-  commesse, commessa-detail, team-subappalti, scheda-documenti
-- contabile: dashboard, workflow, fatture, documenti, catalogo
-- tecnico: dashboard, calendario-tec, tecnico, documenti
+  commesse, commessa-detail, team-subappalti, scheda-documenti, info
+- contabile: dashboard, workflow, fatture, documenti, catalogo, info
+- tecnico: dashboard, calendario-tec, tecnico, documenti, info
 - commerciale: dashboard, progetti-da-preventivare, preventivi, fornitori,
   fornitore-detail, preventivo-detail, clienti, documenti, progetto-detail,
   fatture, catalogo, cliente-detail, info, commesse, commessa-detail
@@ -300,6 +300,19 @@ js/02-portale-navigazione.js; controllo in `canAccessPage`):
 - informatico: come titolare (in js/01-core.js `boot` ROLE diventa
   'titolare', etichetta "Informatico"; lato DB `ruolo_corrente()` in
   sql/07 restituisce 'titolare')
+
+Pagina Info (guida pratica, `#pg-info` in index.html): una guida per ogni
+ruolo (`guida-<ruolo>`: titolare, segreteria, contabile, capo_tecnico,
+tecnico, commerciale, rappresentante, ingegnere; l'informatico vede quella
+del titolare). Voce "ℹ️ Info" ("ⓘ Info" per il rappresentante) nel menu
+di tutti i ruoli. Modello: la guida del rappresentante scritta da Erika
+(h3 con emoji, sezioni `<h4 id="info-<sigla>-N">N. …</h4>` scritte come
+situazioni, nomi di bottoni e pagine in `<b>` come nel sito, esempi
+`.info-esempio`, avvisi `.al2 i` / `.al2 w`, Regole pratiche e
+Checklist). L'indice in cima (`.guida-indice`) lo costruisce `loadInfo`
+(js/02) dagli `h4[id]`; sigle degli id: tit, seg, con, ct, tec, com, rap,
+ing. Quando un modulo nuovo cambia bottoni o passaggi di un ruolo,
+aggiornare anche la sua guida.
 
 ## Ruoli e cosa fa ciascuno (campo `ruolo` in `utenti`)
 

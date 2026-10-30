@@ -583,6 +583,57 @@ textarea{resize:vertical;min-height:80px}
   color: #174f43;
   font-size: 12px;
 }
+
+/* Pagina Info: testi lunghi e codici non escono dallo schermo a 390 px */
+.guida-ruolo {
+  overflow-wrap: anywhere;
+}
+
+.guida-ruolo h4[id] {
+  scroll-margin-top: 64px;
+}
+
+/* Indice delle sezioni in cima a ogni guida (costruito da loadInfo, js/02) */
+.guida-indice {
+  background: var(--bg);
+  border: 1px solid var(--bo);
+  border-radius: var(--rs);
+  padding: 10px 12px;
+  margin: 12px 0 4px;
+  font-size: 13px;
+}
+
+.guida-indice:empty {
+  display: none;
+}
+
+.guida-indice-titolo {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.guida-indice ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  columns: 2 260px;
+  column-gap: 24px;
+}
+
+.guida-indice li {
+  break-inside: avoid;
+  padding: 3px 0;
+  line-height: 1.4;
+}
+
+.guida-indice a {
+  color: var(--g);
+  text-decoration: none;
+}
+
+.guida-indice a:hover {
+  text-decoration: underline;
+}
 /* ── CLIENTI: schede verticali su smartphone ────────────────── */
 @media (max-width: 900px) {
   #pg-clienti .tw {

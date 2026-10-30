@@ -418,11 +418,11 @@ function buildNav() {
 
 // Pagine accessibili per ruolo
 const PAGINE_RUOLO = {
-  titolare:       ['dashboard','calendario','piano-mensile','trattative','preventivi-titolare','preventivo-detail','progetti-da-preventivare','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','progetto-detail','fornitore-detail', 'tecnico','sopralluogo','commesse','commessa-detail','team-subappalti','scheda-documenti'],
-  capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','tecnico','clienti','documenti','cliente-detail','commesse','commessa-detail','team-subappalti','scheda-documenti'],
-  segreteria:     ['dashboard','calendario','workflow','presidi','interventi','tecnico','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail','commesse','commessa-detail','team-subappalti','scheda-documenti'],
-  contabile:      ['dashboard','workflow','fatture','documenti','catalogo'],
-  tecnico:        ['dashboard','calendario-tec','tecnico','documenti'],
+  titolare:       ['dashboard','calendario','piano-mensile','trattative','preventivi-titolare','preventivo-detail','progetti-da-preventivare','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','progetto-detail','fornitore-detail', 'tecnico','sopralluogo','commesse','commessa-detail','team-subappalti','scheda-documenti','info'],
+  capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','tecnico','clienti','documenti','cliente-detail','commesse','commessa-detail','team-subappalti','scheda-documenti','info'],
+  segreteria:     ['dashboard','calendario','workflow','presidi','interventi','tecnico','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail','commesse','commessa-detail','team-subappalti','scheda-documenti','info'],
+  contabile:      ['dashboard','workflow','fatture','documenti','catalogo','info'],
+  tecnico:        ['dashboard','calendario-tec','tecnico','documenti','info'],
   commerciale:    ['dashboard','progetti-da-preventivare', 'preventivi', 'fornitori', 'fornitore-detail','preventivo-detail','clienti','documenti','progetto-detail','fatture','catalogo','cliente-detail', 'info','commesse','commessa-detail'],
   rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','trattative','preventivi-rapp','cliente-detail','progetto-detail','catalogo', 'info','commesse','commessa-detail'],
   ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti', 'certificati-ingegnere','progetto-detail','cliente-detail','info'],
@@ -444,22 +444,55 @@ function canAccessPage(id) {
 }
 
 
+// Pagina Info: mostra la guida del ruolo (id "guida-<ROLE>"; l'informatico
+// ha ROLE 'titolare' e vede quella del titolare). L'indice in cima alla guida
+// (.guida-indice) si costruisce dai suoi <h4 id="info-...">.
 function loadInfo() {
   document.querySelectorAll('.guida-ruolo').forEach(function(guida) {
     guida.style.display = 'none';
   });
 
   const guidaAttiva = ge('guida-' + ROLE);
+  let avviso = ge('info-nessuna-guida');
 
   if (guidaAttiva) {
+    if (avviso) avviso.style.display = 'none';
     guidaAttiva.style.display = 'block';
     ge('info-titolo').textContent =
       guidaAttiva.getAttribute('data-titolo') || 'Informazioni';
+    costruisciIndiceGuida(guidaAttiva);
   } else {
+    // Non si svuota #info-contenuto: le guide degli altri ruoli restano
+    // (un nuovo login nella stessa pagina deve ritrovarle).
     ge('info-titolo').textContent = 'Informazioni';
-    ge('info-contenuto').innerHTML =
-      '<div class="al2">Nessuna guida disponibile per questo ruolo.</div>';
+    if (!avviso) {
+      avviso = document.createElement('div');
+      avviso.id = 'info-nessuna-guida';
+      avviso.className = 'al2';
+      avviso.textContent = 'Nessuna guida disponibile per questo ruolo.';
+      ge('info-contenuto').prepend(avviso);
+    }
+    avviso.style.display = '';
   }
+}
+
+function costruisciIndiceGuida(guida) {
+  const box = guida.querySelector('.guida-indice');
+  if (!box || box.dataset.pronto) return;
+  const sezioni = guida.querySelectorAll('h4[id]');
+  if (!sezioni.length) { box.style.display = 'none'; return; }
+  box.innerHTML = '<div class="guida-indice-titolo">In questa guida</div><ul>' +
+    Array.prototype.map.call(sezioni, function(h) {
+      return '<li><a href="#' + esc(h.id) + '" data-sezione="' + esc(h.id) +
+        '" onclick="return vaiSezioneGuida(this.dataset.sezione)">' + esc(h.textContent.trim()) + '</a></li>';
+    }).join('') + '</ul>';
+  box.dataset.pronto = '1';
+}
+
+function vaiSezioneGuida(id) {
+  const h = ge(id);
+  if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  return false;
 }
 
 function gotoPage(id){
