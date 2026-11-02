@@ -2167,7 +2167,7 @@ una sessione e l'altra.
    i) (17) Audit presidi PER SEDE (non per cliente); in manutenzione si
       sostituisce qualcosa (manichetta, estintore): gestire la
       sostituzione del presidio nel registro. PRONTO: sql/53-audit-per-
-      sede-sostituzione-presidi (DA ESEGUIRE, richiede 41; legge 40 e 52;
+      sede-sostituzione-presidi (ESEGUITO il 02/11, richiede 41; legge 40 e 52;
       anteprima e controllo in fondo) + js/51-sostituzione-presidi.js.
       AUDIT PER SEDE: ordini_lavoro_audit_presidi ridefinita (primo
       intervento di manutenzione programmata della SEDE; sede di
