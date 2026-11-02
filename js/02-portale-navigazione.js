@@ -248,7 +248,14 @@ async function portaleCaricaTicket() {
     var dt = new Date(t.creato_il).toLocaleDateString('it-IT');
     var odl = t.ordini_lavoro;
     var schedInfo = '';
-    if(odl && odl.data_pianificata) {
+    // Decisione di Toli del 02/11 (sql/51): finché l'appuntamento non è
+    // fissato il portale non riceve la data indicativa, solo questo segno.
+    if(odl && odl.in_attesa_appuntamento) {
+      schedInfo = '<div style="background:var(--bl);border-left:3px solid var(--b);border-radius:var(--rs);padding:10px;margin-top:10px">' +
+        '<div style="font-size:12px;font-weight:600;color:var(--b)">📞 Intervento in programmazione</div>' +
+        '<div style="font-size:13px;margin-top:3px">Vi chiameremo per fissare insieme giorno e ora.</div>' +
+      '</div>';
+    } else if(odl && odl.data_pianificata) {
       var dataInt = new Date(odl.data_pianificata+'T00:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
       schedInfo = '<div style="background:var(--gl);border-left:3px solid var(--g);border-radius:var(--rs);padding:10px;margin-top:10px">' +
         '<div style="font-size:12px;font-weight:600;color:var(--g)">✅ Intervento schedulato</div>' +

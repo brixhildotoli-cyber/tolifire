@@ -2156,7 +2156,14 @@ una sessione e l'altra.
       capo tecnico e segreteria aggiornate. Provato in locale sul backup
       pre49.
    h) (16) Portale clienti: nascondere la data indicativa finché
-      l'appuntamento non è fissato. SQL (portale_ticket).
+      l'appuntamento non è fissato. PRONTO: sql/51-portale-data-dopo-
+      appuntamento (DA ESEGUIRE, richiede 43): portale_ticket ridefinita,
+      per l'intervento che aspetta l'appuntamento (richiesto, non fissato,
+      da pianificare o pianificato) niente data né fascia e il segno
+      in_attesa_appuntamento; js/02 portaleCaricaTicket scrive "📞
+      Intervento in programmazione: vi chiameremo per fissare insieme
+      giorno e ora". Senza sql/51 il portale è come prima. Rollback =
+      versione di sql/43. Provato in locale.
    i) (17) Audit presidi PER SEDE (non per cliente); in manutenzione si
       sostituisce qualcosa (manichetta, estintore): gestire la
       sostituzione del presidio nel registro. SQL.
