@@ -3680,7 +3680,7 @@
       </p>
 
       <ul>
-        <li><b>📈 Fatturato e insoluti</b>: fatturato del mese e dell’anno (imponibile, note di credito tolte), incassato dell’anno, insoluti con rate e clienti.</li>
+        <li><b>📈 Fatturato e insoluti</b>: fatturato del mese e dell’anno (imponibile, note di credito tolte, anche quelle parziali), incassato dell’anno, insoluti con rate e clienti.</li>
         <li><b>💶 Incassi</b>: da incassare, scaduto, in scadenza nei 30 gg, incassato nel mese.</li>
         <li><b>💼 Lavoro</b>, <b>🧯 Compliance presidi</b>, <b>👥 Persone &amp; schede</b>: interventi completati, pianificati, in ritardo e da pianificare, presidi scaduti, schede da approvare e da fatturare. Scegli il periodo con <b>Oggi</b>, <b>Settimana</b>, <b>Mese</b>.</li>
       </ul>
@@ -4041,9 +4041,20 @@
 
       <div class="al2 w">
         <b>Attenzione:</b> una fattura emessa non si modifica più. Se è
-        sbagliata si annulla con <b>🔁 Annulla con nota di credito</b> (solo se
-        non ha pagamenti né rate in RIBA) e si rifà.
+        sbagliata si usa <b>🔁 Nota di credito</b>:
+        <b>Storno totale</b> la annulla (solo se non ha pagamenti, rate in RIBA
+        o note parziali) e si rifà; <b>Storno parziale</b> storna solo alcune
+        righe o un importo (es. sconto concesso dopo, pezzo non consegnato).
       </div>
+
+      <p>
+        Nello <b>storno parziale</b> spunta le righe da stornare e correggi
+        quantità o prezzo, oppure premi <b>+ Riga libera</b> (es. “Sconto
+        concordato”). Il totale non può superare quello che il cliente deve
+        ancora pagare: le rate si riducono partendo dall’ultima. La fattura
+        resta emessa; se con le note di credito è stornata tutta, diventa
+        annullata.
+      </p>
 
       <hr class="sep">
 
@@ -4261,8 +4272,10 @@
       </p>
 
       <div class="al2 w">
-        Una fattura emessa non si modifica: si annulla con
-        <b>🔁 Annulla con nota di credito</b> e si rifà.
+        Una fattura emessa non si modifica: con <b>🔁 Nota di credito</b> si
+        annulla (<b>Storno totale</b>) e si rifà, oppure si storna solo una
+        parte (<b>Storno parziale</b>: righe scelte o riga libera, non oltre
+        quanto resta da incassare).
       </div>
 
       <hr class="sep">
@@ -5221,12 +5234,28 @@
   </div>
 </div>
 
-<!-- F11.2 — NOTA DI CREDITO a storno totale (js/44) -->
+<!-- F11.2 — NOTA DI CREDITO a storno totale (js/44); storno parziale con sql/54 (js/52) -->
 <div class="mbg" id="m-nota-credito">
   <div class="modal" style="max-width:520px">
     <button class="x" onclick="closeM('m-nota-credito')">×</button>
-    <h3>🔁 Annulla con nota di credito</h3>
+    <h3>🔁 Nota di credito</h3>
     <div id="mnc-riepilogo" class="al2 w" style="margin-bottom:10px"></div>
+    <!-- sql/54 (js/52): storno totale o parziale -->
+    <div id="mnc-tipo-box" style="display:none;margin-bottom:10px;font-size:13px">
+      <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-weight:400;margin-bottom:4px">
+        <input type="radio" name="mnc-tipo" id="mnc-tipo-totale" value="totale" onchange="cambiaTipoNotaCredito('totale')" style="margin-top:3px">
+        <span><b>Storno totale</b>: la fattura diventa annullata<span id="mnc-tipo-totale-nota" style="color:var(--m)"></span></span>
+      </label>
+      <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-weight:400">
+        <input type="radio" name="mnc-tipo" id="mnc-tipo-parziale" value="parziale" onchange="cambiaTipoNotaCredito('parziale')" style="margin-top:3px">
+        <span><b>Storno parziale</b>: solo alcune righe o un importo<span id="mnc-tipo-parziale-nota" style="color:var(--m)"></span></span>
+      </label>
+    </div>
+    <div id="mnc-parziale" style="display:none;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:600;color:var(--m);text-transform:uppercase;margin-bottom:6px">Cosa stornare</div>
+      <div id="mnc-righe"></div>
+      <div id="mnc-totale" class="card" style="margin-top:8px;font-size:13px"></div>
+    </div>
     <div class="fr">
       <div class="f">
         <label>Data della nota di credito *</label>
@@ -5234,12 +5263,12 @@
       </div>
     </div>
     <div class="f">
-      <label>Motivo dell'annullamento *</label>
+      <label>Motivo *</label>
       <textarea id="mnc-motivo" rows="2" maxlength="500" oninput="aggiornaNotaCredito()" placeholder="Es. prezzo sbagliato, fattura da rifare"></textarea>
     </div>
     <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px;font-weight:400">
       <input type="checkbox" id="mnc-conferma" onchange="aggiornaNotaCredito()" style="margin-top:3px">
-      Confermo: la nota di credito storna tutta la fattura, che diventa annullata
+      <span id="mnc-conferma-testo">Confermo: la nota di credito storna tutta la fattura, che diventa annullata</span>
     </label>
     <div id="mnc-errore" class="al2 e" style="display:none;margin-top:10px"></div>
     <div class="ma">
@@ -7218,6 +7247,7 @@
 <script defer src="js/49-ore-cantiere.js"></script>
 <script defer src="js/50-promemoria-appuntamenti.js"></script>
 <script defer src="js/51-sostituzione-presidi.js"></script>
+<script defer src="js/52-nota-credito-parziale.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

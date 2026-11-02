@@ -1114,7 +1114,9 @@ async function generaPdfFattura(fatturaId) {
     db.from('fatture_scadenze').select('numero_rata,data_scadenza,importo').eq('fattura_id', f.id).order('numero_rata', { ascending: true }),
     f.tipo_documento === 'nota_credito'
       ? db.from('fatture').select('numero,data_emissione').eq('id', f.riferimento_fattura_id || '00000000-0000-0000-0000-000000000000').maybeSingle()
-      : db.from('fatture').select('numero,data_emissione').eq('riferimento_fattura_id', f.id).eq('tipo_documento', 'nota_credito').is('eliminato_il', null).maybeSingle(),
+      // con le note parziali (sql/54) possono essere più di una: l'ultima è quella che annulla
+      : db.from('fatture').select('numero,data_emissione').eq('riferimento_fattura_id', f.id).eq('tipo_documento', 'nota_credito').is('eliminato_il', null)
+          .order('data_emissione', { ascending: false }).order('numero', { ascending: false }).limit(1).maybeSingle(),
     leggiImpostazioniBanca()
   ]);
   if (rr.error) { toast('Righe non leggibili: ' + rr.error.message, 'err'); return null; }
@@ -1160,7 +1162,7 @@ async function generaPdfFattura(fatturaId) {
   const documento = [
     'Numero: ' + f.numero,
     'Data: ' + fd(f.data_emissione),
-    nc && coll ? 'Storno della fattura n. ' + coll.numero + ' del ' + fd(coll.data_emissione) : '',
+    nc && coll ? (/storno parziale/i.test(f.note || '') ? 'Storno parziale della fattura n. ' : 'Storno della fattura n. ') + coll.numero + ' del ' + fd(coll.data_emissione) : '',
     !nc && f.modalita_pagamento ? 'Pagamento: ' + f.modalita_pagamento : ''
   ].filter(Boolean);
   let ys = y + 6;

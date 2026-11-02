@@ -3,7 +3,7 @@
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
 file unico: `index.html` (markup) + `style.css` + moduli `js/00-…46-*.js`
-caricati in ordine 00–18, poi 20–51, infine `19-init.js` (dettagli in
+caricati in ordine 00–18, poi 20–52, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -1827,7 +1827,9 @@ una sessione e l'altra.
    rate in RIBA; motivo obbligatorio. La scheda torna "da fatturare";
    anticipo: il preventivo torna senza fattura d'anticipo; finale: la
    commessa torna senza fattura finale (non se chiusa). Nota di credito
-   parziale: non prevista.
+   parziale: con sql/54 (decisione di Toli del 02/11, vedi punto 9.b dei
+   Moduli da costruire); con note parziali già emesse lo storno totale non
+   si fa più.
    PAGAMENTI (tabella fatture_pagamenti, RPC registra_pagamento_fattura e
    annulla_pagamento_fattura; finestre m-pagamento-fattura, id mpg-, e
    m-annulla-pagamento, id map-): titolare, segreteria, contabile; per
@@ -2131,7 +2133,32 @@ una sessione e l'altra.
    DA FARE (lavori nuovi):
    a) (1) Fattura elettronica con ARUBA: allineare numerazione e, in
       futuro, export verso Aruba (Modulo 2 SDI).
-   b) (4) NOTA DI CREDITO PARZIALE (oggi solo storno totale). SQL.
+   b) (4) NOTA DI CREDITO PARZIALE. PRONTO: sql/54-nota-credito-parziale
+      (DA ESEGUIRE, richiede 46 e 47; controllo in fondo) +
+      js/52-nota-credito-parziale.js. RPC nuova emetti_nota_credito_parziale
+      (titolare, segreteria, contabile; anticipo e finale solo segreteria e
+      titolare): righe della fattura (quantità e prezzo non oltre i
+      fatturati, sconto di riga uguale) e/o righe libere, IVA della
+      fattura, motivo obbligatorio, NC/ come oggi. SCELTE DICHIARATE: totale
+      (IVA compresa) > 0 e non oltre il residuo stornabile (totale fattura
+      meno note emesse) e SOLO SUL NON INCASSATO (rate non pagate e non in
+      RIBA; l'incassato non si storna da qui, rimborso fuori da questo
+      lavoro); le rate si riducono dall'ULTIMA scadenza; una rata a zero
+      senza pagamenti, RIBA o solleciti si toglie, altrimenti resta con
+      importo = pagato; nella rata e nella nota resta scritto di quanto è
+      stata ridotta (nessuna tabella nuova). La fattura resta emessa; se con
+      le note è stornata tutta diventa annullata con i controlli e gli
+      effetti dello storno totale (scheda, anticipo, fattura finale); le
+      note parziali non toccano scheda, anticipo né finale. Una nota emessa
+      non si annulla. emetti_nota_credito ridefinita: rifiuta lo storno
+      totale se ci sono già note parziali. Finestra m-nota-credito con
+      "Storno totale" / "Storno parziale" (righe spuntabili, + Riga libera,
+      totale in anteprima con le stesse regole dei trigger); nella fattura
+      l'elenco delle note parziali e "Resta da stornare"; PDF della nota
+      "Storno parziale della fattura n. ..." (js/45). Fatturato del
+      titolare: toglie già l'imponibile di ogni nota (verificato). Senza
+      sql/54 solo storno totale come prima. Provato in locale (backup pre53,
+      Assunta segreteria e Giulio rappresentante).
    c) (7) IVA: oltre al 22%, natura "N1.1" (scritto così da Toli: da
       verificare il codice, le nature SDI sono N1, N2.1, N2.2, N3.x, N4,
       N5, N6.x, N7) e SPLIT PAYMENT. SQL.
