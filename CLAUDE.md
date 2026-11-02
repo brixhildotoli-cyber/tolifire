@@ -2180,7 +2180,12 @@ una sessione e l'altra.
    e) (10) Toli non ha capito il codice SIA/file CBI: spiegazione scritta
       a parte (da mandare).
    f) (14) Controlli del piano rimasti indietro più di 12 mesi: si
-      segnano "saltato".
+      segnano "saltato". FATTO (02/11, js/42, nessun SQL: lo stato
+      'saltato' c'era già): in testa al Piano mensile del mese corrente,
+      per titolare e capo tecnico, avviso "🗂️ N controlli del piano più
+      vecchi di 12 mesi" (pianificato, senza intervento, mese prima di
+      meseMinimoArretrati) e bottone "Segna come saltati" con conferma
+      (segnaControlliVecchiSaltati). Guida capo tecnico aggiornata.
    g) (15) Appuntamento con il cliente per TUTTI gli interventi (non solo
       la manutenzione programmata nuova). PRONTO: sql/50-appuntamento-
       tutti-interventi (ESEGUITO il 02/11, richiede 43; anteprima e controllo in

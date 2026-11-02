@@ -1044,8 +1044,53 @@ const loadPianificazioneMensilePrimaBuono = loadPianificazioneMensile;
 loadPianificazioneMensile = async function(anno, mese) {
   const r = await loadPianificazioneMensilePrimaBuono.apply(this, arguments);
   try { await mostraRipartenzaPianoMensile(anno, mese); } catch (e) { console.warn('Ripartenza nel Piano mensile:', e); }
+  try { await mostraControlliVecchiPianoMensile(anno, mese); } catch (e) { console.warn('Controlli vecchi nel Piano mensile:', e); }
   return r;
 };
+
+// ── Controlli del piano più vecchi di 12 mesi: "saltato" ────────────────
+// Decisione di Toli del 02/11 (risposta 14): i controlli del piano rimasti
+// indietro di più di 12 mesi (mai schedulati, nessun intervento) si segnano
+// "saltato" (stato già previsto da cicli_pianificati_stato_check; nessun
+// SQL). Non entrano più nel box della ripartenza (che guarda solo gli
+// ultimi 12 mesi) né restano "da schedulare" nel Piano mensile.
+// Lo fanno titolare e capo tecnico con un bottone e conferma (policy
+// cicli_pianificati_gestione: anche la segreteria potrebbe, ma il Piano
+// mensile è di titolare e capo tecnico).
+function queryControlliVecchi(q) {
+  return q.eq('stato', 'pianificato').is('odl_id', null).lt('mese_anno', meseMinimoArretrati());
+}
+
+async function mostraControlliVecchiPianoMensile(anno, mese) {
+  const el = ge('piano-mensile-content');
+  if (!el || !RUOLI_RIPARTENZA.includes(ROLE)) return;
+  if (anno + '-' + String(mese).padStart(2, '0') !== meseCorrenteISO()) return;
+  const vecchio = ge('piano-controlli-vecchi');
+  if (vecchio) vecchio.remove();
+  const { count, error } = await queryControlliVecchi(db.from('cicli_pianificati').select('id', { count: 'exact', head: true }));
+  if (error || !count) return;
+  const div = document.createElement('div');
+  div.id = 'piano-controlli-vecchi';
+  div.className = 'al2 w';
+  div.style.marginBottom = '12px';
+  div.innerHTML = '🗂️ <b>' + count + (count === 1 ? ' controllo del piano più vecchio' : ' controlli del piano più vecchi') +
+    ' di 12 mesi</b> (prima di ' + esc(nomeMese(meseMinimoArretrati())) + ') non sono mai stati schedulati. ' +
+    'Vanno segnati come saltati: non si recuperano più. ' +
+    '<button class="btn sm" style="margin-left:6px" onclick="segnaControlliVecchiSaltati(' + count + ')">Segna come saltati</button>';
+  el.insertBefore(div, el.firstChild);
+}
+
+async function segnaControlliVecchiSaltati(quanti) {
+  if (!RUOLI_RIPARTENZA.includes(ROLE)) return;
+  if (!confirm('Segnare come "saltato" ' + quanti + (quanti === 1 ? ' controllo del piano' : ' controlli del piano') +
+      ' più vecchi di 12 mesi e mai schedulati?\nNon compariranno più tra quelli da schedulare.')) return;
+  const { data, error } = await queryControlliVecchi(db.from('cicli_pianificati').update({ stato: 'saltato' })).select('id');
+  if (error) { toast('Errore: ' + error.message, 'err'); return; }
+  const n = (data || []).length;
+  toast(n ? 'Segnati come saltati ' + n + (n === 1 ? ' controllo' : ' controlli') : 'Nessun controllo aggiornato: verifica i permessi', n ? 'ok' : 'err');
+  const oggi = new Date();
+  await loadPianificazioneMensile(oggi.getFullYear(), oggi.getMonth() + 1);
+}
 
 async function mostraRipartenzaPianoMensile(anno, mese) {
   const el = ge('piano-mensile-content');
