@@ -2301,6 +2301,18 @@ una sessione e l'altra.
       che nel database NON esiste: l'avviso non compare mai. PRONTO:
       sql/55-lead-sito-letto-titolare (ESEGUITO il 02/11): aggiunge solo la
       colonna; policy invariate (il titolare legge e aggiorna).
+   t) Errore trovato il 02/11: "Rinvia al commerciale" del rappresentante
+      (js/13) dava sempre "violates check constraint preventivi_stato_check":
+      la RPC rinvia_preventivo_al_commerciale_da_rappresentante (di prima di
+      ottobre) metteva lo stato 'rinviato_al_titolare', non permesso. PRONTO:
+      sql/57-rinvio-preventivo-rappresentante (DA ESEGUIRE): la RPC (ora con
+      p_nota facoltativa) riporta il preventivo in BOZZA, toglie i dati
+      dell'invio al rappresentante e rimette il progetto in "Da
+      preventivare" (inviato_a_commerciale) con la nota "Rinviato dal
+      rappresentante: ..." in nota_integrazione. js/13 chiede la nota
+      (prompt) e, senza sql/57, richiama la funzione vecchia. Provato su un
+      Postgres di prova (errore riprodotto con la vecchia, nuova, chiamata
+      a un parametro, altro rappresentante rifiutato, rollback).
    s) Richiesta di Erika del 02/11: la freccia indietro del browser e del
       telefono usciva dal gestionale (dai Preventivi e dal PDF si finiva
       sulla dashboard). FATTO in js/47 (nessun SQL): ogni cambio di pagina

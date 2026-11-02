@@ -748,19 +748,29 @@ async function apriPdfPreventivoRappresentante(preventivoId) {
 async function rinviaPreventivoAlCommercialeDalRappresentante(preventivoId) {
   if (ROLE !== 'rappresentante') return;
 
-  if (!confirm('Rinviare il preventivo al commerciale per le modifiche?')) return;
+  // Con sql/57 il preventivo torna in bozza al commerciale (prima la
+  // funzione usava uno stato non permesso e dava sempre errore) e si può
+  // scrivere cosa va cambiato; senza sql/57 si prova come prima.
+  const nota = prompt('Rinviare il preventivo al commerciale per le modifiche?\n\nScrivi cosa va cambiato (facoltativo):', '');
+  if (nota === null) return;
 
-  const { error } = await db.rpc(
+  let { error } = await db.rpc(
     'rinvia_preventivo_al_commerciale_da_rappresentante',
-    { p_preventivo_id: preventivoId }
+    { p_preventivo_id: preventivoId, p_nota: nota.trim() || null }
   );
+  if (error && (error.code === 'PGRST202' || /function|funzione/i.test(error.message || '') && /p_nota/.test(error.message || ''))) {
+    ({ error } = await db.rpc(
+      'rinvia_preventivo_al_commerciale_da_rappresentante',
+      { p_preventivo_id: preventivoId }
+    ));
+  }
 
   if (error) {
     toast('Errore nel rinvio: ' + error.message, 'err');
     return;
   }
 
-  toast('Preventivo rinviato al commerciale', 'ok');
+  toast('Preventivo rinviato al commerciale: torna in bozza da modificare', 'ok');
   await loadPreventiviRappresentante();
 }
 
