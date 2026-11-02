@@ -2157,7 +2157,7 @@ una sessione e l'altra.
       pre49.
    h) (16) Portale clienti: nascondere la data indicativa finché
       l'appuntamento non è fissato. PRONTO: sql/51-portale-data-dopo-
-      appuntamento (DA ESEGUIRE, richiede 43): portale_ticket ridefinita,
+      appuntamento (ESEGUITO il 02/11, richiede 43): portale_ticket ridefinita,
       per l'intervento che aspetta l'appuntamento (richiesto, non fissato,
       da pianificare o pianificato) niente data né fascia e il segno
       in_attesa_appuntamento; js/02 portaleCaricaTicket scrive "📞
