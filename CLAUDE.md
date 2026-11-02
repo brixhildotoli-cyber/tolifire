@@ -2280,7 +2280,12 @@ una sessione e l'altra.
       caricaAppuntamentiDaFissare (js/41). Guida segreteria (info-seg-6).
    m) (23) Ordini ai fornitori anche SENZA offerta scelta, ma con un
       preventivo chiaro approvato, le cifre di spesa e la destinazione:
-      un cantiere (commessa) oppure il MAGAZZINO. SQL.
+      un cantiere (commessa) oppure il MAGAZZINO. RINVIATO: decisione di
+      Erika del 02/11 "non farli per ora" (gli ordini restano solo dalle
+      offerte scelte della commessa). Proposta pronta se si riprende:
+      "Ordine libero" con preventivo del fornitore allegato, voci con
+      prezzi, destinazione commessa o magazzino, approvazione del titolare
+      sopra una soglia in Impostazioni.
    n) (24) Lavori extra sotto 3.000 €: il preventivo integrativo lo
       prepara anche il rappresentante; l'importo degli extra si SOMMA
       alla commessa.
