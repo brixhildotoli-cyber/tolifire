@@ -2136,7 +2136,7 @@ una sessione e l'altra.
    a) (1) Fattura elettronica con ARUBA: allineare numerazione e, in
       futuro, export verso Aruba (Modulo 2 SDI).
    b) (4) NOTA DI CREDITO PARZIALE. PRONTO: sql/54-nota-credito-parziale
-      (DA ESEGUIRE, richiede 46 e 47; controllo in fondo) +
+      (ESEGUITO il 02/11, richiede 46 e 47; controllo in fondo) +
       js/52-nota-credito-parziale.js. RPC nuova emetti_nota_credito_parziale
       (titolare, segreteria, contabile; anticipo e finale solo segreteria e
       titolare): righe della fattura (quantità e prezzo non oltre i
@@ -2278,7 +2278,7 @@ una sessione e l'altra.
    r) Trovato il 02/11 (non è una domanda di Toli): l'avviso "Nuove lead
       dal sito" del titolare (js/18 e js/46) usa lead_sito.letto_titolare_il,
       che nel database NON esiste: l'avviso non compare mai. PRONTO:
-      sql/55-lead-sito-letto-titolare (DA ESEGUIRE): aggiunge solo la
+      sql/55-lead-sito-letto-titolare (ESEGUITO il 02/11): aggiunge solo la
       colonna; policy invariate (il titolare legge e aggiorna).
    q) (28) Soglia "lavoro grande" = 30.000 € (la imposta il titolare in
       Impostazioni > Soglie e tariffe; esempio della guida aggiornato).
