@@ -2100,3 +2100,68 @@ una sessione e l'altra.
      dell'appuntamento. Serve un canale di invio (email o SMS, es. Edge
      Function Supabase + servizio di posta) e il consenso/recapito del
      cliente: oggi il gestionale non invia messaggi.
+
+9. **Risposte di Toli alle 28 domande (mail del 02/11/2026)** — DECISIONI
+   DI TOLI (valgono come conferma). "Assunta" = la segreteria.
+   GIÀ COSÌ NEL SITO (nessun lavoro):
+   - Copia PDF "di cortesia, non sostituisce la fattura SDI": va bene (2).
+   - Fattura emessa si corregge solo con nota di credito, anche il
+     titolare (3). P.IVA o C.F. obbligatori (5).
+   - Ogni fattura nasce da un "input" (6): scheda finita dell'operativo →
+     la segreteria emette; anticipo con preventivo approvato → la
+     segreteria emette la fattura d'anticipo. Anticipo e finale senza
+     scheda di lavoro: va bene.
+   - Contratto (8): la manutenzione ordinaria con contratto NON prevede
+     manodopera; i controlli trimestrali, semestrali, annuali sono
+     compresi e si addebita solo il costo del contratto; se si fanno
+     altre azioni si addebitano anche le ore (= manodopera proposta non
+     spuntata, come oggi).
+   - "Su chiamata" sempre fuori contratto; senza contratto tutto a
+     consuntivo (11). Buono al cliente SENZA prezzi (12). Preavviso 30
+     giorni FISSO (13).
+   - Nessun audit nuovo dopo il rinnovo (17, parte).
+   - Il tecnico NON intesta interventi a un collega: si segue l'organigramma
+     (21). Sostituto del capo tecnico: NESSUNA funzione, Toli cambia il
+     ruolo all'utente quando serve (22).
+   - Ore cantiere: il capo tecnico vede le ore di tutti (25). Fino a 13
+     righe in "Cosa tocca a me" del capo tecnico vanno bene (26).
+   - Guida titolare: "la struttura costa circa 1.000 € al giorno" resta
+     (27). Il commerciale (acquisti) può sempre girare il progetto
+     all'ingegnere (28: già con "Rimanda indietro" / verifica tecnica).
+   DA FARE (lavori nuovi):
+   a) (1) Fattura elettronica con ARUBA: allineare numerazione e, in
+      futuro, export verso Aruba (Modulo 2 SDI).
+   b) (4) NOTA DI CREDITO PARZIALE (oggi solo storno totale). SQL.
+   c) (7) IVA: oltre al 22%, natura "N1.1" (scritto così da Toli: da
+      verificare il codice, le nature SDI sono N1, N2.1, N2.2, N3.x, N4,
+      N5, N6.x, N7) e SPLIT PAYMENT. SQL.
+   d) (9) RIBA: registrare le spese bancarie degli insoluti; il
+      contabile registra anche i solleciti. SQL.
+   e) (10) Toli non ha capito il codice SIA/file CBI: spiegazione scritta
+      a parte (da mandare).
+   f) (14) Controlli del piano rimasti indietro più di 12 mesi: si
+      segnano "saltato".
+   g) (15) Appuntamento con il cliente per TUTTI gli interventi (non solo
+      la manutenzione programmata nuova). SQL (trigger di sql/43).
+   h) (16) Portale clienti: nascondere la data indicativa finché
+      l'appuntamento non è fissato. SQL (portale_ticket).
+   i) (17) Audit presidi PER SEDE (non per cliente); in manutenzione si
+      sostituisce qualcosa (manichetta, estintore): gestire la
+      sostituzione del presidio nel registro. SQL.
+   j) (18) Estintori: campo CAPACITÀ (6 kg, 9 kg...). SQL.
+   k) (19) "Non rinnovato" prima della scadenza: Toli non ha capito,
+      da definire con lui.
+   l) (20) Promemoria al cliente prima dell'appuntamento: EMAIL e
+      CHIAMATA della segreteria (lista "da chiamare" + mail).
+   m) (23) Ordini ai fornitori anche SENZA offerta scelta, ma con un
+      preventivo chiaro approvato, le cifre di spesa e la destinazione:
+      un cantiere (commessa) oppure il MAGAZZINO. SQL.
+   n) (24) Lavori extra sotto 3.000 €: il preventivo integrativo lo
+      prepara anche il rappresentante; l'importo degli extra si SOMMA
+      alla commessa.
+   o) (25) Ore cantiere: export per giorno.
+   p) (26) Dashboard titolare: dato sulle ore delle squadre.
+   q) (28) Soglia "lavoro grande" = 30.000 € (la imposta il titolare in
+      Impostazioni > Soglie e tariffe; esempio della guida aggiornato).
+      Creare il più possibile SCHEDE per il RAPPRESENTANTE, per ogni tipo
+      di lavoro, così compila da solo i dati che servono.
