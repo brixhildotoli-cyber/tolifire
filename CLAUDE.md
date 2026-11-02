@@ -2347,7 +2347,7 @@ una sessione e l'altra.
       (js/13) dava sempre "violates check constraint preventivi_stato_check":
       la RPC rinvia_preventivo_al_commerciale_da_rappresentante (di prima di
       ottobre) metteva lo stato 'rinviato_al_titolare', non permesso. PRONTO:
-      sql/57-rinvio-preventivo-rappresentante (DA ESEGUIRE): la RPC (ora con
+      sql/57-rinvio-preventivo-rappresentante (ESEGUITO il 02/11): la RPC (ora con
       p_nota facoltativa) riporta il preventivo in BOZZA, toglie i dati
       dell'invio al rappresentante e rimette il progetto in "Da
       preventivare" (inviato_a_commerciale) con la nota "Rinviato dal
