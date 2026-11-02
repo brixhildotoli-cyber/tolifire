@@ -2280,6 +2280,16 @@ una sessione e l'altra.
       che nel database NON esiste: l'avviso non compare mai. PRONTO:
       sql/55-lead-sito-letto-titolare (ESEGUITO il 02/11): aggiunge solo la
       colonna; policy invariate (il titolare legge e aggiorna).
+   s) Richiesta di Erika del 02/11: la freccia indietro del browser e del
+      telefono usciva dal gestionale (dai Preventivi e dal PDF si finiva
+      sulla dashboard). FATTO in js/47 (nessun SQL): ogni cambio di pagina
+      scrive #pagina nella cronologia del browser (history.pushState); la
+      freccia indietro torna alla pagina di prima nel punto in cui si era,
+      e se c'è una finestra aperta chiude solo la finestra; ricaricando il
+      sito (es. tornando dal PDF) boot riapre la pagina dell'indirizzo, e
+      per le schede di dettaglio il loro elenco (ELENCO_DELLA_SCHEDA). Una
+      pagina non permessa al ruolo resta sulla dashboard. Provato in Chrome
+      headless (rappresentante e titolare).
    q) (28) Soglia "lavoro grande" = 30.000 € (la imposta il titolare in
       Impostazioni > Soglie e tariffe; esempio della guida aggiornato).
       Creare il più possibile SCHEDE per il RAPPRESENTANTE, per ogni tipo

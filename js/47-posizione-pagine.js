@@ -130,6 +130,92 @@ ripristinaPosizionePagina = function() {};
       cronologiaPagine.push(id);
       if (cronologiaPagine.length > 50) cronologiaPagine.shift();
     }
+    registraPaginaNelBrowser(id);
+    return risultato;
+  };
+})();
+
+// ---------------------------------------------------------------------
+// Freccia "indietro" del browser e del telefono (richiesta di Erika del
+// 02/11: dai Preventivi, tornando dal PDF, si finiva sulla dashboard).
+// Prima il sito non scriveva nulla nella cronologia del browser: la
+// freccia indietro usciva dal gestionale, che ripartiva dalla dashboard.
+// Ora:
+// - ogni cambio di pagina aggiunge una voce alla cronologia del browser
+//   (indirizzo con #pagina, es. .../#preventivi-rapp);
+// - la freccia indietro torna alla pagina di prima, nel punto in cui si
+//   era (come il bottone "← Indietro"); se c'è una finestra aperta, la
+//   prima freccia chiude solo la finestra;
+// - se il sito si ricarica (es. tornando dal PDF sul telefono) riparte
+//   dalla pagina dell'indirizzo invece che dalla dashboard; le schede di
+//   dettaglio (preventivo, commessa, cliente, progetto, fornitore) non si
+//   possono riaprire senza sapere quale: si riparte dal loro elenco.
+// ---------------------------------------------------------------------
+let navigazioneDaBrowser = false;
+
+function registraPaginaNelBrowser(id) {
+  if (navigazioneDaBrowser || !window.history || !history.pushState) return;
+  try {
+    const stato = history.state;
+    if (stato && stato.paginaGestionale === id) return;
+    const url = location.pathname + location.search + '#' + id;
+    if (!stato || !stato.paginaGestionale) history.replaceState({ paginaGestionale: id }, '', url);
+    else history.pushState({ paginaGestionale: id }, '', url);
+  } catch (e) {}
+}
+
+// Dove ripartire se il sito si ricarica su una scheda di dettaglio.
+const ELENCO_DELLA_SCHEDA = {
+  'preventivo-detail': { titolare: 'preventivi-titolare', commerciale: 'preventivi', rappresentante: 'preventivi-rapp' },
+  'commessa-detail': 'commesse',
+  'cliente-detail': 'clienti',
+  'fornitore-detail': 'fornitori',
+  'progetto-detail': { commerciale: 'progetti-da-preventivare', titolare: 'progetti-da-preventivare', rappresentante: 'progetti' },
+  'scheda-documenti': 'team-subappalti'
+};
+
+function paginaDaRiaprire(id) {
+  let pagina = id;
+  const elenco = ELENCO_DELLA_SCHEDA[id];
+  if (elenco) pagina = typeof elenco === 'string' ? elenco : (elenco[ROLE] || null);
+  if (!pagina || !ge('pg-' + pagina) || typeof canAccessPage !== 'function' || !canAccessPage(pagina)) return null;
+  return pagina;
+}
+
+window.addEventListener('popstate', function(evento) {
+  if (typeof ROLE === 'undefined' || !ROLE) return;
+  // Una finestra aperta: la freccia la chiude e si resta sulla pagina.
+  const finestre = document.querySelectorAll('.mbg.on');
+  if (finestre.length) {
+    finestre.forEach(function(m) { m.classList.remove('on'); });
+    const attuale = paginaApertaId();
+    if (attuale) {
+      try { history.pushState({ paginaGestionale: attuale }, '', location.pathname + location.search + '#' + attuale); } catch (e) {}
+    }
+    return;
+  }
+  const id = evento.state && evento.state.paginaGestionale;
+  if (!id || id === paginaApertaId()) return;
+  const pagina = ge('pg-' + id) && canAccessPage(id) ? id : paginaDaRiaprire(id);
+  if (!pagina) return;
+  navigazioneDaBrowser = true;
+  try { gotoPage(pagina); } finally { navigazioneDaBrowser = false; }
+});
+
+// Dopo il login: se l'indirizzo ha una pagina (#preventivi-rapp), si
+// riparte da lì invece che dalla dashboard.
+(function() {
+  if (typeof boot !== 'function') return;
+  const bootPrimaPagina = boot;
+  boot = async function() {
+    const richiesta = (location.hash || '').replace(/^#/, '');
+    const risultato = await bootPrimaPagina.apply(this, arguments);
+    const pagina = richiesta ? paginaDaRiaprire(richiesta) : null;
+    if (pagina && pagina !== paginaApertaId()) {
+      try { gotoPage(pagina); } catch (e) { console.warn('Riapertura pagina:', e); }
+    } else {
+      registraPaginaNelBrowser(paginaApertaId());
+    }
     return risultato;
   };
 })();
