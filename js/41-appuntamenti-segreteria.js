@@ -4,7 +4,11 @@
 //   - la manutenzione ordinaria programmata nata dopo sql/43 "chiede
 //     l'appuntamento" (ordini_lavoro.appuntamento_richiesto, lo mette il
 //     database); gli interventi già esistenti, su chiamata, straordinari,
-//     corsi e quelli creati da un tecnico no. Titolare, capo tecnico e
+//     corsi e quelli creati da un tecnico no. Con sql/50 (decisione di
+//     Toli del 02/11) lo chiedono TUTTI gli interventi da pianificare o
+//     pianificati, di qualunque tipo (anche quelli aperti con data da oggi
+//     in poi); restano senza quelli creati da un tecnico e quelli nati
+//     completati. Il sito non cambia. Titolare, capo tecnico e
 //     segreteria lo mettono o lo tolgono dalla finestra dell'intervento
 //     (box mo-appuntamento, RPC imposta_appuntamento_richiesto);
 //   - il capo tecnico (Responsabile Service) pianifica come oggi (data

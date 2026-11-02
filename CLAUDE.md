@@ -2142,7 +2142,19 @@ una sessione e l'altra.
    f) (14) Controlli del piano rimasti indietro più di 12 mesi: si
       segnano "saltato".
    g) (15) Appuntamento con il cliente per TUTTI gli interventi (non solo
-      la manutenzione programmata nuova). SQL (trigger di sql/43).
+      la manutenzione programmata nuova). PRONTO: sql/50-appuntamento-
+      tutti-interventi (DA ESEGUIRE, richiede 43; anteprima e controllo in
+      fondo al file): ridefinisce solo ordini_lavoro_appuntamento (alla
+      nascita obbligo per ogni tipo, da pianificare o pianificato; senza
+      obbligo restano gli interventi creati da un tecnico e quelli nati
+      completati) e segna "serve l'appuntamento" sugli interventi aperti
+      senza data o con data da oggi in poi (quelli con la data passata non
+      si toccano, il tecnico li deve chiudere); storico con la nota
+      "Appuntamento richiesto per tutti gli interventi (decisione di Toli
+      del 02/11)". Rollback: funzione di sql/43 e obbligo tolto a quelli
+      segnati dal 50 ancora senza appuntamento fissato. Guide di tecnico,
+      capo tecnico e segreteria aggiornate. Provato in locale sul backup
+      pre49.
    h) (16) Portale clienti: nascondere la data indicativa finché
       l'appuntamento non è fissato. SQL (portale_ticket).
    i) (17) Audit presidi PER SEDE (non per cliente); in manutenzione si
