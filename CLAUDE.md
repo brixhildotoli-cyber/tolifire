@@ -3,7 +3,7 @@
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
 file unico: `index.html` (markup) + `style.css` + moduli `js/00-…46-*.js`
-caricati in ordine 00–18, poi 20–52, infine `19-init.js` (dettagli in
+caricati in ordine 00–18, poi 20–53, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -1112,7 +1112,10 @@ miei preventivi" solo con il preventivo inviato a lui o al cliente.
 Nel riepilogo dell'esito del preventivo integrativo
 accettato (js/18) "Preventivo integrativo: lavoro extra n. N della
 commessa ..." al posto di "Nessuna commessa collegata". L'importo della
-commessa NON cambia (gli extra sono nei loro preventivi). FINE LAVORI →
+commessa NON cambia (gli extra sono nei loro preventivi); con sql/56
+(decisione di Toli del 02/11, punto 9.n) il sito mostra "Preventivo +
+lavori extra accettati = Totale" e sotto i 3.000 € il preventivo
+integrativo lo può preparare anche il rappresentante (js/53). FINE LAVORI →
 SEGRETERIA: il box "Commesse: tocca a te" della segreteria c'era già
 (js/18, fine_lavori → chiusa); nuovo box "🏁 Fine lavori: ora tocca alla
 segreteria" (cmd-chiusura, in "Commessa e documenti", solo con la
@@ -2293,7 +2296,46 @@ una sessione e l'altra.
       sopra una soglia in Impostazioni.
    n) (24) Lavori extra sotto 3.000 €: il preventivo integrativo lo
       prepara anche il rappresentante; l'importo degli extra si SOMMA
-      alla commessa.
+      alla commessa. PRONTO: sql/56-lavori-extra-rappresentante (DA
+      ESEGUIRE, richiede 38 e 22; controllo in fondo) +
+      js/53-lavori-extra-rappresentante.js. A) RPC (search_path 'public,
+      pg_temp', solo il RAPPRESENTANTE del cliente della commessa:
+      clienti.rappresentante_id = lui, commessa aperta):
+      preventivo_extra_rappresentante (può/motivo, bozza e voci senza
+      costi), salva_preventivo_extra_rappresentante (voci con prezzo
+      cliente, costo 0, IVA 22/10/5/4/0, note, condizioni; totale calcolato,
+      SOPRA 3.000 € errore "lo prepara il commerciale"; crea il preventivo
+      con origine 'lavoro_extra_rappresentante', commerciale vuoto,
+      rappresentante = lui, collegato al progetto del lavoro extra, progetto
+      → 'in_valutazione' così esce da "Da preventivare"; corretto dopo
+      l'invio torna in bozza e il PDF va rifatto),
+      invia_preventivo_extra_rappresentante (PDF in <id>/cliente/ →
+      'inviato_a_rappresentante', in "I miei preventivi", il titolare lo vede
+      tra i preventivi da controllare), lascia_preventivo_extra_al_commerciale
+      (cancella la bozza, progetto → inviato_a_commerciale). Non può se c'è
+      già un preventivo del commerciale su quel progetto. Colonna
+      commesse_lavori_extra.preparato_da_rappresentante; regola storage
+      preventivi_documenti_cliente_rappresentante (carica il PDF solo dei
+      suoi preventivi integrativi in bozza). Sito: "🧾 Prepara io il
+      preventivo (fino a 3.000 €)" / "Riprendi il mio preventivo" nel box
+      della commessa e in rap-lavori-extra; finestra m-preventivo-extra-rapp
+      (id per-; numeri con la virgola; anteprima del totale, sopra 3.000 €
+      bottoni spenti); PDF con generaPreventivoClientePDF(datiEsterni) di
+      js/18 (stesso modello, senza salvataggio: lo carica js/53); in "I miei
+      preventivi" (js/13) "preparato da te" e "✏️ Correggi il preventivo" al
+      posto di "Rinvio al commerciale". Il commerciale non ha "Prepara/
+      Riprendi" né "🧾 Preventivo n." su questi lavori ("preparato dal
+      rappresentante"). B) RPC importi_extra_commesse (titolare, segreteria,
+      commerciale, capo tecnico, rappresentante sue commesse): numero e
+      totale imponibile dei preventivi integrativi accettati (regola di
+      calcolo_fattura_finale_commessa); js/26 mostra "Preventivo X + lavori
+      extra accettati (n) Y = Totale Z" nel riepilogo e nel tab Commesse del
+      cliente e il totale (con il dettaglio sotto) nella pagina Commesse.
+      commesse.importo_imponibile NON cambia. Senza sql/56 tutto come prima.
+      Provato in locale (backup pre54-55 + commessa di prova; Giulio
+      rappresentante, Laura commerciale, Luca capo tecnico; Chrome headless a
+      390 px: editor, oltre 3.000 bloccato, PDF scaricato e caricato, "I miei
+      preventivi", Correggi, importi; rollback e riesecuzione).
    o) (25) Ore cantiere: export per giorno.
    p) (26) Dashboard titolare: dato sulle ore delle squadre.
    r) Trovato il 02/11 (non è una domanda di Toli): l'avviso "Nuove lead

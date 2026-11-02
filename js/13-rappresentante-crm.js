@@ -592,6 +592,8 @@ pdf_esterno_titolare_nome,
       preventivo_cliente_pdf_nome,
       preventivo_cliente_pdf_generato_il,
       inviato_a_rappresentante_il,
+      origine,
+      progetto_tecnico_id,
       clienti!inner(
         ragione_sociale,
         rappresentante_id
@@ -653,7 +655,7 @@ pdf_esterno_titolare_nome,
             </div>
 
             <div style="font-size:12px;color:var(--m);margin-top:4px">
-              Inviato dal commerciale il ${esc(dataInvio)}
+              ${preventivo.origine === 'lavoro_extra_rappresentante' ? 'Preventivo integrativo preparato da te il' : 'Inviato dal commerciale il'} ${esc(dataInvio)}
             </div>
           </div>
 
@@ -667,9 +669,11 @@ pdf_esterno_titolare_nome,
           >
             📄 Apri / scarica PDF
           </button>
-          <button class="btn sm" onclick="rinviaPreventivoAlCommercialeDalRappresentante('${preventivo.id}')">
+          ${preventivo.origine === 'lavoro_extra_rappresentante' && typeof apriPreventivoExtraRappDaProgetto === 'function'
+            ? `<button class="btn sm" onclick="apriPreventivoExtraRappDaProgetto('${preventivo.progetto_tecnico_id}')">✏️ Correggi il preventivo</button>`
+            : `<button class="btn sm" onclick="rinviaPreventivoAlCommercialeDalRappresentante('${preventivo.id}')">
   ↩ Rinvio al commerciale
-</button>
+</button>`}
           ${esitoDisponibile ? bottoniEsitoPreventivo(preventivo) : ''}
         </div>
       </div>

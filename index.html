@@ -2649,10 +2649,22 @@
       <p>
         Se in cantiere il cliente chiede un lavoro in più, il capo tecnico lo
         registra e compare in <b>➕ Lavori extra dei tuoi clienti</b>. Il
-        commerciale prepara il preventivo integrativo; tu lo trovi in
-        <b>🧾 I miei preventivi</b> e lo fai approvare come gli altri. Finché
-        non è accettato il lavoro extra non si esegue.
+        preventivo integrativo lo prepara il commerciale, oppure tu se resta
+        entro <b>3.000 €</b>: premi <b>🧾 Prepara io il preventivo (fino a
+        3.000 €)</b>, scrivi le voci con il prezzo per il cliente (quantità,
+        unità, prezzo; niente costi interni), scegli l’IVA, poi
+        <b>📄 Salva, crea il PDF e mettilo tra i miei preventivi</b>. Lo trovi in
+        <b>🧾 I miei preventivi</b> e lo fai approvare come gli altri
+        (<b>✏️ Correggi il preventivo</b> se devi cambiarlo: poi rifai il PDF).
+        Finché non è accettato il lavoro extra non si esegue.
       </p>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>
+        3 estintori a 45,50 € + 2 h di posa a 60 € = <b>256,50 €</b>
+        imponibile: lo prepari tu. Se il totale supera 3.000 € il gestionale
+        si ferma: premi <b>↩️ Lascia al commerciale</b>.
+      </div>
 
       <hr class="sep">
 
@@ -2938,7 +2950,9 @@
     <b>🧾 Prepara il preventivo integrativo</b> (poi
     <b>🧾 Riprendi il preventivo</b>) e lavoralo come un preventivo normale.
     Il rappresentante lo fa approvare; finché non è accettato il lavoro non
-    si esegue.
+    si esegue. Sotto i 3.000 € può prepararlo anche il rappresentante: in
+    quel caso il lavoro mostra “preparato dal rappresentante” e tu non devi
+    fare nulla. Accettato, il suo importo si somma a quello della commessa.
   </p>
 
   <hr class="sep">
@@ -3557,8 +3571,10 @@
       <p>
         Nella scheda Cantiere, box <b>➕ Lavori extra</b>, premi
         <b>➕ Il cliente chiede un lavoro extra</b> e descrivi cosa, dove e chi
-        lo chiede. Il commerciale prepara il preventivo integrativo e il
-        rappresentante lo fa approvare.
+        lo chiede. Il commerciale (o il rappresentante, fino a 3.000 €)
+        prepara il preventivo integrativo e il rappresentante lo fa approvare.
+        Accettato, l’importo della commessa diventa “Preventivo + lavori extra
+        accettati = Totale”.
       </p>
 
       <div class="al2 w">
@@ -5985,6 +6001,59 @@
 </div>
 
 <!-- F8.5 — NUOVO LAVORO EXTRA CHIESTO IN CANTIERE (js/36) -->
+<!-- Preventivo integrativo preparato dal rappresentante (js/53, sql/56) -->
+<div class="mbg" id="m-preventivo-extra-rapp">
+  <div class="modal" style="max-width:720px">
+    <button class="x" onclick="chiudiPreventivoExtraRapp()">×</button>
+
+    <h3>🧾 Preventivo integrativo (fino a 3.000 €)</h3>
+    <div id="per-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+
+    <div class="al2 i">
+      Scrivi le voci con il <b>prezzo per il cliente</b> (IVA esclusa). Sopra
+      <b>3.000 €</b> il preventivo lo prepara il commerciale.
+      Il lavoro extra si esegue solo dopo che il cliente lo ha accettato.
+    </div>
+
+    <div id="per-avviso"></div>
+    <div id="per-voci"></div>
+    <button class="btn sm" style="margin:6px 0 12px" onclick="aggiungiVocePreventivoExtraRapp()">+ Aggiungi voce</button>
+
+    <div class="fr">
+      <div class="f">
+        <label>IVA</label>
+        <select id="per-iva" onchange="aggiornaTotalePreventivoExtraRapp()">
+          <option value="22">22%</option>
+          <option value="10">10%</option>
+          <option value="5">5%</option>
+          <option value="4">4%</option>
+          <option value="0">0%</option>
+        </select>
+      </div>
+      <div class="f">
+        <label>Totale imponibile (IVA esclusa)</label>
+        <div id="per-totale" style="font-size:18px;font-weight:700;padding:6px 0">0,00 €</div>
+      </div>
+    </div>
+
+    <div class="f">
+      <label>Modalità di pagamento (nel PDF)</label>
+      <textarea id="per-condizioni" rows="2" placeholder="Es. bonifico a 30 giorni"></textarea>
+    </div>
+    <div class="f">
+      <label>Note per il cliente (nel PDF)</label>
+      <textarea id="per-note" rows="2"></textarea>
+    </div>
+
+    <div class="ma" style="flex-wrap:wrap;gap:8px">
+      <button class="btn" style="color:var(--r)" id="per-lascia" onclick="lasciaPreventivoExtraRapp()">↩️ Lascia al commerciale</button>
+      <button class="btn" onclick="chiudiPreventivoExtraRapp()">Chiudi</button>
+      <button class="btn" id="per-salva" onclick="salvaPreventivoExtraRapp(false)">💾 Salva bozza</button>
+      <button class="btn p" id="per-invia" onclick="salvaPreventivoExtraRapp(true)">📄 Salva, crea il PDF e mettilo tra i miei preventivi</button>
+    </div>
+  </div>
+</div>
+
 <div class="mbg" id="m-lavoro-extra">
   <div class="modal" style="max-width:560px">
     <button class="x" onclick="closeM('m-lavoro-extra')">×</button>
@@ -7255,6 +7324,7 @@
 <script defer src="js/50-promemoria-appuntamenti.js?v=202611021732"></script>
 <script defer src="js/51-sostituzione-presidi.js?v=202611021732"></script>
 <script defer src="js/52-nota-credito-parziale.js?v=202611021732"></script>
+<script defer src="js/53-lavori-extra-rappresentante.js"></script>
 <script defer src="js/19-init.js?v=202611021732"></script>
 
 

@@ -765,7 +765,7 @@ async function caricaLavoriExtraDashboard() {
   };
   const aiuti = {
     commerciale: 'Chiesti dal cliente in cantiere: prepara il preventivo integrativo (lo trovi anche in Da preventivare). Accettato, resta nella stessa commessa.',
-    rappresentante: 'Chiesti dal cliente in cantiere: il commerciale prepara il preventivo integrativo, tu lo fai approvare. Finché non è accettato non si eseguono.',
+    rappresentante: 'Chiesti dal cliente in cantiere: il preventivo integrativo lo prepara il commerciale, oppure tu se resta entro 3.000 € ("Prepara io il preventivo"); poi lo fai approvare. Finché non è accettato non si eseguono.',
     capo_tecnico: 'Si eseguono solo quelli accettati dal cliente; gli altri aspettano il preventivo integrativo.'
   };
 

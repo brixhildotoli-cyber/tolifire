@@ -165,6 +165,8 @@ async function loadCommesse() {
   if (typeof caricaRiepilogoLavoriExtra === 'function') await caricaRiepilogoLavoriExtra(null);
   // F8.3: % di avanzamento per la colonna "Avanzamento" (js/34, sql/36).
   if (typeof caricaAvanzamentoCommesse === 'function') await caricaAvanzamentoCommesse();
+  // Lavori extra accettati sommati all'importo (js/53, solo con sql/56).
+  if (typeof caricaImportiExtraCommesse === 'function') await caricaImportiExtraCommesse(commesseElenco.map(function(c) { return c.id; }));
   renderEvidenzaCommesse();
   filtraCommesse();
 }
@@ -274,7 +276,7 @@ function filtraCommesse() {
         <td>${sede ? esc(sede) : '<span style="color:var(--a)">da indicare</span>'}</td>
         <td>${badgeStatoCommessa(c.stato)}${prossimo ? `<div style="font-size:11px;color:var(--m);margin-top:2px">poi: ${esc(prossimo)}</div>` : ''}</td>
         ${conAvanzamento ? `<td>${htmlCellaAvanzamentoCommessa(c)}</td>` : ''}
-        <td style="white-space:nowrap">${c.importo_imponibile != null ? esc(euroPreventivo(c.importo_imponibile)) : '—'}</td>
+        <td style="white-space:nowrap">${typeof htmlImportoCommessaElenco === 'function' ? htmlImportoCommessaElenco(c) : (c.importo_imponibile != null ? esc(euroPreventivo(c.importo_imponibile)) : '—')}</td>
         <td><button class="btn sm p" onclick="openCommessaDetail('${esc(c.id)}')">Apri</button></td>
       </tr>
     `;
@@ -351,6 +353,7 @@ async function caricaSchedaCommessa(commessaId) {
   if (typeof caricaRiepilogoRichiesteIntegrazione === 'function') await caricaRiepilogoRichiesteIntegrazione(commessa.id);
   // F8.5: lavori extra per "Tocca a te" (js/36).
   if (typeof caricaRiepilogoLavoriExtra === 'function') await caricaRiepilogoLavoriExtra(commessa.id);
+  if (typeof caricaImportiExtraCommesse === 'function') await caricaImportiExtraCommesse([commessa.id]);
   riepilogo.innerHTML = htmlRiepilogoCommessa(commessa);
   // F6.1: ordini ai fornitori (js/27, attivi con sql/30).
   if (typeof caricaOrdiniCommessa === 'function') await caricaOrdiniCommessa(commessa);
@@ -415,7 +418,7 @@ function htmlRiepilogoCommessa(c) {
       <div class="g2" style="margin-bottom:12px">
         ${ir('Cliente', c.clienti?.ragione_sociale)}
         ${ir('Lavoro', c.titolo || c.progetti_tecnici?.titolo)}
-        ${ir('Importo (imponibile, IVA esclusa)', c.importo_imponibile != null ? euroPreventivo(c.importo_imponibile) : '')}
+        ${ir('Importo (imponibile, IVA esclusa)', typeof testoImportoCommessa === 'function' ? testoImportoCommessa(c) : (c.importo_imponibile != null ? euroPreventivo(c.importo_imponibile) : ''))}
         ${ir('Nata il', nata ? nata + (c.origine === 'recupero' ? ' (per un preventivo già accettato)' : ' (preventivo accettato)') : '')}
         ${ir('Preventivo', numeroPreventivo ? 'n. ' + numeroPreventivo : '')}
         ${ir('Codice da usare nelle mail', c.codice)}
@@ -783,6 +786,8 @@ async function loadCommesseCliente(clienteId) {
     return;
   }
 
+  if (typeof caricaImportiExtraCommesse === 'function') await caricaImportiExtraCommesse(data.map(function(c) { return c.id; }));
+
   box.innerHTML = data.map(function(c) {
     const sede = testoSedeCommessa(c.sedi_cliente);
     const mia = motiviToccaAMeCommessa(c).length > 0;
@@ -792,7 +797,7 @@ async function loadCommesseCliente(clienteId) {
           <div style="font-weight:700">${esc(c.codice)}${mia ? ' ⭐' : ''} ${badgeStatoCommessa(c.stato)}</div>
           <div style="font-size:12px;color:var(--m)">
             ${esc(c.titolo || '')}${c.titolo ? ' · ' : ''}sede: ${sede ? esc(sede) : 'da indicare'}
-            ${c.importo_imponibile != null ? ' · ' + esc(euroPreventivo(c.importo_imponibile)) : ''}
+            ${typeof testoImportoCommessa === 'function' ? (testoImportoCommessa(c) ? ' · ' + esc(testoImportoCommessa(c)) : '') : (c.importo_imponibile != null ? ' · ' + esc(euroPreventivo(c.importo_imponibile)) : '')}
           </div>
         </div>
         <button class="btn sm p" onclick="openCommessaDetail('${esc(c.id)}')">Apri</button>

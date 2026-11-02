@@ -6114,17 +6114,25 @@ function allineaStoricoUndoPreventivo(idNuovi, idEliminati) {
   });
 }
 
-async function generaPreventivoClientePDF() {
-  const salvato = await salvaVociPreventivo();
+// datiEsterni (js/53, preventivo integrativo del rappresentante):
+// { preventivo, voci } già pronti; il PDF si scarica e la funzione
+// restituisce { blob, nomeFile } senza salvare (lo salva js/53).
+async function generaPreventivoClientePDF(datiEsterni) {
+  if (datiEsterni && datiEsterni.preventivo) {
+    if (!(await preparaPDF())) return null;
+  } else {
+    datiEsterni = null;
+    const salvato = await salvaVociPreventivo();
 
-  if (!salvato) return;
+    if (!salvato) return;
 
-  if (!(await preparaPDF())) return;
+    if (!(await preparaPDF())) return;
+  }
 
   const [
     preventivoRes,
     vociRes
-  ] = await Promise.all([
+  ] = datiEsterni ? [{ data: datiEsterni.preventivo }, { data: datiEsterni.voci || [] }] : await Promise.all([
     db
       .from('preventivi')
       .select(`
@@ -6840,6 +6848,11 @@ disegnaFooterClausoleSuTutteLePagine();
  const nomeFile = `Preventivo_${preventivo.numero}_Toli_Fire_${Date.now()}.pdf`;
 
   const pdfBlob = doc.output('blob');
+
+  if (datiEsterni) {
+    doc.save(nomeFile);
+    return { blob: pdfBlob, nomeFile: nomeFile };
+  }
 
   const storagePath =
     currentPreventivoId +
