@@ -527,6 +527,7 @@ function etichettaFamigliaTecnica(famiglia) {
 function etichettaCampoTecnico(campo) {
   const etichette = {
     tipo_intervento: 'Tipo di intervento',
+    pareti_cartongesso: 'Pareti in cartongesso',
     // Coppelle (protezione antincendio delle tubazioni)
     materiale_tubazione: 'Materiale della tubazione',
     uso_tubazione: 'Uso / fluido della tubazione',
@@ -595,6 +596,15 @@ function valoreSchedaTecnica(valore) {
 
   if (valore === 'si') return 'Sì';
   if (valore === 'no') return 'No';
+
+  if (Array.isArray(valore)) {
+    if (!valore.length) return '—';
+    // Pareti in cartongesso della compartimentazione
+    if (valore.every(function(r) { return r && typeof r === 'object' && ('larghezza' in r || 'angolo' in r); })) {
+      return valore.map(testoPareteCartongesso).join('\n');
+    }
+    return valore.map(function(r) { return typeof r === 'object' ? JSON.stringify(r) : String(r); }).join('\n');
+  }
 
   if (typeof valore === 'object') {
     return JSON.stringify(valore);
@@ -2423,7 +2433,18 @@ async function apriSchedaCompartimentazione(numero) {
       )}
     </div>
 
-    <div class="rap-section">5. Accesso, foto e note</div>
+    <div class="rap-section">5. Pareti in cartongesso</div>
+
+    <div class="card">
+      <div style="font-size:12px;color:var(--m);margin-bottom:8px">
+        Una riga per parete: misure, angoli (interni, esterni o entrambi) con
+        la loro misura e il numero.
+      </div>
+      <div id="cp-pareti-righe">${htmlRighePareteCartongesso(d.pareti_cartongesso)}</div>
+      <button class="btn sm" style="margin-top:8px" onclick="aggiungiPareteCartongesso()">+ Aggiungi parete</button>
+    </div>
+
+    <div class="rap-section">6. Accesso, foto e note</div>
 
     <div class="card">
       <div class="fr">
@@ -2485,8 +2506,115 @@ function datiFormSchedaCompartimentazione() {
     altezza_lavoro: v('cp-altezza-lavoro'),
     accessibilita: v('cp-accessibilita'),
     foto: v('cp-foto'),
-    note_tecniche: v('cp-note-tecniche')
+    note_tecniche: v('cp-note-tecniche'),
+    pareti_cartongesso: leggiPareteCartongesso()
   };
+}
+
+// ── Pareti in cartongesso (richiesta di Erika del 02/11) ──────────────
+// Righe ripetibili nella scheda Compartimentazione, salvate in
+// dati.pareti_cartongesso come elenco: unità di misura, larghezza x
+// altezza, angolo (interno / esterno / entrambi), misura e numero degli
+// angoli. Misure con la virgola (leggiImportoPreventivo). Nessun campo
+// obbligatorio; un elenco vuoto non si salva (null).
+const ANGOLI_PARETE_CARTONGESSO = [
+  { value: '', label: 'Nessun angolo' },
+  { value: 'interno', label: 'Interno' },
+  { value: 'esterno', label: 'Esterno' },
+  { value: 'entrambi', label: 'Interno ed esterno' }
+];
+const UNITA_PARETE_CARTONGESSO = ['m²', 'ml', 'pz'];
+
+function numeroParete(valore) {
+  if (valore === null || valore === undefined || valore === '') return '';
+  return importoConVirgolaPreventivo(valore);
+}
+
+function htmlRighePareteCartongesso(lista) {
+  const righe = Array.isArray(lista) ? lista : [];
+  if (!righe.length) {
+    return '<div class="empty" style="padding:10px">Nessuna parete inserita.</div>';
+  }
+  return righe.map(function(r, i) {
+    const campo = function(etichetta, nome, valore, segnaposto) {
+      return '<div class="f"><label>' + etichetta + '</label><input type="text" inputmode="decimal" autocomplete="off" id="cp-par-' + i + '-' + nome +
+        '" value="' + esc(numeroParete(valore)) + '" placeholder="' + (segnaposto || '') +
+        '" oninput="virgolaCampoImportoPreventivo(this)" onpaste="incollaImportoPreventivo(event, this)"></div>';
+    };
+    const unita = r.unita || 'm²';
+    return '<div style="border:1px solid var(--bo);border-radius:var(--rs);padding:10px;margin-bottom:8px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+        '<b style="font-size:13px">Parete ' + (i + 1) + '</b>' +
+        '<button class="btn sm" style="color:var(--r)" onclick="togliPareteCartongesso(' + i + ')">🗑️ Togli</button>' +
+      '</div>' +
+      '<div class="fr">' +
+        '<div class="f"><label>Unità di misura</label><select id="cp-par-' + i + '-unita">' +
+          UNITA_PARETE_CARTONGESSO.map(function(u) { return '<option value="' + u + '"' + (u === unita ? ' selected' : '') + '>' + u + '</option>'; }).join('') +
+        '</select></div>' +
+        campo('Larghezza (m)', 'larghezza', r.larghezza, 'Es. 4,50') +
+        campo('Altezza (m)', 'altezza', r.altezza, 'Es. 2,70') +
+      '</div>' +
+      '<div class="fr">' +
+        '<div class="f"><label>Angolo</label><select id="cp-par-' + i + '-angolo">' +
+          ANGOLI_PARETE_CARTONGESSO.map(function(a) { return '<option value="' + a.value + '"' + (a.value === (r.angolo || '') ? ' selected' : '') + '>' + a.label + '</option>'; }).join('') +
+        '</select></div>' +
+        campo('Misura angolo (m)', 'misura_angolo', r.misura_angolo, 'Es. 2,70') +
+        campo('Quantità angoli', 'quantita_angoli', r.quantita_angoli, 'Es. 2') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// Righe scritte nel modulo (anche quelle ancora vuote, per ridisegnarle).
+function righeModuloPareteCartongesso() {
+  const righe = [];
+  for (let i = 0; ge('cp-par-' + i + '-unita'); i++) {
+    const num = function(nome) {
+      const testo = v('cp-par-' + i + '-' + nome).trim();
+      return testo ? leggiImportoPreventivo(testo) : null;
+    };
+    righe.push({
+      unita: v('cp-par-' + i + '-unita') || 'm²',
+      larghezza: num('larghezza'),
+      altezza: num('altezza'),
+      angolo: v('cp-par-' + i + '-angolo') || '',
+      misura_angolo: num('misura_angolo'),
+      quantita_angoli: num('quantita_angoli')
+    });
+  }
+  return righe;
+}
+
+function leggiPareteCartongesso() {
+  const piene = righeModuloPareteCartongesso().filter(function(r) {
+    return r.larghezza !== null || r.altezza !== null || r.angolo || r.misura_angolo !== null || r.quantita_angoli !== null;
+  });
+  return piene.length ? piene : null;
+}
+
+function aggiungiPareteCartongesso() {
+  const righe = righeModuloPareteCartongesso();
+  righe.push({ unita: 'm²', larghezza: null, altezza: null, angolo: '', misura_angolo: null, quantita_angoli: null });
+  const box = ge('cp-pareti-righe');
+  if (box) box.innerHTML = htmlRighePareteCartongesso(righe);
+}
+
+function togliPareteCartongesso(indice) {
+  const righe = righeModuloPareteCartongesso();
+  righe.splice(indice, 1);
+  const box = ge('cp-pareti-righe');
+  if (box) box.innerHTML = htmlRighePareteCartongesso(righe);
+}
+
+// Testo leggibile di una parete (preventivo, copia commerciale, PDF).
+function testoPareteCartongesso(r, i) {
+  const n = function(x) { return x === null || x === undefined || x === '' ? '—' : importoConVirgolaPreventivo(x); };
+  const angolo = (ANGOLI_PARETE_CARTONGESSO.find(function(a) { return a.value === (r.angolo || ''); }) || {}).label || '';
+  let testo = 'Parete ' + (i + 1) + ': ' + n(r.larghezza) + ' × ' + n(r.altezza) + ' m (' + (r.unita || 'm²') + ')';
+  if (r.angolo) {
+    testo += ' · angolo ' + angolo.toLowerCase() + ': ' + n(r.misura_angolo) + ' m, n. ' + n(r.quantita_angoli);
+  }
+  return testo;
 }
 
 async function salvaSchedaCompartimentazione() {
@@ -4884,7 +5012,7 @@ function cardCertificatoPreventivo(certificato, origine) {
   const statoLettura = !certificato.inviato_il
     ? ''
     : certificato.letto_ingegnere_il
-      ? ` <span class="badge green">👁 Letto dall’ingegnere il ${formatoDataOraCertificato(certificato.letto_ingegnere_il)}</span>`
+      ? ` <span class="badge green">Letto dall’ingegnere il ${formatoDataOraCertificato(certificato.letto_ingegnere_il)}</span>`
       : ` <span class="badge yellow">Non ancora letto dall’ingegnere</span>`;
 
   const inputId = `certificato-file-${certificato.id}`;

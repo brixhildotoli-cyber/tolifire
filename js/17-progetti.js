@@ -3283,7 +3283,7 @@ async function apriModificaSchedaCommerciale(progettoId, famiglia, schedaId) {
             <textarea
               id="msc-campo-${indice}"
               rows="2"
-            >${esc(String(valore ?? ''))}</textarea>
+            >${esc(valore !== null && typeof valore === 'object' ? valoreSchedaTecnica(valore) : String(valore ?? ''))}</textarea>
           </div>
         `;
       }).join('')}

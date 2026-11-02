@@ -419,6 +419,17 @@ attraversamenti, finitura, ambiente, altezza/PLE, ostacoli, foto,
 certificazione, note. Nessun campo obbligatorio. Compare come le altre nel
 preventivo, nella copia del commerciale e nel PDF per il fornitore.
 
+Pareti in cartongesso nella scheda Compartimentazione (richiesta di Erika
+del 02/11, js/18, nessun SQL): sezione "5. Pareti in cartongesso" con righe
+ripetibili ("+ Aggiungi parete", "🗑️ Togli"): unità di misura (m², ml, pz),
+larghezza e altezza in m, angolo (nessuno, interno, esterno, interno ed
+esterno), misura dell'angolo e quantità di angoli; numeri con la virgola.
+Salvate in dati.pareti_cartongesso (elenco; vuoto = null). In preventivo,
+scheda progetto, copia commerciale, PDF per il fornitore e scheda cantiere
+si leggono come "Parete 1: 4,5 × 2,7 m (m²) · angolo interno ed esterno:
+2,7 m, n. 2" (valoreSchedaTecnica / testoPareteCartongesso); nella copia
+commerciale diventano testo modificabile. Nessun campo obbligatorio.
+
 Schede di rilievo multiple (richiesta di Erika del 29/10, js/18;
 sql/48-schede-tecniche-multiple ESEGUITO il 30/10, richiede 07 e 34; ORDINE:
 prima si pubblica il sito, poi si esegue il 48, perché il sito vecchio
