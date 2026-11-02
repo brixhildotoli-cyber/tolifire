@@ -2167,7 +2167,18 @@ una sessione e l'altra.
    i) (17) Audit presidi PER SEDE (non per cliente); in manutenzione si
       sostituisce qualcosa (manichetta, estintore): gestire la
       sostituzione del presidio nel registro. SQL.
-   j) (18) Estintori: campo CAPACITÀ (6 kg, 9 kg...). SQL.
+   j) (18) Estintori: campo CAPACITÀ (6 kg, 9 kg...). PRONTO:
+      sql/52-capacita-estintori (DA ESEGUIRE, nessun prerequisito oltre lo
+      schema base; anteprima e controllo in fondo): colonna
+      impianti.capacita (numero + kg o lt, vincolo
+      impianti_capacita_check) e spostamento nella capacità delle marche
+      che erano capacità (bug del sito fino al 29/10: es. marca "6kg"; nel
+      backup del 02/11 sono 2). js/07: select me4 con "Non indicata" e più
+      misure (1-50 kg, 2-50 lt; un valore fuori elenco si aggiunge al
+      select), salvata da saveP solo per gli estintori e solo se la
+      colonna c'è (capacitaEstintoriDisponibile), letta da editP
+      (impostaCapacitaEstintore; senza colonna dalla marca come prima).
+      Provato in locale (file, controllo, rollback, file di nuovo).
    k) (19) "Non rinnovato" prima della scadenza: Toli non ha capito,
       da definire con lui.
    l) (20) Promemoria al cliente prima dell'appuntamento: EMAIL e

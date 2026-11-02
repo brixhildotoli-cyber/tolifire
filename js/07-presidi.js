@@ -454,10 +454,11 @@ function editP(id) {
     ge('me1').value = p.matricola || '';
     ge('me2').value = p.marca || '';
     ge('me3').value = p.modello || 'polvere_abc';
-    // F10.2 — la capacità non ha una colonna: prima editP la leggeva dalla
-    // marca e saveP scriveva la capacità nella marca (la marca vera si perdeva).
-    // Il select si precompila solo se la marca è una capacità (dati vecchi).
-    ge('me4').value = [...ge('me4').options].some(function(o) { return o.value === p.marca; }) ? p.marca : '6kg';
+    // F10.2 — prima editP leggeva la capacità dalla marca e saveP la scriveva
+    // nella marca (la marca vera si perdeva). Con sql/52 la capacità ha la
+    // sua colonna (impianti.capacita); senza, il select si precompila solo
+    // se la marca è una capacità (dati vecchi).
+    impostaCapacitaEstintore(p.capacita !== undefined && p.capacita !== null ? p.capacita : p.marca);
     ge('me5').value = p.ubicazione || '';
     ge('me6').value = p.piano || '';
     ge('me7').value = p.locale || '';
@@ -470,6 +471,31 @@ function editP(id) {
   }
 
   openM('m-presidio');
+}
+
+// Capacità degli estintori (decisione di Toli del 02/11, sql/52): la
+// colonna impianti.capacita c'è? Senza sql/52 il campo si mostra ma non si
+// salva, come prima.
+let capacitaEstintoriVerificata = null;
+async function capacitaEstintoriDisponibile() {
+  if (capacitaEstintoriVerificata !== null) return capacitaEstintoriVerificata;
+  const { error } = await db.from('impianti').select('capacita').limit(1);
+  capacitaEstintoriVerificata = !error;
+  return capacitaEstintoriVerificata;
+}
+
+function impostaCapacitaEstintore(valore) {
+  const sel = ge('me4');
+  if (!sel) return;
+  const pulito = String(valore || '').toLowerCase().replace(/\s+/g, '');
+  if (pulito && ![...sel.options].some(function(o) { return o.value === pulito; })) {
+    // valore fuori elenco (es. 2,5kg): si aggiunge, così non si perde salvando
+    const opt = document.createElement('option');
+    opt.value = pulito;
+    opt.textContent = pulito.replace(/(kg|lt)$/, ' $1');
+    sel.appendChild(opt);
+  }
+  sel.value = pulito && [...sel.options].some(function(o) { return o.value === pulito; }) ? pulito : '';
 }
 
 async function saveP() {
@@ -562,6 +588,11 @@ async function saveP() {
       note: v('me14') || null,
       sede_id: v('mpsede') || null
     };
+  }
+
+  // Capacità dell'estintore: solo con sql/52 (colonna impianti.capacita).
+  if (tipo === 'estintore' && (await capacitaEstintoriDisponibile())) {
+    payload.capacita = v('me4') || null;
   }
 
   // F10.2 — annata (anno di fabbricazione), solo con sql/41 (js/40)
