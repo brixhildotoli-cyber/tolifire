@@ -2143,7 +2143,7 @@ una sessione e l'altra.
       segnano "saltato".
    g) (15) Appuntamento con il cliente per TUTTI gli interventi (non solo
       la manutenzione programmata nuova). PRONTO: sql/50-appuntamento-
-      tutti-interventi (DA ESEGUIRE, richiede 43; anteprima e controllo in
+      tutti-interventi (ESEGUITO il 02/11, richiede 43; anteprima e controllo in
       fondo al file): ridefinisce solo ordini_lavoro_appuntamento (alla
       nascita obbligo per ogni tipo, da pianificare o pianificato; senza
       obbligo restano gli interventi creati da un tecnico e quelli nati
