@@ -257,6 +257,7 @@
 <div id="tit-audit-presidi"></div>
 <!-- F10.3 — interventi che aspettano l'appuntamento della segreteria (js/41, solo con sql/43) -->
 <div id="tit-appuntamenti"></div>
+<div id="tit-promemoria"></div>
 <!-- F11.2 — scadenze e incassi delle fatture (js/44, solo con sql/46) -->
 <div id="tit-incassi"></div>
 <!-- F11.3 — fatturato, incassato, insoluti (js/45, solo con sql/47) -->
@@ -351,6 +352,7 @@
 
       <!-- F10.3 — appuntamenti da fissare con i clienti (js/41, solo con sql/43) -->
       <div id="seg-appuntamenti"></div>
+      <div id="seg-promemoria"></div>
 
       <!-- F5.2 — commesse il cui prossimo passo è della segreteria (solo con sql/28) -->
       <div id="seg-commesse-tocca"></div>
@@ -3937,6 +3939,20 @@
         <b>Non serve l’appuntamento</b> (con motivo).
       </p>
 
+      <p>
+        <b>Il giorno prima</b> ricorda l’appuntamento al cliente: nel riquadro
+        <b>🔔 Promemoria ai clienti</b> trovi gli appuntamenti di domani (il
+        venerdì anche sabato, domenica e lunedì). Per ogni cliente premi
+        <b>📞 Chiama</b> oppure <b>✉️ Mail promemoria</b>, che apre la mail già
+        scritta nel tuo programma di posta (controlla e premi Invia). Poi premi
+        <b>✓ Avvisato</b>: il cliente esce dai “da avvisare”.
+      </p>
+
+      <div class="al2 i">
+        Il segno “Avvisato” resta sul computer su cui lo metti. Se cambiano
+        giorno o ora dell’appuntamento, il cliente torna “da avvisare”.
+      </div>
+
       <hr class="sep">
 
       <h4 id="info-seg-7">7. Schede di lavoro e buono di lavoro</h4>
@@ -7136,6 +7152,7 @@
 <script defer src="js/47-posizione-pagine.js"></script>
 <script defer src="js/48-riba-cbi.js"></script>
 <script defer src="js/49-ore-cantiere.js"></script>
+<script defer src="js/50-promemoria-appuntamenti.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

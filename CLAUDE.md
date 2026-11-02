@@ -3,7 +3,7 @@
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
 file unico: `index.html` (markup) + `style.css` + moduli `js/00-…46-*.js`
-caricati in ordine 00–18, poi 20–49, infine `19-init.js` (dettagli in
+caricati in ordine 00–18, poi 20–50, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -2171,7 +2171,18 @@ una sessione e l'altra.
    k) (19) "Non rinnovato" prima della scadenza: Toli non ha capito,
       da definire con lui.
    l) (20) Promemoria al cliente prima dell'appuntamento: EMAIL e
-      CHIAMATA della segreteria (lista "da chiamare" + mail).
+      CHIAMATA della segreteria. FATTO (02/11, js/50-promemoria-
+      appuntamenti.js, NESSUN SQL): box "🔔 Promemoria ai clienti" nelle
+      dashboard di segreteria (seg-promemoria) e titolare (tit-promemoria)
+      con gli appuntamenti fissati del prossimo giorno lavorativo (domani;
+      venerdì → sabato, domenica, lunedì), "📞 Chiama", "✉️ Mail
+      promemoria" (mailto già scritto al referente_email, altrimenti
+      email_portale; il gestionale non invia mail da solo) e "✓ Avvisato".
+      SCELTA DICHIARATA: "Avvisato" in localStorage del browser (per
+      giorno e ora dell'appuntamento), non condiviso tra computer: se serve
+      condividerlo, colonna nuova. Riga "Clienti da avvisare" in "Cosa
+      tocca a me" della segreteria. Si carica avvolgendo
+      caricaAppuntamentiDaFissare (js/41). Guida segreteria (info-seg-6).
    m) (23) Ordini ai fornitori anche SENZA offerta scelta, ma con un
       preventivo chiaro approvato, le cifre di spesa e la destinazione:
       un cantiere (commessa) oppure il MAGAZZINO. SQL.
