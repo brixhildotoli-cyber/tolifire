@@ -29,6 +29,8 @@ Questa procedura la esegue chi amministra il repository GitHub.
 6. Premi **Save** e attendi il completamento della pubblicazione.
 7. GitHub mostrerà l'indirizzo pubblico del sito: è il link da inviare ai dipendenti.
 
+Pubblicare un aggiornamento (dal 02/11/2026): dal Terminale `zsh ~/Desktop/GESTIONALE/pubblica.sh`. Lo script controlla di essere su `sviluppo` e che il sito pubblicato sia già contenuto in `sviluppo`, mette a tutti gli script e a `style.css` di `index.html` un numero di versione nuovo (`?v=AAAAMMGGHHMM`, commit "Pubblicazione ...") e fa il push su `gestionale_new` e `sviluppo`. Il numero di versione evita che un browser, dopo la pubblicazione, tenga file vecchi insieme a file nuovi (GitHub Pages li fa tenere 10 minuti).
+
 Ogni nuovo `push` sul branch scelto aggiorna automaticamente il sito pubblicato.
 
 > Attenzione: GitHub Pages espone il frontend pubblicamente. Non caricare mai nel repository password, chiavi `service_role` di Supabase, esportazioni di dati, documenti aziendali o file `.env` riservati. La chiave `anon`/publishable di Supabase nel frontend è prevista per essere pubblica: la protezione dei dati deve stare nelle policy RLS di Supabase.

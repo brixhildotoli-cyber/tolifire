@@ -10,7 +10,9 @@ La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
 sono critiche.
 
 Branch: `sviluppo` = lavoro; `gestionale_new` = branch pubblicato su GitHub
-Pages (il sito usato dai dipendenti: solo merge provati). `main` locale e
+Pages (il sito usato dai dipendenti: solo merge provati). Si pubblica con
+`zsh ~/Desktop/GESTIONALE/pubblica.sh` (dal 02/11: numero di versione
+`?v=` agli script e a style.css in index.html, poi push; vedi README). `main` locale e
 remoto divergono: non toccarli.
 Cartella `sql/`: repository git SEPARATO e PRIVATO
 (brixhildotoli-cyber/tolifire-sql), escluso dal repo pubblico via
@@ -2273,6 +2275,11 @@ una sessione e l'altra.
       alla commessa.
    o) (25) Ore cantiere: export per giorno.
    p) (26) Dashboard titolare: dato sulle ore delle squadre.
+   r) Trovato il 02/11 (non è una domanda di Toli): l'avviso "Nuove lead
+      dal sito" del titolare (js/18 e js/46) usa lead_sito.letto_titolare_il,
+      che nel database NON esiste: l'avviso non compare mai. PRONTO:
+      sql/55-lead-sito-letto-titolare (DA ESEGUIRE): aggiunge solo la
+      colonna; policy invariate (il titolare legge e aggiorna).
    q) (28) Soglia "lavoro grande" = 30.000 € (la imposta il titolare in
       Impostazioni > Soglie e tariffe; esempio della guida aggiornato).
       Creare il più possibile SCHEDE per il RAPPRESENTANTE, per ogni tipo
