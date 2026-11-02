@@ -432,6 +432,12 @@ async function datiBuonoLavoro(s, perPdf) {
   ]);
   const contratto = rc.error ? null : ((rc.data || [])[0] || null);
   const audit = ra && !ra.error ? ra.data : null;
+  // sql/53 (js/51): presidi sostituiti nell'intervento; con un audit di una
+  // sola sede il confronto con il contratto si fa sul registro del cliente.
+  const [sostituiti, auditSoloSede] = await Promise.all([
+    typeof leggiSostituzioniIntervento === 'function' ? leggiSostituzioniIntervento(s.odl_id) : Promise.resolve([]),
+    audit && typeof auditSoloSedeBuono === 'function' ? auditSoloSedeBuono(s.odl_id) : Promise.resolve(false)
+  ]);
   const presidi = rp.presidi || [];
   const tipoIntervento = (ro && ro.data && ro.data.tipo) || null;
   const periodo = statoContrattoAlGiorno(contratto, giorno);
@@ -442,7 +448,11 @@ async function datiBuonoLavoro(s, perPdf) {
     diff.disponibile = true;
     const previsti = contratto.presidi_contratto || {};
     let trovati = {};
-    if (audit && audit.presidi_trovati) {
+    if (audit && audit.presidi_trovati && auditSoloSede) {
+      diff.fonte = 'registro';
+      presidi.forEach(function(p) { trovati[p.tipo] = (trovati[p.tipo] || 0) + 1; });
+      diff.nonTrovati = Array.isArray(audit.presidi_non_trovati) ? audit.presidi_non_trovati : [];
+    } else if (audit && audit.presidi_trovati) {
       diff.fonte = 'audit';
       diff.dataAudit = audit.data_audit;
       trovati = audit.presidi_trovati || {};
@@ -500,7 +510,7 @@ async function datiBuonoLavoro(s, perPdf) {
     });
   }
 
-  return { contratto: contratto, periodo: periodo, diff: diff, fuori: fuori, ddt: ddt, ddtErrore: rd.errore || null, prezzi: prezzi, tipoIntervento: tipoIntervento };
+  return { contratto: contratto, periodo: periodo, diff: diff, fuori: fuori, ddt: ddt, ddtErrore: rd.errore || null, prezzi: prezzi, tipoIntervento: tipoIntervento, sostituiti: sostituiti || [] };
 }
 
 // ── Finestra della scheda: box "Buono di lavoro" ──────────────────────────
@@ -565,6 +575,14 @@ async function caricaBuonoLavoroScheda(id) {
     if (df.nonTrovati.length) {
       html += '<div style="font-size:12px;color:var(--r);margin-top:4px">Non trovati sul posto: ' + esc(df.nonTrovati.map(nomePresidioBuono).join('; ')) + '</div>';
     }
+  }
+
+  // Presidi sostituiti (sql/53, js/51)
+  if (d.sostituiti.length) {
+    html += titoletto('Presidi sostituiti nell\'intervento');
+    html += '<ul style="margin:0;padding-left:18px;font-size:12px">' +
+      d.sostituiti.map(function(x) { return '<li style="margin-bottom:3px">' + esc(testoSostituzione(x)) + '</li>'; }).join('') + '</ul>' +
+      '<div style="font-size:11px;color:var(--a);margin-top:3px">Il presidio nuovo va messo nel DDT o in fattura (se non è compreso nel contratto).</div>';
   }
 
   // Lavori fuori contratto
@@ -660,6 +678,12 @@ async function sezioniBuonoLavoroPDF(doc, s, y, M, W) {
 
   // Solo fatti tecnici (niente diciture commerciali: quelle restano nel box
   // del buono, che vede l'ufficio). Lo straordinario ha già il suo riquadro.
+  if (d.sostituiti.length) {
+    titolo('PRESIDI SOSTITUITI');
+    d.sostituiti.forEach(function(x) { testo('- ' + testoSostituzione(x) + '.'); });
+    y += 2;
+  }
+
   const tecnici = d.fuori.filter(function(f) { return f.chiave === 'stato'; });
   if (tecnici.length) {
     titolo('PRESIDI DA SOSTITUIRE, RICARICARE O RIPARARE');

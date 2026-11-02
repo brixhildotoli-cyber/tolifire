@@ -123,6 +123,8 @@ async function loadPC(){
     ]);
     pp=ppDir; perio=perioDir;
   }
+  // Eliminati e sostituiti (sql/53) non sono più nel registro del cliente.
+  pp=(pp||[]).filter(function(p){return !p.eliminato_il;});
   const el=ge('pcl');
   if(!pp?.length){
     el.innerHTML='<div class="empty">Nessun presidio censito.<br><button class="btn p sm" style="margin-top:8px" onclick="apriAggiungiPresidioTec()">+ Aggiungi primo presidio</button></div>';

@@ -185,6 +185,7 @@ if (!erroreClienteAggiornato && clienteAggiornato) {
     .from('impianti')
     .select('*, sedi_cliente(id,tipo,via,civico,citta)')
     .eq('cliente_id', id)
+    .is('eliminato_il', null) // eliminati e sostituiti (sql/53) fuori dal registro
     .order('tipo')
     .order('matricola');
 
@@ -261,6 +262,8 @@ if (!erroreClienteAggiornato && clienteAggiornato) {
                            ? `<button class="btn sm" onclick="editP('${p.id}')">✏️</button>`
                            : ''
                        }
+
+                       ${typeof bottoneSostituisciPresidio === 'function' ? bottoneSostituisciPresidio(p.id) : ''}
 
                        ${
                          ROLE === 'titolare' || ROLE === 'capo_tecnico'
@@ -654,6 +657,8 @@ ${p.tipo === 'manichetta' ? `
           <button class="btn sm" onclick="editP('${p.id}')">
             Modifica
           </button>
+
+          ${typeof bottoneSostituisciPresidio === 'function' ? bottoneSostituisciPresidio(p.id) : ''}
 
           ${ROLE === 'titolare' || ROLE === 'capo_tecnico' ? `
             <button

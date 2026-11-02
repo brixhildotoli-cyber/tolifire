@@ -3,7 +3,7 @@
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
 file unico: `index.html` (markup) + `style.css` + moduli `js/00-…46-*.js`
-caricati in ordine 00–18, poi 20–50, infine `19-init.js` (dettagli in
+caricati in ordine 00–18, poi 20–51, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -2166,7 +2166,51 @@ una sessione e l'altra.
       versione di sql/43. Provato in locale.
    i) (17) Audit presidi PER SEDE (non per cliente); in manutenzione si
       sostituisce qualcosa (manichetta, estintore): gestire la
-      sostituzione del presidio nel registro. SQL.
+      sostituzione del presidio nel registro. PRONTO: sql/53-audit-per-
+      sede-sostituzione-presidi (DA ESEGUIRE, richiede 41; legge 40 e 52;
+      anteprima e controllo in fondo) + js/51-sostituzione-presidi.js.
+      AUDIT PER SEDE: ordini_lavoro_audit_presidi ridefinita (primo
+      intervento di manutenzione programmata della SEDE; sede di
+      riferimento = audit_sede_riferimento: la sede dell'intervento, se
+      manca l'unica principale, se no l'unica sede); registra_audit_presidi
+      ridefinita (salva audit_presidi.sede_id, controlla solo i presidi
+      della sede: audit_presidi_mancanti_sede; con più sedi niente
+      differenze nel messaggio, "confronto_parziale"); chiusura bloccata
+      solo per i presidi della sede. Gli audit già fatti hanno
+      audit_presidi.tutte_le_sedi = true e valgono per tutte le sedi (il
+      cliente non rifà l'audit). audit_presidi_da_esaminare ridefinita:
+      trovati = somma dell'ultimo audit di ogni sede
+      (audit_presidi_totali_cliente; le sedi contate sono quelle con
+      presidi nel registro o già controllate; per le sedi coperte solo da
+      un audit "tutte le sedi" più vecchio si conta il registro di oggi;
+      cliente con solo audit vecchi = confronto identico a prima), campi
+      nuovi sede_nome, sedi_con_audit, sedi_totali ("audit fatto in N
+      sedi su M" nella dashboard, js/40). RPC nuova ambito_audit_intervento
+      (presidi dell'audit dell'intervento: elenco del tecnico in js/40
+      renderPresidiAudit, con "Solo i presidi di questa sede: ...").
+      SOSTITUZIONE: colonne impianti.sostituito_da (fk impianti,
+      impianti_sostituito_da_fkey), sostituito_il, sostituito_odl_id,
+      sostituito_motivo; RPC sostituisci_presidio (tecnico solo su un suo
+      intervento aperto di quel cliente, titolare/capo tecnico/segreteria
+      sempre; matricola, annata e motivo obbligatori; il vecchio va in
+      eliminato_il, il nuovo eredita tipo/cliente/sede/ubicazione/piano/
+      locale/agente/periodicità/numero progressivo, controllo e
+      installazione di oggi in ora italiana, prossimo = oggi + periodicità,
+      capacità solo estintori con sql/52). Sito: "🔁 Sostituito" al passo
+      Presidi (elenco normale e audit; il nuovo risulta già "trovato"),
+      nella pagina Presidi (tabella e schede) e nella scheda cliente per
+      titolare, capo tecnico, segreteria (bottoneSostituisciPresidio);
+      finestra m-sostituzione-presidio (id sost-). Buono di lavoro (js/42):
+      "Presidi sostituiti nell'intervento" nel box (da mettere nel DDT o in
+      fattura) e "PRESIDI SOSTITUITI" nel PDF; con un audit di una sola
+      sede il confronto del buono si fa sul registro del cliente. Corretto
+      nello stesso giro: passo Presidi (js/11) e scheda cliente (js/09)
+      mostravano anche i presidi eliminati. SCELTE DICHIARATE: le colonne
+      sostituito_* non sono protette da trigger (l'ufficio le potrebbe
+      scrivere con update diretto); gli interventi con audit ancora aperti
+      controllano solo la loro sede. Rollback: funzioni di sql/41,
+      colonne tolte, dati di lavoro restano. Provato in locale sul backup
+      pre52 + sql/52 con i ruoli veri (non nel browser).
    j) (18) Estintori: campo CAPACITÀ (6 kg, 9 kg...). PRONTO:
       sql/52-capacita-estintori (ESEGUITO il 02/11, nessun prerequisito oltre lo
       schema base; anteprima e controllo in fondo): colonna

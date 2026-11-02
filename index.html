@@ -3090,12 +3090,20 @@
         <li><b>Spunta</b> ogni presidio che hai verificato oggi: si apre il riquadro con <b>Stato dopo verifica</b> (✅ OK / Conforme, ⚠️ Anomalia rilevata, 🔴 Fuori servizio) e <b>Note intervento</b>. Ai presidi spuntati si aggiornano ultima e prossima verifica.</li>
         <li>Con la matita <b>✏️</b> correggi i dati del presidio (matricola, ubicazione, piano…).</li>
         <li>Con <b>+ Aggiungi</b> inserisci un presidio che non è in elenco.</li>
+        <li>Hai cambiato un presidio (estintore scaduto, manichetta rotta)? Premi <b>🔁 Sostituito</b> sul presidio vecchio: scrivi <b>Matricola</b> e <b>Annata</b> del nuovo, la marca, la capacità e il <b>Motivo</b>, poi <b>🔁 Registra la sostituzione</b>. Il vecchio esce dal registro, il nuovo entra al suo posto (stessa ubicazione) con il controllo di oggi.</li>
       </ul>
 
       <p>
-        Dopo ✏️ o + Aggiungi l’elenco si ricarica e le spunte, gli stati e le
+        Dopo ✏️, + Aggiungi o 🔁 l’elenco si ricarica e le spunte, gli stati e le
         note già scritti restano.
       </p>
+
+      <div class="info-esempio">
+        <b>Esempio di sostituzione</b><br>
+        <code>Estintore — Corridoio · Piano 1 · matricola 12345</code><br>
+        <code>Matricola del nuovo: AB98765 · Annata: 2026 · Capacità: 6 kg</code><br>
+        <code>Motivo: Scaduto (revisione o collaudo)</code>
+      </div>
 
       <div class="info-esempio">
         <b>Esempio di nota su un estintore</b><br>
@@ -3108,15 +3116,17 @@
       <h4 id="info-tec-7">7. Prima manutenzione: l’audit dei presidi</h4>
 
       <p>
-        Alla prima manutenzione di un cliente con contratto l’intervento ha
-        l’audit: nella tendina lo riconosci da <b>🔎 AUDIT</b>. Al passo dei
-        presidi controlli TUTTO il registro del cliente, di tutte le sedi.
+        Alla prima manutenzione di ogni sede di un cliente con contratto
+        l’intervento ha l’audit: nella tendina lo riconosci da <b>🔎 AUDIT</b>.
+        Al passo dei presidi controlli tutto il registro DI QUELLA SEDE (in
+        cima c’è scritto quale).
       </p>
 
       <ul>
         <li>Per ogni presidio scegli in <b>Esito audit</b>: <b>✅ Trovato e verificato</b> oppure <b>❌ Non trovato sul posto</b>.</li>
         <li>Se è trovato, <b>Matricola</b> e <b>Annata</b> (anno di fabbricazione) sono obbligatorie; poi stato e note.</li>
-        <li>I presidi che trovi sul posto e non sono in elenco li aggiungi con <b>+ Aggiungi</b>.</li>
+        <li>I presidi che trovi sul posto e non sono in elenco li aggiungi con <b>+ Aggiungi</b> (nella sede dell’intervento).</li>
+        <li>Un presidio da cambiare: <b>🔁 Sostituito</b>; il nuovo risulta già “trovato”.</li>
       </ul>
 
       <div class="info-esempio">
@@ -3381,8 +3391,10 @@
       <h4 id="info-ct-6">6. Audit dei presidi e differenze con il contratto</h4>
 
       <p>
-        Il primo intervento di manutenzione di un cliente con contratto nasce
-        con l’audit (il tecnico controlla tutto il registro). Nella finestra
+        Il primo intervento di manutenzione di ogni SEDE di un cliente con
+        contratto nasce con l’audit (il tecnico controlla il registro di quella
+        sede; senza sede vale la sede principale). Gli audit fatti prima del
+        02/11 valgono per tutte le sedi del cliente. Nella finestra
         dell’intervento puoi metterlo con
         <b>🔎 Segna come prima manutenzione con audit</b> o toglierlo con
         <b>Togli l’audit</b>, sempre con un motivo.
@@ -3390,9 +3402,18 @@
 
       <p>
         Dopo l’audit, il box <b>🔎 Audit presidi: differenze con il contratto</b>
-        confronta, per tipo, i presidi trovati con quelli previsti. Correggi i
+        confronta, per tipo, i presidi trovati con quelli previsti: il contratto
+        conta tutto il cliente, quindi si somma l’ultimo audit di ogni sede e
+        la riga dice <b>audit fatto in N sedi su M</b> (finché mancano sedi il
+        confronto è parziale). Correggi i
         <b>N. previsti dal contratto</b> nella scheda cliente (tab Periodicità)
         oppure, dopo averne parlato, premi <b>✓ Esaminato</b>.
+      </p>
+
+      <p>
+        Un presidio cambiato: <b>🔁 Sostituito</b> nella pagina Presidi o nella
+        scheda cliente (il tecnico lo fa dalla scheda dell’intervento). Il
+        vecchio esce dal registro, il nuovo prende il suo posto.
       </p>
 
       <hr class="sep">
@@ -3970,6 +3991,14 @@
         differenze dei presidi, lavori fuori contratto, materiale dei DDT e
         fatturazione. <b>📋 Scarica il buono (PDF)</b> dà il rapporto per il
         cliente (solo fatti tecnici, senza prezzi).
+      </p>
+
+      <p>
+        Se il tecnico ha cambiato un presidio, nel buono c’è la riga
+        <b>Presidi sostituiti</b> (vecchia e nuova matricola, motivo): il
+        presidio nuovo va messo nel DDT o in fattura, se non è compreso nel
+        contratto. Una sostituzione fatta senza intervento la registri tu con
+        <b>🔁 Sostituito</b> nella pagina Presidi.
       </p>
 
       <hr class="sep">
@@ -6457,6 +6486,41 @@
 </div>
 </div>
 
+<!-- sql/53, js/51: sostituzione di un presidio -->
+<div class="mbg" id="m-sostituzione-presidio">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-sostituzione-presidio')">×</button>
+    <h3>🔁 Presidio sostituito</h3>
+    <div style="font-size:12px;color:var(--m);margin-bottom:4px">Presidio vecchio (esce dal registro, resta nello storico):</div>
+    <div id="sost-vecchio" style="font-size:13px;font-weight:600;background:var(--bg);border-radius:var(--rs);padding:8px;margin-bottom:10px;overflow-wrap:anywhere"></div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Il presidio nuovo prende tipo, sede, ubicazione, piano e locale del vecchio, con il controllo di oggi.</div>
+    <div class="fr">
+      <div class="f"><label for="sost-matricola">Matricola del nuovo *</label><input type="text" id="sost-matricola" maxlength="100" autocomplete="off"></div>
+      <div class="f"><label for="sost-annata">Annata del nuovo *</label><input type="number" id="sost-annata" inputmode="numeric" min="1900" placeholder="Es. 2026"></div>
+    </div>
+    <div class="fr">
+      <div class="f"><label for="sost-marca">Marca</label><input type="text" id="sost-marca" maxlength="100"></div>
+      <div class="f" id="sost-capacita-box"><label for="sost-capacita">Capacità</label><select id="sost-capacita"><option value="">Non indicata</option></select></div>
+    </div>
+    <div class="f"><label for="sost-motivo">Motivo *</label>
+      <select id="sost-motivo" onchange="cambiaMotivoSostituzione()">
+        <option value="">— Scegli —</option>
+        <option value="Scaduto (revisione o collaudo)">Scaduto (revisione o collaudo)</option>
+        <option value="Danneggiato">Danneggiato</option>
+        <option value="Scarico o usato">Scarico o usato</option>
+        <option value="Non conforme">Non conforme</option>
+        <option value="Mancante">Mancante</option>
+        <option value="altro">Altro…</option>
+      </select></div>
+    <div class="f" id="sost-motivo-altro-box" style="display:none"><label for="sost-motivo-altro">Scrivi il motivo *</label><input type="text" id="sost-motivo-altro" maxlength="500"></div>
+    <div id="sost-intervento" style="font-size:12px;color:var(--m);margin-bottom:8px"></div>
+    <div id="sost-err" style="display:none;color:var(--r);font-size:12px;margin-bottom:8px"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-sostituzione-presidio')">Annulla</button>
+      <button class="btn p" id="sost-salva" onclick="salvaSostituzionePresidio()">🔁 Registra la sostituzione</button>
+    </div>
+  </div>
+</div>
 <div class="mbg" id="m-import-presidi">
   <div class="modal" style="max-width:1000px">
     <div class="mh">
@@ -7153,6 +7217,7 @@
 <script defer src="js/48-riba-cbi.js"></script>
 <script defer src="js/49-ore-cantiere.js"></script>
 <script defer src="js/50-promemoria-appuntamenti.js"></script>
+<script defer src="js/51-sostituzione-presidi.js"></script>
 <script defer src="js/19-init.js"></script>
 
 

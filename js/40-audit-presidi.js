@@ -292,6 +292,13 @@ async function renderPresidiAudit() {
   }
   if (!auditAttivoSuScheda() || auditInCorso.clienteId !== cid) return;
   pp = pp.filter(function(p) { return !p.eliminato_il; });
+  // sql/53 (js/51): l'audit controlla solo i presidi della sede dell'intervento.
+  let ambito = null;
+  if (typeof ambitoAuditPresidi === 'function') {
+    try { ambito = await ambitoAuditPresidi(auditInCorso.odlId, pp); } catch (e) { console.warn('Ambito audit:', e); }
+    if (!auditAttivoSuScheda() || auditInCorso.clienteId !== cid) return;
+    if (ambito) pp = ambito.presidi;
+  }
   auditPresidiLista = pp;
   const sediMap = {};
   (sedi || []).forEach(function(s) { sediMap[s.id] = s; });
@@ -301,6 +308,7 @@ async function renderPresidiAudit() {
     '<strong style="color:var(--a)">🔎 Prima manutenzione con audit</strong><br>' +
     'Per ogni presidio scegli <strong>Trovato</strong> (matricola e annata obbligatorie) o <strong>Non trovato</strong>. ' +
     'Se trovi presidi che non sono in elenco aggiungili con <strong>+ Aggiungi</strong>. La scheda si chiude solo quando sono tutti compilati.' +
+    (ambito && ambito.sedeNome ? '<div style="margin-top:6px">📍 <strong>' + (ambito.tutte ? 'Tutte le sedi del cliente' : 'Solo i presidi di questa sede: ' + esc(ambito.sedeNome)) + '</strong></div>' : '') +
     '</div><div id="aud-contatore" style="font-size:12px;font-weight:600;margin-bottom:10px"></div>';
 
   if (!pp.length) {
@@ -515,6 +523,7 @@ salvaInt = async function() {
     azzeraAuditInCorso();
     let msg = '✅ Intervento salvato e audit dei presidi registrato.';
     if (!esito.confronto_disponibile) msg += ' Il confronto con il contratto non è ancora attivo.';
+    else if (esito.confronto_parziale) msg += ' Audit della sede registrato: il confronto con il contratto (somma di tutte le sedi) lo vedono il Responsabile Service e il rappresentante.';
     else if (esito.differenze && esito.differenze.length) msg += ' Differenze con il contratto inviate al Responsabile Service e al rappresentante: ' + testoDifferenzeAudit(esito.differenze) + '.';
     else msg += ' Nessuna differenza con il contratto.';
     if (esito.non_trovati) msg += ' Presidi non trovati: ' + esito.non_trovati + '.';
@@ -650,6 +659,12 @@ async function caricaAuditPresidiDashboard() {
       '<div style="font-weight:600;overflow-wrap:anywhere">' + esc(a.ragione_sociale || 'Cliente') + '</div>' +
       '<div style="font-size:12px;color:var(--m);margin-bottom:4px">Audit del ' + esc(fd(a.data_audit)) +
         (a.odl_numero ? ' · intervento n. ' + esc(a.odl_numero) : '') + (a.registrato_da_nome ? ' · ' + esc(a.registrato_da_nome) : '') + '</div>' +
+      // sql/53: audit per sede, il confronto è sulla somma delle sedi
+      (a.sede_nome && a.sedi_totali > 1
+        ? '<div style="font-size:12px;margin-bottom:4px">📍 ' + esc(a.sede_nome) +
+          ' · <strong style="color:' + (a.sedi_con_audit < a.sedi_totali ? 'var(--a)' : 'var(--g)') + '">audit fatto in ' + esc(a.sedi_con_audit) + ' sedi su ' + esc(a.sedi_totali) + '</strong>' +
+          (a.sedi_con_audit < a.sedi_totali ? ' (confronto parziale: mancano le altre sedi)' : '') + '</div>'
+        : '') +
       confronto + nt + chi +
       '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">' +
         '<button class="btn sm" data-cli="' + esc(a.cliente_id) + '" onclick="apriContrattoCliente(this.dataset.cli)">Apri contratto</button>' +
