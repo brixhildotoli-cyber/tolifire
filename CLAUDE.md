@@ -2168,7 +2168,7 @@ una sessione e l'altra.
       sostituisce qualcosa (manichetta, estintore): gestire la
       sostituzione del presidio nel registro. SQL.
    j) (18) Estintori: campo CAPACITÀ (6 kg, 9 kg...). PRONTO:
-      sql/52-capacita-estintori (DA ESEGUIRE, nessun prerequisito oltre lo
+      sql/52-capacita-estintori (ESEGUITO il 02/11, nessun prerequisito oltre lo
       schema base; anteprima e controllo in fondo): colonna
       impianti.capacita (numero + kg o lt, vincolo
       impianti_capacita_check) e spostamento nella capacità delle marche
