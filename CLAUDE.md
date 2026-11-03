@@ -2355,6 +2355,18 @@ una sessione e l'altra.
       (prompt) e, senza sql/57, richiama la funzione vecchia. Provato su un
       Postgres di prova (errore riprodotto con la vecchia, nuova, chiamata
       a un parametro, altro rappresentante rifiutato, rollback).
+   u) Segnalazione di Erika del 03/11: nei PDF "a volte cambia il font e
+      taglia le parole". Causa (provata): con i font di base di jsPDF una
+      riga con un carattere fuori da WinAnsi (≥, trattino di Word U+2011,
+      spazio stretto U+202F di Excel/PDF, emoji...) viene scritta tutta in
+      UTF-16: lettere distanziate, altro aspetto, larghezze sbagliate.
+      FATTO in js/00 (proteggiTestoPDF, chiamata da caricaLibreriePDF):
+      pulisciTestoPDF sostituisce i caratteri noti (≥ → >=, trattini → -,
+      spazi strani → spazio, ✓ → v, lettere accentate di altre lingue →
+      senza accento) e toglie gli altri, in text, splitTextToSize e nelle
+      misure dei testi, su jsPDF.API (autoTable) e su ogni documento nuovo
+      (jsPDF avvolto). Vale per tutti i PDF del sito. Provato in Chrome
+      headless (testo, tabella, a capo).
    s) Richiesta di Erika del 02/11: la freccia indietro del browser e del
       telefono usciva dal gestionale (dai Preventivi e dal PDF si finiva
       sulla dashboard). FATTO in js/47 (nessun SQL): ogni cambio di pagina
