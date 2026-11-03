@@ -2364,7 +2364,10 @@ una sessione e l'altra.
       pulisciTestoPDF sostituisce i caratteri noti (≥ → >=, trattini → -,
       spazi strani → spazio, ✓ → v, lettere accentate di altre lingue →
       senza accento) e toglie gli altri, in text, splitTextToSize e nelle
-      misure dei testi, su jsPDF.API (autoTable) e su ogni documento nuovo
+      misure dei testi (dal 03/11 anche lo spazio fisso di Word U+00A0,
+      che faceva spezzare le parole a metà nelle tabelle, il tab di Excel,
+      che spostava il testo fuori colonna, e gli a capo \r di Windows), su
+      jsPDF.API (autoTable) e su ogni documento nuovo
       (jsPDF avvolto). Vale per tutti i PDF del sito. Provato in Chrome
       headless (testo, tabella, a capo).
    s) Richiesta di Erika del 02/11: la freccia indietro del browser e del

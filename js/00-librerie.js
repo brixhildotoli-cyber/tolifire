@@ -88,6 +88,7 @@ const SOSTITUZIONI_TESTO_PDF = {
   '\u2010': '-', '\u2011': '-', '\u2012': '-', '\u2212': '-', '\u2043': '-',
   '\u2002': ' ', '\u2003': ' ', '\u2004': ' ', '\u2005': ' ', '\u2006': ' ',
   '\u2007': ' ', '\u2008': ' ', '\u2009': ' ', '\u200A': ' ', '\u202F': ' ', '\u205F': ' ', '\u3000': ' ',
+  '\u00A0': ' ', '\t': ' ', '\u2028': '\n', '\u2029': '\n',
   '\u200B': '', '\u200C': '', '\u200D': '', '\u2060': '', '\uFEFF': '', '\u00AD': '',
   '\u2265': '>=', '\u2264': '<=', '\u2260': '<>', '\u2248': '~', '\u00B1': '+/-',
   '\u2192': '->', '\u2190': '<-', '\u21D2': '=>', '\u2794': '->', '\u27A1': '->',
@@ -100,12 +101,18 @@ const SOSTITUZIONI_TESTO_PDF = {
 const EXTRA_WINANSI_PDF = '\u20AC\u201A\u0192\u201E\u2026\u2020\u2021\u02C6\u2030\u0160\u2039\u0152\u017D' +
   '\u2018\u2019\u201C\u201D\u2022\u2013\u2014\u02DC\u2122\u0161\u203A\u0153\u017E\u0178';
 
+// Anche dentro il Latin-1 ci sono caratteri che sfasano il PDF (segnalazione
+// di Erika del 03/11, provata): lo spazio "fisso" di Word (U+00A0) non lascia
+// andare a capo, quindi la tabella spezza le parole a metà ("c / ompleta");
+// il tab di Excel sposta il testo fuori dalla colonna; l'a capo "\r" di
+// Windows. Diventano spazio o a capo normali.
 function pulisciTestoPDF(testo) {
   if (typeof testo !== 'string') return testo;
+  if (testo.indexOf('\r') !== -1) testo = testo.replace(/\r\n?/g, '\n');
   let fuori = false;
   for (let i = 0; i < testo.length; i++) {
     const c = testo.charCodeAt(i);
-    if (c > 255 && EXTRA_WINANSI_PDF.indexOf(testo[i]) === -1) { fuori = true; break; }
+    if (c === 0xA0 || c === 9 || (c > 255 && EXTRA_WINANSI_PDF.indexOf(testo[i]) === -1)) { fuori = true; break; }
   }
   if (!fuori) return testo;
   return Array.from(testo).map(function(ch) {
