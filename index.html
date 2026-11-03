@@ -4075,6 +4075,14 @@
         <b>💾 Salva bozza</b>.
       </p>
 
+      <div class="info-esempio">Esempio: oltre all'intervento hai pagato tu i
+        diritti dei Vigili del Fuoco per il cliente. Aggiungi la riga e spunta
+        <b>Esclusa dall'IVA (N1, art. 15)</b>: su quella riga l'IVA non si
+        calcola. Per un ente pubblico (Comune, scuola, ASL) spunta
+        <b>Split payment</b>: l'IVA resta scritta in fattura ma il cliente paga
+        il <b>Netto a pagare</b> senza IVA. La spunta arriva da sola se è
+        segnata nella scheda del cliente (Fatturazione).</div>
+
       <p>
         Quando è giusta premi <b>📤 Emetti fattura</b>: data, modalità di
         pagamento e rate (la somma deve fare il totale), spunta “Ho
@@ -4324,6 +4332,14 @@
         controllato…” e <b>📤 Emetti</b>. Il gestionale dà il numero e crea le
         scadenze. Per il cliente: <b>📄 Scarica PDF</b> e <b>💾 Salva copia</b>.
       </p>
+
+      <div class="info-esempio">Esempio: oltre all'intervento hai pagato tu i
+        diritti dei Vigili del Fuoco per il cliente. Aggiungi la riga e spunta
+        <b>Esclusa dall'IVA (N1, art. 15)</b>: su quella riga l'IVA non si
+        calcola. Per un ente pubblico (Comune, scuola, ASL) spunta
+        <b>Split payment</b>: l'IVA resta scritta in fattura ma il cliente paga
+        il <b>Netto a pagare</b> senza IVA. La spunta arriva da sola se è
+        segnata nella scheda del cliente (Fatturazione).</div>
 
       <div class="al2 w">
         Una fattura emessa non si modifica: con <b>🔁 Nota di credito</b> si
@@ -5164,8 +5180,10 @@
     <div id="mfat-aggiungi"></div>
     <div class="fr">
       <div class="f">
-        <label>Aliquota IVA (una per fattura)</label>
+        <label>Aliquota IVA della fattura</label>
         <select id="mfat-iva" onchange="aggiornaTotaliFattura()"></select>
+        <!-- sql/59 — split payment (js/43) -->
+        <label id="mfat-split-riga" style="display:none;align-items:flex-start;gap:6px;font-size:12px;margin-top:8px;cursor:pointer"><input type="checkbox" id="mfat-split" style="width:auto;margin-top:2px" onchange="if(fatBozza){fatBozza.split=this.checked;aggiornaTotaliFattura();}"> <span><b>Split payment</b> (art. 17-ter): il cliente paga senza IVA e la versa lui allo Stato (enti pubblici, società obbligate)</span></label>
       </div>
       <div class="f">
         <label>Note</label>
@@ -6875,6 +6893,10 @@
       <div class="f"><label>Banca d'appoggio (RIBA)</label><input type="text" id="mf12" maxlength="200" placeholder="Es. Banca di Pisa, filiale di Ospedaletto"></div>
       <div class="fr"><div class="f"><label>ABI</label><input type="text" id="mf13" maxlength="5" inputmode="numeric" placeholder="5 cifre"></div><div class="f"><label>CAB</label><input type="text" id="mf14" maxlength="5" inputmode="numeric" placeholder="5 cifre"></div></div>
       <div id="mf-banca-riba-aiuto" style="font-size:11px;color:var(--m);margin:-6px 0 10px">Servono per presentare le RIBA. Vuoti: si ricavano dall'IBAN italiano.</div>
+    </div>
+    <!-- sql/59 — split payment del cliente (js/45) -->
+    <div id="mf-split-box" style="display:none;margin-bottom:10px">
+      <label style="display:flex;align-items:flex-start;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="mf-split" style="width:auto;margin-top:2px"> <span><b>Split payment</b> (scissione dei pagamenti, art. 17-ter): ente pubblico o società obbligata. Le fatture nuove si fanno senza IVA da pagare.</span></label>
     </div>
     <div class="f"><label>Note fatturazione</label><textarea id="mf11" style="min-height:60px"></textarea></div>
   </div>

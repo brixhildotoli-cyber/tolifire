@@ -276,7 +276,7 @@ async function apriEmissioneDaBozza() {
     .eq('id', salvata.id).maybeSingle();
   if (error || !f) { erroreFattura('Bozza salvata ma non riletta: riaprila dalla lista.'); return; }
   apriEmissione({
-    modo: 'bozza', fatturaId: f.id, cliente: f.clienti || {},
+    modo: 'bozza', fatturaId: f.id, cliente: f.clienti || {}, split: !!(ivaN1SplitAttivi && b.split),
     totale: Number(f.totale) || 0, imponibile: Number(f.totale_imponibile) || 0, ivaPerc: Number(f.iva_perc ?? 22),
     titolo: '📤 Emetti fattura', sottotitolo: (f.clienti && f.clienti.ragione_sociale) || b.cliente || ''
   });
@@ -289,14 +289,15 @@ async function apriEmissioneAnticipo(preventivoId) {
   }
   if (!(await verificaFattureEmissione())) { toast('L\'emissione non è ancora attiva (sql/46)', 'err'); return; }
   const { data: p, error } = await db.from('preventivi')
-    .select('id,numero,stato,data_emissione,totale_imponibile,iva_perc,anticipo_richiesto,anticipo_tipo,anticipo_valore,anticipo_fattura_numero,clienti(ragione_sociale,piva,codice_fiscale,giorni_pagamento,modalita_pagamento)')
+    .select('id,cliente_id,numero,stato,data_emissione,totale_imponibile,iva_perc,anticipo_richiesto,anticipo_tipo,anticipo_valore,anticipo_fattura_numero,clienti(ragione_sociale,piva,codice_fiscale,giorni_pagamento,modalita_pagamento)')
     .eq('id', preventivoId).maybeSingle();
   if (error || !p) { toast('Preventivo non caricato: ' + ((error && error.message) || 'non trovato'), 'err'); return; }
   if (p.stato !== 'in_attesa_anticipo') { toast('Il preventivo non è più in attesa dell\'anticipo', 'err'); return; }
   if (p.anticipo_fattura_numero) { toast('C\'è già una fattura d\'anticipo (n. ' + p.anticipo_fattura_numero + ')', 'err'); return; }
   const atteso = arrotonda2(importoAnticipoPreventivo(p.anticipo_tipo, p.anticipo_valore, p.totale_imponibile));
+  const split = await splitPaymentCliente(p.cliente_id);
   apriEmissione({
-    modo: 'anticipo', preventivoId: p.id, preventivo: p, cliente: p.clienti || {},
+    modo: 'anticipo', preventivoId: p.id, preventivo: p, cliente: p.clienti || {}, split: split,
     atteso: atteso, importo: atteso, massimo: arrotonda2(numeroPreventivo(p.totale_imponibile)),
     ivaPerc: Number(p.iva_perc ?? 22), giorni: 0, modalita: 'Bonifico anticipato',
     titolo: '🧾 Emetti fattura d\'anticipo',
@@ -317,8 +318,9 @@ async function apriEmissioneFinale() {
   const calcolo = s.calcolo || {};
   const conExtra = true;
   const proposto = arrotonda2(importoFatturaFinaleProposto(calcolo, conExtra));
+  const split = await splitPaymentCliente(commessa.cliente_id);
   apriEmissione({
-    modo: 'finale', commessaId: commessa.id, commessa: commessa, calcolo: calcolo, cliente: cli || {},
+    modo: 'finale', commessaId: commessa.id, commessa: commessa, calcolo: calcolo, cliente: cli || {}, split: split,
     conExtra: conExtra, proposto: proposto, importo: proposto, ivaPerc: Number(calcolo.iva_perc ?? 22),
     titolo: '🧾 Emetti fattura finale',
     sottotitolo: 'Commessa ' + commessa.codice + ' · ' + [commessa.clienti && commessa.clienti.ragione_sociale, commessa.titolo].filter(Boolean).join(' · ')
@@ -349,10 +351,19 @@ function apriEmissione(conf) {
   openM('m-emetti-fattura');
 }
 
+// sql/59: con lo split payment il cliente paga senza IVA (la fattura
+// d'anticipo e la finale prendono la spunta del cliente nel database).
+async function splitPaymentCliente(cliId) {
+  if (!cliId || typeof verificaIvaN1Split !== 'function' || !(await verificaIvaN1Split())) return false;
+  const { data } = await db.from('clienti').select('split_payment').eq('id', cliId).maybeSingle();
+  return !!(data && data.split_payment);
+}
+
 function totaleEmissione() {
   const e = emissione;
   if (!e) return 0;
   if (e.modo === 'bozza') return arrotonda2(e.totale);
+  if (e.split) return arrotonda2(e.importo);
   return totaleConIva(e.importo, e.ivaPerc);
 }
 
@@ -363,6 +374,9 @@ function disegnaDatiEmissione() {
   let html = '';
   if (datiFiscaliMancanti(e.cliente)) {
     html += '<div class="al2 e" style="margin-bottom:8px">Mancano partita IVA e codice fiscale del cliente: completali nella scheda del cliente, poi emetti.</div>';
+  }
+  if (e.split) {
+    html += '<div class="al2 i" style="margin-bottom:8px;font-size:12px">Cliente in <b>split payment</b>: l\'IVA è scritta in fattura ma la versa il cliente; le rate sono senza IVA.</div>';
   }
   if (e.modo === 'bozza') {
     html += '<div class="card" style="font-size:13px">' +

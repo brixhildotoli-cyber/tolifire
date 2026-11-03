@@ -119,8 +119,9 @@ function puoNotaCreditoRuolo(f) {
 
     const [sit, rr] = await Promise.all([
       leggiSituazioneNotaCredito(f),
-      db.from('fatture_righe').select('id,ordine_riga,descrizione,quantita,unita_misura,prezzo_unitario,sconto_perc')
-        .eq('fattura_id', f.id).order('ordine_riga', { ascending: true })
+      db.from('fatture_righe').select('*')
+        .eq('fattura_id', f.id).order('ordine_riga', { ascending: true }),
+      verificaIvaN1Split()
     ]);
     if (!sit || rr.error) { toast('Dati della fattura non leggibili', 'err'); return; }
     let motivoNoTotale = '';
@@ -132,7 +133,7 @@ function puoNotaCreditoRuolo(f) {
       righe: (rr.data || []).map(function(r) {
         return { id: r.id, descrizione: r.descrizione || '', unita_misura: r.unita_misura || '',
           quantitaMax: Number(r.quantita) || 0, prezzoMax: Number(r.prezzo_unitario) || 0,
-          sconto: Number(r.sconto_perc) || 0, sel: false,
+          sconto: Number(r.sconto_perc) || 0, sel: false, natura_iva: r.natura_iva || null,
           quantita: Number(r.quantita) || 0, prezzo: Number(r.prezzo_unitario) || 0 };
       }),
       totalePossibile: !motivoNoTotale && puoNotaCreditoRuolo(f),
@@ -194,7 +195,7 @@ function disegnaRigheNotaCredito() {
     return '<div style="border:0.5px solid var(--bo);border-radius:var(--rs);padding:8px;margin-bottom:6px;font-size:13px">' +
       '<label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-weight:400">' +
         '<input type="checkbox"' + (r.sel ? ' checked' : '') + ' onchange="cambiaRigaNC(' + i + ',\'sel\',this.checked)" style="margin-top:3px">' +
-        '<span style="overflow-wrap:anywhere">' + esc(r.descrizione) + '<br><span style="font-size:12px;color:var(--m)">Fatturato: ' +
+        '<span style="overflow-wrap:anywhere">' + esc(r.descrizione) + (r.natura_iva ? ' <span class="bx bwarn" style="font-size:10px">N1</span>' : '') + '<br><span style="font-size:12px;color:var(--m)">Fatturato: ' +
           campoNumeroNC(r.quantitaMax) + ' ' + esc(r.unita_misura) + ' × ' + esc(euroNC(r.prezzoMax)) + (r.sconto ? ' − ' + campoNumeroNC(r.sconto) + '%' : '') + '</span></span>' +
       '</label>' +
       (r.sel ? '<div class="fr" style="margin-top:6px">' +
@@ -210,6 +211,7 @@ function disegnaRigheNotaCredito() {
         '<div class="f"><label>Quantità</label><input type="text" inputmode="decimal" value="' + campoNumeroNC(r.quantita) + '" oninput="cambiaLiberaNC(' + i + ',\'quantita\',this.value)"></div>' +
         '<div class="f"><label>Prezzo unitario (IVA esclusa)</label><input type="text" inputmode="decimal" value="' + campoNumeroNC(r.prezzo) + '" oninput="cambiaLiberaNC(' + i + ',\'prezzo\',this.value)"></div>' +
       '</div>' +
+      (ivaN1SplitAttivi ? '<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;cursor:pointer;margin:0 0 6px"><input type="checkbox" style="width:auto;margin-top:2px"' + (r.natura_iva ? ' checked' : '') + ' onchange="cambiaLiberaNC(' + i + ',\'natura_iva\',this.checked?\'N1\':null)"> Esclusa dall\'IVA (N1, art. 15)</label>' : '') +
       '<button class="btn sm" style="color:var(--r)" onclick="togliLiberaNC(' + i + ')">Togli</button>' +
     '</div>';
   }).join('');
@@ -252,6 +254,7 @@ function calcolaNotaCreditoParziale() {
   const righe = [];
   let errore = '';
   let imponibile = 0;
+  let esente = 0; // sql/59: righe N1
   s.righe.forEach(function(r) {
     if (!r.sel || errore) return;
     const q = arrotonda2(numeroDaCampo(r.quantita));
@@ -261,7 +264,8 @@ function calcolaNotaCreditoParziale() {
     else if (!(p > 0)) errore = '"' + r.descrizione + '": prezzo non valido';
     else if (p > r.prezzoMax) errore = '"' + r.descrizione + '": prezzo oltre quello fatturato';
     if (errore) return;
-    imponibile += arrotonda2(q * p * (1 - r.sconto / 100));
+    if (r.natura_iva) esente += arrotonda2(q * p * (1 - r.sconto / 100));
+    else imponibile += arrotonda2(q * p * (1 - r.sconto / 100));
     righe.push({ riga_id: r.id, quantita: q, prezzo_unitario: p });
   });
   s.libere.forEach(function(r, i) {
@@ -273,12 +277,18 @@ function calcolaNotaCreditoParziale() {
     else if (!(q > 0)) errore = 'Riga libera ' + (i + 1) + ': quantità non valida';
     else if (!(p > 0)) errore = 'Riga libera ' + (i + 1) + ': prezzo non valido';
     if (errore) return;
-    imponibile += arrotonda2(q * p);
-    righe.push({ descrizione: d, quantita: q, prezzo_unitario: p });
+    if (r.natura_iva) esente += arrotonda2(q * p);
+    else imponibile += arrotonda2(q * p);
+    const riga = { descrizione: d, quantita: q, prezzo_unitario: p };
+    if (r.natura_iva) riga.natura_iva = 'N1';
+    righe.push(riga);
   });
   imponibile = arrotonda2(imponibile);
+  esente = arrotonda2(esente);
   const iva = arrotonda2(imponibile * (Number(s.f.iva_perc ?? 22)) / 100);
-  return { righe: righe, imponibile: imponibile, iva: iva, totale: arrotonda2(imponibile + iva), errore: errore };
+  const split = !!s.f.split_payment;
+  return { righe: righe, imponibile: imponibile, esente: esente, iva: iva, split: split,
+    totale: arrotonda2(imponibile + esente + (split ? 0 : iva)), errore: errore };
 }
 
 (function() {
@@ -299,7 +309,9 @@ function calcolaNotaCreditoParziale() {
     const tot = ge('mnc-totale');
     if (tot) {
       tot.innerHTML = 'Imponibile <b>' + esc(euroNC(c.imponibile)) + '</b> · IVA ' + esc(String(Number(s.f.iva_perc ?? 22))) + '% ' + esc(euroNC(c.iva)) +
-        ' · <b>Totale ' + esc(euroNC(c.totale)) + '</b>' +
+        (c.split ? ' (split payment: la versa il cliente)' : '') +
+        (c.esente ? ' · escluse N1 ' + esc(euroNC(c.esente)) : '') +
+        ' · <b>' + (c.split ? 'Netto ' : 'Totale ') + esc(euroNC(c.totale)) + '</b>' +
         (errore ? '<div style="color:var(--r);margin-top:4px">' + esc(errore) + '</div>' : '');
     }
     if (errore) ge('mnc-salva').disabled = true;

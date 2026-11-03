@@ -147,6 +147,13 @@ async function aggiornaDopoRiba(fatturaId) {
 
 // ── Dati bancari del cliente (finestra m-cli e scheda cliente) ───────────
 function datiBancaRibaCliente() {
+  // sql/59: spunta split payment del cliente (anche senza i campi RIBA).
+  const split = ge('mf-split-box') && ge('mf-split-box').style.display !== 'none' ? { split_payment: !!ge('mf-split').checked } : {};
+  const banca = datiBancaRibaClienteSoloBanca();
+  return banca === null ? null : Object.assign({}, banca, split);
+}
+
+function datiBancaRibaClienteSoloBanca() {
   const box = ge('mf-banca-riba');
   if (fattureRibaAttive !== true || !RUOLI_BANCA_CLIENTE.includes(ROLE) || !box || box.style.display === 'none') return {};
   const banca = (v('mf12') || '').trim();
@@ -175,6 +182,12 @@ function suggerisciAbiCabCliente() {
 async function mostraCampiBancaRiba(c) {
   const box = ge('mf-banca-riba');
   if (!box) return;
+  const boxSplit = ge('mf-split-box');
+  if (boxSplit) {
+    boxSplit.style.display = 'none';
+    ge('mf-split').checked = !!(c && c.split_payment);
+    if (RUOLI_BANCA_CLIENTE.includes(ROLE) && typeof verificaIvaN1Split === 'function' && (await verificaIvaN1Split())) boxSplit.style.display = '';
+  }
   ['mf12', 'mf13', 'mf14'].forEach(function(id) { if (ge(id)) ge(id).value = ''; });
   box.style.display = 'none';
   if (!RUOLI_BANCA_CLIENTE.includes(ROLE) || !(await verificaFattureRiba())) return;
@@ -1215,7 +1228,7 @@ async function generaPdfFattura(fatturaId) {
     head: [['Descrizione', 'Q.tà', 'U.M.', 'Prezzo unit.', 'Sconto', 'Importo']],
     body: righe.map(function(r) {
       return [
-        r.descrizione || '—',
+        (r.descrizione || '—') + (r.natura_iva ? ' (N1 - esclusa art. 15 DPR 633/72)' : ''),
         String(Number(r.quantita) || 0).replace('.', ','),
         r.unita_misura || '',
         euroPreventivo(r.prezzo_unitario),
@@ -1234,11 +1247,20 @@ async function generaPdfFattura(fatturaId) {
 
   y = doc.lastAutoTable.finalY + 8;
   if (y > 240) { doc.addPage(); y = 20; }
+  // sql/59: righe N1 (escluse dall'IVA) e split payment.
+  const esente = Number(f.totale_esente) || 0;
+  const split = !!f.split_payment;
   const totali = [
-    ['Imponibile', euroPreventivo(f.totale_imponibile)],
-    ['IVA ' + String(Number(f.iva_perc ?? 22)).replace('.', ',') + '%', euroPreventivo(f.totale_iva)],
-    [nc ? 'Totale nota di credito' : 'Totale documento', euroPreventivo(f.totale)]
+    [esente ? 'Imponibile soggetto a IVA' : 'Imponibile', euroPreventivo(f.totale_imponibile)],
+    ['IVA ' + String(Number(f.iva_perc ?? 22)).replace('.', ',') + '%' + (split ? ' (scissione pagamenti)' : ''), euroPreventivo(f.totale_iva)]
   ];
+  if (esente) totali.push(['Escluse art. 15 (N1)', euroPreventivo(esente)]);
+  if (split) {
+    totali.push(['Totale documento', euroPreventivo((Number(f.totale_imponibile) || 0) + esente + (Number(f.totale_iva) || 0))]);
+    totali.push([nc ? 'Netto della nota di credito' : 'Netto a pagare', euroPreventivo(f.totale)]);
+  } else {
+    totali.push([nc ? 'Totale nota di credito' : 'Totale documento', euroPreventivo(f.totale)]);
+  }
   doc.setFontSize(10);
   totali.forEach(function(t, i) {
     doc.setFont('helvetica', i === totali.length - 1 ? 'bold' : 'normal');
@@ -1274,6 +1296,8 @@ async function generaPdfFattura(fatturaId) {
       pagamento.push('Coordinate per il bonifico: ' + (banca.banca_azienda ? banca.banca_azienda + ' — ' : '') + 'IBAN ' + banca.iban_azienda + '. Causale: fattura n. ' + f.numero + '.');
     }
   }
+  if (split) pagamento.push('Scissione dei pagamenti (split payment) ai sensi dell\'art. 17-ter del D.P.R. 633/72: l\'IVA è versata dal cliente.');
+  if (esente) pagamento.push('Le righe N1 sono escluse dalla base imponibile ai sensi dell\'art. 15 del D.P.R. 633/72 (spese anticipate in nome e per conto del cliente).');
   if (f.note) pagamento.push('Note: ' + f.note);
   if (pagamento.length) {
     const testo = doc.splitTextToSize(pagamento.join('\n'), destra - margine);

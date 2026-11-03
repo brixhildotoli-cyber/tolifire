@@ -45,6 +45,7 @@ const ETICHETTE_FONTE_PREZZO = { contratto: 'prezzo del contratto', ddt: 'prezzo
 
 let fattureBozzeAttive = null;  // null = da verificare; true/false dopo (sql/45)
 let fatBozza = null;            // stato della finestra m-fattura
+let ivaN1SplitAttivi = null;    // sql/59: righe N1 e split payment (null = da verificare)
 
 // ── Utilità ──────────────────────────────────────────────────────────────
 function puoScrivereBozze() {
@@ -84,6 +85,27 @@ async function verificaFattureBozze() {
   else if (error.code === '42703' || error.code === 'PGRST204' || /origine/i.test(error.message || '')) fattureBozzeAttive = false;
   else return false; // errore momentaneo: si riprova la prossima volta
   return fattureBozzeAttive;
+}
+
+// sql/59 (decisioni di Toli e di Erika del 03/11): righe N1 escluse dall'IVA
+// (art. 15, es. diritti VVF o bolli pagati per conto del cliente) nella
+// stessa fattura delle righe al 22%, e split payment (art. 17-ter).
+async function verificaIvaN1Split() {
+  if (ivaN1SplitAttivi !== null) return ivaN1SplitAttivi;
+  const { error } = await db.from('fatture').select('split_payment,totale_esente').limit(1);
+  if (!error) ivaN1SplitAttivi = true;
+  else if (error.code === '42703' || error.code === 'PGRST204' || /split_payment|totale_esente/i.test(error.message || '')) ivaN1SplitAttivi = false;
+  else return false;
+  return ivaN1SplitAttivi;
+}
+
+// Totali come li calcola il database (fatture_aggrega_totali di sql/59).
+function totaliFatturaN1Split(righe, ivaPerc, split) {
+  let imp = 0, es = 0;
+  righe.forEach(function(r) { if (r.natura_iva) es += totaleRigaBozza(r); else imp += totaleRigaBozza(r); });
+  imp = arrotonda2(imp); es = arrotonda2(es);
+  const iva = arrotonda2(imp * ivaPerc / 100);
+  return { imp: imp, es: es, iva: iva, tot: arrotonda2(imp + es + (split ? 0 : iva)) };
 }
 
 // Fatture attive (non eliminate, non annullate) per scheda: { schedaId: fattura }.
@@ -228,6 +250,11 @@ async function apriBozzaDaScheda(schedaId) {
   }
   fatBozza.righe = righe;
   fatBozza.oreScheda = ore;
+  fatBozza.split = false;
+  if (await verificaIvaN1Split()) {
+    const { data: c } = await db.from('clienti').select('split_payment').eq('id', s.cliente_id).maybeSingle();
+    fatBozza.split = !!(c && c.split_payment);
+  }
   ge('mfat-iva').value = '22';
   ge('mfat-note').value = '';
   disegnaFattura();
@@ -273,10 +300,13 @@ async function apriFattura(id) {
         incl: true, origine: r.origine || 'manuale', fonte_prezzo: r.fonte_prezzo || null, ddt_id: r.ddt_id || null,
         descrizione: r.descrizione || '', quantita: Number(r.quantita) || 0, unita_misura: r.unita_misura || '',
         prezzo_unitario: Number(r.prezzo_unitario) || 0, prezzoProposto: Number(r.prezzo_unitario) || 0,
-        sconto_perc: Number(r.sconto_perc) || 0, totale_riga: r.totale_riga, nota: ''
+        sconto_perc: Number(r.sconto_perc) || 0, totale_riga: r.totale_riga, nota: '',
+        natura_iva: r.natura_iva || null
       };
-    })
+    }),
+    split: !!f.split_payment
   };
+  await verificaIvaN1Split();
   preparaFinestraFattura(f.stato === 'bozza' ? '🧾 Bozza di fattura' : (f.tipo_documento === 'nota_credito' ? '🔁 Nota di credito ' : '📄 Fattura ') + (f.numero || ''));
   ge('mfat-iva').value = String(Number(f.iva_perc ?? 22));
   if (ge('mfat-iva').value !== String(Number(f.iva_perc ?? 22))) {
@@ -322,6 +352,12 @@ function disegnaFattura() {
   ge('mfat-info').style.display = b.modificabile ? 'block' : 'none';
   ge('mfat-iva').disabled = !b.modificabile;
   ge('mfat-note').disabled = !b.modificabile;
+  const rigaSplit = ge('mfat-split-riga');
+  if (rigaSplit) {
+    rigaSplit.style.display = ivaN1SplitAttivi ? 'flex' : 'none';
+    ge('mfat-split').checked = !!b.split;
+    ge('mfat-split').disabled = !b.modificabile;
+  }
   ge('mfat-salva').style.display = b.modificabile ? '' : 'none';
   ge('mfat-elimina').style.display = b.modificabile && b.id ? '' : 'none';
 
@@ -353,7 +389,7 @@ function disegnaRigheFattura() {
         '<div style="font-size:12px;color:var(--m);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:4px">' +
           '<span>' + esc(String(r.quantita).replace('.', ',')) + ' ' + esc(r.unita_misura || '') + ' × ' + esc(euroBuono(r.prezzo_unitario)) + (Number(r.sconto_perc) ? ' − ' + esc(String(r.sconto_perc).replace('.', ',')) + '%' : '') + '</span>' +
           '<strong>' + esc(euroBuono(r.totale_riga ?? totaleRigaBozza(r))) + '</strong></div>' +
-        '<div style="margin-top:4px">' + badge + '</div></div>';
+        '<div style="margin-top:4px">' + badge + (r.natura_iva ? ' <span class="bx bwarn" style="font-size:10px">N1 esclusa IVA art. 15</span>' : '') + '</div></div>';
     }
     const dis = r.bloccata ? ' disabled' : '';
     return '<div style="' + stile + '">' +
@@ -368,6 +404,7 @@ function disegnaRigheFattura() {
         '<div><div style="font-size:11px;color:var(--m)">Prezzo €</div><input type="text" inputmode="decimal" value="' + esc(String(r.prezzo_unitario).replace('.', ',')) + '"' + dis + ' oninput="cambiaRigaFattura(' + i + ',\'prezzo_unitario\',this.value)" style="width:100%"></div>' +
         '<div><div style="font-size:11px;color:var(--m)">Sconto %</div><input type="text" inputmode="decimal" value="' + esc(String(r.sconto_perc || 0).replace('.', ',')) + '"' + dis + ' oninput="cambiaRigaFattura(' + i + ',\'sconto_perc\',this.value)" style="width:100%"></div>' +
       '</div>' +
+      (ivaN1SplitAttivi ? '<label style="display:flex;align-items:flex-start;gap:6px;font-size:12px;cursor:pointer;margin:6px 0 0"><input type="checkbox" style="width:auto;margin-top:2px"' + (r.natura_iva ? ' checked' : '') + dis + ' onchange="cambiaRigaFattura(' + i + ',\'natura_iva\',this.checked?\'N1\':null)"> Esclusa dall\'IVA (N1, art. 15): spese pagate per conto del cliente, es. diritti VVF o bolli</label>' : '') +
       '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:12px">' +
         '<span style="color:var(--a)">' + esc(r.nota || '') + '</span>' +
         '<span>Totale riga: <strong data-mfat-tot="' + i + '">' + esc(euroBuono(totaleRigaBozza(r))) + '</strong></span></div>' +
@@ -407,7 +444,7 @@ function cambiaRigaFattura(i, campo, valore) {
       r.fonte_prezzo = r.fontePrimaManuale;
     }
   }
-  if (campo === 'incl') { disegnaRigheFattura(); return; }
+  if (campo === 'incl' || campo === 'natura_iva') { disegnaRigheFattura(); return; }
   const t = document.querySelector('[data-mfat-tot="' + i + '"]');
   if (t) t.textContent = euroBuono(totaleRigaBozza(r));
   aggiornaTotaliFattura();
@@ -446,22 +483,26 @@ function aggiornaTotaliFattura() {
   const b = fatBozza;
   const el = ge('mfat-totali');
   if (!b || !el) return;
-  let imp, iva, tot, ivaPerc;
+  let imp, iva, tot, ivaPerc, es = 0;
+  const split = !!(ivaN1SplitAttivi && b.split);
   if (!b.modificabile && b.fattura) {
     imp = Number(b.fattura.totale_imponibile) || 0;
     iva = Number(b.fattura.totale_iva) || 0;
     tot = Number(b.fattura.totale) || 0;
+    es = Number(b.fattura.totale_esente) || 0;
     ivaPerc = Number(b.fattura.iva_perc ?? 22);
   } else {
     ivaPerc = Number(v('mfat-iva')) || 0;
-    imp = arrotonda2(b.righe.filter(function(r) { return r.incl; }).reduce(function(t, r) { return t + totaleRigaBozza(r); }, 0));
-    iva = arrotonda2(imp * ivaPerc / 100);
-    tot = arrotonda2(imp + iva);
+    const t = totaliFatturaN1Split(b.righe.filter(function(r) { return r.incl; }), ivaPerc, split);
+    imp = t.imp; iva = t.iva; tot = t.tot; es = t.es;
   }
   const n = b.righe.filter(function(r) { return r.incl; }).length;
-  el.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:13px"><span>Imponibile' + (b.modificabile ? ' (' + n + (n === 1 ? ' riga' : ' righe') + ')' : '') + '</span><span>' + esc(euroBuono(imp)) + '</span></div>' +
-    '<div style="display:flex;justify-content:space-between;font-size:13px"><span>IVA ' + esc(String(ivaPerc).replace('.', ',')) + '%</span><span>' + esc(euroBuono(iva)) + '</span></div>' +
-    '<div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;margin-top:4px"><span>Totale</span><span>' + esc(euroBuono(tot)) + '</span></div>' +
+  const riga = function(a, c, stile) { return '<div style="display:flex;justify-content:space-between;gap:8px;font-size:13px' + (stile || '') + '"><span>' + a + '</span><span>' + esc(euroBuono(c)) + '</span></div>'; };
+  el.innerHTML = riga('Imponibile' + (es ? ' soggetto a IVA' : '') + (b.modificabile ? ' (' + n + (n === 1 ? ' riga' : ' righe') + ')' : ''), imp) +
+    riga('IVA ' + esc(String(ivaPerc).replace('.', ',')) + '%' + (split ? ' (split payment: la versa il cliente)' : ''), iva) +
+    (es ? riga('Escluse dall\'IVA (N1, art. 15)', es) : '') +
+    (split ? riga('Totale documento', arrotonda2(imp + es + iva)) : '') +
+    riga(split ? 'Netto a pagare' : 'Totale', tot, ';font-size:15px;font-weight:700;margin-top:4px') +
     (b.modificabile ? '<div style="font-size:11px;color:var(--m);margin-top:4px">I totali definitivi li calcola il database al salvataggio.</div>' : '');
 }
 
@@ -495,20 +536,23 @@ async function salvaBozzaFattura(opzioni) {
     righe.push({
       descrizione: descr, quantita: arrotonda2(q), unita_misura: String(r.unita_misura || '').trim(),
       prezzo_unitario: arrotonda2(p), sconto_perc: arrotonda2(sc), origine: r.origine,
-      fonte_prezzo: r.fonte_prezzo || null, ddt_id: r.ddt_id || null
+      fonte_prezzo: r.fonte_prezzo || null, ddt_id: r.ddt_id || null, natura_iva: r.natura_iva || null
     });
   }
   const iva = Number(v('mfat-iva'));
   if (isNaN(iva)) { erroreFattura('Scegli l\'aliquota IVA.'); return null; }
   const btn = ge('mfat-salva');
   btn.disabled = true;
-  const { data, error } = await db.rpc('salva_bozza_fattura', {
+  const parametri = {
     p_fattura_id: b.id,
     p_scheda_id: b.scheda ? b.scheda.id : null,
     p_iva_perc: iva,
     p_note: v('mfat-note') || null,
     p_righe: righe
-  });
+  };
+  if (ivaN1SplitAttivi) parametri.p_split_payment = !!b.split;
+  else if (righe.some(function(r) { return r.natura_iva; })) { erroreFattura('Le righe N1 non sono ancora attive (aggiornamento del database in attesa).'); return null; }
+  const { data, error } = await db.rpc('salva_bozza_fattura', parametri);
   btn.disabled = false;
   if (error) { erroreFattura('Non salvata: ' + (error.message || 'errore')); return null; }
   if (restaAperta) { b.id = data && data.id; return data; }

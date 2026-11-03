@@ -231,6 +231,11 @@ più: 'confermato' da 'arrivato', solo titolare, con motivo).
 Dopo sql/48 (schede di rilievo multiple, ESEGUITO il 30/10, richiede 07 e 34;
 prima si pubblica il sito): elimina_scheda_rilievo; scheda_cantiere_commessa
 ridefinita (in più numero e nome della scheda; rollback = versione di sql/34).
+Dopo sql/59 (IVA N1 e split payment, DA ESEGUIRE, richiede 45, 46, 54):
+salva_bozza_fattura ridefinita (+ p_split_payment), emetti_nota_credito,
+emetti_nota_credito_parziale ed emissione_fattura_interna ridefinite;
+colonne nuove fatture_righe.natura_iva, fatture.totale_esente,
+fatture.split_payment, clienti.split_payment (scritta dal sito).
 Dopo sql/58 (decisioni di Toli del 03/11, ESEGUITO il 03/11, richiede 40, 46, 47):
 riporta_presentazione_riba_preparata, imposta_presidi_contratto,
 chiudi_recupero_contratto, assegna_rappresentante_cliente (js/45, js/54);
@@ -2181,7 +2186,38 @@ una sessione e l'altra.
       sql/54 solo storno totale come prima. Provato in locale (backup pre53,
       Assunta segreteria e Giulio rappresentante).
    c) (7) IVA: oltre al 22%, natura N1 (confermato da Toli il 03/11:
-      "N1", escluse art. 15) e SPLIT PAYMENT. SQL. DA FARE.
+      "N1", escluse art. 15) e SPLIT PAYMENT. PRONTO: sql/59-iva-n1-split-
+      payment (DA ESEGUIRE, richiede 45, 46, 54) + js/43, 44, 45, 52.
+      SCELTE DI ERIKA del 03/11: righe N1 nella STESSA fattura delle righe
+      all'aliquota della fattura (supera "una sola aliquota per fattura":
+      resta una sola aliquota, più le righe N1); split payment = spunta sul
+      cliente (clienti.split_payment, scheda Fatturazione, titolare e
+      segreteria), copiata nella fattura nuova e cambiabile nella bozza.
+      DB: fatture_righe.natura_iva (vuota o 'N1'), fatture.totale_esente,
+      fatture.split_payment (trigger trg_fatture_split_payment: dal cliente
+      alla nascita, dalla fattura nella nota di credito, fisso dopo la
+      bozza). fatture_aggrega_totali ridefinita: imponibile = righe
+      soggette, IVA su quelle, esente = righe N1, totale = imponibile +
+      esente + IVA (senza IVA con lo split): rate, pagamenti, RIBA e
+      solleciti usano "totale" come prima, quindi con lo split valgono
+      senza IVA. Ridefinite salva_bozza_fattura (natura per riga e
+      p_split_payment facoltativo; la versione a 5 dati si toglie, il sito
+      vecchio chiama la nuova), emetti_nota_credito ed
+      emetti_nota_credito_parziale (la nota copia la natura delle righe;
+      riga libera anche N1), emissione_fattura_interna (solo il controllo
+      del totale: conta anche le righe N1, così si emette anche una nota
+      di credito solo N1, es. un bollo). Sito: spunta "Esclusa dall'IVA
+      (N1, art. 15)" su ogni riga della bozza e sulle righe libere della
+      nota parziale, spunta "Split payment" sotto l'aliquota, totali con
+      "Totale documento" e "Netto a pagare"; emissione d'anticipo e finale
+      con rate senza IVA per i clienti in split; PDF con "(N1 - esclusa
+      art. 15 DPR 633/72)" sulla riga, riepilogo e diciture art. 17-ter e
+      art. 15. Senza sql/59 tutto come prima. Provato su Postgres (backup
+      pre58 + 58 + 59: bozza con N1 e split del cliente, natura non valida,
+      emissione con rata 202 su 246 di documento, split fisso sull'emessa,
+      nota parziale solo N1, storno totale con N1, pagamento → pagata;
+      rollback e riesecuzione) e nel browser di prova (bozza, totali,
+      salvataggio, PDF).
    d) (9) RIBA: registrare le spese bancarie degli insoluti; il
       contabile registra anche i solleciti. SQL.
    e) (10) Toli non ha capito il codice SIA/file CBI: spiegazione scritta
