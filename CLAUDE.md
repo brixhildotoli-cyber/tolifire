@@ -2296,8 +2296,8 @@ una sessione e l'altra.
       sopra una soglia in Impostazioni.
    n) (24) Lavori extra sotto 3.000 €: il preventivo integrativo lo
       prepara anche il rappresentante; l'importo degli extra si SOMMA
-      alla commessa. PRONTO: sql/56-lavori-extra-rappresentante (DA
-      ESEGUIRE, richiede 38 e 22; controllo in fondo) +
+      alla commessa. PRONTO: sql/56-lavori-extra-rappresentante (ESEGUITO
+      il 03/11, richiede 38 e 22; controllo in fondo) +
       js/53-lavori-extra-rappresentante.js. A) RPC (search_path 'public,
       pg_temp', solo il RAPPRESENTANTE del cliente della commessa:
       clienti.rappresentante_id = lui, commessa aperta):
