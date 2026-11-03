@@ -106,14 +106,12 @@ async function loadOreCantiere(forza) {
   if (!(await verificaGiornaleDisponibile())) {
     if (nonAttivo) nonAttivo.style.display = '';
     if (contenuto) contenuto.style.display = 'none';
-    const csv = ge('orec-btn-csv');
-    if (csv) csv.style.display = 'none';
+    ['orec-btn-csv', 'orec-btn-csv-giorno'].forEach(function(id) { if (ge(id)) ge(id).style.display = 'none'; });
     return;
   }
   if (nonAttivo) nonAttivo.style.display = 'none';
   if (contenuto) contenuto.style.display = '';
-  const csv = ge('orec-btn-csv');
-  if (csv) csv.style.display = '';
+  ['orec-btn-csv', 'orec-btn-csv-giorno'].forEach(function(id) { if (ge(id)) ge(id).style.display = ''; });
 
   impostaDateLibereOreCantiere(false);
 
@@ -395,6 +393,7 @@ function calcolaRiepilogoOreCantiere(d, filtri) {
   const somma = function(lista) { return lista.reduce(function(t, p) { return t + p.ore; }, 0); };
   return {
     filtri: filtri,
+    righe: righe,
     dipendenti: dipendenti,
     subappaltatori: subappaltatori,
     oreDipendenti: somma(dipendenti),
@@ -670,6 +669,142 @@ function scaricaCsvOreCantiere() {
   a.click();
   setTimeout(function() { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
+
+// ── CSV per giorno (decisione di Toli del 02/11, punto 25) ──────────
+// Una riga per giorno, persona, commessa e lavorazione, con gli stessi
+// filtri della pagina. Subappaltatori: ore a testa, persone e ore totali.
+function scaricaCsvOreCantierePerGiorno() {
+  const r = riepilogoOreCantiere;
+  const d = datiOreCantiere;
+  if (!r || !d) { toast('Ore non ancora caricate', 'err'); return; }
+  if (!r.righe || !r.righe.length) { toast('Nessuna ora nel periodo scelto', 'err'); return; }
+  const lav = {};
+  d.lavorazioni.forEach(function(l) { lav[l.id] = l; });
+  const righe = r.righe.map(function(x) {
+    const c = commessaOreCantiere(d, x.commessa_id);
+    return {
+      giorno: x.giorno, nome: nomePersonaOreCantiere(d, x), sub: !!x.subappaltatore_id, c: c,
+      lavorazione: x.lavorazione_id && lav[x.lavorazione_id] ? lav[x.lavorazione_id].nome : 'Altro (non in elenco)',
+      oreTesta: Number(x.ore) || 0, persone: x.subappaltatore_id ? (Number(x.persone) || 1) : 1, ore: oreRigaGiornale(x)
+    };
+  }).sort(function(a, b) {
+    return a.giorno.localeCompare(b.giorno) || a.nome.localeCompare(b.nome, 'it') ||
+      String(a.c.codice || '').localeCompare(String(b.c.codice || '')) || a.lavorazione.localeCompare(b.lavorazione, 'it');
+  });
+
+  const linee = [];
+  const riga = function(celle) { linee.push(celle.map(cellaCsvOre).join(';')); };
+  riga(['Ore cantiere - dettaglio per giorno']);
+  riga(['Filtri', testoFiltriOreCantiere(r)]);
+  riga(['Dal', r.filtri.dal ? fd(r.filtri.dal) : '', 'Al', r.filtri.al ? fd(r.filtri.al) : '']);
+  riga([]);
+  riga(['Giorno', 'Persona', 'Tipo', 'Commessa', 'Cliente', 'Lavoro', 'Lavorazione', 'Ore a testa', 'Persone', 'Ore']);
+  let totale = 0;
+  righe.forEach(function(x) {
+    totale += x.ore;
+    linee.push([cellaCsvOre(fd(x.giorno)), cellaCsvOre(x.nome), cellaCsvOre(x.sub ? 'Subappaltatore' : 'Dipendente'),
+      cellaCsvOre(x.c.codice || ''), cellaCsvOre(x.c.clienti?.ragione_sociale || ''), cellaCsvOre(x.c.titolo || ''),
+      cellaCsvOre(x.lavorazione), numeroCsvOre(x.oreTesta), String(x.persone), numeroCsvOre(x.ore)].join(';'));
+  });
+  linee.push([cellaCsvOre('Totale'), '', '', '', '', '', '', '', '', numeroCsvOre(totale)].join(';'));
+  riga([]);
+  riga(['Totale per giorno']);
+  riga(['Giorno', 'Ore', 'Persone presenti', 'Commesse']);
+  const perGiorno = {};
+  righe.forEach(function(x) {
+    const g = perGiorno[x.giorno] || (perGiorno[x.giorno] = { ore: 0, persone: {}, commesse: {} });
+    g.ore += x.ore;
+    g.persone[(x.sub ? 's:' : 'u:') + x.nome] = x.persone;
+    g.commesse[x.c.codice || '—'] = true;
+  });
+  Object.keys(perGiorno).sort().forEach(function(k) {
+    const g = perGiorno[k];
+    const persone = Object.values(g.persone).reduce(function(t, n) { return t + n; }, 0);
+    linee.push([cellaCsvOre(fd(k)), numeroCsvOre(g.ore), String(persone), cellaCsvOre(Object.keys(g.commesse).join(', '))].join(';'));
+  });
+
+  const nome = 'Ore_cantiere_per_giorno_' + (r.filtri.dal || 'inizio') + '_' + (r.filtri.al || 'oggi') + '.csv';
+  const blob = new Blob(['\ufeff' + linee.join('\r\n') + '\r\n'], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function() { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+// ── Dashboard del titolare: ore delle squadre (punto 26) ─────────────
+// Mese in corso contro il mese scorso fino allo stesso giorno: ore,
+// persone, giorni di cantiere, media a persona al giorno, commesse con più
+// ore. Niente costi. Dalla pagina "Ore cantiere" il dettaglio.
+async function caricaOreSquadreTitolare() {
+  const box = ge('tit-ore-cantiere');
+  if (!box || !canAccessPage('ore-cantiere')) return;
+  if (!(await verificaGiornaleDisponibile())) { box.innerHTML = ''; return; }
+  const oggi = new Date();
+  const dal = primoDelMeseOre(oggi.getFullYear(), oggi.getMonth());
+  const dalPrima = primoDelMeseOre(oggi.getFullYear(), oggi.getMonth() - 1);
+  const giornoOggi = oggi.getDate();
+  const r = await leggiTutteLeRigheOre(function() {
+    return db.from('commesse_giornale_ore').select('id, commessa_id, giorno, utente_id, subappaltatore_id, persone, ore')
+      .gte('giorno', dalPrima).order('id');
+  });
+  if (r.errore) { box.innerHTML = ''; return; }
+  const somma = function(righe) {
+    const persone = {}, giorni = {}, commesse = {};
+    let ore = 0, presenze = 0;
+    righe.forEach(function(x) {
+      const o = oreRigaGiornale(x);
+      ore += o;
+      persone[chiavePersonaGiornale(x)] = true;
+      giorni[x.commessa_id + '|' + x.giorno] = true;
+      commesse[x.commessa_id] = (commesse[x.commessa_id] || 0) + o;
+    });
+    const presenzeGiorno = {};
+    righe.forEach(function(x) { presenzeGiorno[chiavePersonaGiornale(x) + '|' + x.giorno] = x.subappaltatore_id ? (Number(x.persone) || 1) : 1; });
+    presenze = Object.values(presenzeGiorno).reduce(function(t, n) { return t + n; }, 0);
+    return { ore: ore, persone: Object.keys(persone).length, giorni: Object.keys(giorni).length, media: presenze ? ore / presenze : 0, commesse: commesse };
+  };
+  const questo = somma(r.righe.filter(function(x) { return x.giorno >= dal; }));
+  const prima = somma(r.righe.filter(function(x) {
+    return x.giorno < dal && Number(x.giorno.slice(8, 10)) <= giornoOggi;
+  }));
+  if (!questo.ore && !prima.ore) { box.innerHTML = ''; return; }
+  const ids = Object.keys(questo.commesse).sort(function(a, b) { return questo.commesse[b] - questo.commesse[a]; }).slice(0, 3);
+  let nomi = {};
+  if (ids.length) {
+    const { data } = await db.from('commesse').select('id, codice, titolo').in('id', ids);
+    (data || []).forEach(function(c) { nomi[c.id] = c; });
+  }
+  const diff = questo.ore - prima.ore;
+  const confronto = prima.ore ? (diff >= 0 ? '+' : '−') + numeroOre(Math.abs(diff)) + ' h rispetto allo stesso periodo del mese scorso' : '';
+  const voce = function(t, val) { return '<div style="min-width:110px;flex:1"><div style="font-size:11px;color:var(--m)">' + t + '</div><div style="font-size:18px;font-weight:700">' + val + '</div></div>'; };
+  box.innerHTML = '<div class="tit-section" style="margin-top:14px">⏱️ Ore delle squadre in cantiere</div>' +
+    '<div class="rap-list-card" style="margin-bottom:14px;font-size:13px">' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
+        voce('Ore questo mese', esc(numeroOre(questo.ore)) + ' h') +
+        voce('Persone', esc(String(questo.persone))) +
+        voce('Giorni di cantiere', esc(String(questo.giorni))) +
+        voce('Media a persona al giorno', esc(numeroOre(questo.media)) + ' h') +
+      '</div>' +
+      (confronto ? '<div style="font-size:12px;color:var(--m);margin-top:6px">' + esc(confronto) + ' (' + esc(numeroOre(prima.ore)) + ' h)</div>' : '') +
+      (ids.length ? '<div style="font-size:12px;margin-top:6px">Più ore: ' + ids.map(function(id) {
+        const c = nomi[id] || {};
+        return esc((c.codice || '—') + (c.titolo ? ' ' + c.titolo : '')) + ' <b>' + esc(numeroOre(questo.commesse[id])) + ' h</b>';
+      }).join(' · ') + '</div>' : '') +
+      '<div style="margin-top:8px"><button class="btn sm" onclick="gotoPage(\'ore-cantiere\')">Apri Ore cantiere</button></div>' +
+    '</div>';
+}
+
+(function() {
+  if (typeof loadDashTitolare !== 'function') return;
+  const loadDashTitolarePrimaOre = loadDashTitolare;
+  loadDashTitolare = async function() {
+    const risultato = await loadDashTitolarePrimaOre.apply(this, arguments);
+    caricaOreSquadreTitolare().catch(function(e) { console.warn('Ore delle squadre:', e); });
+    return risultato;
+  };
+})();
 
 // ── "Cosa tocca a me" del titolare: dato informativo ────────────────
 // Commesse APERTE con ore effettive (tutto il giornale) oltre le ore

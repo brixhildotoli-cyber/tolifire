@@ -264,6 +264,8 @@
 <div id="tit-incassi"></div>
 <!-- F11.3 — fatturato, incassato, insoluti (js/45, solo con sql/47) -->
 <div id="tit-fatturato"></div>
+<!-- Ore delle squadre in cantiere del mese (js/49, solo con sql/37) -->
+<div id="tit-ore-cantiere"></div>
       <div class="tit-section">💼 Lavoro</div>
       <div class="kpi-grid">
         <div class="kpi-card clickable success" onclick="gotoPage('interventi')"><div class="kpi-icon">✅</div><div class="kpi-num" id="tit-k-completati">—</div><div class="kpi-label">Completati nel periodo</div></div>
@@ -2059,6 +2061,7 @@
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn" id="orec-btn-csv" onclick="scaricaCsvOreCantiere()">⬇️ CSV per persona</button>
+      <button class="btn" id="orec-btn-csv-giorno" onclick="scaricaCsvOreCantierePerGiorno()">⬇️ CSV per giorno</button>
       <button class="btn" onclick="loadOreCantiere(true)" title="Rileggi le ore">↻ Aggiorna</button>
     </div>
   </div>
@@ -3638,7 +3641,8 @@
         per il dettaglio); <b>📁 Commesse</b>: ore contro stime, in rosso
         quelle oltre la stima; <b>🔧 Lavorazioni</b>: le stesse lavorazioni
         sommate tra le commesse. <b>⬇️ CSV per persona</b> scarica il
-        riepilogo per Excel.
+        riepilogo per Excel, <b>⬇️ CSV per giorno</b> il dettaglio giorno per
+        giorno.
       </p>
 
       <div class="al2 i">
@@ -3833,7 +3837,10 @@
         lavorazione. In “Cosa tocca a me” la riga
         <b>⏱️ Commesse oltre la stima delle ore</b> compare quando una
         commessa aperta ha superato le ore stimate. <b>⬇️ CSV per persona</b>
-        scarica il riepilogo per Excel.
+        scarica il riepilogo per Excel, <b>⬇️ CSV per giorno</b> il dettaglio
+        giorno per giorno (chi, dove, quante ore). In dashboard il riquadro
+        <b>⏱️ Ore delle squadre in cantiere</b> dà le ore del mese, le persone,
+        la media a persona al giorno e il confronto con il mese scorso.
       </p>
 
       <hr class="sep">

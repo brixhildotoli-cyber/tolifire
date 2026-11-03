@@ -2395,8 +2395,20 @@ una sessione e l'altra.
       rappresentante, Laura commerciale, Luca capo tecnico; Chrome headless a
       390 px: editor, oltre 3.000 bloccato, PDF scaricato e caricato, "I miei
       preventivi", Correggi, importi; rollback e riesecuzione).
-   o) (25) Ore cantiere: export per giorno.
-   p) (26) Dashboard titolare: dato sulle ore delle squadre.
+   o) (25) Ore cantiere: export per giorno. FATTO (03/11, js/49, nessun
+      SQL): "⬇️ CSV per giorno" (scaricaCsvOreCantierePerGiorno) con gli
+      stessi filtri della pagina: una riga per giorno, persona, commessa e
+      lavorazione (ore a testa, persone, ore) e in fondo il totale per
+      giorno (ore, persone presenti, commesse). Excel italiano come il CSV
+      per persona.
+   p) (26) Dashboard titolare: dato sulle ore delle squadre. FATTO (03/11,
+      js/49, nessun SQL): riquadro "⏱️ Ore delle squadre in cantiere"
+      (tit-ore-cantiere, caricaOreSquadreTitolare avvolgendo
+      loadDashTitolare): ore del mese, persone, giorni di cantiere, media a
+      persona al giorno (ore / presenze persona-giorno, subappaltatori x
+      persone), confronto con il mese scorso fino allo stesso giorno, 3
+      commesse con più ore, "Apri Ore cantiere". Niente costi. Nascosto
+      senza ore o senza sql/37. Guide titolare e capo tecnico aggiornate.
    r) Trovato il 02/11 (non è una domanda di Toli): l'avviso "Nuove lead
       dal sito" del titolare (js/18 e js/46) usa lead_sito.letto_titolare_il,
       che nel database NON esiste: l'avviso non compare mai. PRONTO:
