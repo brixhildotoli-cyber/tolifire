@@ -2380,6 +2380,14 @@ una sessione e l'altra.
       per le schede di dettaglio il loro elenco (ELENCO_DELLA_SCHEDA). Una
       pagina non permessa al ruolo resta sulla dashboard. Provato in Chrome
       headless (rappresentante e titolare).
+      Dal 03/11 (richiesta di Erika: "dal PDF aperto la freccia deve tornare
+      a Preventivi") i PDF dei preventivi si aprono nella STESSA scheda
+      (js/47 apriPdfStessaScheda: PDF del rappresentante in js/13, allegato
+      del fornitore e certificati in js/18; il certificato si segna letto
+      dall'ingegnere prima di aprirlo): la freccia indietro torna alla
+      pagina e al punto di prima (posizione in sessionStorage se il sito si
+      ricarica; se il browser rimette la pagina, l'elenco del rappresentante
+      si aggiorna). I PDF generati ("Genera PDF") si scaricano come prima.
    q) (28) Soglia "lavoro grande" = 30.000 € (la imposta il titolare in
       Impostazioni > Soglie e tariffe; esempio della guida aggiornato).
       Creare il più possibile SCHEDE per il RAPPRESENTANTE, per ogni tipo

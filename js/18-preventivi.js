@@ -4215,7 +4215,9 @@ async function apriAllegatoPreventivoFornitore(storagePath) {
     return;
   }
 
-  window.open(data.signedUrl, '_blank', 'noopener');
+  // Stessa scheda: la freccia indietro torna al preventivo (js/47).
+  if (typeof apriPdfStessaScheda === 'function') apriPdfStessaScheda(data.signedUrl);
+  else window.open(data.signedUrl, '_blank', 'noopener');
 }
 
 async function salvaDettagliFornitorePreventivo(selezioneId) {
@@ -5750,12 +5752,11 @@ async function apriCertificatoPreventivo(certificatoId) {
     return;
   }
 
-  window.open(data.signedUrl, '_blank', 'noopener');
-
   // F2.3 — quando l'ingegnere apre il certificato si segna "letto
   // dall'ingegnere" (solo la prima volta). L'ingegnere non può modificare
   // preventivi_certificati: lo fa la RPC marca_certificato_letto_ingegnere
   // (sql/18). Se la RPC non c'è ancora, il PDF si apre lo stesso.
+  // Si segna PRIMA di aprire: il PDF si apre nella stessa scheda.
   if (ROLE === 'ingegnere' && !certificato.letto_ingegnere_il) {
     const { error: erroreLettura } = await db.rpc(
       'marca_certificato_letto_ingegnere',
@@ -5764,9 +5765,18 @@ async function apriCertificatoPreventivo(certificatoId) {
 
     if (erroreLettura) {
       console.warn('Lettura certificato non registrata (serve sql/18):', erroreLettura.message);
-    } else if (ge('certificati-ingegnere-lista')) {
-      await loadCertificatiIngegnere();
     }
+  }
+
+  // Stessa scheda: la freccia indietro torna alla pagina di prima (js/47).
+  if (typeof apriPdfStessaScheda === 'function') {
+    apriPdfStessaScheda(data.signedUrl);
+    return;
+  }
+
+  window.open(data.signedUrl, '_blank', 'noopener');
+  if (ROLE === 'ingegnere' && ge('certificati-ingegnere-lista')) {
+    await loadCertificatiIngegnere();
   }
 }
 

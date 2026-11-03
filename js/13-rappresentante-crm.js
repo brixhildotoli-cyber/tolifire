@@ -685,7 +685,10 @@ async function apriPdfPreventivoRappresentante(preventivoId) {
   ricordaPosizionePagina();
   if (ROLE !== 'rappresentante') return;
 
-  const nuovaScheda = window.open('', '_blank');
+  // Il PDF si apre nella stessa scheda (js/47 apriPdfStessaScheda): la
+  // freccia indietro del browser torna a "I miei preventivi".
+  const stessaScheda = typeof apriPdfStessaScheda === 'function';
+  const nuovaScheda = stessaScheda ? null : window.open('', '_blank');
 
   const { data: preventivo, error } = await db
     .from('preventivi')
@@ -738,6 +741,11 @@ async function apriPdfPreventivoRappresentante(preventivoId) {
       'Impossibile segnare il preventivo come letto:',
       erroreLettura.message
     );
+  }
+
+  if (stessaScheda) {
+    apriPdfStessaScheda(urlData.signedUrl);
+    return;
   }
 
   if (nuovaScheda) {

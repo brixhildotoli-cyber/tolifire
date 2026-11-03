@@ -202,6 +202,44 @@ window.addEventListener('popstate', function(evento) {
   try { gotoPage(pagina); } finally { navigazioneDaBrowser = false; }
 });
 
+// PDF dei preventivi nella STESSA scheda (richiesta di Erika del 03/11:
+// "dal PDF aperto la freccia del browser deve tornare a Preventivi"). In una
+// scheda nuova la freccia indietro non ha dove tornare; nella stessa scheda
+// torna alla pagina del gestionale (#preventivi-rapp...), che riparte da lì
+// e nel punto in cui si era (posizione salvata qui sotto).
+const CHIAVE_POSIZIONE_PDF = 'toli_posizione_prima_del_pdf';
+
+function apriPdfStessaScheda(url) {
+  if (!url) return;
+  try {
+    const pagina = paginaApertaId();
+    if (pagina) {
+      registraPaginaNelBrowser(pagina);
+      sessionStorage.setItem(CHIAVE_POSIZIONE_PDF, JSON.stringify({ pagina: pagina, y: window.scrollY || 0 }));
+    }
+  } catch (e) {}
+  location.assign(url);
+}
+
+function rimettiPosizionePrimaDelPdf() {
+  try {
+    const salvata = JSON.parse(sessionStorage.getItem(CHIAVE_POSIZIONE_PDF) || 'null');
+    sessionStorage.removeItem(CHIAVE_POSIZIONE_PDF);
+    if (salvata && salvata.pagina === paginaApertaId()) rimettiPosizionePagina(salvata.y);
+  } catch (e) {}
+}
+
+// Tornando dal PDF il browser a volte rimette la pagina com'era (senza
+// ricaricarla): si aggiorna l'elenco dei preventivi del rappresentante
+// (il PDF aperto lo segna come letto).
+window.addEventListener('pageshow', function(evento) {
+  if (!evento.persisted || typeof ROLE === 'undefined' || !ROLE) return;
+  try { sessionStorage.removeItem(CHIAVE_POSIZIONE_PDF); } catch (e) {}
+  if (paginaApertaId() === 'preventivi-rapp' && typeof loadPreventiviRappresentante === 'function') {
+    loadPreventiviRappresentante();
+  }
+});
+
 // Dopo il login: se l'indirizzo ha una pagina (#preventivi-rapp), si
 // riparte da lì invece che dalla dashboard.
 (function() {
@@ -216,6 +254,7 @@ window.addEventListener('popstate', function(evento) {
     } else {
       registraPaginaNelBrowser(paginaApertaId());
     }
+    rimettiPosizionePrimaDelPdf();
     return risultato;
   };
 })();
