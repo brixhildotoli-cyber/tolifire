@@ -231,6 +231,10 @@ più: 'confermato' da 'arrivato', solo titolare, con motivo).
 Dopo sql/48 (schede di rilievo multiple, ESEGUITO il 30/10, richiede 07 e 34;
 prima si pubblica il sito): elimina_scheda_rilievo; scheda_cantiere_commessa
 ridefinita (in più numero e nome della scheda; rollback = versione di sql/34).
+Dopo sql/60 (spese insoluti RIBA e solleciti del contabile, DA ESEGUIRE,
+richiede 47): registra_spese_insoluto_riba; registra_sollecito,
+esito_sollecito ed elimina_sollecito ridefinite (anche contabile);
+colonne nuove riba_righe.spese_insoluto*.
 Dopo sql/59 (IVA N1 e split payment, ESEGUITO il 03/11, richiede 45, 46, 54):
 salva_bozza_fattura ridefinita (+ p_split_payment), emetti_nota_credito,
 emetti_nota_credito_parziale ed emissione_fattura_interna ridefinite;
@@ -2219,7 +2223,22 @@ una sessione e l'altra.
       rollback e riesecuzione) e nel browser di prova (bozza, totali,
       salvataggio, PDF).
    d) (9) RIBA: registrare le spese bancarie degli insoluti; il
-      contabile registra anche i solleciti. SQL.
+      contabile registra anche i solleciti. PRONTO: sql/60-riba-spese-
+      insoluti-solleciti-contabile (DA ESEGUIRE, richiede 47) + js/45.
+      Colonne riba_righe.spese_insoluto (> 0, max 1.000 €), _nota, _da,
+      _da_nome, _il; RPC registra_spese_insoluto_riba (titolare,
+      segreteria, contabile; solo riga insoluta; 0 o vuoto = togli).
+      SCELTA DICHIARATA: le spese si registrano e basta, il riaddebito al
+      cliente si fa a mano (riga in fattura o nel sollecito). Sito: campo
+      "Spese bancarie dell'insoluto" nella finestra Esito (scelto
+      Insoluta; salvato dopo l'esito), bottone "💶 Spese" sulla riga
+      insoluta della distinta (finestra m-riba-spese, id mrs-), spese
+      mostrate nella distinta e nel box "RIBA e solleciti" della fattura.
+      registra_sollecito, esito_sollecito, elimina_sollecito ridefinite
+      con il solo controllo del ruolo + contabile (rollback = sql/47);
+      puoSolleciti() vale per il contabile solo con sql/60. Guide
+      segreteria e contabile aggiornate. Provato su Postgres (backup pre59
+      + 59 + 60, rollback e riesecuzione) e nel browser di prova.
    e) (10) Toli non ha capito il codice SIA/file CBI: spiegazione scritta
       a parte (da mandare).
    f) (14) Controlli del piano rimasti indietro più di 12 mesi: si

@@ -70,7 +70,8 @@ let invioDistinta = null;       // distinta della finestra m-riba-invio
 
 // ── Utilità ──────────────────────────────────────────────────────────────
 function puoRiba() { return RUOLI_RIBA.includes(ROLE); }
-function puoSolleciti() { return RUOLI_SOLLECITI.includes(ROLE); }
+// sql/60 (decisione di Toli): i solleciti li registra anche il contabile.
+function puoSolleciti() { return RUOLI_SOLLECITI.includes(ROLE) || (ROLE === 'contabile' && ribaSpeseAttive === true); }
 function puoAnnullareEsitoRiba() { return ['titolare', 'segreteria'].includes(ROLE); }
 
 function ibanPulito(s) {
@@ -116,13 +117,28 @@ function testoSollecito(so) {
 }
 
 // true se sql/47 è stato eseguito (colonna riba_righe.pagamento_id).
+// sql/60: spese bancarie degli insoluti e solleciti del contabile.
+let ribaSpeseAttive = null;
+async function verificaRibaSpese() {
+  if (ribaSpeseAttive !== null) return ribaSpeseAttive;
+  const { error } = await db.from('riba_righe').select('spese_insoluto').limit(1);
+  if (!error) ribaSpeseAttive = true;
+  else if (error.code === '42703' || error.code === 'PGRST204' || /spese_insoluto/i.test(error.message || '')) ribaSpeseAttive = false;
+  else return false;
+  return ribaSpeseAttive;
+}
+
 async function verificaFattureRiba() {
-  if (fattureRibaAttive !== null) return fattureRibaAttive;
+  if (fattureRibaAttive !== null) {
+    if (fattureRibaAttive && ribaSpeseAttive === null) await verificaRibaSpese();
+    return fattureRibaAttive;
+  }
   if (!(await verificaFattureEmissione())) return false;
   const { error } = await db.from('clienti').select('abi_appoggio').limit(1);
   if (!error) fattureRibaAttive = true;
   else if (error.code === '42703' || error.code === 'PGRST204' || /abi_appoggio/i.test(error.message || '')) fattureRibaAttive = false;
   else return false; // errore momentaneo: si riprova la prossima volta
+  if (fattureRibaAttive) await verificaRibaSpese();
   return fattureRibaAttive;
 }
 
@@ -437,7 +453,7 @@ async function caricaSollecitiFatture() {
       '<select id="fat-sol-filtro" onchange="caricaSollecitiFatture()" style="width:auto;max-width:100%">' +
         FILTRI_SOLLECITI.map(function(x) { return '<option value="' + x[0] + '"' + (x[0] === filtro ? ' selected' : '') + '>' + esc(x[1]) + '</option>'; }).join('') +
       '</select><span style="font-size:12px;color:var(--m)">' + lista.length + (lista.length === 1 ? ' rata' : ' rate') + '</span></div>' +
-    (puoSolleciti() ? '' : '<div style="font-size:12px;color:var(--m);margin-bottom:6px">I solleciti li registra la segreteria (o il titolare).</div>');
+    (puoSolleciti() ? '' : '<div style="font-size:12px;color:var(--m);margin-bottom:6px">I solleciti li registra la segreteria (o il titolare' + (ribaSpeseAttive ? ' o il contabile' : '') + ').</div>');
   html += lista.length ? lista.map(function(s) { return htmlRataDaSollecitare(s, oggi, true); }).join('')
     : '<div class="empty" style="padding:10px">Niente da sollecitare in questo elenco</div>';
   html += '</details>';
@@ -477,7 +493,7 @@ async function decoraRibaFattura() {
   if (f.tipo_documento !== 'fattura') return;
   const [rs, rr, rl] = await Promise.all([
     db.from('fatture_scadenze').select('id,numero_rata,data_scadenza,importo,importo_pagato,stato').eq('fattura_id', f.id).order('numero_rata', { ascending: true }),
-    puoRiba() ? db.from('riba_righe').select('id,scadenza_id,esito,data_esito,importo,pagamento_id,presentazione_id,riba_presentazioni(numero,stato,data_presentazione)').eq('fattura_id', f.id).order('creato_il', { ascending: true }) : Promise.resolve({ data: [] }),
+    puoRiba() ? db.from('riba_righe').select('id,scadenza_id,esito,data_esito,importo,pagamento_id,presentazione_id' + (ribaSpeseAttive ? ',spese_insoluto' : '') + ',riba_presentazioni(numero,stato,data_presentazione)').eq('fattura_id', f.id).order('creato_il', { ascending: true }) : Promise.resolve({ data: [] }),
     db.from('solleciti').select('*').eq('fattura_id', f.id).is('eliminato_il', null).order('livello', { ascending: true })
   ]);
   if (fatBozza !== b || rs.error) return;
@@ -505,6 +521,7 @@ async function decoraRibaFattura() {
         const p = x.riba_presentazioni || {};
         return '<div>🏦 RIBA, distinta n. ' + esc(p.numero || '') + ' (' + esc((STATI_DISTINTA_RIBA[p.stato] || [0, p.stato])[1]) + ')' +
           (x.esito ? ' · <b>' + (x.esito === 'accreditato' ? 'accreditata' : 'insoluta') + '</b> il ' + esc(fd(x.data_esito)) : ' · in attesa dell\'esito') +
+          (x.esito === 'insoluto' && Number(x.spese_insoluto) ? ' · spese bancarie ' + esc(euroBuono(x.spese_insoluto)) : '') +
           ' <button class="btn sm" style="padding:2px 8px" data-id="' + esc(x.presentazione_id) + '" onclick="apriDettaglioDistinta(this.dataset.id)">Distinta</button></div>';
       }).join('') +
       solRata.map(function(so) {
@@ -705,9 +722,11 @@ async function apriDettaglioDistinta(id) {
         '<span style="display:flex;gap:6px;flex-wrap:wrap">' +
           (puoEsito && !x.esito ? '<button class="btn sm p" data-id="' + esc(x.id) + '" onclick="apriEsitoRiba(this.dataset.id)">Esito</button>' : '') +
           (puoEsito && x.esito && puoAnnullareEsitoRiba() ? '<button class="btn sm" data-id="' + esc(x.id) + '" onclick="apriAnnullaEsitoRiba(this.dataset.id)">↩ Annulla esito</button>' : '') +
+          (puoEsito && x.esito === 'insoluto' && ribaSpeseAttive ? '<button class="btn sm" data-id="' + esc(x.id) + '" onclick="apriSpeseInsolutoRiba(this.dataset.id)">💶 Spese</button>' : '') +
           (canAccessPage('fatture') ? '<button class="btn sm" data-id="' + esc(x.fattura_id) + '" onclick="apriFattura(this.dataset.id)">Fattura</button>' : '') +
         '</span></div>' +
       (x.note ? '<div style="color:var(--m);margin-top:2px">' + esc(x.note) + '</div>' : '') +
+      (x.esito === 'insoluto' && Number(x.spese_insoluto) ? '<div style="margin-top:2px">💶 Spese bancarie dell\'insoluto: <b>' + esc(euroBuono(x.spese_insoluto)) + '</b>' + (x.spese_insoluto_nota ? ' · ' + esc(x.spese_insoluto_nota) : '') + (x.spese_insoluto_da_nome ? ' <span style="color:var(--m)">(' + esc(x.spese_insoluto_da_nome) + ')</span>' : '') + '</div>' : '') +
       (storico.length ? '<div style="color:var(--m);margin-top:2px">' + storico.map(function(h) {
         return '↩ Esito "' + esc(h.esito) + '" del ' + esc(fd(h.data_esito)) + ' annullato' + (h.annullato_da ? ' da ' + esc(h.annullato_da) : '') + ': ' + esc(h.motivo || '');
       }).join('<br>') + '</div>' : '') +
@@ -836,6 +855,7 @@ function apriEsitoRiba(rigaId) {
   ge('mre-data').max = oggi;
   ge('mre-data').min = d.p.data_presentazione || '';
   ge('mre-note').value = '';
+  if (ge('mre-spese')) ge('mre-spese').value = '';
   ge('mre-conferma').checked = false;
   ge('mre-errore').style.display = 'none';
   aggiornaEsitoRiba();
@@ -852,6 +872,7 @@ function aggiornaEsitoRiba() {
   const esito = esitoRibaScelto();
   const data = v('mre-data');
   ge('mre-data-label').textContent = esito === 'insoluto' ? 'Data della comunicazione dell\'insoluto *' : 'Data dell\'accredito *';
+  if (ge('mre-spese-box')) ge('mre-spese-box').style.display = esito === 'insoluto' && ribaSpeseAttive ? '' : 'none';
   ge('mre-avviso').innerHTML = esito === 'accreditato'
     ? '<div class="al2 ok" style="margin:0">Diventa un <b>pagamento registrato</b> (modalità RIBA) di ' + esc(euroBuono(a.riga.importo)) + ': la rata risulta pagata.</div>'
     : (esito === 'insoluto' ? '<div class="al2 w" style="margin:0">La rata e la fattura diventano <b>insolute</b>: compaiono alla segreteria (solleciti da fare) e al rappresentante del cliente.</div>' : '');
@@ -861,6 +882,10 @@ function aggiornaEsitoRiba() {
   else if (data > oggiFattura()) errore = 'La data non può essere nel futuro';
   else if (a.distinta.data_presentazione && data < a.distinta.data_presentazione) errore = 'La data non può essere prima della presentazione (' + fd(a.distinta.data_presentazione) + ')';
   const er = ge('mre-errore');
+  if (!errore && esito === 'insoluto' && ribaSpeseAttive) {
+    const sp = numeroSpeseRiba(v('mre-spese'));
+    if (isNaN(sp)) errore = 'Spese bancarie: un numero da 0 a 1.000 (vuoto se non ci sono)';
+  }
   if (errore && esito) { er.textContent = errore; er.style.display = 'block'; } else er.style.display = 'none';
   ge('mre-salva').disabled = !!errore || !ge('mre-conferma').checked || !!a.inCorso;
 }
@@ -870,6 +895,7 @@ async function salvaEsitoRiba() {
   if (!a || a.inCorso) return;
   a.inCorso = true;
   ge('mre-salva').disabled = true;
+  const esitoRibaSalvato = esitoRibaScelto();
   const { data, error } = await db.rpc('registra_esito_riba', {
     p_riga_id: a.riga.id, p_esito: esitoRibaScelto(), p_data: v('mre-data'), p_note: (v('mre-note') || '').trim() || null
   });
@@ -884,6 +910,13 @@ async function salvaEsitoRiba() {
   closeM('m-riba-esito');
   rigaEsitoAperta = null;
   const d = data || {};
+  if (esitoRibaSalvato === 'insoluto' && ribaSpeseAttive) {
+    const sp = numeroSpeseRiba(v('mre-spese'));
+    if (sp > 0) {
+      const rs = await db.rpc('registra_spese_insoluto_riba', { p_riga_id: a.riga.id, p_spese: sp, p_nota: null });
+      if (rs.error) toast('Insoluto registrato, ma le spese no: ' + (rs.error.message || 'errore') + '. Riprova con "💶 Spese" nella distinta', 'err');
+    }
+  }
   if (d.esito === 'accreditato') {
     toast(d.preventivo_sbloccato ? 'RIBA accreditata: anticipo pagato, preventivo accettato' + (d.commessa_codice ? ' · nata la commessa ' + d.commessa_codice : '')
       : 'RIBA accreditata ✓ Pagamento registrato sulla fattura n. ' + d.numero, 'ok');
@@ -891,6 +924,42 @@ async function salvaEsitoRiba() {
     toast('RIBA insoluta: fattura n. ' + d.numero + ' insoluta, da sollecitare', 'warn');
   }
   await aggiornaDopoRiba(d.fattura_id);
+}
+
+// Importo con la virgola; vuoto = 0; NaN se non valido.
+function numeroSpeseRiba(testo) {
+  const t = String(testo || '').trim();
+  if (!t) return 0;
+  const n = Number(t.replace(/\./g, '').replace(',', '.'));
+  return isFinite(n) && n >= 0 && n <= 1000 ? Math.round(n * 100) / 100 : NaN;
+}
+
+// sql/60: spese bancarie di una RIBA insoluta (registrate o corrette dopo).
+let rigaSpeseAperta = null;
+function apriSpeseInsolutoRiba(rigaId) {
+  const d = dettaglioDistinta;
+  const x = d && d.righe.find(function(r) { return r.id === rigaId; });
+  if (!x || x.esito !== 'insoluto' || !puoRiba()) return;
+  rigaSpeseAperta = x;
+  ge('mrs-riepilogo').innerHTML = '<b>' + esc(x.debitore) + '</b> · fattura n. ' + esc(x.fattura_numero || '') + ', rata ' + esc(x.numero_rata) + ' · insoluta il ' + esc(fd(x.data_esito));
+  ge('mrs-importo').value = Number(x.spese_insoluto) ? String(x.spese_insoluto).replace('.', ',') : '';
+  ge('mrs-nota').value = x.spese_insoluto_nota || '';
+  openM('m-riba-spese');
+}
+
+async function salvaSpeseInsolutoRiba() {
+  const x = rigaSpeseAperta;
+  if (!x) return;
+  const sp = numeroSpeseRiba(v('mrs-importo'));
+  if (isNaN(sp)) { toast('Scrivi un importo da 0 a 1.000 (vuoto o 0 per toglierle)', 'err'); return; }
+  ge('mrs-salva').disabled = true;
+  const { error } = await db.rpc('registra_spese_insoluto_riba', { p_riga_id: x.id, p_spese: sp, p_nota: (v('mrs-nota') || '').trim() || null });
+  ge('mrs-salva').disabled = false;
+  if (error) { toast('Spese non salvate: ' + (error.message || 'errore'), 'err'); return; }
+  closeM('m-riba-spese');
+  rigaSpeseAperta = null;
+  toast(sp > 0 ? 'Spese bancarie dell\'insoluto salvate: ' + euroBuono(sp) : 'Spese bancarie tolte', 'ok');
+  if (dettaglioDistinta) await apriDettaglioDistinta(dettaglioDistinta.id);
 }
 
 function apriAnnullaEsitoRiba(rigaId) {
@@ -1028,7 +1097,7 @@ async function scaricaPdfDistintaRiba() {
 
 // ── Solleciti ────────────────────────────────────────────────────────────
 async function apriSollecito(scadenzaId) {
-  if (!puoSolleciti()) { toast('I solleciti li registra la segreteria (o il titolare)', 'err'); return; }
+  if (!puoSolleciti()) { toast('I solleciti li registra la segreteria, il titolare o il contabile', 'err'); return; }
   if (!(await verificaFattureRiba())) { toast('I solleciti non sono ancora attivi (sql/47)', 'err'); return; }
   const { data: s, error } = await db.from('fatture_scadenze')
     .select('*,fatture(id,numero,data_emissione,stato,tipo_documento,snap_ragione_sociale,cliente_id,clienti(referente_nome,referente_telefono,referente_email,pec))')

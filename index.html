@@ -4142,7 +4142,9 @@
       <p>
         Quando la banca comunica l’esito, su ogni riga premi <b>Esito</b>:
         <b>✅ Accreditata (pagata)</b> registra il pagamento,
-        <b>❌ Insoluta</b> segna la rata come insoluta.
+        <b>❌ Insoluta</b> segna la rata come insoluta. Con l'insoluto scrivi
+        anche le <b>spese bancarie</b> addebitate dalla banca; si correggono
+        dopo con <b>💶 Spese</b> sulla riga della distinta.
       </p>
 
       <div class="al2 w">
@@ -4370,7 +4372,14 @@
         con <b>+ Nuova distinta</b>, salvala, scarica <b>📄 PDF distinta</b> o
         <b>⬇️ CSV</b> e, presentata in banca, premi <b>📤 Segna inviata</b>.
         All’esito della banca usa <b>Esito</b> su ogni riga:
-        <b>✅ Accreditata (pagata)</b> o <b>❌ Insoluta</b>.
+        <b>✅ Accreditata (pagata)</b> o <b>❌ Insoluta</b>. Con l'insoluto
+        scrivi le <b>spese bancarie</b> (correggibili con <b>💶 Spese</b>).
+      </p>
+
+      <p>
+        Anche tu registri i <b>solleciti</b> delle rate insolute o scadute:
+        <b>📞 Registra sollecito</b> nella fattura o nel box RIBA e solleciti
+        della dashboard, poi <b>Esito</b> quando il cliente risponde.
       </p>
 
       <hr class="sep">
@@ -4378,7 +4387,6 @@
       <h4 id="info-con-7">7. Cosa non fai tu</h4>
 
       <ul>
-        <li><b>Solleciti</b>: li registra la segreteria (tu li vedi).</li>
         <li>Annullare un esito RIBA sbagliato: chiedi a segreteria o titolare.</li>
         <li>Pagamento della fattura d’anticipo: lo registra la segreteria, perché sblocca la commessa.</li>
         <li>Dati bancari del cliente (ABI, CAB) e fattura finale della commessa: segreteria o titolare.</li>
@@ -5449,6 +5457,11 @@
       <label>Nota</label>
       <textarea id="mre-note" rows="2" maxlength="500" placeholder="Es. comunicazione della banca del ..."></textarea>
     </div>
+    <!-- sql/60 — spese bancarie dell'insoluto (js/45) -->
+    <div class="f" id="mre-spese-box" style="display:none">
+      <label>Spese bancarie dell'insoluto (€)</label>
+      <input type="text" id="mre-spese" inputmode="decimal" placeholder="Es. 7,50 (vuoto se non ci sono)" oninput="aggiornaEsitoRiba()">
+    </div>
     <div id="mre-avviso" style="font-size:12px;margin-bottom:6px"></div>
     <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px;font-weight:400">
       <input type="checkbox" id="mre-conferma" onchange="aggiornaEsitoRiba()" style="margin-top:3px">
@@ -5512,6 +5525,22 @@
     <div class="ma">
       <button class="btn" onclick="closeM('m-assegna-venditore')">Chiudi</button>
       <button class="btn p" id="asv-salva" disabled onclick="salvaAssegnaVenditore()">👤 Assegna</button>
+    </div>
+  </div>
+</div>
+
+<!-- sql/60 — SPESE BANCARIE DI UNA RIBA INSOLUTA (js/45) -->
+<div class="mbg" id="m-riba-spese">
+  <div class="modal" style="max-width:440px">
+    <button class="x" onclick="closeM('m-riba-spese')">×</button>
+    <h3>💶 Spese bancarie dell'insoluto</h3>
+    <div id="mrs-riepilogo" class="al2 w" style="margin-bottom:10px;font-size:13px"></div>
+    <div class="f"><label>Importo addebitato dalla banca (€)</label><input type="text" id="mrs-importo" inputmode="decimal" placeholder="Es. 7,50 (vuoto o 0 per toglierle)"></div>
+    <div class="f"><label>Nota</label><input type="text" id="mrs-nota" maxlength="500" placeholder="Es. commissione insoluto dell'estratto conto del ..."></div>
+    <div style="font-size:12px;color:var(--m)">Le spese restano scritte sulla ricevuta. Se le riaddebiti al cliente, mettile in una fattura o nel sollecito.</div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-riba-spese')">Chiudi</button>
+      <button class="btn p" id="mrs-salva" onclick="salvaSpeseInsolutoRiba()">💾 Salva</button>
     </div>
   </div>
 </div>
