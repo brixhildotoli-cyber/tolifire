@@ -231,7 +231,7 @@ più: 'confermato' da 'arrivato', solo titolare, con motivo).
 Dopo sql/48 (schede di rilievo multiple, ESEGUITO il 30/10, richiede 07 e 34;
 prima si pubblica il sito): elimina_scheda_rilievo; scheda_cantiere_commessa
 ridefinita (in più numero e nome della scheda; rollback = versione di sql/34).
-Dopo sql/59 (IVA N1 e split payment, DA ESEGUIRE, richiede 45, 46, 54):
+Dopo sql/59 (IVA N1 e split payment, ESEGUITO il 03/11, richiede 45, 46, 54):
 salva_bozza_fattura ridefinita (+ p_split_payment), emetti_nota_credito,
 emetti_nota_credito_parziale ed emissione_fattura_interna ridefinite;
 colonne nuove fatture_righe.natura_iva, fatture.totale_esente,
@@ -2187,7 +2187,7 @@ una sessione e l'altra.
       Assunta segreteria e Giulio rappresentante).
    c) (7) IVA: oltre al 22%, natura N1 (confermato da Toli il 03/11:
       "N1", escluse art. 15) e SPLIT PAYMENT. PRONTO: sql/59-iva-n1-split-
-      payment (DA ESEGUIRE, richiede 45, 46, 54) + js/43, 44, 45, 52.
+      payment (ESEGUITO il 03/11, backup 2026-11-03-pre59, richiede 45, 46, 54) + js/43, 44, 45, 52.
       SCELTE DI ERIKA del 03/11: righe N1 nella STESSA fattura delle righe
       all'aliquota della fattura (supera "una sola aliquota per fattura":
       resta una sola aliquota, più le righe N1); split payment = spunta sul
