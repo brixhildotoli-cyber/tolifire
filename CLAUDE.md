@@ -231,6 +231,15 @@ più: 'confermato' da 'arrivato', solo titolare, con motivo).
 Dopo sql/48 (schede di rilievo multiple, ESEGUITO il 30/10, richiede 07 e 34;
 prima si pubblica il sito): elimina_scheda_rilievo; scheda_cantiere_commessa
 ridefinita (in più numero e nome della scheda; rollback = versione di sql/34).
+Dopo sql/61 (telefoni italiani per Google Ads, DA ESEGUIRE, nessun
+prerequisito oltre le funzioni Ads): nessuna RPC del sito. Funzione nuova
+ads_crm_normalizza_telefono (immutable: +39 ai numeri italiani senza
+prefisso, cellulare ^3[0-9]{8,9}$ o fisso ^0[0-9]{5,10}$; gli altri senza
+"+" scartati), usata da ads_crm_hash_telefono e dal trigger
+ads_crm_registra_nuovo_contatto (tolta la loro copia della regola). Non
+toccati: ads_crm_hash_email, ads_crm_export_v2, trigger, procedura_consenso,
+sito. Provato sul backup pre59: telefoni dei clienti riconosciuti da 10 a
+288 su 309, lead da 1 a 15 su 15, export "nuovi" con telefono da 1 a 16.
 Dopo sql/60 (spese insoluti RIBA e solleciti del contabile, DA ESEGUIRE,
 richiede 47): registra_spese_insoluto_riba; registra_sollecito,
 esito_sollecito ed elimina_sollecito ridefinite (anche contabile);
