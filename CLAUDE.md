@@ -231,7 +231,7 @@ più: 'confermato' da 'arrivato', solo titolare, con motivo).
 Dopo sql/48 (schede di rilievo multiple, ESEGUITO il 30/10, richiede 07 e 34;
 prima si pubblica il sito): elimina_scheda_rilievo; scheda_cantiere_commessa
 ridefinita (in più numero e nome della scheda; rollback = versione di sql/34).
-Dopo sql/58 (decisioni di Toli del 03/11, DA ESEGUIRE, richiede 40, 46, 47):
+Dopo sql/58 (decisioni di Toli del 03/11, ESEGUITO il 03/11, richiede 40, 46, 47):
 riporta_presentazione_riba_preparata, imposta_presidi_contratto,
 chiudi_recupero_contratto, assegna_rappresentante_cliente (js/45, js/54);
 colonne nuove riba_presentazioni.riportata_preparata_* e
@@ -2450,7 +2450,8 @@ una sessione e l'altra.
      Periodicità solo i campi "N. previsti" sono attivi, bottone "💾 Salva
      presidi previsti"; prima salvava senza errore ma il database non
      scriveva nulla).
-   Provato su un Postgres di prova (backup pre57 + sql/57 + 58: emissione
+   sql/58 ESEGUITO in produzione il 03/11 (CONFERMATO DA TOLI, backup
+   2026-11-03-pre58; controllo in regola). Provato su un Postgres di prova (backup pre57 + sql/57 + 58: emissione
    con data 2025 rifiutata e con oggi numerata, RIBA indietro con e senza
    motivo e contabile rifiutato, presidi di Giulio sì e di Debora e del
    commerciale no, disdetta → da richiamare → perso → rinnovato →
