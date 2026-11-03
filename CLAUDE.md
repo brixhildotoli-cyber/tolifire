@@ -2240,7 +2240,8 @@ una sessione e l'altra.
       segreteria e contabile aggiornate. Provato su Postgres (backup pre59
       + 59 + 60, rollback e riesecuzione) e nel browser di prova.
    e) (10) Toli non ha capito il codice SIA/file CBI: spiegazione scritta
-      a parte (da mandare).
+      il 03/11 (mail preparata in Mail per Erika, con la richiesta del codice
+      SIA alla banca e la conferma di sql/60). In attesa del codice.
    f) (14) Controlli del piano rimasti indietro più di 12 mesi: si
       segnano "saltato". FATTO (02/11, js/42, nessun SQL: lo stato
       'saltato' c'era già): in testa al Piano mensile del mese corrente,
