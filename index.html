@@ -253,6 +253,8 @@
 <div id="tit-avviso-preventivi"></div>
 <!-- F10.1 — contratti di manutenzione in scadenza (js/39, solo con sql/40) -->
 <div id="tit-contratti-scadenza"></div>
+<!-- sql/58 — contratti disdetti o non rinnovati da richiamare (js/54) -->
+<div id="tit-contratti-recupero"></div>
 <!-- F10.2 — differenze dell'audit dei presidi con il contratto (js/40, solo con sql/41) -->
 <div id="tit-audit-presidi"></div>
 <!-- F10.3 — interventi che aspettano l'appuntamento della segreteria (js/41, solo con sql/43) -->
@@ -353,6 +355,8 @@
       <!-- F10.3 — appuntamenti da fissare con i clienti (js/41, solo con sql/43) -->
       <div id="seg-appuntamenti"></div>
       <div id="seg-promemoria"></div>
+      <!-- sql/58 — contratti disdetti o non rinnovati da richiamare (js/54) -->
+      <div id="seg-contratti-recupero"></div>
 
       <!-- F5.2 — commesse il cui prossimo passo è della segreteria (solo con sql/28) -->
       <div id="seg-commesse-tocca"></div>
@@ -973,6 +977,8 @@
 <div id="rap-promemoria-anticipi"></div>
 <!-- F10.1 — contratti di manutenzione in scadenza dei clienti del rappresentante (js/39, solo con sql/40) -->
 <div id="rap-contratti-scadenza"></div>
+<!-- sql/58 — contratti disdetti o non rinnovati da richiamare (js/54) -->
+<div id="rap-contratti-recupero"></div>
 <!-- F10.2 — differenze dell'audit dei presidi dei clienti del rappresentante (js/40, solo con sql/41) -->
 <div id="rap-audit-presidi"></div>
 <!-- F5.2 — commesse il cui prossimo passo è del rappresentante (solo con sql/28) -->
@@ -2679,6 +2685,19 @@
       </p>
 
       <p>
+        Se un cliente disdice il contratto (anche prima della fine, con
+        <b>❌ Disdetta anticipata</b> nella scheda) o non lo rinnova, lo trovi
+        nel box <b>📞 Contratti da richiamare</b>: chiamalo per riprendere il
+        contratto. Se torna premi <b>✅ Rinnovato</b>; se no <b>✖ Perso</b> e
+        scrivi com'è andata la telefonata.
+      </p>
+
+      <div class="info-esempio">Esempio: dopo l'audit risultano 15 estintori invece di 12.
+        Nella scheda del cliente, tab Periodicità, correggi <b>N. previsti dal
+        contratto</b> e premi <b>💾 Salva presidi previsti</b>. Date e frequenze
+        del contratto le cambia la segreteria.</div>
+
+      <p>
         Nel box <b>🔎 Audit presidi: differenze con il contratto</b> vedi quando
         il tecnico ha trovato presidi diversi da quelli del contratto: concorda
         con il cliente l’adeguamento, poi segna <b>✓ Esaminato</b>.
@@ -3778,6 +3797,7 @@
         <li><b>📞 Appuntamenti da fissare</b>: <b>📞 Fissa appuntamento</b> al posto della segreteria.</li>
         <li><b>🔎 Audit presidi: differenze con il contratto</b>: <b>✓ Esaminato</b> o correzione del contratto.</li>
         <li><b>📄 Contratti in scadenza</b>: tutti i clienti, anche senza rappresentante, con <b>✅ Rinnovato</b> / <b>❌ Non rinnovato</b>.</li>
+        <li><b>📞 Contratti da richiamare</b>: contratti disdetti o non rinnovati, li richiama il rappresentante del cliente; a un cliente senza rappresentante dai un venditore con <b>👤 Assegna venditore</b>.</li>
       </ul>
 
       <hr class="sep">
@@ -4106,6 +4126,9 @@
         <b>+ Nuova distinta</b>: banca, IBAN di accredito e rate da presentare,
         poi <b>💾 Salva distinta</b>. Scarica <b>📄 PDF distinta</b> o
         <b>⬇️ CSV</b> per la banca e, presentata, premi <b>📤 Segna inviata</b>.
+        Se l'hai segnata inviata per sbaglio, finché non ci sono esiti premi
+        <b>↩️ Non è stata inviata</b> con il motivo; se la banca l'ha già
+        ricevuta, prima scrivi alla banca per ritirarla.
       </p>
 
       <p>
@@ -4173,8 +4196,16 @@
         tipo di presidio, <b>N. previsti dal contratto</b>,
         <b>Preventivo del contratto</b> (da qui il DDT prende i prezzi). Poi
         <b>💾 Salva periodicità</b>. Alla scadenza registri
-        <b>✅ Rinnovato</b> o <b>❌ Non rinnovato</b> (con motivo).
+        <b>✅ Rinnovato</b> o <b>❌ Non rinnovato</b> (con motivo); se il cliente
+        disdice prima della fine usa <b>❌ Disdetta anticipata</b>. Il contratto
+        disdetto va nel box <b>📞 Contratti da richiamare</b> del rappresentante
+        del cliente; se il cliente non ha un rappresentante, assegnagli un
+        venditore con <b>👤 Assegna venditore</b>.
       </p>
+
+      <div class="al2 i">Le fatture e le note di credito si emettono solo con
+        una data di quest'anno (decisione di Toli): a gennaio non si può più
+        usare una data di dicembre.</div>
 
       <hr class="sep">
 
@@ -5427,6 +5458,62 @@
     <div class="ma">
       <button class="btn" onclick="closeM('m-annulla-esito-riba')">Chiudi</button>
       <button class="btn p" id="mae-salva" disabled onclick="salvaAnnullaEsitoRiba()">↩ Annulla esito</button>
+    </div>
+  </div>
+</div>
+
+<!-- sql/58 — CONTRATTO DA RICHIAMARE: cliente perso (js/54) -->
+<div class="mbg" id="m-recupero-perso">
+  <div class="modal" style="max-width:480px">
+    <button class="x" onclick="closeM('m-recupero-perso')">×</button>
+    <h3>✖ Cliente perso</h3>
+    <div style="font-size:13px;margin-bottom:10px">Contratto di manutenzione di <b id="rcp-cliente"></b>: il cliente non riprende il contratto.</div>
+    <div class="f">
+      <label>Com'è andata la telefonata? *</label>
+      <textarea id="rcp-nota" rows="3" maxlength="1000" oninput="ge('rcp-salva').disabled=!v('rcp-nota').trim()" placeholder="Es. ha scelto un altro fornitore, prezzo troppo alto, chiude l'attività"></textarea>
+    </div>
+    <div style="font-size:12px;color:var(--m)">Il contratto esce dalla lista. Se il cliente ci ripensa si registra "Rinnovato" dalla scheda del cliente (tab Periodicità).</div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-recupero-perso')">Chiudi</button>
+      <button class="btn p" id="rcp-salva" disabled onclick="salvaRecuperoPerso()">✖ Registra: cliente perso</button>
+    </div>
+  </div>
+</div>
+
+<!-- sql/58 — CONTRATTO DA RICHIAMARE: venditore per il cliente senza rappresentante (js/54) -->
+<div class="mbg" id="m-assegna-venditore">
+  <div class="modal" style="max-width:480px">
+    <button class="x" onclick="closeM('m-assegna-venditore')">×</button>
+    <h3>👤 Assegna un venditore</h3>
+    <div style="font-size:13px;margin-bottom:10px"><b id="asv-cliente"></b> non ha un rappresentante. Scegli chi lo chiama per riprendere il contratto.</div>
+    <div class="f">
+      <label for="asv-venditore">Venditore *</label>
+      <select id="asv-venditore" onchange="ge('asv-salva').disabled=!v('asv-venditore')" style="width:100%"></select>
+    </div>
+    <div style="font-size:12px;color:var(--m)">Il venditore diventa il <b>rappresentante del cliente</b>: vede il cliente, il contratto e lo trova nella sua dashboard.</div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-assegna-venditore')">Chiudi</button>
+      <button class="btn p" id="asv-salva" disabled onclick="salvaAssegnaVenditore()">👤 Assegna</button>
+    </div>
+  </div>
+</div>
+
+<!-- sql/58 — DISTINTA RIBA SEGNATA INVIATA PER ERRORE: di nuovo preparata (js/45) -->
+<div class="mbg" id="m-riba-riporta">
+  <div class="modal" style="max-width:480px">
+    <button class="x" onclick="closeM('m-riba-riporta')">×</button>
+    <h3>↩️ La distinta non è stata inviata</h3>
+    <div id="mrp-riepilogo" class="al2 w" style="margin-bottom:10px"></div>
+    <div class="al2 i" style="margin-bottom:10px;font-size:12px">Se la distinta è già arrivata in banca, <b>scrivi alla banca per mail</b> per ritirarla prima di riportarla qui: togliere le ricevute dalla banca è molto più difficile che non mandarle.</div>
+    <div class="f">
+      <label>Perché torna in preparazione? *</label>
+      <textarea id="mrp-motivo" rows="2" maxlength="1000" oninput="aggiornaRiportaDistintaRiba()" placeholder="Es. segnata inviata per sbaglio, non è mai partita"></textarea>
+    </div>
+    <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin-bottom:6px"><input type="checkbox" id="mrp-banca" onchange="aggiornaRiportaDistintaRiba()" style="width:auto;margin-top:2px"> La banca non ha la distinta, oppure le ho scritto per ritirarla</label>
+    <div style="font-size:12px;color:var(--m)">La distinta torna "preparata" con le stesse rate: si può cambiare, eliminare o segnare inviata di nuovo. Resta scritto chi l'ha riportata e perché.</div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-riba-riporta')">Chiudi</button>
+      <button class="btn p" id="mrp-salva" disabled onclick="salvaRiportaDistintaRiba()">↩️ Riporta in preparazione</button>
     </div>
   </div>
 </div>
@@ -7325,6 +7412,7 @@
 <script defer src="js/51-sostituzione-presidi.js?v=202611031150"></script>
 <script defer src="js/52-nota-credito-parziale.js?v=202611031150"></script>
 <script defer src="js/53-lavori-extra-rappresentante.js?v=202611031150"></script>
+<script defer src="js/54-recupero-contratti.js"></script>
 <script defer src="js/19-init.js?v=202611031150"></script>
 
 

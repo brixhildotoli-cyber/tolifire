@@ -57,6 +57,12 @@ function oggiFattura() {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
 }
 
+// Decisione di Toli del 03/11: niente fatture né note di credito con la
+// data dell'anno precedente (con sql/58 lo impone anche il database).
+function primoGiornoAnnoFattura() {
+  return oggiFattura().slice(0, 4) + '-01-01';
+}
+
 function aggiungiGiorniISO(iso, n) {
   const d = new Date(String(iso).slice(0, 10) + 'T12:00:00');
   d.setDate(d.getDate() + (Number(n) || 0));
@@ -326,6 +332,7 @@ function apriEmissione(conf) {
   ge('mef-sottotitolo').textContent = conf.sottotitolo || '';
   ge('mef-data').value = oggi;
   ge('mef-data').max = oggi;
+  ge('mef-data').min = primoGiornoAnnoFattura();
   ge('mef-modalita').value = conf.modalita || (conf.cliente && conf.cliente.modalita_pagamento) || '';
   const sel = ge('mef-n-rate');
   sel.innerHTML = Array.from({ length: 12 }, function(_, i) { return '<option value="' + (i + 1) + '">' + (i + 1) + (i ? ' rate' : ' rata') + '</option>'; }).join('');
@@ -475,6 +482,7 @@ function erroreEmissione() {
   if (totaleEmissione() <= 0) return 'Il totale della fattura deve essere maggiore di zero';
   if (!data) return 'Indica la data della fattura';
   if (data > oggi) return 'La data della fattura non può essere nel futuro';
+  if (data < primoGiornoAnnoFattura()) return 'La data è dell\'anno precedente: le fatture si emettono con una data di quest\'anno';
   let somma = 0;
   for (let i = 0; i < e.rate.length; i++) {
     const r = e.rate[i];
@@ -699,7 +707,7 @@ function apriNotaCredito() {
     '<br>La nota di credito (numerazione NC/ separata) storna <b>tutta</b> la fattura, che diventa annullata. ' + esc(effetto);
   ge('mnc-data').value = oggi;
   ge('mnc-data').max = oggi;
-  ge('mnc-data').min = f.data_emissione || '';
+  ge('mnc-data').min = [f.data_emissione || '', primoGiornoAnnoFattura()].sort().pop();
   ge('mnc-motivo').value = '';
   ge('mnc-conferma').checked = false;
   ge('mnc-errore').style.display = 'none';
@@ -715,6 +723,7 @@ function aggiornaNotaCredito() {
   else if (!data) errore = 'Indica la data';
   else if (data > oggiFattura()) errore = 'La data non può essere nel futuro';
   else if (f.data_emissione && data < f.data_emissione) errore = 'La data non può essere prima della fattura';
+  else if (data < primoGiornoAnnoFattura()) errore = 'La data è dell\'anno precedente: la nota di credito si emette con una data di quest\'anno';
   else if (!(v('mnc-motivo') || '').trim()) errore = 'Scrivi il motivo';
   ge('mnc-salva').disabled = !!errore || !ge('mnc-conferma').checked;
 }

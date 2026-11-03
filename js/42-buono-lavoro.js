@@ -177,9 +177,20 @@ function voceContrattoPerRiga(r, voci) {
   return null;
 }
 
+// Decisione di Toli del 03/11: il prezzo delle manutenzioni cambia da
+// cliente a cliente (preventivo del contratto), le FORNITURE costano uguale
+// a tutti. Le righe prese dal catalogo (prodotto_id: il catalogo ha solo
+// forniture) restano al prezzo del listino e non prendono mai il prezzo del
+// contratto; il prezzo del contratto vale per le voci del contratto
+// ("Aggiungi una voce del contratto") e per le righe scritte a mano.
+function rigaFornituraCatalogo(r) {
+  return !!(r && r.prodotto_id);
+}
+
 // Origine del prezzo di una riga rispetto al contratto.
 function fontePrezzoRiga(r, prezzi) {
   if (!prezzi || !prezzi.preventivo || !(prezzi.voci || []).length) return null;
+  if (rigaFornituraCatalogo(r)) return { tipo: 'fornitura', voce: null };
   const vc = voceContrattoPerRiga(r, prezzi.voci);
   if (!vc) return { tipo: 'fuori', voce: null };
   const uguale = Math.abs((Number(r.prezzo_unitario) || 0) - (Number(vc.prezzo_unitario) || 0)) < 0.005;
@@ -189,6 +200,7 @@ function fontePrezzoRiga(r, prezzi) {
 function htmlFontePrezzo(f) {
   if (!f) return '';
   if (f.tipo === 'contratto') return '<span class="bx bok" style="font-size:10px">📄 prezzo del contratto</span>';
+  if (f.tipo === 'fornitura') return '<span class="bx bgray" style="font-size:10px">🛒 fornitura: prezzo del listino</span>';
   if (f.tipo === 'diverso') return '<span class="bx bwarn" style="font-size:10px">⚠️ nel contratto ' + esc(euroBuono(f.voce.prezzo_unitario)) + '</span>';
   return '<span class="bx bgray" style="font-size:10px">fuori contratto</span>';
 }
@@ -241,7 +253,7 @@ async function caricaPrezziContrattoDDT(cliId) {
     }).join('');
     html = '<div style="font-size:12px;margin-bottom:6px">📄 <strong>Prezzi dal preventivo del contratto</strong> ' + esc(testoPreventivoBuono(prezzi.preventivo)) +
       ' · ' + prezzi.voci.length + (prezzi.voci.length === 1 ? ' voce' : ' voci') + '</div>' +
-      '<div style="font-size:11px;color:var(--m);margin-bottom:8px">Le righe del catalogo prendono il prezzo della voce con la stessa descrizione (o con il codice del prodotto nella descrizione); le altre restano al prezzo del catalogo e sono segnate "fuori contratto".</div>' +
+      '<div style="font-size:11px;color:var(--m);margin-bottom:8px">Le manutenzioni del contratto si aggiungono con "Aggiungi una voce del contratto" e hanno il prezzo di questo cliente. Le forniture prese dal catalogo restano al prezzo del listino, uguale per tutti i clienti.</div>' +
       '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">' +
         '<select id="ddt-voce-contratto" style="flex:1;min-width:0;max-width:100%;font-size:12px"><option value="">Aggiungi una voce del contratto...</option>' + opzioni + '</select>' +
         '<button class="btn sm" type="button" onclick="aggiungiVoceContrattoDDT()">+ Aggiungi</button>' +
@@ -267,7 +279,7 @@ aggiungiDaCatalogo = async function(prodId) {
   const r = await aggiungiDaCatalogoPrimaBuono.apply(this, arguments);
   if (_ddtRighe.length > prima && canSeePrezzi()) {
     const riga = _ddtRighe[_ddtRighe.length - 1];
-    const vc = voceContrattoPerRiga(riga, vociContrattoDDT());
+    const vc = rigaFornituraCatalogo(riga) ? null : voceContrattoPerRiga(riga, vociContrattoDDT());
     if (vc) {
       riga.prezzo_unitario = Number(vc.prezzo_unitario) || 0;
       renderRigheDDT();
@@ -298,6 +310,7 @@ function applicaPrezziContrattoDDT() {
   if (!voci.length) return;
   let n = 0, fuori = 0;
   _ddtRighe.forEach(function(r) {
+    if (rigaFornituraCatalogo(r)) return; // forniture: prezzo del listino
     const vc = voceContrattoPerRiga(r, voci);
     if (!vc) { fuori++; return; }
     const p = Number(vc.prezzo_unitario) || 0;
@@ -505,7 +518,11 @@ async function datiBuonoLavoro(s, perPdf) {
       d.righe.forEach(function(r) { r._fonte = fontePrezzoRiga(r, prezzi); });
       const fuoriDdt = d.righe.filter(function(r) { return r._fonte && r._fonte.tipo === 'fuori'; });
       if (fuoriDdt.length) {
-        fuori.push({ chiave: 'ddt', testo: 'Materiale fuori contratto nel DDT n. ' + (d.numero || '—') + ': ' + fuoriDdt.map(function(r) { return r.descrizione; }).join('; ') + ' (prezzo del catalogo).' });
+        fuori.push({ chiave: 'ddt', testo: 'Fuori contratto nel DDT n. ' + (d.numero || '—') + ': ' + fuoriDdt.map(function(r) { return r.descrizione; }).join('; ') + '.' });
+      }
+      const forniture = d.righe.filter(function(r) { return r._fonte && r._fonte.tipo === 'fornitura'; });
+      if (forniture.length) {
+        fuori.push({ chiave: 'ddt', testo: 'Forniture nel DDT n. ' + (d.numero || '—') + ': ' + forniture.map(function(r) { return r.descrizione; }).join('; ') + ' (prezzo del listino, uguale per tutti i clienti).' });
       }
     });
   }

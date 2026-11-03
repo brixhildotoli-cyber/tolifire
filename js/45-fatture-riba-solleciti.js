@@ -670,6 +670,8 @@ async function apriDettaglioDistinta(id) {
     '<div style="color:var(--m);font-size:12px">Preparata' + (p.creato_da_nome ? ' da ' + esc(p.creato_da_nome) : '') + ' il ' + esc(fd(dataLocaleISO(new Date(p.creato_il)))) +
       (p.data_presentazione ? ' · presentata in banca il ' + esc(fd(p.data_presentazione)) + (p.inviata_da_nome ? ' (' + esc(p.inviata_da_nome) + ')' : '') : '') + '</div>' +
     (p.note ? '<div style="font-size:12px;margin-top:2px">' + esc(p.note) + '</div>' : '') +
+    (p.riportata_preparata_il ? '<div style="color:var(--m);font-size:12px">↩️ Riportata in preparazione' + (p.riportata_preparata_da_nome ? ' da ' + esc(p.riportata_preparata_da_nome) : '') + ' il ' + esc(fd(dataLocaleISO(new Date(p.riportata_preparata_il)))) +
+      (p.riportata_preparata_data ? ' (era presentata il ' + esc(fd(p.riportata_preparata_data)) + ')' : '') + (p.riportata_preparata_motivo ? ': ' + esc(p.riportata_preparata_motivo) : '') + '</div>' : '') +
     (p.eliminato_il ? '<div style="color:var(--r);font-size:12px">Eliminata' + (p.eliminato_da_nome ? ' da ' + esc(p.eliminato_da_nome) : '') + (p.motivo_eliminazione ? ': ' + esc(p.motivo_eliminazione) : '') + '</div>' : '') +
     (p.stato === 'preparata' && !p.eliminato_il ? '<div class="al2 i" style="margin:8px 0 0;font-size:12px">Scarica il file CBI e caricalo nell\'home banking (oppure porta in banca il PDF o il CSV), poi "Segna inviata". Da lì si registrano gli esiti. Il file CBI è da verificare con la banca al primo invio.</div>' : '');
   const oggi = oggiFattura();
@@ -710,6 +712,12 @@ async function apriDettaglioDistinta(id) {
   }
   if (p.stato === 'preparata' && !p.eliminato_il && puoRiba() && righe.length) {
     az.push('<button class="btn p" onclick="apriInvioRiba()">📤 Segna inviata</button>');
+  }
+  // sql/58: la distinta segnata inviata per errore torna preparata (solo
+  // senza esiti; la colonna c'è solo con sql/58).
+  if (p.stato === 'inviata' && !p.eliminato_il && puoAnnullareEsitoRiba() &&
+      Object.prototype.hasOwnProperty.call(p, 'riportata_preparata_motivo') && !righe.some(function(x) { return x.esito; })) {
+    az.push('<button class="btn" onclick="apriRiportaDistintaRiba()">↩️ Non è stata inviata</button>');
   }
   az.push('<button class="btn" onclick="closeM(\'m-riba-dettaglio\')">Chiudi</button>');
   ge('mrv-azioni').innerHTML = az.join('');
@@ -768,6 +776,36 @@ async function salvaInvioRiba() {
   closeM('m-riba-invio');
   invioDistinta = null;
   toast('Distinta n. ' + d.p.numero + ' inviata in banca ✓ Ora si registrano gli esiti', 'ok');
+  await aggiornaDopoRiba(null);
+}
+
+// Decisione di Toli del 03/11: si può riportare in "preparata" una distinta
+// segnata inviata per errore, ma la banca va avvisata per mail.
+function apriRiportaDistintaRiba() {
+  const d = dettaglioDistinta;
+  if (!d || d.p.stato !== 'inviata') return;
+  ge('mrp-riepilogo').innerHTML = 'Distinta <b>n. ' + esc(d.p.numero) + '</b> · ' + esc(d.p.banca || '') + ' · presentata il ' + esc(fd(d.p.data_presentazione)) + ' · <b>' + esc(euroBuono(d.p.importo_totale)) + '</b>';
+  ge('mrp-motivo').value = '';
+  ge('mrp-banca').checked = false;
+  aggiornaRiportaDistintaRiba();
+  openM('m-riba-riporta');
+}
+
+function aggiornaRiportaDistintaRiba() {
+  ge('mrp-salva').disabled = !(v('mrp-motivo') || '').trim() || !ge('mrp-banca').checked;
+}
+
+async function salvaRiportaDistintaRiba() {
+  const d = dettaglioDistinta;
+  const motivo = (v('mrp-motivo') || '').trim();
+  if (!d || !motivo || !ge('mrp-banca').checked) return;
+  ge('mrp-salva').disabled = true;
+  const { error } = await db.rpc('riporta_presentazione_riba_preparata', { p_presentazione_id: d.id, p_motivo: motivo });
+  if (error) { aggiornaRiportaDistintaRiba(); toast('Distinta non riportata: ' + (error.message || 'errore'), 'err'); return; }
+  closeM('m-riba-riporta');
+  closeM('m-riba-dettaglio');
+  dettaglioDistinta = null;
+  toast('Distinta n. ' + d.p.numero + ' di nuovo in preparazione: si può cambiare, eliminare o segnare inviata', 'ok');
   await aggiornaDopoRiba(null);
 }
 

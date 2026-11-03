@@ -3,7 +3,7 @@
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
 file unico: `index.html` (markup) + `style.css` + moduli `js/00-…46-*.js`
-caricati in ordine 00–18, poi 20–53, infine `19-init.js` (dettagli in
+caricati in ordine 00–18, poi 20–54, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -231,6 +231,11 @@ più: 'confermato' da 'arrivato', solo titolare, con motivo).
 Dopo sql/48 (schede di rilievo multiple, ESEGUITO il 30/10, richiede 07 e 34;
 prima si pubblica il sito): elimina_scheda_rilievo; scheda_cantiere_commessa
 ridefinita (in più numero e nome della scheda; rollback = versione di sql/34).
+Dopo sql/58 (decisioni di Toli del 03/11, DA ESEGUIRE, richiede 40, 46, 47):
+riporta_presentazione_riba_preparata, imposta_presidi_contratto,
+chiudi_recupero_contratto, assegna_rappresentante_cliente (js/45, js/54);
+colonne nuove riba_presentazioni.riportata_preparata_* e
+clienti_periodicita.recupero_* (le scrivono solo RPC e trigger).
 Client pubblico `dbPublic` (portale clienti, js/02-portale-navigazione.js).
 Sono gli accessi che le policy RLS per il portale dovranno permettere
 (F1.1), sempre filtrati sul cliente del portale (`cliente_id`):
@@ -2175,9 +2180,8 @@ una sessione e l'altra.
       titolare: toglie già l'imponibile di ogni nota (verificato). Senza
       sql/54 solo storno totale come prima. Provato in locale (backup pre53,
       Assunta segreteria e Giulio rappresentante).
-   c) (7) IVA: oltre al 22%, natura "N1.1" (scritto così da Toli: da
-      verificare il codice, le nature SDI sono N1, N2.1, N2.2, N3.x, N4,
-      N5, N6.x, N7) e SPLIT PAYMENT. SQL.
+   c) (7) IVA: oltre al 22%, natura N1 (confermato da Toli il 03/11:
+      "N1", escluse art. 15) e SPLIT PAYMENT. SQL. DA FARE.
    d) (9) RIBA: registrare le spese bancarie degli insoluti; il
       contabile registra anche i solleciti. SQL.
    e) (10) Toli non ha capito il codice SIA/file CBI: spiegazione scritta
@@ -2271,8 +2275,8 @@ una sessione e l'altra.
       colonna c'è (capacitaEstintoriDisponibile), letta da editP
       (impostaCapacitaEstintore; senza colonna dalla marca come prima).
       Provato in locale (file, controllo, rollback, file di nuovo).
-   k) (19) "Non rinnovato" prima della scadenza: Toli non ha capito,
-      da definire con lui.
+   k) (19) "Non rinnovato" prima della scadenza: risposta del 03/11 al
+      punto 10 qui sotto (contratto da richiamare).
    l) (20) Promemoria al cliente prima dell'appuntamento: EMAIL e
       CHIAMATA della segreteria. FATTO (02/11, js/50-promemoria-
       appuntamenti.js, NESSUN SQL): box "🔔 Promemoria ai clienti" nelle
@@ -2388,7 +2392,69 @@ una sessione e l'altra.
       pagina e al punto di prima (posizione in sessionStorage se il sito si
       ricarica; se il browser rimette la pagina, l'elenco del rappresentante
       si aggiorna). I PDF generati ("Genera PDF") si scaricano come prima.
+   q0) vedi anche il punto 10 (risposte di Toli del 03/11).
    q) (28) Soglia "lavoro grande" = 30.000 € (la imposta il titolare in
       Impostazioni > Soglie e tariffe; esempio della guida aggiornato).
       Creare il più possibile SCHEDE per il RAPPRESENTANTE, per ogni tipo
       di lavoro, così compila da solo i dati che servono.
+
+10. **Risposte di Toli ai 9 dubbi (03/11/2026)** — DECISIONI DI TOLI.
+   - (1) IVA: la natura che serve è N1 (vedi 9.c, da fare con lo split
+     payment).
+   - (2) Contratto disdetto prima della fine o non rinnovato: "bisogna
+     assegnarlo a un venditore che lo chiama per richiuderlo". PRONTO:
+     sql/58 + js/54-recupero-contratti.js. "❌ Disdetta anticipata" nella
+     scheda (registra_rinnovo_contratto 'non_rinnovato' anche fuori dal
+     preavviso; la RPC lo permetteva già). Trigger
+     trg_clienti_periodicita_recupero: non rinnovato → recupero_stato
+     'da_richiamare'; di nuovo attivo ("Rinnovato") → 'recuperato'; update
+     diretti delle colonne recupero_* rifiutati. Box "📞 Contratti da
+     richiamare" (rap-, tit-, seg-contratti-recupero): Chiama, Apri
+     contratto, ✅ Rinnovato, ✖ Perso (chiudi_recupero_contratto, nota
+     obbligatoria; titolare, segreteria, rappresentante dei suoi clienti).
+     SCELTA DICHIARATA (da confermare): il venditore è il rappresentante del
+     cliente; un cliente senza rappresentante lo riceve da titolare o
+     segreteria con "👤 Assegna venditore" (assegna_rappresentante_cliente:
+     diventa clienti.rappresentante_id, solo se vuoto). Righe in "Cosa tocca
+     a me": rappresentante "Contratti disdetti da richiamare", titolare e
+     segreteria "Contratti disdetti senza venditore". Il piano dei
+     controlli NON cambia da solo. I contratti già non rinnovati diventano
+     da richiamare quando si esegue il 58.
+   - (3) Distinta RIBA segnata inviata per errore: si riporta in
+     "preparata", ma la banca va avvisata per mail ("molto più difficile
+     levarli"). PRONTO: sql/58 (riporta_presentazione_riba_preparata,
+     titolare e segreteria, motivo obbligatorio, solo senza esiti; colonne
+     riportata_preparata_*) + js/45 (bottone "↩️ Non è stata inviata",
+     finestra m-riba-riporta con la spunta "la banca non ha la distinta,
+     oppure le ho scritto per ritirarla").
+   - (4) Fattura con la data dell'anno precedente: NO. PRONTO: js/44
+     (data minima 1° gennaio nell'emissione e nella nota di credito,
+     primoGiornoAnnoFattura) + sql/58 (trigger trg_fatture_data_anno_corrente
+     su ogni emissione).
+   - (5) Prezzi: la manutenzione ordinaria ha il prezzo del preventivo di
+     QUEL cliente; le FORNITURE costano uguale a tutti. FATTO (js/42,
+     nessun SQL): le righe del DDT prese dal catalogo (prodotto_id; il
+     catalogo ha solo forniture) restano al prezzo del listino, non
+     prendono più il prezzo del contratto ("🛒 fornitura: prezzo del
+     listino"; nel buono "Forniture nel DDT n. ..."); il prezzo del
+     contratto vale per le voci aggiunte con "Aggiungi una voce del
+     contratto" e per le righe a mano. Nessun listino per cliente.
+   - (6) Box "Controlli scaduti da ripianificare" nella dashboard del
+     titolare: NO (già così). (7) Lavorazioni con nomi simili in Ore
+     cantiere: restano separate (già così). (8) Noli: oltre al capo
+     tecnico non li chiede NESSUNO (già così).
+   - (9) Il rappresentante corregge i presidi previsti del contratto: SÌ.
+     PRONTO: sql/58 (imposta_presidi_contratto, solo presidi_contratto di un
+     contratto esistente; titolare, segreteria, capo tecnico, rappresentante
+     dei suoi clienti) + js/54 (per il rappresentante nella scheda
+     Periodicità solo i campi "N. previsti" sono attivi, bottone "💾 Salva
+     presidi previsti"; prima salvava senza errore ma il database non
+     scriveva nulla).
+   Provato su un Postgres di prova (backup pre57 + sql/57 + 58: emissione
+   con data 2025 rifiutata e con oggi numerata, RIBA indietro con e senza
+   motivo e contabile rifiutato, presidi di Giulio sì e di Debora e del
+   commerciale no, disdetta → da richiamare → perso → rinnovato →
+   recuperato, update diretto rifiutato, assegnazione venditore; rollback e
+   riesecuzione) e nel browser di prova con risposte finte (box
+   rappresentante e titolare a 390 px, Assegna venditore, Periodicità del
+   rappresentante, bottone e finestra della distinta RIBA).
