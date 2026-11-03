@@ -2412,7 +2412,7 @@ una sessione e l'altra.
      richiamare" (rap-, tit-, seg-contratti-recupero): Chiama, Apri
      contratto, ✅ Rinnovato, ✖ Perso (chiudi_recupero_contratto, nota
      obbligatoria; titolare, segreteria, rappresentante dei suoi clienti).
-     SCELTA DICHIARATA (da confermare): il venditore è il rappresentante del
+     CONFERMATO da Toli (03/11): il venditore è il rappresentante del
      cliente; un cliente senza rappresentante lo riceve da titolare o
      segreteria con "👤 Assegna venditore" (assegna_rappresentante_cliente:
      diventa clienti.rappresentante_id, solo se vuoto). Righe in "Cosa tocca
