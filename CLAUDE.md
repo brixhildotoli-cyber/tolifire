@@ -231,7 +231,7 @@ più: 'confermato' da 'arrivato', solo titolare, con motivo).
 Dopo sql/48 (schede di rilievo multiple, ESEGUITO il 30/10, richiede 07 e 34;
 prima si pubblica il sito): elimina_scheda_rilievo; scheda_cantiere_commessa
 ridefinita (in più numero e nome della scheda; rollback = versione di sql/34).
-Dopo sql/61 (telefoni italiani per Google Ads, DA ESEGUIRE, nessun
+Dopo sql/61 (telefoni italiani per Google Ads, ESEGUITO il 03/11, backup pre61, nessun
 prerequisito oltre le funzioni Ads): nessuna RPC del sito. Funzione nuova
 ads_crm_normalizza_telefono (immutable: +39 ai numeri italiani senza
 prefisso, cellulare ^3[0-9]{8,9}$ o fisso ^0[0-9]{5,10}$; gli altri senza
