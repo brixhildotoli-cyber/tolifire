@@ -236,7 +236,13 @@ async function doLogin(){
   }
 }
 
-async function doLogout(){await db.auth.signOut();location.reload();}
+async function doLogout(){
+  await db.auth.signOut();
+  // F14.1: chi entra dopo parte dalla sua dashboard, non dalla scheda
+  // dell'utente uscito (#/preventivo/<id> resterebbe nell'indirizzo).
+  try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
+  location.reload();
+}
 
 async function boot(ud){
   // L'informatico ha accesso completo, uguale al titolare (decisione di Erika

@@ -148,19 +148,54 @@ ripristinaPosizionePagina = function() {};
 //   prima freccia chiude solo la finestra;
 // - se il sito si ricarica (es. tornando dal PDF sul telefono) riparte
 //   dalla pagina dell'indirizzo invece che dalla dashboard; le schede di
-//   dettaglio (preventivo, commessa, cliente, progetto, fornitore) non si
-//   possono riaprire senza sapere quale: si riparte dal loro elenco.
+//   dettaglio dal 04/11 hanno il loro indirizzo #/<oggetto>/<id> (F14.1,
+//   in fondo al file) e si riaprono uguali; solo le voci vecchie senza id
+//   (#preventivo-detail) ripartono dal loro elenco.
 // ---------------------------------------------------------------------
 let navigazioneDaBrowser = false;
 
+// F14.1: indirizzo della scheda aperta (#/preventivo/<id>...). Lo prepara
+// chi apre la scheda (funzioni open*Detail avvolte più sotto) e lo usa la
+// prossima registrazione della sua pagina.
+let rottaInApertura = null;      // { pagina, rotta } in attesa che la scheda si apra
+let rottaMostrata = null;        // { pagina, rotta } della scheda sullo schermo
+let sostituisciIndirizzo = false; // true: si sostituisce la voce della cronologia
+let registrazioneSospesa = false; // true: l'indirizzo non si tocca (es. link di Supabase Auth)
+
+function indirizzoPagina(id, rotta) {
+  return location.pathname + location.search + '#' + (rotta || id);
+}
+
 function registraPaginaNelBrowser(id) {
-  if (navigazioneDaBrowser || !window.history || !history.pushState) return;
+  let rotta = null;
+  if (rottaInApertura && rottaInApertura.pagina === id) {
+    rotta = rottaInApertura.rotta;
+    rottaInApertura = null;
+  } else if (rottaMostrata && rottaMostrata.pagina === id) {
+    rotta = rottaMostrata.rotta;   // la stessa scheda si è ricaricata
+  }
+  rottaMostrata = rotta ? { pagina: id, rotta: rotta } : null;
+  if (navigazioneDaBrowser || registrazioneSospesa || !id || !window.history || !history.pushState) return;
   try {
     const stato = history.state;
-    if (stato && stato.paginaGestionale === id) return;
-    const url = location.pathname + location.search + '#' + id;
-    if (!stato || !stato.paginaGestionale) history.replaceState({ paginaGestionale: id }, '', url);
-    else history.pushState({ paginaGestionale: id }, '', url);
+    if (stato && stato.paginaGestionale === id && (stato.rotta || null) === rotta) return;
+    const nuovo = { paginaGestionale: id };
+    if (rotta) nuovo.rotta = rotta;
+    if (sostituisciIndirizzo || !stato || !stato.paginaGestionale) history.replaceState(nuovo, '', indirizzoPagina(id, rotta));
+    else history.pushState(nuovo, '', indirizzoPagina(id, rotta));
+  } catch (e) {}
+}
+
+// Rimette nell'indirizzo la pagina (e la scheda) sullo schermo.
+function allineaIndirizzoPagina(aggiungi) {
+  const id = paginaApertaId();
+  if (!id || registrazioneSospesa) return;
+  const rotta = rottaMostrata && rottaMostrata.pagina === id ? rottaMostrata.rotta : null;
+  const nuovo = { paginaGestionale: id };
+  if (rotta) nuovo.rotta = rotta;
+  try {
+    if (aggiungi) history.pushState(nuovo, '', indirizzoPagina(id, rotta));
+    else history.replaceState(nuovo, '', indirizzoPagina(id, rotta));
   } catch (e) {}
 }
 
@@ -182,22 +217,37 @@ function paginaDaRiaprire(id) {
   return pagina;
 }
 
-window.addEventListener('popstate', function(evento) {
+window.addEventListener('popstate', async function(evento) {
   if (typeof ROLE === 'undefined' || !ROLE) return;
   // Una finestra aperta: la freccia la chiude e si resta sulla pagina.
   const finestre = document.querySelectorAll('.mbg.on');
   if (finestre.length) {
     finestre.forEach(function(m) { m.classList.remove('on'); });
-    const attuale = paginaApertaId();
-    if (attuale) {
-      try { history.pushState({ paginaGestionale: attuale }, '', location.pathname + location.search + '#' + attuale); } catch (e) {}
-    }
+    allineaIndirizzoPagina(true);
     return;
   }
-  const id = evento.state && evento.state.paginaGestionale;
-  if (!id || id === paginaApertaId()) return;
+  const stato = evento.state || {};
+  // F14.1: voce con la scheda (#/preventivo/<id>): si riapre quella scheda.
+  const richiesta = stato.rotta ? leggiRottaScheda(stato.rotta) : null;
+  if (richiesta) {
+    if (rottaMostrata && rottaMostrata.rotta === stato.rotta && paginaApertaId() === rottaMostrata.pagina) return;
+    await apriRottaScheda(richiesta, { daBrowser: true });
+    return;
+  }
+  // Indirizzo scritto a mano (#/preventivo/<id> senza voce salvata).
+  const daIndirizzo = statoDaIndirizzo(location.hash);
+  if (!stato.paginaGestionale && daIndirizzo && daIndirizzo.tipo === 'rotta') {
+    await apriRottaScheda(daIndirizzo, { sostituisci: true });
+    return;
+  }
+  const id = stato.paginaGestionale;
+  if (!id || (id === paginaApertaId() && !rottaMostrata)) return;
   const pagina = ge('pg-' + id) && canAccessPage(id) ? id : paginaDaRiaprire(id);
-  if (!pagina) return;
+  if (!pagina) {
+    if (ge('pg-' + id)) toast('Non hai accesso a questa pagina: torni alla dashboard', 'err');
+    vaiAllaDashboardDaIndirizzo();
+    return;
+  }
   navigazioneDaBrowser = true;
   try { gotoPage(pagina); } finally { navigazioneDaBrowser = false; }
 });
@@ -240,19 +290,250 @@ window.addEventListener('pageshow', function(evento) {
   }
 });
 
-// Dopo il login: se l'indirizzo ha una pagina (#preventivi-rapp), si
-// riparte da lì invece che dalla dashboard.
+// ---------------------------------------------------------------------
+// F14.1 — indirizzi delle schede: #/<oggetto>/<id>
+// ---------------------------------------------------------------------
+// Ogni scheda di dettaglio ha un indirizzo suo, uguale per tutti i link
+// (anche quelli mandati per email): #/preventivo/<id>, #/commessa/<id>...
+// - aprendo una scheda (bottone "Apri", collegamenti) l'indirizzo diventa
+//   quello della scheda: il ricaricamento resta sulla stessa scheda e la
+//   freccia indietro torna alla scheda di prima;
+// - un link aperto da chi non è collegato porta al login e, dopo il login,
+//   alla scheda (l'indirizzo resta nella barra finché non si entra);
+// - scheda di una pagina non permessa al ruolo, o che il ruolo non legge:
+//   messaggio "Non hai accesso" e si resta sulla dashboard;
+// - i frammenti di Supabase Auth (#access_token=..., #error=...,
+//   #type=recovery dei link di recupero password e degli inviti) non sono
+//   indirizzi del gestionale: non si leggono e non si toccano;
+// - il portale clienti resta su ?portale= (non passa da qui).
+// Le schede che si aprono in una finestra (fattura, intervento) hanno solo
+// l'indirizzo d'ingresso: aprono la loro pagina e la finestra; ricaricando
+// si resta sulla pagina.
+// Per una scheda nuova basta una riga in SCHEDE_CON_INDIRIZZO.
+const SCHEDE_CON_INDIRIZZO = {
+  preventivo: {
+    nome: 'il preventivo',
+    pagina: function() { return ROLE === 'rappresentante' ? 'preventivi-rapp' : 'preventivo-detail'; },
+    funzione: 'openPreventivoDetail',
+    apri: function(id) {
+      if (ROLE === 'rappresentante') return apriPreventivoRappresentanteDaIndirizzo(id);
+      return openPreventivoDetail(id);
+    },
+    finestra: function() { return ROLE === 'rappresentante'; }
+  },
+  commessa: { nome: 'la commessa', pagina: 'commessa-detail', funzione: 'openCommessaDetail' },
+  cantiere: {
+    nome: 'la commessa', pagina: 'commessa-detail', comeIndirizzo: 'commessa',
+    apri: function(id) {
+      // Apre la commessa sulla scheda "🏗️ Cantiere" (js/32).
+      if (typeof tabCommessaScelta !== 'undefined') tabCommessaScelta = { commessaId: id, tab: 'cantiere' };
+      return openCommessaDetail(id);
+    }
+  },
+  cliente: { nome: 'il cliente', pagina: 'cliente-detail', funzione: 'openClienteDetail' },
+  progetto: { nome: 'il progetto', pagina: 'progetto-detail', funzione: 'openProgettoDetail' },
+  fornitore: { nome: 'il fornitore', pagina: 'fornitore-detail', funzione: 'openFornitoreDetail' },
+  persona: {
+    nome: 'i documenti della persona', pagina: 'scheda-documenti',
+    apri: function(id) { return openSchedaDocumenti('dipendente', id); }
+  },
+  subappaltatore: {
+    nome: 'i documenti del subappaltatore', pagina: 'scheda-documenti',
+    apri: function(id) { return openSchedaDocumenti('subappaltatore', id); }
+  },
+  fattura: {
+    nome: 'la fattura', pagina: 'fatture', finestra: true, idFinestra: 'm-fattura',
+    apri: async function(id) { gotoPage('fatture'); if (typeof apriFattura === 'function') await apriFattura(id); }
+  },
+  intervento: {
+    nome: "l'intervento", pagina: 'interventi', finestra: true, idFinestra: 'm-cal-edit',
+    apri: async function(id) { gotoPage('interventi'); if (typeof openOdlDetail === 'function') await openOdlDetail(id); }
+  }
+};
+
+function paginaSchedaConIndirizzo(scheda) {
+  return typeof scheda.pagina === 'function' ? scheda.pagina() : scheda.pagina;
+}
+
+function schedaInFinestra(scheda) {
+  return typeof scheda.finestra === 'function' ? scheda.finestra() : !!scheda.finestra;
+}
+
+// Frammenti dei link di Supabase Auth (recupero password, inviti, errori).
+function frammentoSupabaseAuth(hash) {
+  return /(^|[#&])(access_token|refresh_token|error|error_code|error_description|type|token_hash|code)=/.test(String(hash || ''));
+}
+
+// "/preventivo/<id>" → { tipo: 'rotta', oggetto, id, rotta }.
+function leggiRottaScheda(testo) {
+  const m = /^\/?([a-z_]+)\/([A-Za-z0-9_-]{1,64})\/?$/.exec(String(testo || '').replace(/^#/, ''));
+  if (!m) return null;
+  return { tipo: 'rotta', oggetto: m[1], id: m[2], rotta: '/' + m[1] + '/' + m[2] };
+}
+
+// Cosa chiede l'indirizzo: una scheda, una pagina, un link di Supabase Auth.
+function statoDaIndirizzo(hash) {
+  const testo = String(hash || '').replace(/^#/, '');
+  if (!testo) return null;
+  if (frammentoSupabaseAuth(testo)) return { tipo: 'auth' };
+  if (testo.charAt(0) === '/') return leggiRottaScheda(testo) || { tipo: 'sconosciuto' };
+  if (/^[a-z0-9-]+$/.test(testo)) return { tipo: 'pagina', id: testo };
+  return null;
+}
+
+function paginaDashboard() {
+  return ROLE === 'rappresentante' ? 'dashboard-rapp' : 'dashboard';
+}
+
+function vaiAllaDashboardDaIndirizzo() {
+  const dashboard = paginaDashboard();
+  if (paginaApertaId() !== dashboard && canAccessPage(dashboard)) {
+    navigazioneDaBrowser = true;
+    try { gotoPage(dashboard); } finally { navigazioneDaBrowser = false; }
+  }
+  rottaMostrata = null;
+  allineaIndirizzoPagina(false);
+}
+
+// Apre la scheda di un indirizzo. opzioni.daBrowser: freccia indietro o
+// avanti (la voce della cronologia c'è già); opzioni.sostituisci: la voce
+// attuale si sostituisce (ricaricamento) invece di aggiungerne una.
+async function apriRottaScheda(richiesta, opzioni) {
+  opzioni = opzioni || {};
+  const scheda = SCHEDE_CON_INDIRIZZO[richiesta.oggetto];
+  if (!scheda) {
+    toast('Indirizzo non riconosciuto: torni alla dashboard', 'err');
+    vaiAllaDashboardDaIndirizzo();
+    return false;
+  }
+  const pagina = paginaSchedaConIndirizzo(scheda);
+  if (!pagina || !ge('pg-' + pagina) || !canAccessPage(pagina)) {
+    toast('Non hai accesso: con il tuo ruolo non puoi aprire ' + scheda.nome + ' di questo link. Sei sulla dashboard', 'err');
+    vaiAllaDashboardDaIndirizzo();
+    return false;
+  }
+  const finestra = schedaInFinestra(scheda);
+  const apri = scheda.apri || function(id) { return window[scheda.funzione](id); };
+  if (opzioni.daBrowser) navigazioneDaBrowser = true;
+  if (opzioni.sostituisci) sostituisciIndirizzo = true;
+  try {
+    await apri(richiesta.id);
+  } catch (e) {
+    console.warn('Apertura dal link:', e);
+  } finally {
+    navigazioneDaBrowser = false;
+    sostituisciIndirizzo = false;
+  }
+  const paginaAperta = paginaApertaId() === pagina;
+  const finestraAperta = !scheda.idFinestra || !!(ge(scheda.idFinestra) && ge(scheda.idFinestra).classList.contains('on'));
+  const aperta = finestra
+    ? paginaAperta && finestraAperta
+    : paginaAperta && !!rottaMostrata &&
+      rottaMostrata.rotta === '/' + (scheda.comeIndirizzo || richiesta.oggetto) + '/' + richiesta.id;
+  if (!aperta) {
+    // Il database non la fa leggere (permessi) o non esiste più.
+    toast('Non hai accesso: non puoi aprire ' + scheda.nome + ' di questo link, oppure non esiste più', 'err');
+    // Pagina della finestra aperta (es. Fatture): si resta lì.
+    if (finestra && paginaAperta) allineaIndirizzoPagina(false);
+    else vaiAllaDashboardDaIndirizzo();
+    return false;
+  }
+  if (opzioni.daBrowser || finestra) allineaIndirizzoPagina(false);
+  return true;
+}
+
+// Rappresentante: non ha la scheda del preventivo; il link porta a
+// "I miei preventivi" con la ricerca sul numero del preventivo.
+async function apriPreventivoRappresentanteDaIndirizzo(id) {
+  const r = await db.from('preventivi').select('id,numero').eq('id', id).maybeSingle();
+  if (r.error || !r.data) return;
+  gotoPage('preventivi-rapp');
+  const campo = ge('cerca-prev-preventivi-rapp');
+  if (campo && r.data.numero != null) {
+    campo.value = String(r.data.numero);
+    if (typeof filtraPreventiviPagina === 'function') filtraPreventiviPagina('preventivi-rapp');
+  }
+  toast('Preventivo n. ' + r.data.numero + ': lo trovi qui sotto (se è in attesa dell\'esito)', 'ok');
+}
+
+// Le funzioni che aprono le schede preparano l'indirizzo della scheda: così
+// ogni "Apri" scrive #/<oggetto>/<id>, da qualunque pagina venga.
+Object.keys(SCHEDE_CON_INDIRIZZO).forEach(function(oggetto) {
+  const scheda = SCHEDE_CON_INDIRIZZO[oggetto];
+  const nome = scheda.funzione;
+  if (!nome || typeof window[nome] !== 'function') return;
+  const originale = window[nome];
+  window[nome] = async function(id) {
+    const pagina = paginaSchedaConIndirizzo(scheda);
+    const attesa = (id && !schedaInFinestra(scheda) && /^[A-Za-z0-9_-]{1,64}$/.test(String(id)))
+      ? { pagina: pagina, rotta: '/' + oggetto + '/' + id } : null;
+    rottaInApertura = attesa;
+    try {
+      return await originale.apply(this, arguments);
+    } finally {
+      if (rottaInApertura === attesa) rottaInApertura = null;
+    }
+  };
+});
+
+// Scheda documenti di un dipendente o di un subappaltatore (js/30).
+(function() {
+  if (typeof openSchedaDocumenti !== 'function') return;
+  const openSchedaDocumentiPrimaIndirizzo = openSchedaDocumenti;
+  openSchedaDocumenti = async function(tipo, id) {
+    const oggetto = tipo === 'subappaltatore' ? 'subappaltatore' : (tipo === 'dipendente' ? 'persona' : null);
+    const attesa = oggetto && id && /^[A-Za-z0-9_-]{1,64}$/.test(String(id))
+      ? { pagina: 'scheda-documenti', rotta: '/' + oggetto + '/' + id } : null;
+    rottaInApertura = attesa;
+    try {
+      return await openSchedaDocumentiPrimaIndirizzo.apply(this, arguments);
+    } finally {
+      if (rottaInApertura === attesa) rottaInApertura = null;
+    }
+  };
+})();
+
+// Dopo il login: se l'indirizzo ha una scheda (#/preventivo/<id>) o una
+// pagina (#preventivi-rapp), si riparte da lì invece che dalla dashboard.
+// La dashboard si carica comunque per prima: dalla scheda aperta da un link
+// la freccia indietro torna alla dashboard invece di uscire dal gestionale.
 (function() {
   if (typeof boot !== 'function') return;
   const bootPrimaPagina = boot;
   boot = async function() {
-    const richiesta = (location.hash || '').replace(/^#/, '');
-    const risultato = await bootPrimaPagina.apply(this, arguments);
-    const pagina = richiesta ? paginaDaRiaprire(richiesta) : null;
-    if (pagina && pagina !== paginaApertaId()) {
-      try { gotoPage(pagina); } catch (e) { console.warn('Riapertura pagina:', e); }
-    } else {
+    const richiesta = statoDaIndirizzo(location.hash);
+    const statoPrima = window.history ? history.state : null;
+    // Voce già del gestionale = ricaricamento: si sostituisce, non si aggiunge.
+    const ricaricamento = !!(statoPrima && statoPrima.paginaGestionale);
+    const auth = richiesta && richiesta.tipo === 'auth';
+    rottaMostrata = null;
+    if (auth) registrazioneSospesa = true; else sostituisciIndirizzo = true;
+    let risultato;
+    try {
+      risultato = await bootPrimaPagina.apply(this, arguments);
+      // La dashboard prende il posto della voce attuale della cronologia.
       registraPaginaNelBrowser(paginaApertaId());
+    } finally {
+      sostituisciIndirizzo = false;
+      registrazioneSospesa = false;
+    }
+    // Link di Supabase Auth: l'indirizzo resta com'è finché non si cambia pagina.
+    if (auth) return risultato;
+    if (richiesta && (richiesta.tipo === 'rotta' || richiesta.tipo === 'sconosciuto')) {
+      if (richiesta.tipo === 'sconosciuto') {
+        toast('Indirizzo non riconosciuto: sei sulla dashboard', 'err');
+      } else {
+        await apriRottaScheda(richiesta, { sostituisci: ricaricamento });
+      }
+    } else if (richiesta && richiesta.tipo === 'pagina') {
+      const pagina = paginaDaRiaprire(richiesta.id);
+      if (pagina && pagina !== paginaApertaId()) {
+        if (ricaricamento) sostituisciIndirizzo = true;
+        try { gotoPage(pagina); } catch (e) { console.warn('Riapertura pagina:', e); }
+        finally { sostituisciIndirizzo = false; }
+      } else if (!pagina && ge('pg-' + richiesta.id) && richiesta.id !== paginaApertaId()) {
+        toast('Non hai accesso a questa pagina: sei sulla dashboard', 'err');
+      }
     }
     rimettiPosizionePrimaDelPdf();
     return risultato;

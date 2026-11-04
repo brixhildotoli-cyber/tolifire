@@ -2503,6 +2503,24 @@ una sessione e l'altra.
       pagina e al punto di prima (posizione in sessionStorage se il sito si
       ricarica; se il browser rimette la pagina, l'elenco del rappresentante
       si aggiorna). I PDF generati ("Genera PDF") si scaricano come prima.
+      Dal 04/11 (F14.1, js/47 + doLogout di js/01, nessun SQL): ogni scheda
+      ha l'indirizzo #/<oggetto>/<id> (SCHEDE_CON_INDIRIZZO: preventivo,
+      commessa, cantiere = commessa sulla scheda Cantiere, cliente,
+      progetto, fornitore, persona e subappaltatore = scheda documenti;
+      fattura e intervento solo d'ingresso: aprono pagina e finestra). Le
+      open*Detail e openSchedaDocumenti, avvolte, scrivono l'indirizzo; la
+      freccia indietro torna alla scheda di prima, ricaricando si resta lì.
+      Link aperto da non collegati: login, poi boot apre la scheda (sopra la
+      dashboard, così indietro torna alla dashboard). Pagina non permessa o
+      scheda non leggibile: toast "Non hai accesso" e dashboard. Il
+      rappresentante (senza preventivo-detail) va in I miei preventivi con la
+      ricerca sul numero. Frammenti di Supabase Auth (#access_token=, #error=,
+      type=recovery...) ignorati e lasciati nell'indirizzo; portale su
+      ?portale= invariato. "Esci" azzera l'indirizzo. Oggetti senza scheda
+      (ordine, documento, pos, spesa, ticket, mezzo, sede, avviso): una riga
+      in SCHEDE_CON_INDIRIZZO quando avranno la loro funzione di apertura.
+      Guide Info: info-tit-9, seg-16, con-8, ct-17, tec-14, com-13, rap-18,
+      ing-11.
    v) Richiesta di Erika del 04/11: campo "🔍 Cerca" nelle pagine
       Preventivi del titolare (preventivi-titolare), del commerciale
       (preventivi) e del rappresentante (preventivi-rapp). FATTO (js/18
