@@ -128,6 +128,8 @@ async function loadImp(){
   const {data}=await db.from('impostazioni').select('*').eq('id',1).maybeSingle();if(!data)return;
   IMPOSTAZIONI=data;
   mostraSoglie();
+  // F14.2: sezione Regole (solo titolare; senza sql/62 i predefiniti in sola lettura)
+  if(ROLE==='titolare'&&ge('si-regole'))mostraRegoleImpostazioni().catch(e=>console.warn('Regole:',e));
   // #nc (nome azienda nella barra) non esiste più dal commit 865b6ba: resta solo il titolo della scheda.
   if(data.ragione_sociale){const nc=ge('nc');if(nc)nc.textContent=data.ragione_sociale.split(' ')[0];document.title=data.ragione_sociale+' — Gestionale';}
   const fs=['ragione_sociale','indirizzo','cap','citta','piva','telefono','email'];const is=['si1','si2','si3','si4','si5','si6','si7'];
@@ -182,3 +184,163 @@ async function saveSoglie(){
   loadImp();
 }
 
+
+// ── F14.2 — IMPOSTAZIONI > REGOLE (sql/62) ───────────────────────────
+// Solo titolare (e informatico). Ogni regola: valore, unità, predefinito
+// (↺ lo rimette nel campo), ultima modifica. "Salva regole" manda solo le
+// regole cambiate con la RPC salva_regola (il database ricontrolla ruolo,
+// minimo, massimo, intero; scrive il registro). Le 4 regole con la colonna
+// di impostazioni sono le stesse di "Soglie e tariffe". Senza sql/62 si
+// vedono i predefiniti in sola lettura.
+function quandoRegola(ts){
+  if(!ts)return '';
+  try{return new Date(ts).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}
+}
+function elencoRegoleOrdinato(){
+  const righe=REGOLE_STATO.righe||{};
+  const chiavi=new Set(REGOLE_PREDEFINITE.map(r=>r.chiave));
+  Object.keys(righe).forEach(k=>chiavi.add(k));
+  const gruppi=Object.keys(GRUPPI_REGOLE);
+  return Array.from(chiavi).map(k=>{
+    const r=righe[k],p=regolaPredefinita(k)||{};
+    return {
+      chiave:k,
+      gruppo:r?r.gruppo:p.gruppo,
+      ordine:r?r.ordine:p.ordine,
+      unita:r?r.unita:p.unita,
+      descrizione:r?r.descrizione:p.descrizione,
+      predefinito:r?numeroRegola(r.valore_predefinito):numeroRegola(p.valore),
+      min:r?numeroRegola(r.valore_minimo):numeroRegola(p.min),
+      max:r?numeroRegola(r.valore_massimo):numeroRegola(p.max),
+      intero:r?!!r.intero:!!p.intero,
+      vuota:r?!!r.vuota_ammessa:!!p.vuota,
+      colonna:r?r.colonna_impostazioni:p.colonna,
+      valore:leggiRegolaSubito(k),
+      daNome:r?r.modificata_da_nome:null,
+      il:r?r.modificata_il:null
+    };
+  }).sort((a,b)=>{
+    const ga=gruppi.indexOf(a.gruppo),gb=gruppi.indexOf(b.gruppo);
+    return (ga<0?99:ga)-(gb<0?99:gb)||(a.ordine||0)-(b.ordine||0)||a.chiave.localeCompare(b.chiave);
+  });
+}
+// "1.234,5" e "1234,5" → "1234.5"; "30.000" → "30000"; "35.5" → "35.5"
+function testoNumeroRegola(x){
+  const t=String(x||'').trim().replace(/\s/g,'').replace(/€|%/g,'');
+  if(t.includes(','))return t.replace(/\./g,'').replace(',','.');
+  if(/^\d{1,3}(\.\d{3})+$/.test(t))return t.replace(/\./g,'');
+  return t;
+}
+function numeroCampoRegola(x){return (x===null||x===undefined)?'':String(x).replace('.',',');}
+
+async function mostraRegoleImpostazioni(){
+  const box=ge('si-regole');if(!box)return;
+  if(ROLE!=='titolare'){ge('si-regole-card')&&(ge('si-regole-card').style.display='none');return;}
+  await caricaRegole(true);
+  const attive=REGOLE_STATO.disponibili===true;
+  const nota=ge('si-regole-stato');
+  if(nota){
+    nota.style.display=attive?'none':'block';
+    nota.textContent=REGOLE_STATO.disponibili===false
+      ?'La sezione Regole non è ancora attiva: serve l’aggiornamento del database (sql/62). Intanto valgono i valori predefiniti qui sotto (sola lettura).'
+      :'Regole non lette (rete?): valgono i valori predefiniti. Riprova con ↻.';
+  }
+  ['si-regole-salva','si-regole-registro','si-regole-motivo'].forEach(id=>{const el=ge(id);if(el)el.disabled=!attive;});
+  const elenco=elencoRegoleOrdinato();
+  let gruppo=null,html='';
+  elenco.forEach(r=>{
+    if(r.gruppo!==gruppo){gruppo=r.gruppo;html+=`<div class="regola-gruppo" data-gruppo="${esc(gruppo)}" style="font-size:12px;font-weight:700;margin:14px 0 6px;color:var(--m)">${esc(GRUPPI_REGOLE[gruppo]||gruppo)}</div>`;}
+    const limiti=[r.min!==null?'min '+numeroCampoRegola(r.min):'',r.max!==null?'max '+numeroCampoRegola(r.max):'',r.intero?'intero':'',r.vuota?'vuoto ammesso':''].filter(Boolean).join(' · ');
+    html+=`<div class="regola-riga" data-gruppo="${esc(r.gruppo)}" data-testo="${esc(((r.descrizione||'')+' '+r.chiave).toLowerCase())}" style="display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--bo)">
+      <div style="flex:1 1 260px;min-width:200px">
+        <div style="font-size:13px">${esc(r.descrizione)}</div>
+        <div style="font-size:11px;color:var(--m)"><code>${esc(r.chiave)}</code>${limiti?' · '+esc(limiti):''}</div>
+        ${r.il?`<div style="font-size:11px;color:var(--m)">Cambiata da ${esc(r.daNome||'—')} il ${esc(quandoRegola(r.il))}</div>`:''}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="text" inputmode="decimal" id="reg-${esc(r.chiave)}" data-chiave="${esc(r.chiave)}" data-iniziale="${esc(numeroCampoRegola(r.valore))}" value="${esc(numeroCampoRegola(r.valore))}" style="width:110px" ${attive?'':'disabled'} placeholder="${r.vuota?'vuota':''}">
+        <span style="font-size:12px;min-width:62px">${esc(UNITA_REGOLE[r.unita]||r.unita||'')}</span>
+        <button class="btn sm" type="button" title="Rimetti il valore predefinito (${esc(testoValoreRegola(r.predefinito,r.unita))})" onclick="ripristinaRegolaCampo('${esc(r.chiave)}')" ${attive?'':'disabled'}>↺ ${esc(testoValoreRegola(r.predefinito,r.unita))}</button>
+      </div>
+    </div>`;
+  });
+  box.innerHTML=html+'<div class="empty" id="si-regole-vuoto" style="display:none">Nessuna regola con questo testo</div>';
+  filtraRegoleImpostazioni();
+}
+// Cerca: nasconde le righe senza ridisegnare (i valori scritti restano)
+function filtraRegoleImpostazioni(){
+  const box=ge('si-regole');if(!box)return;
+  const filtro=String(v('si-regole-cerca')||'').trim().toLowerCase();
+  const visibili={};let n=0;
+  box.querySelectorAll('.regola-riga').forEach(el=>{
+    const ok=!filtro||(el.dataset.testo||'').includes(filtro);
+    el.style.display=ok?'flex':'none';
+    if(ok){visibili[el.dataset.gruppo]=true;n++;}
+  });
+  box.querySelectorAll('.regola-gruppo').forEach(el=>{el.style.display=visibili[el.dataset.gruppo]?'block':'none';});
+  const vuoto=ge('si-regole-vuoto');if(vuoto)vuoto.style.display=n?'none':'block';
+}
+function ripristinaRegolaCampo(chiave){
+  const r=elencoRegoleOrdinato().find(x=>x.chiave===chiave);const el=ge('reg-'+chiave);
+  if(!r||!el)return;
+  el.value=numeroCampoRegola(r.predefinito);el.focus();
+}
+async function salvaRegoleImpostazioni(){
+  if(ROLE!=='titolare'){toast('Solo il titolare può modificare le regole','err');return;}
+  if(!(await verificaRegoleDisponibili())){toast('Le regole non sono ancora attive (sql/62)','err');return;}
+  const elenco=elencoRegoleOrdinato();
+  const modifiche=[];
+  for(const r of elenco){
+    const el=ge('reg-'+r.chiave);if(!el)continue;
+    const testo=testoNumeroRegola(el.value);
+    const testoGrezzo=String(el.value).trim();
+    if(testoGrezzo===String(el.dataset.iniziale||''))continue;
+    let n=null;
+    if(testo===''){
+      if(!r.vuota){toast('“'+r.descrizione+'”: serve un valore','err');el.focus();return;}
+    }else{
+      n=Number(testo);
+      if(!isFinite(n)){toast('“'+r.descrizione+'”: numero non valido','err');el.focus();return;}
+      if(r.min!==null&&n<r.min){toast('“'+r.descrizione+'”: minimo '+numeroCampoRegola(r.min),'err');el.focus();return;}
+      if(r.max!==null&&n>r.max){toast('“'+r.descrizione+'”: massimo '+numeroCampoRegola(r.max),'err');el.focus();return;}
+      if(r.intero&&!Number.isInteger(n)){toast('“'+r.descrizione+'”: serve un numero intero','err');el.focus();return;}
+    }
+    if(n===r.valore)continue;
+    modifiche.push({r,n});
+  }
+  if(!modifiche.length){toast('Nessuna regola cambiata','ok');return;}
+  const motivo=String(v('si-regole-motivo')||'').trim().slice(0,500)||null;
+  const bt=ge('si-regole-salva');if(bt)bt.disabled=true;
+  let salvate=0;
+  try{
+    for(const m of modifiche){
+      const {error}=await db.rpc('salva_regola',{p_chiave:m.r.chiave,p_valore:m.n,p_nota:motivo});
+      if(error){toast('“'+m.r.descrizione+'”: '+error.message,'err');break;}
+      salvate++;
+    }
+  }finally{if(bt)bt.disabled=false;}
+  if(salvate){
+    toast(salvate===1?'1 regola salvata ✓':salvate+' regole salvate ✓','ok');
+    const mo=ge('si-regole-motivo');if(mo)mo.value='';
+  }
+  svuotaCacheRegole();
+  await loadImp(); // rilegge anche le 4 colonne di impostazioni e ridisegna
+}
+async function apriRegistroRegole(){
+  if(ROLE!=='titolare')return;
+  const el=ge('mrr-elenco');if(!el)return;
+  el.innerHTML='<div class="load">Caricamento...</div>';
+  openM('m-registro-regole');
+  const {data,error}=await db.from('regole_storico').select('*').order('modificata_il',{ascending:false}).limit(300);
+  if(error){el.innerHTML=`<div class="al2 e">Registro non disponibile: ${esc(error.message)}</div>`;return;}
+  if(!data||!data.length){el.innerHTML='<div class="empty">Nessuna modifica registrata</div>';return;}
+  const info={};elencoRegoleOrdinato().forEach(r=>{info[r.chiave]=r;});
+  el.innerHTML=data.map(s=>{
+    const r=info[s.chiave]||{descrizione:s.chiave,unita:''};
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--bo);font-size:13px">
+      <div><b>${esc(r.descrizione)}</b></div>
+      <div>${esc(testoValoreRegola(s.valore_prima,r.unita))} → <b>${esc(testoValoreRegola(s.valore_dopo,r.unita))}</b></div>
+      <div style="font-size:11px;color:var(--m)">${esc(quandoRegola(s.modificata_il))} · ${esc(s.modificata_da_nome||'—')}${s.modificata_da_ruolo?' ('+esc(etichettaRuolo(s.modificata_da_ruolo))+')':''}${s.nota?' · '+esc(s.nota):''}</div>
+    </div>`;
+  }).join('');
+}

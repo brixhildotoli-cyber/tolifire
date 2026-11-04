@@ -2344,6 +2344,22 @@
       </div>
     </div>
   </div>
+  <!-- F14.2 — REGOLE E SOGLIE (js/10 mostraRegoleImpostazioni, sql/62): solo titolare -->
+  <div class="card" id="si-regole-card" style="margin-top:14px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:13px;font-weight:600">📏 Regole: soglie e tempi</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn sm" id="si-regole-registro" onclick="apriRegistroRegole()">📜 Registro delle modifiche</button>
+        <button class="btn sm" title="Rileggi" onclick="mostraRegoleImpostazioni()">↻</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Le soglie del gestionale con il loro valore predefinito. Le cambi solo tu; ogni modifica resta nel registro. La soglia di 3.000 € del rappresentante non è qui: resta fissa.</div>
+    <div class="al2 i" id="si-regole-stato" style="display:none"></div>
+    <div class="f"><input type="text" id="si-regole-cerca" placeholder="Cerca una regola (es. margine, anticipo, km)" oninput="filtraRegoleImpostazioni()"></div>
+    <div id="si-regole"><div class="load">Caricamento...</div></div>
+    <div class="f" style="margin-top:12px"><label>Motivo della modifica (facoltativo, va nel registro)</label><input type="text" id="si-regole-motivo" maxlength="500" placeholder="Es. nuovo accordo con i fornitori"></div>
+    <button class="btn p" id="si-regole-salva" onclick="salvaRegoleImpostazioni()">💾 Salva regole</button>
+  </div>
 </div>
 </div>
 
@@ -4057,6 +4073,7 @@
       <ul>
         <li><b>Dati aziendali</b>: ragione sociale, indirizzo, P.IVA e, per fatture e RIBA, <b>Banca dell’azienda</b> e <b>IBAN dell’azienda</b>. Poi <b>Salva</b>.</li>
         <li><b>Soglie e tariffe</b>: soglia “lavoro grande”, preavviso rinnovo contratti, preavviso scadenza documenti, <b>Tariffa oraria standard manodopera</b>. Poi <b>Salva soglie</b>.</li>
+        <li><b>📏 Regole: soglie e tempi</b>: tutte le altre soglie del gestionale (margini, anticipo, tempi, spese, km...), con il registro delle modifiche: vedi il punto 10.</li>
         <li><b>Team</b>: <b>+ Aggiungi utente</b>, <b>⏸️ Disattiva</b> chi non lavora più (chi ha documenti non si elimina), <b>🪪 Documenti</b> di ogni persona.</li>
       </ul>
 
@@ -4179,6 +4196,46 @@
         più) compare <b>Non hai accesso</b> e resti sulla dashboard: chiedi a
         chi te l'ha mandato. I link dei preventivi, delle commesse e delle
         fatture non vanno mandati ai clienti: per loro c'è il portale.
+      </div>
+
+      <hr class="sep">
+
+      <h4 id="info-tit-10">10. Vuoi cambiare una soglia o un tempo? Usa le Regole</h4>
+
+      <p>
+        In <b>Impostazioni</b>, sotto Dati aziendali e Team, c'è il riquadro
+        <b>📏 Regole: soglie e tempi</b>: margini minimi, anticipo, tempi di
+        risposta in giorni lavorativi, spese di cantiere, km di trasferta,
+        documenti finali, solleciti, preavvisi. Ogni regola ha già il suo
+        valore predefinito: il gestionale le legge tutte da qui.
+      </p>
+
+      <ul>
+        <li>Scrivi il nuovo valore nel campo della regola (numeri con la virgola, es. <b>27,5</b>). Usa <b>Cerca una regola</b> per trovarla subito (es. “anticipo”, “km”).</li>
+        <li>Il bottone <b>↺</b> accanto al campo rimette il valore predefinito (lo scrive nel campo: poi salvi).</li>
+        <li>Se vuoi, scrivi il <b>Motivo della modifica</b>, poi <b>💾 Salva regole</b>: si salvano solo le regole che hai cambiato.</li>
+        <li><b>📜 Registro delle modifiche</b>: chi ha cambiato cosa, quando, valore prima e dopo e il motivo. Ci finiscono anche le soglie cambiate da <b>Soglie e tariffe</b>.</li>
+        <li>Soglia “lavoro grande”, tariffa oraria e i due preavvisi sono le stesse di <b>Soglie e tariffe</b>: puoi cambiarle da uno qualsiasi dei due riquadri. Sopra la soglia “lavoro grande” il lavoro va all'ingegnere.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio: spese fuori budget</b><br>
+        Porti “Spesa fuori budget: fino a questo importo decide Acquisti” da
+        50 a <b>60</b> €. Una spesa fuori budget di 55 € ora la decide
+        Acquisti (il commerciale); una da 65 € arriva a te.
+      </div>
+
+      <div class="al2 i">
+        Le regole le cambi solo tu (e l'informatico): gli altri ruoli le
+        usano ma non le vedono qui, e il database rifiuta le loro modifiche.
+        La soglia dei 3.000 € del rappresentante non è tra le regole: resta
+        fissa nel database.
+      </div>
+
+      <div class="al2 w">
+        Se il riquadro dice <b>non è ancora attiva</b> manca l'aggiornamento
+        del database: i valori si vedono ma non si cambiano, e valgono quelli
+        predefiniti.
       </div>
 
       <hr class="sep">
@@ -5977,6 +6034,17 @@
       <button class="btn" onclick="closeM('m-riba-spese')">Chiudi</button>
       <button class="btn p" id="mrs-salva" onclick="salvaSpeseInsolutoRiba()">💾 Salva</button>
     </div>
+  </div>
+</div>
+
+<!-- F14.2 — REGISTRO DELLE MODIFICHE ALLE REGOLE (js/10 apriRegistroRegole, sql/62) -->
+<div class="mbg" id="m-registro-regole">
+  <div class="modal" style="max-width:560px">
+    <button class="x" onclick="closeM('m-registro-regole')">×</button>
+    <h3>📜 Registro delle modifiche alle regole</h3>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Le ultime 300 modifiche: chi, quando, valore prima e dopo, motivo. Comprende le soglie cambiate da “Soglie e tariffe”.</div>
+    <div id="mrr-elenco" style="max-height:60vh;overflow:auto"></div>
+    <div class="ma"><button class="btn" onclick="closeM('m-registro-regole')">Chiudi</button></div>
   </div>
 </div>
 

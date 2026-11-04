@@ -123,6 +123,17 @@ ordini_fornitori.arrivo_annullato_il, _da, _da_nome, _motivo, _data
 cambia_stato_ordine_fornitore) e commesse_fasi.ore_previste (le scrive
 solo salva_fase_commessa_ore, js/34).
 
+Usate dal frontend — regole e soglie (F14.2, sql/62 DA ESEGUIRE, richiede 07,
+20, 32, 58): regole (53 regole con valore predefinito; lettura per tutti
+gli utenti attivi, scrittura solo con la RPC salva_regola del titolare;
+4 righe "di catalogo" leggono le colonne di impostazioni che restano dove
+sono: soglia_lavoro_grande, giorni_preavviso_rinnovo,
+giorni_preavviso_documenti, tariffa_oraria_standard), regole_storico
+(registro delle modifiche, sola lettura del titolare; lo scrivono
+salva_regola e il trigger trg_impostazioni_registro_regole, che registra
+anche i cambi fatti da "Soglie e tariffe"). La soglia 3.000 € del
+rappresentante NON è una regola (D14).
+
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
 è in costruzione, vedi sotto). Dopo sql/45 (F11.1, eseguito il 30/10):
@@ -241,6 +252,21 @@ trigger ads_crm_registra_nuovo_contatto: procedura_consenso =
 procedura mai esistita). Righe esistenti non toccate. Provato sul backup
 pre255: export nuovi 17 -> 2 (solo sito-), non sito 15 -> 0, qualificati
 1 -> 0, export vecchio 13 -> 0; rollback identico.
+Dopo sql/62 (F14.2 regole e soglie, DA ESEGUIRE, richiede 07, 20, 32, 58):
+salva_regola (solo titolare/informatico: minimo, massimo, intero, vuoto;
+registro), leggi_regola (valore per chiave, anche per trigger e RPC;
+chiave sconosciuta = errore), regola_superata (la regola scatta? sopra o
+sotto la soglia). Nel sito (js/01) la funzione unica leggiRegola('chiave')
+(cache 5 minuti, caricata al login; leggiRegolaSubito dalla cache;
+regolaSuperata gemella di regola_superata; REGOLE_PREDEFINITE = stessi
+valori del file SQL: chi aggiunge una regola la mette nel suo sql/NN e lì).
+Impostazioni > "📏 Regole: soglie e tempi" (js/10 mostraRegoleImpostazioni,
+salvaRegoleImpostazioni, apriRegistroRegole, finestra m-registro-regole),
+guida titolare info-tit-10. sogliaLavoroGrande (js/17) legge
+leggiRegolaSubito('soglia_lavoro_grande') (smistamento T2). Prova:
+sql/62-impostazioni-regole-soglie-PROVA.sql (solo database di prova, finisce
+con rollback). Senza sql/62: predefiniti, riquadro in sola lettura "non
+ancora attiva", nessun errore.
 Dopo sql/61 (telefoni italiani per Google Ads, ESEGUITO il 03/11, backup pre61, nessun
 prerequisito oltre le funzioni Ads): nessuna RPC del sito. Funzione nuova
 ads_crm_normalizza_telefono (immutable: +39 ai numeri italiani senza

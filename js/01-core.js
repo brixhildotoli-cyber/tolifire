@@ -94,6 +94,171 @@ const ETICHETTE_RUOLO={
 };
 function etichettaRuolo(codice){return ETICHETTE_RUOLO[codice]||codice||'';}
 
+// ── F14.2 — REGOLE E SOGLIE (sql/62) ─────────────────────────────────
+// Funzione unica: leggiRegola('chiave') (asincrona, con cache) o
+// leggiRegolaSubito('chiave') (dalla cache già caricata). Valori nella
+// tabella regole, cambiati solo dal titolare (RPC salva_regola, registro
+// in regole_storico). Le 4 regole con "colonna" leggono la colonna di
+// impostazioni, che resta dove è (la leggono trigger e RPC): es. la
+// soglia "lavoro grande" dello smistamento (T2). La soglia 3.000 € del
+// rappresentante NON è una regola (D14: fissa nel DB, sql/10).
+// Senza sql/62 valgono i predefiniti qui sotto (gli stessi del file SQL):
+// chi aggiunge una regola la mette sia nel suo sql/NN sia qui.
+const REGOLE_PREDEFINITE=[
+  {chiave:"margine_minimo_totale",gruppo:"margini",ordine:10,valore:29,unita:"percento",verso:"sotto",min:0,max:100,intero:false,vuota:false,colonna:null,descrizione:"Margine minimo del preventivo sul totale, dopo la provvigione: sotto si blocca e serve lo sblocco del titolare"},
+  {chiave:"soglia_margine_gruppo",gruppo:"margini",ordine:20,valore:20,unita:"percento",verso:"sotto",min:0,max:100,intero:false,vuota:false,colonna:null,descrizione:"Margine minimo di un gruppo di voci: sotto compare solo un avviso giallo (decisione E3)"},
+  {chiave:"anticipo_percentuale",gruppo:"margini",ordine:30,valore:50,unita:"percento",verso:"valore",min:0,max:100,intero:false,vuota:false,colonna:null,descrizione:"Anticipo proposto sul totale imponibile del preventivo"},
+  {chiave:"vendita_semplice_sotto",gruppo:"margini",ordine:40,valore:1000,unita:"euro",verso:"sotto",min:0,max:null,intero:false,vuota:false,colonna:null,descrizione:"Sotto questo importo (imponibile) è una vendita semplice"},
+  {chiave:"tetto_urgenza",gruppo:"margini",ordine:50,valore:2000,unita:"euro",verso:"sopra",min:0,max:null,intero:false,vuota:false,colonna:null,descrizione:"Tetto delle urgenze: oltre questo importo l'urgenza passa dal titolare"},
+  {chiave:"tolleranza_quantita",gruppo:"margini",ordine:60,valore:5,unita:"percento",verso:"sopra",min:0,max:100,intero:false,vuota:false,colonna:null,descrizione:"Tolleranza sulle quantità (consegnato o posato rispetto al previsto): oltre si segnala"},
+  {chiave:"costo_operaio_giorno",gruppo:"margini",ordine:70,valore:150,unita:"euro_giorno",verso:"valore",min:0,max:null,intero:false,vuota:false,colonna:null,descrizione:"Costo giorno uomo: costo azienda di un operaio per giorno lavorato (decisione E11)"},
+  {chiave:"tariffa_oraria_standard",gruppo:"margini",ordine:80,valore:35,unita:"euro_ora",verso:"valore",min:0,max:null,intero:false,vuota:false,colonna:"tariffa_oraria_standard",descrizione:"Tariffa oraria standard della manodopera (ore della scheda di lavoro); è anche in Soglie e tariffe"},
+  {chiave:"soglia_lavoro_grande",gruppo:"smistamento",ordine:10,valore:30000,unita:"euro",verso:"sopra",min:0,max:null,intero:false,vuota:true,colonna:"soglia_lavoro_grande",descrizione:"Soglia \"lavoro grande\" (imponibile stimato): sopra il lavoro va all'ingegnere (smistamento, decisione T2). Vuota = nessuna soglia; è anche in Soglie e tariffe"},
+  {chiave:"soglia_giallo_posizioni",gruppo:"smistamento",ordine:20,valore:10,unita:"numero",verso:"sopra",min:0,max:null,intero:true,vuota:false,colonna:null,descrizione:"Pratica gialla per dimensione: più di questo numero di posizioni"},
+  {chiave:"soglia_giallo_importo",gruppo:"smistamento",ordine:30,valore:15000,unita:"euro",verso:"sopra",min:0,max:null,intero:false,vuota:false,colonna:null,descrizione:"Pratica gialla per dimensione: più di questo importo"},
+  {chiave:"porte_fornitori_parallelo_sopra",gruppo:"smistamento",ordine:40,valore:5000,unita:"euro",verso:"sopra",min:0,max:null,intero:false,vuota:false,colonna:null,descrizione:"Porte: sopra questo importo si chiedono offerte a più fornitori in parallelo"},
+  {chiave:"passaggio_consegne_sopra",gruppo:"smistamento",ordine:50,valore:10000,unita:"euro",verso:"sopra",min:0,max:null,intero:false,vuota:false,colonna:null,descrizione:"Commessa sopra questo importo: prima della presa in carico serve il passaggio tra venditore e capo tecnico"},
+  {chiave:"passaggio_consegne_minuti",gruppo:"smistamento",ordine:60,valore:15,unita:"minuti",verso:"valore",min:0,max:480,intero:true,vuota:false,colonna:null,descrizione:"Durata del passaggio di consegne tra venditore e capo tecnico"},
+  {chiave:"richiamo_scadenza_offerta_gg",gruppo:"smistamento",ordine:70,valore:5,unita:"giorni",verso:"sopra",min:0,max:365,intero:true,vuota:false,colonna:null,descrizione:"Giorni prima della scadenza dell'offerta in cui il venditore richiama il cliente"},
+  {chiave:"anticipo_promemoria_1_gg",gruppo:"smistamento",ordine:80,valore:7,unita:"giorni",verso:"sopra",min:0,max:365,intero:true,vuota:false,colonna:null,descrizione:"Anticipo non pagato: primo promemoria al rappresentante dopo questi giorni (decisione E7)"},
+  {chiave:"anticipo_promemoria_2_gg",gruppo:"smistamento",ordine:90,valore:15,unita:"giorni",verso:"sopra",min:0,max:365,intero:true,vuota:false,colonna:null,descrizione:"Anticipo non pagato: secondo promemoria al rappresentante (decisione E7)"},
+  {chiave:"anticipo_avviso_titolare_gg",gruppo:"smistamento",ordine:100,valore:30,unita:"giorni",verso:"sopra",min:0,max:365,intero:true,vuota:false,colonna:null,descrizione:"Anticipo non pagato: avviso al titolare dopo questi giorni (decisione E7, nessun annullamento automatico)"},
+  {chiave:"anticipo_avviso_titolare_2_gg",gruppo:"smistamento",ordine:110,valore:60,unita:"giorni",verso:"sopra",min:0,max:365,intero:true,vuota:false,colonna:null,descrizione:"Anticipo non pagato: secondo avviso al titolare (decisione E7, nessun annullamento automatico)"},
+  {chiave:"presa_in_carico_gg",gruppo:"tempi",ordine:10,valore:2,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Presa in carico della commessa da parte del capo tecnico"},
+  {chiave:"integrazione_venditore_gg",gruppo:"tempi",ordine:20,valore:2,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Integrazione chiesta al venditore (rappresentante): tempo per rispondere"},
+  {chiave:"integrazione_promemoria_ore",gruppo:"tempi",ordine:30,valore:48,unita:"ore",verso:"sopra",min:0,max:720,intero:false,vuota:false,colonna:null,descrizione:"Integrazione al venditore: promemoria dopo queste ore"},
+  {chiave:"integrazione_avviso_titolare_gg",gruppo:"tempi",ordine:40,valore:7,unita:"giorni",verso:"sopra",min:0,max:365,intero:true,vuota:false,colonna:null,descrizione:"Integrazione al venditore ancora aperta: avviso al titolare dopo questi giorni"},
+  {chiave:"risposta_ingegnere_acquisti_gg",gruppo:"tempi",ordine:50,valore:1,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Risposta dell'ingegnere ad Acquisti (commerciale)"},
+  {chiave:"domande_capo_tecnico_gg",gruppo:"tempi",ordine:60,valore:1,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Risposta alle domande del capo tecnico (Capo Operativo)"},
+  {chiave:"scadenza_fornitore_gg",gruppo:"tempi",ordine:70,valore:3,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Tempo dato al fornitore per mandare l'offerta"},
+  {chiave:"preventivo_verde_gg",gruppo:"tempi",ordine:80,valore:2,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Preventivo verde pronto entro questi giorni da \"pronto per preventivo\" (o dall'ultima offerta)"},
+  {chiave:"rivalidazione_prezzi_gg",gruppo:"tempi",ordine:90,valore:1,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Rivalidazione dei prezzi di un preventivo"},
+  {chiave:"decisione_bloccata_cantiere_ore",gruppo:"tempi",ordine:100,valore:4,unita:"ore_lav",verso:"sopra",min:0,max:80,intero:false,vuota:false,colonna:null,descrizione:"Decisione su una posizione bloccata con il cantiere aperto"},
+  {chiave:"decisione_bloccata_gg",gruppo:"tempi",ordine:110,valore:1,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Decisione su una posizione bloccata senza cantiere aperto"},
+  {chiave:"caso_non_previsto_cantiere_ore",gruppo:"tempi",ordine:120,valore:4,unita:"ore_lav",verso:"sopra",min:0,max:80,intero:false,vuota:false,colonna:null,descrizione:"Risposta a un caso non previsto con il cantiere aperto"},
+  {chiave:"caso_non_previsto_gg",gruppo:"tempi",ordine:130,valore:1,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Risposta a un caso non previsto senza cantiere aperto"},
+  {chiave:"attesa_massima_cantiere_min",gruppo:"tempi",ordine:140,valore:30,unita:"minuti",verso:"sopra",min:0,max:480,intero:true,vuota:false,colonna:null,descrizione:"Attesa massima della squadra in cantiere"},
+  {chiave:"risposta_gestionale_fermo_ore",gruppo:"tempi",ordine:150,valore:4,unita:"ore_lav",verso:"sopra",min:0,max:80,intero:false,vuota:false,colonna:null,descrizione:"Risposta della programmatrice quando il gestionale è fermo"},
+  {chiave:"spese_fuori_budget_acquisti",gruppo:"spese",ordine:10,valore:50,unita:"euro",verso:"sopra",min:0,max:null,intero:false,vuota:false,colonna:null,descrizione:"Spesa fuori budget: fino a questo importo decide Acquisti (commerciale), oltre il titolare"},
+  {chiave:"spese_titolare_irraggiungibile",gruppo:"spese",ordine:20,valore:200,unita:"euro",verso:"sopra",min:0,max:null,intero:false,vuota:false,colonna:null,descrizione:"Cantiere fermo e titolare irraggiungibile: Acquisti autorizza fino a questo importo, il titolare ratifica"},
+  {chiave:"soglia_km_trasferta",gruppo:"spese",ordine:30,valore:50,unita:"km",verso:"sopra",min:0,max:2000,intero:false,vuota:false,colonna:null,descrizione:"Oltre questi km dalla sede il lavoro è in trasferta (valore iniziale da confermare)"},
+  {chiave:"controllo_km_oltre",gruppo:"spese",ordine:40,valore:150,unita:"km",verso:"sopra",min:0,max:2000,intero:false,vuota:false,colonna:null,descrizione:"Oltre questi km la trasferta va controllata"},
+  {chiave:"doc_finali_controllo_gg",gruppo:"documenti_finali",ordine:10,valore:2,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Documenti finali: controllo di completezza del capo tecnico"},
+  {chiave:"doc_finali_firma_gg",gruppo:"documenti_finali",ordine:20,valore:3,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Documenti finali: firma dell'ingegnere"},
+  {chiave:"doc_finali_invio_gg",gruppo:"documenti_finali",ordine:30,valore:1,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Documenti finali: invio della segreteria al cliente (dopo il saldo, decisione E1)"},
+  {chiave:"doc_finali_consegna_gg",gruppo:"documenti_finali",ordine:40,valore:10,unita:"giorni_lav",verso:"sopra",min:0,max:120,intero:false,vuota:false,colonna:null,descrizione:"Documenti finali consegnati al cliente entro questi giorni"},
+  {chiave:"verbale_consegna_silenzio_gg",gruppo:"documenti_finali",ordine:50,valore:5,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Verbale di consegna accettato dopo questi giorni di silenzio del cliente"},
+  {chiave:"fattura_anticipo_entro_gg",gruppo:"incassi",ordine:10,valore:1,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Fattura d'anticipo emessa entro questi giorni dall'accettazione"},
+  {chiave:"sollecito_1_gg",gruppo:"incassi",ordine:20,valore:7,unita:"giorni",verso:"sopra",min:0,max:365,intero:true,vuota:false,colonna:null,descrizione:"Primo sollecito di incasso: giorni dopo la scadenza"},
+  {chiave:"sollecito_2_gg",gruppo:"incassi",ordine:30,valore:30,unita:"giorni",verso:"sopra",min:0,max:365,intero:true,vuota:false,colonna:null,descrizione:"Secondo sollecito di incasso: giorni dopo la scadenza"},
+  {chiave:"sollecito_3_gg",gruppo:"incassi",ordine:40,valore:60,unita:"giorni",verso:"sopra",min:0,max:365,intero:true,vuota:false,colonna:null,descrizione:"Terzo sollecito di incasso: giorni dopo la scadenza"},
+  {chiave:"cliente_bloccato_scaduto_gg",gruppo:"incassi",ordine:50,valore:30,unita:"giorni",verso:"sopra",min:0,max:365,intero:true,vuota:false,colonna:null,descrizione:"Cliente bloccato con uno scaduto oltre questi giorni"},
+  {chiave:"fattura_contestata_risposta_gg",gruppo:"incassi",ordine:60,valore:3,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Risposta a una fattura contestata"},
+  {chiave:"reclamo_prima_risposta_gg",gruppo:"incassi",ordine:70,valore:2,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Prima risposta a un reclamo"},
+  {chiave:"giorni_preavviso_rinnovo",gruppo:"preavvisi",ordine:10,valore:60,unita:"giorni",verso:"sopra",min:0,max:365,intero:true,vuota:true,colonna:"giorni_preavviso_rinnovo",descrizione:"Preavviso rinnovo dei contratti di manutenzione (vuoto = 60); è anche in Soglie e tariffe"},
+  {chiave:"preavviso_corsi_visite_gg",gruppo:"preavvisi",ordine:20,valore:60,unita:"giorni",verso:"sopra",min:0,max:365,intero:true,vuota:false,colonna:null,descrizione:"Preavviso scadenza di corsi e visite mediche (formazione, idoneità)"},
+  {chiave:"giorni_preavviso_documenti",gruppo:"preavvisi",ordine:30,valore:30,unita:"giorni",verso:"sopra",min:0,max:365,intero:true,vuota:false,colonna:"giorni_preavviso_documenti",descrizione:"Preavviso scadenza documenti dell'impresa (DURC, visura, POS...): oggi vale per tutti i documenti di team e subappalti; è anche in Soglie e tariffe"}
+];
+const GRUPPI_REGOLE={
+  margini:'💶 Margini, prezzi e anticipo',
+  smistamento:'🧭 Pratiche, smistamento e richiami',
+  tempi:'⏱️ Tempi di risposta',
+  spese:'🚐 Spese di cantiere e trasferte',
+  documenti_finali:'📄 Documenti finali',
+  incassi:'💰 Fatture, incassi e reclami',
+  preavvisi:'🔔 Scadenze e preavvisi'
+};
+const UNITA_REGOLE={
+  percento:'%',euro:'€',euro_ora:'€/ora',euro_giorno:'€/giorno',giorni:'giorni',
+  giorni_lav:'giorni lav.',ore:'ore',ore_lav:'ore lav.',minuti:'minuti',km:'km',numero:'n.'
+};
+const REGOLE_CACHE_MS=5*60*1000;
+const REGOLE_STATO={disponibili:null,righe:null,lette:0,inCorso:null};
+
+function regolaPredefinita(chiave){return REGOLE_PREDEFINITE.find(r=>r.chiave===chiave)||null;}
+
+// true/false se la tabella regole c'è (null = non si sa ancora, es. rete)
+async function verificaRegoleDisponibili(){
+  if(REGOLE_STATO.disponibili!==null)return REGOLE_STATO.disponibili;
+  await caricaRegole(true);
+  return REGOLE_STATO.disponibili;
+}
+
+// Legge tutte le regole in una volta (cache di 5 minuti). Non dà mai errore.
+async function caricaRegole(forza){
+  if(!forza&&REGOLE_STATO.righe&&Date.now()-REGOLE_STATO.lette<REGOLE_CACHE_MS)return REGOLE_STATO.righe;
+  if(!forza&&REGOLE_STATO.disponibili===false)return null; // senza sql/62: predefiniti, nessuna rilettura
+  if(REGOLE_STATO.inCorso)return REGOLE_STATO.inCorso;
+  REGOLE_STATO.inCorso=(async()=>{
+    try{
+      const {data,error}=await db.from('regole').select('*');
+      if(error){
+        const manca=error.code==='42P01'||error.code==='PGRST205'||/regole/.test(error.message||'')&&/(does not exist|schema cache|not find)/i.test(error.message||'');
+        if(manca){REGOLE_STATO.disponibili=false;REGOLE_STATO.righe=null;}
+        return REGOLE_STATO.righe;
+      }
+      const mappa={};(data||[]).forEach(r=>{mappa[r.chiave]=r;});
+      REGOLE_STATO.disponibili=true;REGOLE_STATO.righe=mappa;REGOLE_STATO.lette=Date.now();
+      return mappa;
+    }catch(e){return REGOLE_STATO.righe;}
+    finally{REGOLE_STATO.inCorso=null;}
+  })();
+  return REGOLE_STATO.inCorso;
+}
+function svuotaCacheRegole(){REGOLE_STATO.lette=0;}
+
+function numeroRegola(x){
+  if(x===null||x===undefined||x==='')return null;
+  const n=Number(x);return isFinite(n)?n:null;
+}
+// Valore dalla cache (o predefinito) senza attese. null = regola vuota o sconosciuta.
+function leggiRegolaSubito(chiave){
+  const riga=REGOLE_STATO.righe&&REGOLE_STATO.righe[chiave];
+  const pred=regolaPredefinita(chiave);
+  if(!riga&&!pred){console.warn('Regola sconosciuta: '+chiave);return null;}
+  const colonna=(riga&&riga.colonna_impostazioni)||(pred&&pred.colonna);
+  if(colonna){
+    const imp=(typeof IMPOSTAZIONI!=='undefined')?IMPOSTAZIONI:null;
+    return imp&&Object.prototype.hasOwnProperty.call(imp,colonna)?numeroRegola(imp[colonna]):null;
+  }
+  if(riga)return numeroRegola(riga.valore);
+  return numeroRegola(pred.valore);
+}
+// Funzione unica per leggere una soglia: await leggiRegola('spese_fuori_budget_acquisti')
+async function leggiRegola(chiave){
+  await caricaRegole(false);
+  const riga=REGOLE_STATO.righe&&REGOLE_STATO.righe[chiave];
+  const pred=regolaPredefinita(chiave);
+  const colonna=(riga&&riga.colonna_impostazioni)||(pred&&pred.colonna);
+  if(colonna&&(typeof IMPOSTAZIONI==='undefined'||!IMPOSTAZIONI)){
+    try{
+      const {data,error}=await db.from('impostazioni').select(colonna).eq('id',1).maybeSingle();
+      if(!error&&data)return numeroRegola(data[colonna]);
+    }catch(e){}
+    return null;
+  }
+  return leggiRegolaSubito(chiave);
+}
+// La regola scatta? sopra: valore oltre la soglia; sotto: valore sotto la
+// soglia; null per i parametri di calcolo o con soglia/valore vuoti.
+// Gemella di regola_superata (sql/62). Es.: spese_fuori_budget_acquisti 60,
+// spesa 55 → false (decide Acquisti), 65 → true (decide il titolare).
+function regolaSuperata(chiave,valore){
+  const riga=REGOLE_STATO.righe&&REGOLE_STATO.righe[chiave];
+  const pred=regolaPredefinita(chiave);
+  const verso=(riga&&riga.verso)||(pred&&pred.verso);
+  const soglia=leggiRegolaSubito(chiave);
+  const n=numeroRegola(valore);
+  if(!verso||verso==='valore'||soglia===null||n===null)return null;
+  return verso==='sotto'?n<soglia:n>soglia;
+}
+function testoValoreRegola(valore,unita){
+  if(valore===null||valore===undefined||valore==='')return 'vuota';
+  const u=UNITA_REGOLE[unita]||'';
+  const n=Number(valore).toLocaleString('it-IT',{maximumFractionDigits:2});
+  return unita==='euro'?n+' €':(n+(u?' '+u:''));
+}
+
 const NAV={
   titolare:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'preventivi-titolare',l:'🧾 Preventivi'},{id:'commesse',l:'📁 Commesse'},{id:'ore-cantiere',l:'⏱️ Ore cantiere'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'workflow',l:'📋 Da gestire'},{id:'interventi',l:'🔧 Interventi'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'},{id:'team-subappalti',l:'🦺 Team e subappalti'},{id:'impostazioni',l:'Impostazioni'},{id:'info',l:'ℹ️ Info'}],
   capo_tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'calendario-team',l:'👥 Calendari team'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'commesse',l:'📁 Commesse'},{id:'ore-cantiere',l:'⏱️ Ore cantiere'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'Documenti'},{id:'team-subappalti',l:'🦺 Team e subappalti'},{id:'info',l:'ℹ️ Info'}],
@@ -257,7 +422,8 @@ async function boot(ud){
   const today=dataLocaleISO();const now=new Date();
   ge('tc3').value=today;ge('mo3').value=today;
   ge('tc4').value=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
- const caricamentiBase = [loadCS(), loadImp()];
+ // F14.2: regole e soglie (sql/62) in cache per tutti i ruoli; non dà mai errore
+ const caricamentiBase = [loadCS(), loadImp(), caricaRegole(true)];
 
 // Carica utenti solo dove servono subito.
 if (['titolare', 'capo_tecnico', 'segreteria', 'commerciale'].includes(ROLE)) {

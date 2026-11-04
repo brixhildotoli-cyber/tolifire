@@ -843,6 +843,9 @@ async function controllaColonnaImportoProgetto() {
 }
 
 function sogliaLavoroGrande() {
+  // F14.2: funzione unica delle regole (stesso valore di
+  // impostazioni.soglia_lavoro_grande); lo smistamento T2 la legge da qui
+  if (typeof leggiRegolaSubito === 'function') return leggiRegolaSubito('soglia_lavoro_grande');
   if (typeof IMPOSTAZIONI === 'undefined' || !IMPOSTAZIONI) return null;
   const soglia = IMPOSTAZIONI.soglia_lavoro_grande;
   if (soglia === null || soglia === undefined || soglia === '') return null;
