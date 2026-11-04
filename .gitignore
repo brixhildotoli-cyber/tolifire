@@ -5,3 +5,5 @@ gestione-task/
 # sql/ (schema, policy, backup) vive in un repository privato separato: vedi README
 sql/
 *.dump
+# collegamento di Claude Code a Supabase (solo lettura), resta su questo Mac
+.mcp.json
