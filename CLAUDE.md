@@ -123,7 +123,7 @@ ordini_fornitori.arrivo_annullato_il, _da, _da_nome, _motivo, _data
 cambia_stato_ordine_fornitore) e commesse_fasi.ore_previste (le scrive
 solo salva_fase_commessa_ore, js/34).
 
-Usate dal frontend — regole e soglie (F14.2, sql/62 DA ESEGUIRE, richiede 07,
+Usate dal frontend — regole e soglie (F14.2, sql/62 ESEGUITO il 04/11, backup pre256, richiede 07,
 20, 32, 58): regole (53 regole con valore predefinito; lettura per tutti
 gli utenti attivi, scrittura solo con la RPC salva_regola del titolare;
 4 righe "di catalogo" leggono le colonne di impostazioni che restano dove
@@ -243,7 +243,7 @@ Dopo sql/48 (schede di rilievo multiple, ESEGUITO il 30/10, richiede 07 e 34;
 prima si pubblica il sito): elimina_scheda_rilievo; scheda_cantiere_commessa
 ridefinita (in più numero e nome della scheda; rollback = versione di sql/34).
 Dopo sql/256 (a Google Ads solo i lead del sito, decisione della titolare
-del 04/11, DA ESEGUIRE, richiede 61; chiesto come "sql/62", numero già
+del 04/11, ESEGUITO il 04/11, backup pre256, richiede 61; chiesto come "sql/62", numero già
 usato da F14.2): nessuna RPC del sito. ads_crm_export_v2: primo ramo
 (ads_crm_nuovi_contatti, contatti dei rappresentanti) idoneo = false,
 ramo lead_sito invariato; ads_crm_export_nuovi: "and false" (zero righe);
@@ -252,7 +252,7 @@ trigger ads_crm_registra_nuovo_contatto: procedura_consenso =
 procedura mai esistita). Righe esistenti non toccate. Provato sul backup
 pre255: export nuovi 17 -> 2 (solo sito-), non sito 15 -> 0, qualificati
 1 -> 0, export vecchio 13 -> 0; rollback identico.
-Dopo sql/62 (F14.2 regole e soglie, DA ESEGUIRE, richiede 07, 20, 32, 58):
+Dopo sql/62 (F14.2 regole e soglie, ESEGUITO il 04/11, backup pre256, richiede 07, 20, 32, 58):
 salva_regola (solo titolare/informatico: minimo, massimo, intero, vuoto;
 registro), leggi_regola (valore per chiave, anche per trigger e RPC;
 chiave sconosciuta = errore), regola_superata (la regola scatta? sopra o
