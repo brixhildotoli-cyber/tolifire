@@ -2975,6 +2975,9 @@ una sessione e l'altra.
    js/07, js/20, js/25, guide info-tec-6, info-tec-15, info-ct-18);
    database: sql/255-storico-presidi-esegui-intervento (DA ESEGUIRE, con
    rollback e controllo; provato su Postgres con il backup pre240).
+   Grafica delle schede (tutti i tipi sul modello degli estintori) e
+   passo Presidi del tecnico: APPROVATI da Erika il 04/11 sulle immagini
+   di prova.
    Decisioni di Erika:
    1. "Esegui intervento", passo Presidi: spuntando un presidio si aprono
       TUTTE le voci del controllo (ultima scheda dello storico, se no le
