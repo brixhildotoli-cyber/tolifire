@@ -2567,7 +2567,7 @@ una sessione e l'altra.
    rappresentante e titolare a 390 px, Assegna venditore, Periodicità del
    rappresentante, bottone e finestra della distinta RIBA).
 
-11. **Decisioni di Toli del 03/11/2026 (17:08 e 17:13)** — DECISIONI DI
+11. **Decisioni di Toli del 03/11/2026 (17:08, 17:13, 17:36-17:43 e prezzi delle 20:34)** — DECISIONI DI
    TOLI (valgono come conferma della SCELTA, non come "CONFERMATO DA
    TOLI" per eseguire SQL in produzione). Fonte:
    gestione-task/LEGGIMI-ERIKA.md; le task del pacchetto F13-F27 le
