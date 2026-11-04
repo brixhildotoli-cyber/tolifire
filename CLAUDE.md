@@ -244,6 +244,14 @@ Dopo sql/60 (spese insoluti RIBA e solleciti del contabile, ESEGUITO il 04/11, b
 richiede 47): registra_spese_insoluto_riba; registra_sollecito,
 esito_sollecito ed elimina_sollecito ridefinite (anche contabile);
 colonne nuove riba_righe.spese_insoluto*.
+Dopo sql/240 (F13.6, ESEGUITO il 04/11, backup pre240, richiede 07 e 30):
+nessuna RPC nuova. Policy preventivi_fornitori_allegati_gestione al posto
+di "commerciale gestisce allegati fornitore" (titolare/informatico +
+commerciale autore con get_mio_utente_id). Colonna
+ordini_fornitori.arrivo_previsto_iniziale (la scrive il trigger
+trg_ordini_fornitori_arrivo_iniziale alla nascita,
+trg_ordini_fornitori_arrivo_iniziale_fisso la rende immutabile; riempita
+solo per gli ordini 'ordinato'; vuota = dato non disponibile), js/27.
 Dopo sql/59 (IVA N1 e split payment, ESEGUITO il 03/11, richiede 45, 46, 54):
 salva_bozza_fattura ridefinita (+ p_split_payment), emetti_nota_credito,
 emetti_nota_credito_parziale ed emissione_fattura_interna ridefinite;
@@ -1731,6 +1739,9 @@ già provato, dopo il backup fatto da Erika (sql/BACKUP.md) e la frase
 "CONFERMATO DA TOLI: sql/NN"; poi lancia la query di controllo del
 file. Nessuna scrittura di dati fuori da un file confermato. Il
 collegamento non rispetta le RLS: leggere solo i dati che servono.
+Il server MCP rifiuta da solo i comandi distruttivi (drop, delete...):
+la conferma che chiede non arriva in VS Code. File con drop: li esegue
+Erika nell'editor SQL, Claude lancia solo il controllo (es. sql/240).
 
 ## Autonomia di Claude Code
 PUÒ fare da solo: refactoring, CSS, bug fix, nuove funzioni UI, riordino
