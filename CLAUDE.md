@@ -1708,6 +1708,13 @@ Toli, eseguita seguendo `sql/F1.4-ATTIVAZIONE.md`): policy per ruolo
 (13), regole dei file per cartella (14), trigger Piano mensile (17).
 Schema aggiornato in `sql/schema/` (export del 26/10). Ogni nuova
 tabella o funzione deve nascere con le sue policy e il suo rollback.
+Accesso di Claude Code a Supabase (decisione di Toli del 04/11): server
+MCP ufficiale in `.mcp.json` (escluso da git, login OAuth), in
+lettura e scrittura. Claude esegue in produzione SOLO un file sql/NN
+già provato, dopo il backup fatto da Erika (sql/BACKUP.md) e la frase
+"CONFERMATO DA TOLI: sql/NN"; poi lancia la query di controllo del
+file. Nessuna scrittura di dati fuori da un file confermato. Il
+collegamento non rispetta le RLS: leggere solo i dati che servono.
 
 ## Autonomia di Claude Code
 PUÒ fare da solo: refactoring, CSS, bug fix, nuove funzioni UI, riordino
