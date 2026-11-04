@@ -347,7 +347,12 @@ const SCHEDE_CON_INDIRIZZO = {
   },
   intervento: {
     nome: "l'intervento", pagina: 'interventi', finestra: true, idFinestra: 'm-cal-edit',
-    apri: async function(id) { gotoPage('interventi'); if (typeof openOdlDetail === 'function') await openOdlDetail(id); }
+    apri: async function(id) {
+      gotoPage('interventi');
+      // openOdlDetail (js/12) non restituisce la promessa: si aspetta la finestra.
+      if (typeof apriEditOdlCal === 'function') await apriEditOdlCal(id);
+      else if (typeof openOdlDetail === 'function') await openOdlDetail(id);
+    }
   }
 };
 
