@@ -308,7 +308,9 @@ js/02-portale-navigazione.js; controllo in `canAccessPage`):
   workflow, interventi, clienti, documenti, fatture, catalogo, impostazioni,
   cliente-detail, progetto-detail, fornitore-detail, tecnico, sopralluogo,
   commesse, commessa-detail, team-subappalti, scheda-documenti,
-  ore-cantiere, info
+  ore-cantiere, info; da F13.3 anche fornitori, progetti,
+  verifiche-tecniche, preventivi (aggiunte dopo la definizione, NON nel
+  menu: si aprono dai collegamenti e dalla guida Info, info-tit-8)
 - capo_tecnico: dashboard, calendario, calendario-team, piano-mensile,
   presidi, interventi, tecnico, clienti, documenti, cliente-detail,
   commesse, commessa-detail, team-subappalti, scheda-documenti,

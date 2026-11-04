@@ -435,6 +435,14 @@ const PAGINE_RUOLO = {
   ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti', 'certificati-ingegnere','progetto-detail','cliente-detail','info'],
   
 };
+// F13.3: il titolare (e l'informatico, che ha ROLE 'titolare') apre anche le
+// pagine di lavoro degli altri ruoli, così fa rilievi, verifiche e preventivi
+// con il suo nome senza "Entra come". Non entrano nel menu (NAV in js/01): si
+// aprono dai collegamenti delle pagine (es. "← Fornitori" nella scheda
+// fornitore) e dalla guida Info (info-tit-8).
+['fornitori', 'progetti', 'verifiche-tecniche', 'preventivi'].forEach(function(pagina) {
+  if (!PAGINE_RUOLO.titolare.includes(pagina)) PAGINE_RUOLO.titolare.push(pagina);
+});
 // L’ingegnere può consultare clienti e relative schede, senza modificarli.
 if (!PAGINE_RUOLO.ingegnere.includes('clienti')) {
   PAGINE_RUOLO.ingegnere.push('clienti');
