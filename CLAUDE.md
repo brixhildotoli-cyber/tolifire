@@ -2773,8 +2773,8 @@ una sessione e l'altra.
       che conosciamo. Controllato anche nel backup del 04/11 (pre240,
       solo conteggi): tra i 36 fornitori in anagrafica nessuno è uno
       smaltitore; nessun DDT è intestato a uno smaltitore (i soli due DDT
-      con "ritiro estintori", n. 25 del 29/09 e n. 26 del 16/10, sono
-      intestati a un cliente); il registro presidi ha 67 estintori (4
+      che parlano di ritiro, n. 26 del 16/10 "ritiro estintori" e n. 25
+      del 29/09 "ritiro cassa" nelle note, sono intestati a un cliente); il registro presidi ha 67 estintori (4
       eliminati nel 2026, nessuno "sostituito"): il gestionale oggi NON
       traccia gli estintori ritirati, per questo la verifica è fuori.
       Da scoprire: 1) DOVE sono oggi (contarli in capannone e sui
