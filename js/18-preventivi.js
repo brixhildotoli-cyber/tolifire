@@ -3788,14 +3788,8 @@ const bloccoAllegati = !allegatiProgetto.length
                 <option value="da_contattare" ${s.stato === 'da_contattare' ? 'selected' : ''}>Da contattare</option>
                 <option value="richiesta_inviata" ${s.stato === 'richiesta_inviata' ? 'selected' : ''}>Richiesta inviata</option>
                 <option value="risposta_ricevuta" ${s.stato === 'risposta_ricevuta' ? 'selected' : ''}>Risposta ricevuta</option>
-                <option value="da_rivedere" ${s.stato === 'da_rivedere' ? 'selected' : ''}>
-  Da rivedere
-</option>
-
-<option value="rifiutata" ${s.stato === 'rifiutata' ? 'selected' : ''}>
-  Quotazione rifiutata
-</option>
                 <option value="selezionato" ${s.stato === 'selezionato' ? 'selected' : ''}>Scelto per il preventivo</option>
+                <option value="scartato" ${s.stato === 'scartato' ? 'selected' : ''}>Scartato</option>
               </select>
             </div>
 
@@ -4223,13 +4217,92 @@ async function apriAllegatoPreventivoFornitore(storagePath) {
   else window.open(data.signedUrl, '_blank', 'noopener');
 }
 
+// F13.5: stati ammessi dal vincolo preventivi_fornitori_stato_check
+// ('rifiutata' e 'scaduta' arriveranno con F16.11).
+const STATI_OFFERTA_FORNITORE = [
+  'da_contattare',
+  'richiesta_inviata',
+  'risposta_ricevuta',
+  'selezionato',
+  'scartato'
+];
+
+// F13.5: prima di segnare 'selezionato' controlla se nel preventivo c'è già
+// un'altra offerta scelta della stessa tipologia (js/27 proporrebbe un
+// ordine per ognuna). Restituisce true se si può procedere.
+async function confermaOffertaSceltaUnicaPerTipologia(selezioneId) {
+  const { data: offerta, error: erroreOfferta } = await db
+    .from('preventivi_fornitori')
+    .select('id,stato,tipologia')
+    .eq('id', selezioneId)
+    .eq('preventivo_id', currentPreventivoId)
+    .single();
+
+  if (erroreOfferta || !offerta) {
+    toast('Offerta del fornitore non trovata', 'err');
+    return false;
+  }
+
+  if (offerta.stato === 'selezionato') return true;
+
+  let q = db
+    .from('preventivi_fornitori')
+    .select('id,fornitori(ragione_sociale)')
+    .eq('preventivo_id', currentPreventivoId)
+    .eq('stato', 'selezionato')
+    .neq('id', selezioneId);
+
+  q = offerta.tipologia
+    ? q.eq('tipologia', offerta.tipologia)
+    : q.is('tipologia', null);
+
+  const { data: altre, error: erroreAltre } = await q;
+
+  if (erroreAltre) {
+    toast('Errore controllo offerte scelte: ' + erroreAltre.message, 'err');
+    return false;
+  }
+
+  if (!altre || !altre.length) return true;
+
+  const nomi = altre
+    .map(function(a) { return a.fornitori?.ragione_sociale || 'Fornitore'; })
+    .join(', ');
+
+  return confirm(
+    'Esiste già un\'offerta scelta per questa tipologia (' +
+    (offerta.tipologia || 'tipologia non indicata') + ': ' + nomi +
+    '): rischio di doppio ordine.\n\n' +
+    'Se è un errore, prima riporta l\'altra offerta a "Risposta ricevuta" o "Scartato".\n\n' +
+    'Segnare comunque anche questa come scelta?'
+  );
+}
+
 async function salvaDettagliFornitorePreventivo(selezioneId) {
   const prezzo = v('pvf-prezzo-' + selezioneId);
+  const stato = v('pvf-stato-' + selezioneId);
+
+  if (!STATI_OFFERTA_FORNITORE.includes(stato)) {
+    toast('Scegli uno stato valido per l\'offerta', 'err');
+    return;
+  }
+
+  if (stato === 'selezionato') {
+    const procedi = await confermaOffertaSceltaUnicaPerTipologia(selezioneId);
+    if (!procedi) return;
+  }
+
+  if (
+    stato === 'scartato' &&
+    !confirm('Scartare questa offerta? Esce dall\'elenco dei fornitori del preventivo.')
+  ) {
+    return;
+  }
 
   const { error } = await db
     .from('preventivi_fornitori')
     .update({
-      stato: v('pvf-stato-' + selezioneId),
+      stato: stato,
       prezzo_offerto: prezzo === '' ? null : Number(prezzo),
       tempi_consegna_proposti: v('pvf-consegna-' + selezioneId).trim() || null,
       note: v('pvf-note-' + selezioneId).trim() || null,
@@ -4295,6 +4368,11 @@ async function usaQuotazioneFornitoreNelPreventivo(selezioneId) {
     toast('Inserisci prima il prezzo ricevuto dal fornitore', 'err');
     return;
   }
+
+  // F13.5: usare la quotazione la segna 'selezionato': stesso controllo
+  // della seconda offerta scelta per la stessa tipologia.
+  const procediScelta = await confermaOffertaSceltaUnicaPerTipologia(selezioneId);
+  if (!procediScelta) return;
 
   // Modifiche alle voci non ancora salvate: si salvano prima, altrimenti
   // il ricaricamento qui sotto le perderebbe.
