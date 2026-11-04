@@ -2725,8 +2725,8 @@ una sessione e l'altra.
       di 3 mesi), avvisi a 50 e 70 giorni, responsabile Acquisti; nel
       sito la nota fissa "non sostituisce il registro di carico e scarico
       né i formulari RENTRI".
-      - Chi è il PRODUTTORE del rifiuto della manutenzione (estintori,
-        manichette sostituiti dal cliente): noi (art. 266 c. 4 D.Lgs.
+      - Chi è il PRODUTTORE del rifiuto della manutenzione fatta PRESSO
+        IL CLIENTE (estintori, manichette sostituiti dal cliente): noi (art. 266 c. 4 D.Lgs.
         152/2006, rifiuto prodotto dall'attività di manutenzione) o il
         cliente?
       - RENTRI: siamo obbligati all'iscrizione? Da quando? Il FIR
@@ -2735,15 +2735,63 @@ una sessione e l'altra.
         furgoni dal cliente al capannone serve l'iscrizione (categoria 2-bis)?
       - DEPOSITO TEMPORANEO in capannone (art. 185-bis): frequenza e
         quantità massime, come va segnalata l'area, registro.
+        Domanda precisa (F13.8): quale criterio scegliamo e scriviamo?
+        Dalla lettura dell'art. 185-bis D.Lgs. 152/2006 (DA CONFERMARE):
+        avvio a recupero o smaltimento almeno ogni 3 mesi qualunque sia
+        la quantità, OPPURE al raggiungimento di 30 m³ (di cui al massimo
+        10 m³ di pericolosi), e in ogni caso mai oltre UN ANNO. Con i
+        nostri numeri (circa 36 estintori al mese, meno di 1 m³) il
+        limite che conta è il tempo: va bene il trimestrale? Il default
+        del gestionale (ogni 2 mesi o oltre 120 estintori, MD7) resta
+        dentro? La scelta va scritta da qualche parte (registro, DVR)?
       - CODICI CER per: estintori a polvere, a CO2, a schiuma/acqua,
-        manichette, porte REI e coppelle tolte in cantiere (che non
-        passano dal capannone: ritiro diretto, F20.13).
+        manichette; e per i RIFIUTI DI CANTIERE: porte (anche REI),
+        coppelle, cartongesso (che non passano dal capannone: ritiro
+        diretto, F20.13). Pericolosi o no, e serve l'analisi?
       - ESTINTORI USATI ANCORA IN PRESSIONE: vanno svuotati prima del
         deposito? Area separata "in pressione"? Chi può farlo? (il
         gestionale chiede la spunta allo scarico).
-      - I 345 estintori ritirati nel 2026 senza fattura di smaltitore:
-        verifica e domanda a parte in F13.8.
+      - Riepilogo delle domande nuove di F13.8 (decisioni di Toli delle
+        20:34, MD7): frequenza del deposito temporaneo scelta (trimestrale
+        o 30 m³, limite di un anno); produttore del rifiuto della
+        manutenzione fatta PRESSO IL CLIENTE; estintori ancora in
+        pressione; Albo per il trasporto sui furgoni; RENTRI; codici CER
+        di estintori a polvere, CO2, schiuma e dei rifiuti di cantiere
+        (porte, coppelle, cartongesso). Sono le domande qui sopra.
       Risposta: (in attesa)
+      NOTA PER IL TITOLARE: I 345 ESTINTORI RITIRATI NEL 2026 (F13.8,
+      verifica fuori dal gestionale, Acquisti + titolare, circa 30
+      minuti, da fare subito). Fonte: gestione-task/riferimenti/ultimi/
+      proposta.md (analisi di fatture.json: 1.520 documenti dal 02/01 al
+      20/10/2026, 799 fatture di ACQUISTO e 721 di vendita). Nelle 799
+      fatture di acquisto NON c'è nessuna fattura di uno smaltitore,
+      mentre ai clienti sono state fatturate 76 righe "RITIRO" per 345
+      estintori (3.572 €). Quindi i 345 estintori o sono ancora in
+      capannone (oltre i limiti del deposito temporaneo, se il limite è
+      di 3 mesi o di un anno) o li ha ritirati qualcuno senza fattura
+      (per esempio il fornitore in cambio merce) e senza un formulario
+      che conosciamo. Controllato anche nel backup del 04/11 (pre240,
+      solo conteggi): tra i 36 fornitori in anagrafica nessuno è uno
+      smaltitore; nessun DDT è intestato a uno smaltitore (i soli due DDT
+      con "ritiro estintori", n. 25 del 29/09 e n. 26 del 16/10, sono
+      intestati a un cliente); il registro presidi ha 67 estintori (4
+      eliminati nel 2026, nessuno "sostituito"): il gestionale oggi NON
+      traccia gli estintori ritirati, per questo la verifica è fuori.
+      Da scoprire: 1) DOVE sono oggi (contarli in capannone e sui
+      furgoni); 2) CHI li ha ritirati, quando e quanti per volta; 3) con
+      QUALE FORMULARIO (FIR, 4ª copia tornata?) e con quale fattura o
+      accordo (cambio merce?). Se sono ancora in capannone: ritiro
+      straordinario con uno smaltitore autorizzato e domanda al
+      consulente ambientale. Regola già decisa (MD3): gli estintori
+      ritirati per smaltimento non tornano MAI in circolo (cortesia e
+      noleggio solo da stock nostro).
+      Risposta del __/__, da chi (Acquisti / titolare):
+        - Dove sono: (in attesa)
+        - Chi li ha ritirati: (in attesa)
+        - Formulario / fattura: (in attesa)
+        - Cosa si fa adesso: (in attesa)
+      Letta dal titolare: (in attesa: data e "letta" qui o nel registro
+      decisioni di gestione-task/LEGGIMI-ERIKA.md)
    c) RSPP (materiali pericolosi e capannone).
       - Il capannone (deposito di estintori, bombole CO2, schiume,
         vernici intumescenti) è attività soggetta ai controlli dei VV.F.
