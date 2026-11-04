@@ -19,6 +19,8 @@
 // js/28): nel database restano leggibili. Il titolare riporta a
 // "confermato" un ordine segnato "arrivato" per errore, con il motivo
 // (cambia_stato_ordine_fornitore di sql/42; senza sql/42 niente bottone).
+// F13.6 (sql/240): la data di arrivo promessa all'ordine resta salvata
+// (arrivo_previsto_iniziale, la scrive il database); senza sql/240 non compare.
 // =====================================================================
 
 const ETICHETTE_STATO_ORDINE_FORNITORE = {
@@ -131,6 +133,20 @@ function totaleVociOrdine(voci) {
   return (voci || []).reduce(function(totale, voce) {
     return totale + Math.round(numeroPreventivo(voce.quantita) * numeroPreventivo(voce.prezzo_unitario) * 100) / 100;
   }, 0);
+}
+
+// F13.6 (sql/240): arrivo previsto quando è nato l'ordine (la promessa
+// del fornitore), scritto dal database e mai più cambiato. Senza sql/240
+// la colonna non arriva (select '*') e non si mostra nulla; vuota = ordine
+// già confermato prima di sql/240: dato non disponibile.
+function testoArrivoPromessoOrdine(o) {
+  if (!o || !Object.prototype.hasOwnProperty.call(o, 'arrivo_previsto_iniziale')) return '';
+  if (!o.arrivo_previsto_iniziale) {
+    return 'Arrivo promesso all\'ordine: dato non disponibile (ordine registrato prima che il gestionale lo conservasse)';
+  }
+  const cambiato = o.arrivo_previsto && o.arrivo_previsto !== o.arrivo_previsto_iniziale;
+  return 'Arrivo promesso all\'ordine: ' + fd(o.arrivo_previsto_iniziale) +
+    (cambiato ? ' (poi ' + fd(o.arrivo_previsto) + ')' : '');
 }
 
 // ── Box nella scheda della commessa (chiamata da js/26) ─────────────
@@ -286,7 +302,9 @@ function htmlElencoOrdiniCommessa(commessa) {
       const inRitardo = ['ordinato', 'confermato'].includes(o.stato) && o.arrivo_previsto && o.arrivo_previsto < oggi;
       const arrivo = o.stato === 'arrivato'
         ? 'arrivato il ' + fd(o.data_arrivo)
-        : 'arrivo previsto ' + fd(o.arrivo_previsto);
+        : 'arrivo previsto ' + fd(o.arrivo_previsto) +
+          (o.arrivo_previsto_iniziale && o.arrivo_previsto_iniziale !== o.arrivo_previsto
+            ? ' (promesso all\'ordine ' + fd(o.arrivo_previsto_iniziale) + ')' : '');
       // Il PDF dell'ordine ha i prezzi: non per il capo tecnico.
       const bottoni = prezzi
         ? [`<button class="btn sm" onclick="scaricaPdfOrdineFornitore('${esc(o.id)}')">📄 PDF</button>`]
@@ -332,6 +350,8 @@ function htmlElencoOrdiniCommessa(commessa) {
 function htmlDettaglioOrdineFornitore(o) {
   const passaggi = [];
   passaggi.push('Ordinato il ' + fd(o.data_ordine) + (o.creato_da_nome ? ' da ' + o.creato_da_nome + (o.creato_da_ruolo ? ' (' + etichettaRuolo(o.creato_da_ruolo) + ')' : '') : ''));
+  const promesso = testoArrivoPromessoOrdine(o);
+  if (promesso) passaggi.push(promesso);
   if (o.confermato_il) {
     passaggi.push('Confermato dal fornitore (registrato il ' + dataOraEsitoPreventivo(o.confermato_il) +
       (o.confermato_da_nome ? ' da ' + o.confermato_da_nome : '') + ')' + (o.nota_conferma ? ': ' + o.nota_conferma : ''));

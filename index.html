@@ -2869,6 +2869,12 @@
     <b>Risposta ricevuta</b> o <b>Scartato</b>.
   </div>
 
+  <div class="al2 i">
+    I PDF che carichi con <b>📎 Carica PDF ricevuto</b> li vedi tu e il
+    titolare (dopo l'aggiornamento del database sql/240): il titolare può
+    aprirli per controllare le offerte. Gli altri commerciali non li vedono.
+  </div>
+
   <hr class="sep">
 
   <h4 id="info-com-4">4. Preventivo cliente</h4>
@@ -3015,6 +3021,14 @@
     <b>🛒 Crea ordine e PDF</b>. Di solito lo fa il rappresentante, ma puoi
     farlo anche tu; segui conferme e arrivi con
     <b>✔️ Confermato dal fornitore</b>.
+  </p>
+
+  <p>
+    L'<b>Arrivo previsto</b> che scrivi creando l'ordine resta salvato come
+    <b>Arrivo promesso all'ordine</b>: se il fornitore conferma un'altra data
+    l'ordine mostra “arrivo previsto 28/11 (promesso all'ordine 20/11)”. La
+    data promessa non si cambia: scrivi quella che il fornitore ti ha dato
+    davvero.
   </p>
 
   <hr class="sep">
@@ -3840,6 +3854,16 @@
         <li>correggere una commessa già chiusa o annullata.</li>
       </ul>
 
+      <div class="al2 i">
+        Ordini ai fornitori: la data di arrivo scritta quando nasce l'ordine
+        resta salvata come <b>Arrivo promesso all'ordine</b> (in
+        <b>Voci e passaggi</b> dell'ordine) anche se poi il fornitore conferma
+        un'altra data; nessuno la cambia, nemmeno tu. Servirà a misurare la
+        puntualità dei fornitori. Per gli ordini confermati prima
+        dell'aggiornamento del database (sql/240) c'è scritto
+        “dato non disponibile”.
+      </div>
+
       <div class="al2 w">
         <b>Attenzione:</b> ogni forzatura resta nello storico con il tuo nome e
         il motivo. Usala per sbloccare un caso reale, non per saltare i
@@ -3944,6 +3968,21 @@
         <b>Scelto per il preventivo</b> su una seconda offerta della stessa
         tipologia il sito chiede conferma: ogni offerta scelta propone un
         ordine nella commessa (rischio di doppio ordine).
+      </div>
+
+      <p>
+        Nello stesso tab, sotto ogni offerta, in <b>📩 Preventivo ricevuto dal
+        fornitore</b> vedi i PDF caricati dal commerciale e li apri con
+        <b>Apri</b>, anche per i preventivi che non hai fatto tu (dopo
+        l'aggiornamento del database sql/240; prima li vedeva solo il
+        commerciale che ha fatto il preventivo). Gli altri commerciali e gli
+        altri ruoli non li vedono.
+      </p>
+
+      <div class="info-esempio">
+        Esempio: Laura ha chiesto tre offerte per le porte REI. Apri il
+        preventivo, tab <b>🏭 Fornitori</b>, e con <b>Apri</b> confronti i tre
+        PDF prima di dire quale scegliere.
       </div>
 
       <hr class="sep">
