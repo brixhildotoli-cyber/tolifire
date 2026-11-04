@@ -153,11 +153,94 @@ function resetPF() {
   switchPF();
 }
 
+// Scheda del presidio (m-scheda-presidio). Richiesta di Erika del 04/11:
+// tutti i tipi con la stessa impostazione grafica degli estintori
+// (riquadri colorati in evidenza come nelle schede presidio del cliente,
+// js/09), poi i dati del tipo e i controlli voce per voce (☒ SI / ☒ NO / ☐).
+// Lo storico semestrale (js/20) e i dati della manichetta (js/22) si
+// aggiungono sotto, come prima.
+function datoNotaPresidio(note, etichette) {
+  const testo = String(note || '');
+  for (const etichetta of etichette) {
+    const m = testo.match(new RegExp('(?:^|[·;\\n]\\s*|\\.\\s*)' + etichetta.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*:\\s*([^·;\\n]+)', 'i'));
+    if (m && m[1].trim()) return m[1].trim();
+  }
+  return '';
+}
+
+function riquadroEvidenzaPresidio(icona, etichetta, valore, colori) {
+  return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;background:${colori[0]};border:1px solid ${colori[1]};border-radius:8px">
+    <span style="font-weight:700;color:${colori[2]};font-size:13px">${icona} ${esc(etichetta)}</span>
+    <strong style="color:${colori[2]};font-size:13px;text-align:right">${esc(valore || '—')}</strong>
+  </div>`;
+}
+
+const COLORI_EVIDENZA_PRESIDIO = {
+  giallo: ['#fff4d6', '#e7b651', '#8a4b00'],
+  blu: ['#e8f3ff', '#72aee6', '#145a9b'],
+  verde: ['#eaf7ee', '#7cc49a', '#166534'],
+  rosso: ['#fdecec', '#e79a9a', '#9b1c1c']
+};
+
+// Riquadri in evidenza e campi della scheda, per tipo di presidio.
+function campiSchedaPresidio(p) {
+  const scadenza = p.data_scadenza_collaudo ? fd(p.data_scadenza_collaudo)
+    : p.anno_scadenza ? p.anno_scadenza + ' — data da precisare' : '';
+  const ultima = p.data_ultimo_controllo ? fd(p.data_ultimo_controllo) : '';
+  const prossima = p.data_prossimo_controllo ? fd(p.data_prossimo_controllo) : '';
+  const meseManut = datoNotaPresidio(p.note, ['Mese manutenzione indicato', 'Manutenzione mese']);
+  const revisione = datoNotaPresidio(p.note, ['Prossima revisione', 'PROSS. RIC.']) ||
+    (p.data_scadenza_revisione ? fd(p.data_scadenza_revisione) : '');
+  const periodicita = p.periodicita_mesi ? p.periodicita_mesi + ' mesi' : '';
+  const C = COLORI_EVIDENZA_PRESIDIO;
+  const ev = [];
+  const campi = [];
+  if (p.tipo === 'estintore') {
+    ev.push(['📅', 'Mese manutenzione', meseManut, C.giallo], ['🔄', 'Prossima revisione', revisione, C.blu],
+      ['⏳', 'Scadenza collaudo', scadenza, C.rosso], ['✅', 'Ultima verifica', ultima, C.verde]);
+    campi.push(['Agente estinguente', al2(p.modello)], ['Capacità', p.capacita], ['Marca', p.marca],
+      ['Prossima verifica', prossima]);
+  } else if (p.tipo === 'porta_rei' || p.tipo === 'uscita_emergenza') {
+    ev.push(['✅', 'Ultima verifica', ultima, C.verde], ['📅', 'Prossima verifica', prossima, C.giallo]);
+    if (p.tipo === 'porta_rei') ev.push(['🛡️', 'Classe REI / modello', p.modello, C.blu]);
+    campi.push(['Produttore / marca', p.marca]);
+    if (p.tipo === 'uscita_emergenza') campi.push(['Modello / descrizione', p.modello]);
+  } else if (p.tipo === 'manichetta') {
+    ev.push(['⏳', 'Scadenza', scadenza, C.rosso], ['✅', 'Ultima verifica', ultima, C.verde],
+      ['📅', 'Prossima verifica', prossima, C.giallo]);
+    campi.push(['Tipologia', p.modello], ['Stato — anomalia / appunto del tecnico', p.esito_verifica], ['Marca', p.marca]);
+  } else if (p.tipo === 'idrante' || p.tipo === 'naspo') {
+    ev.push(['✅', 'Ultima verifica', ultima, C.verde], ['📅', 'Prossima verifica', prossima, C.giallo],
+      ['⏳', 'Scadenza collaudo', scadenza, C.rosso]);
+    campi.push(['Marca', p.marca], ['Modello / descrizione', p.modello]);
+  } else {
+    // Luci di emergenza, evacuatori di fumo e altri impianti.
+    ev.push(['✅', 'Ultima verifica', ultima, C.verde], ['📅', 'Prossima verifica', prossima, C.giallo]);
+    if (scadenza) ev.push(['⏳', 'Scadenza', scadenza, C.rosso]);
+    campi.push(['Marca', p.marca], ['Modello / descrizione', p.modello]);
+  }
+  campi.push(['Ubicazione', p.ubicazione], ['Piano', p.piano], ['Locale / area', p.locale],
+    ['Periodicità', periodicita], ['Annata', p.annata], ['Data installazione', p.data_installazione ? fd(p.data_installazione) : '']);
+  return { evidenza: ev, campi: campi };
+}
+
+// Voci del controllo con il loro esito. Senza voci registrate: le voci
+// standard del tipo (CKL_PRESIDIO, js/01) senza esito.
+function vociControlloSchedaPresidio(p) {
+  const si = Array.isArray(p.voci_x_si) ? p.voci_x_si : [];
+  const no = Array.isArray(p.voci_x_no) ? p.voci_x_no : [];
+  const vuote = Array.isArray(p.voci_x_vuote) ? p.voci_x_vuote : [];
+  const registrate = si.length || no.length || vuote.length;
+  const voci = registrate ? [...new Set([...si, ...no, ...vuote])] : (CKL_PRESIDIO[p.tipo] || []);
+  return {
+    registrate: !!registrate,
+    righe: voci.map(function(voce) { return { voce: voce, esito: no.includes(voce) ? 'NO' : si.includes(voce) ? 'SI' : '' }; })
+  };
+}
+
 async function apriSchedaPresidio(id) {
   ricordaPosizionePagina();
   openM('m-scheda-presidio');
-
-
   ge('msp-titolo').textContent = 'Scheda presidio';
   ge('msp-contenuto').innerHTML = '<div class="load">Caricamento...</div>';
 
@@ -169,238 +252,82 @@ async function apriSchedaPresidio(id) {
     .single();
 
   if (error || !p) {
-    ge('msp-contenuto').innerHTML =
-      '<div class="empty">Impossibile caricare la scheda del presidio.</div>';
+    ge('msp-contenuto').innerHTML = '<div class="empty">Impossibile caricare la scheda del presidio.</div>';
     return;
   }
 
-  const campo = (etichetta, valore) => `
-    <div style="padding:10px 0;border-bottom:1px solid var(--bl)">
-      <div class="muted" style="font-size:12px">${esc(etichetta)}</div>
-      <div style="font-weight:600;margin-top:3px">
-        ${valore !== null && valore !== undefined && valore !== ''
-          ? esc(String(valore))
-          : '—'}
-      </div>
-    </div>
-  `;
+  const stato = { ok: '✅ OK', anomalia: '⚠️ Anomalia', fuori_servizio: '🔴 Fuori servizio', scaduto: '❌ Scaduto' }[p.stato] || p.stato || 'Non compilato';
+  const coloreStato = { ok: 'var(--g)', anomalia: 'var(--a)', fuori_servizio: 'var(--r)', scaduto: 'var(--r)' }[p.stato] || 'var(--m)';
+  const { evidenza, campi } = campiSchedaPresidio(p);
+  const controlli = vociControlloSchedaPresidio(p);
 
-  const stato = {
-    ok: '✅ OK',
-    anomalia: '⚠️ Anomalia',
-    fuori_servizio: '🔴 Fuori servizio',
-    scaduto: '❌ Scaduto'
-  }[p.stato] || p.stato || '—';
-
-
-   const vociSi = Array.isArray(p.voci_x_si) ? p.voci_x_si : [];
-const vociNo = Array.isArray(p.voci_x_no) ? p.voci_x_no : [];
-const vociVuote = Array.isArray(p.voci_x_vuote)
-  ? p.voci_x_vuote
-  : [];
-  const notaOperativa = String(p.note || '')
-  .split(/[;\n]+/)
-  .map(function(parte) {
-    return parte
-      .trim()
-      .replace(/^note\s*:\s*/i, '');
-  })
-  .filter(function(parte) {
-    return parte &&
-      !/^(documento(?:\s+\w+)?|fonte|pagina|scheda\s+\d+|numero\s+progressivo)\b/i.test(parte);
-  })
-  .join('\n')
-  .trim();
-
-const esitoNonConforme =
-  /non\s+conforme|non\s+riallineabile/i.test(
-    String(p.esito_verifica || '')
-  );
-
-const rigaVuota = function(voce) {
-  return `
-    <div style="padding:8px 0;border-bottom:1px solid var(--bl);display:flex;gap:10px">
-      <b style="color:var(--m);min-width:42px">☐</b>
-      <span>${esc(voce)}</span>
-    </div>
-  `;
-};
-
-
-  const rigaControllo = function(voce, esito) {
-    const positivo = esito === 'SI';
-
-    return `
-      <div style="padding:8px 0;border-bottom:1px solid var(--bl);display:flex;gap:10px">
-        <b style="color:${positivo ? 'var(--g)' : 'var(--r)'};min-width:42px">
-          ☒ ${esito}
-        </b>
-        <span>${esc(voce)}</span>
-      </div>
-    `;
+  const campo = function(etichetta, valore) {
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--bl);min-width:0">
+      <div class="muted" style="font-size:11px;color:var(--m)">${esc(etichetta)}</div>
+      <div style="font-weight:600;margin-top:2px;overflow-wrap:anywhere">${valore !== null && valore !== undefined && valore !== '' ? esc(String(valore)) : '—'}</div>
+    </div>`;
   };
+  const rigaControllo = function(r) {
+    const segno = r.esito === 'SI' ? '<b style="color:var(--g)">☒ SI</b>'
+      : r.esito === 'NO' ? '<b style="color:var(--r)">☒ NO</b>'
+      : '<b style="color:var(--m)">☐</b>';
+    return `<div style="display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--bl)">
+      <span style="min-width:52px">${segno}</span><span style="overflow-wrap:anywhere">${esc(r.voce)}</span>
+    </div>`;
+  };
+  const conteggio = { SI: 0, NO: 0, '': 0 };
+  controlli.righe.forEach(function(r) { conteggio[r.esito]++; });
 
-const notePresidio = String(p.note || '');
+  // Note: per gli estintori importati il campo note ripete revisione e
+  // collaudo (già nei riquadri): si mostrano le altre parti.
+  const notaOperativa = String(p.note || '').split(/[;·\n]+/)
+    .map(function(parte) { return parte.trim().replace(/^note\s*:\s*/i, ''); })
+    .filter(function(parte) {
+      return parte && !/^(documento(?:\s+\w+)?|fonte|pagina|scheda\s+\d+|numero\s+progressivo|sede|prossima revisione|pross\. ric\.|scadenza collaudo|mese manutenzione indicato|manutenzione mese)\b/i.test(parte);
+    }).join('\n').trim();
+  const esitoNonConforme = /non\s+conforme|non\s+riallineabile/i.test(String(p.esito_verifica || ''));
 
-const prossimaRevisione = (
-  notePresidio.match(
-    /(?:Prossima revisione|PROSS\.\s*RIC\.)\s*:\s*([^·;\n]+)/i
-  ) || []
-)[1]?.trim() || '';
-
-const meseManutenzione = (
-  notePresidio.match(
-    /(?:Mese manutenzione indicato|Manutenzione mese)\s*:\s*([^·;\n]+)/i
-  ) || []
-)[1]?.trim() || '';
-
-  ge('msp-titolo').textContent =
-    `Scheda presidio · ${p.matricola || 'senza matricola'}`;
-
+  ge('msp-titolo').textContent = `Scheda presidio · ${p.matricola || 'senza matricola'}`;
   ge('msp-contenuto').innerHTML = `
-    <div class="card" style="margin:0">
-      <div class="grid2">
-        ${campo('Cliente', p.clienti?.ragione_sociale)}
-        ${campo('Tipologia', tpl(p.tipo))}
-        ${campo('Matricola', p.matricola)}
-        ${campo('Numero progressivo', p.numero_progressivo)}
-        ${campo(p.tipo === 'manichetta' ? 'Esito generale' : 'Stato', stato)}
+    <div class="card" style="margin:0;position:relative">
+      <div style="position:absolute;top:12px;right:12px;font-size:12px;font-weight:700;color:${coloreStato}">${esc(stato)}</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--m);margin-bottom:4px">${tpl(p.tipo)}</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:2px;padding-right:110px;overflow-wrap:anywhere">${esc(p.matricola || 'Senza matricola')}</div>
+      <div style="font-size:12px;color:var(--m)">Numero progressivo: <b style="color:var(--t)">${esc(p.numero_progressivo || '—')}</b></div>
+      <div style="font-size:12px;color:var(--m);margin-bottom:12px">${esc(p.clienti?.ragione_sociale || '—')}</div>
 
-${p.tipo === 'manichetta'
-  ? campo('Stato — anomalia / appunto del tecnico', p.esito_verifica || '')
-  : ''}
-        ${campo('Marca', p.marca)}
-        ${campo('Modello / descrizione', p.modello)}
-        ${campo('Ubicazione', p.ubicazione)}
-        ${campo('Piano', p.piano)}
-        ${campo('Locale / area', p.locale)}
-       ${campo('Periodicità', p.periodicita_mesi ? `${p.periodicita_mesi} mesi` : '')}
-
-${p.tipo === 'estintore'
-  ? campo('Mese manutenzione', meseManutenzione)
-  : ''}
-
-${campo('Ultima verifica', p.data_ultimo_controllo ? fd(p.data_ultimo_controllo) : '')}
-    ${campo('Prossima verifica', p.data_prossimo_controllo ? fd(p.data_prossimo_controllo) : '')}
-
-${p.tipo === 'estintore'
-  ? campo('Prossima revisione', prossimaRevisione)
-  : ''}
-
-${campo(
-  p.tipo === 'manichetta' ? 'Scadenza' : 'Scadenza collaudo',
-  p.data_scadenza_collaudo
-    ? fd(p.data_scadenza_collaudo)
-    : p.anno_scadenza
-      ? `${p.anno_scadenza} — data da precisare`
-      : ''
-)}
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+        ${evidenza.map(function(e) { return riquadroEvidenzaPresidio(e[0], e[1], e[2], e[3]); }).join('')}
       </div>
 
-          ${(vociSi.length || vociNo.length || vociVuote.length || p.esito_verifica) ? `
-        <div style="margin-top:18px;border-top:1px solid var(--bl);padding-top:14px">
-          <div style="font-weight:700;margin-bottom:8px">
-            Controlli della verifica
-          </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));column-gap:16px">
+        ${campi.map(function(c) { return campo(c[0], c[1]); }).join('')}
+      </div>
 
-         ${p.esito_verifica ? `
-  <div class="al2 i" style="margin-bottom:10px">
-    <b>Esito:</b> ${esc(p.esito_verifica)}
-  </div>
-` : ''}
-
-${esitoNonConforme && notaOperativa ? `
-  <div
-    style="
-      margin:0 0 12px;
-      padding:12px;
-      border-radius:8px;
-      border:1px solid #fed7aa;
-      border-left:4px solid #ea580c;
-      background:#fff7ed;
-      white-space:pre-wrap
-    "
-  >
-    <div style="font-size:12px;font-weight:700;color:#9a3412;margin-bottom:5px">
-      ⚠️ Note / anomalia rilevata
-    </div>
-
-    <div style="font-size:13px">
-      ${esc(notaOperativa)}
-    </div>
-  </div>
-` : ''}
-
-          ${vociSi.length ? `
-            <div style="font-size:12px;color:var(--m);margin:10px 0 4px">
-              Voci contrassegnate SI
-            </div>
-            ${vociSi.map(function(voce) {
-              return rigaControllo(voce, 'SI');
-            }).join('')}
-          ` : ''}
-
-          ${vociNo.length ? `
-            <div style="font-size:12px;color:var(--m);margin:14px 0 4px">
-              Voci contrassegnate NO
-            </div>
-            ${vociNo.map(function(voce) {
-              return rigaControllo(voce, 'NO');
-            }).join('')}
-          ` : ''}
-
-          ${vociVuote.length ? `
-  <div style="font-size:12px;color:var(--m);margin:14px 0 4px">
-    Voci senza esito indicato
-  </div>
-
-  ${vociVuote.map(function(voce) {
-    return rigaVuota(voce);
-  }).join('')}
-` : ''}
-
-          ${p.fonte_pdf ? `
-            <div style="font-size:11px;color:var(--m);margin-top:12px">
-              Fonte: ${esc(p.fonte_pdf)}
-              ${p.pagina_pdf ? ` · pagina ${esc(String(p.pagina_pdf))}` : ''}
-            </div>
-          ` : ''}
-
-<div
-  style="
-    margin-top:14px;
-    padding:10px 12px;
-    border-radius:8px;
-    background:#f8fafc;
-    border:1px solid var(--bl);
-    font-size:12px;
-    line-height:1.65
-  "
->
-  <b>Legenda</b><br>
-
-  <span style="font-weight:700;color:#166534">☒ SI</span>
-  = controllo verificato con esito positivo.<br>
-
-  <span style="font-weight:700;color:var(--r)">☒ NO</span>
-  = controllo non superato o anomalia da gestire.<br>
-
-  <span style="font-weight:700;color:var(--m)">☐</span>
-  = operazione presente nel modulo, ma senza una X:
-  deve essere verificata o compilata.<br><br>
-x
-</div>
+      <div style="margin-top:16px;border-top:1px solid var(--bl);padding-top:12px">
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+          <div style="font-weight:700">Controlli della verifica</div>
+          ${controlli.righe.length ? `<div style="font-size:12px;color:var(--m)"><b style="color:var(--g)">${conteggio.SI} SI</b> · <b style="color:var(--r)">${conteggio.NO} NO</b> · ${conteggio['']} senza esito</div>` : ''}
         </div>
-      ` : ''}
+        ${p.esito_verifica && p.tipo !== 'manichetta' ? `<div class="al2 i" style="margin-bottom:10px"><b>Esito:</b> ${esc(p.esito_verifica)}</div>` : ''}
+        ${esitoNonConforme && notaOperativa ? `<div style="margin:0 0 12px;padding:12px;border-radius:8px;border:1px solid #fed7aa;border-left:4px solid #ea580c;background:#fff7ed;white-space:pre-wrap">
+          <div style="font-size:12px;font-weight:700;color:#9a3412;margin-bottom:5px">⚠️ Note / anomalia rilevata</div>
+          <div style="font-size:13px">${esc(notaOperativa)}</div></div>` : ''}
+        ${!controlli.registrate && controlli.righe.length ? '<div style="font-size:12px;color:var(--m);margin-bottom:4px">Nessuna verifica registrata: queste sono le voci del controllo per questo tipo di presidio.</div>' : ''}
+        ${controlli.righe.length ? controlli.righe.map(rigaControllo).join('') : '<div style="font-size:12px;color:var(--m)">Nessuna voce di controllo per questo tipo di presidio.</div>'}
+        ${p.fonte_pdf ? `<div style="font-size:11px;color:var(--m);margin-top:10px">Fonte: ${esc(p.fonte_pdf)}${p.pagina_pdf ? ' · pagina ' + esc(String(p.pagina_pdf)) : ''}</div>` : ''}
+        <div style="margin-top:12px;padding:10px 12px;border-radius:8px;background:#f8fafc;border:1px solid var(--bl);font-size:12px;line-height:1.65">
+          <b>Legenda</b><br>
+          <span style="font-weight:700;color:#166534">☒ SI</span> = controllo verificato con esito positivo.<br>
+          <span style="font-weight:700;color:var(--r)">☒ NO</span> = controllo non superato o anomalia da gestire.<br>
+          <span style="font-weight:700;color:var(--m)">☐</span> = voce del modulo senza una X: da verificare o compilare.
+        </div>
+      </div>
 
-     ${!(esitoNonConforme && notaOperativa) ? `
-  <div style="margin-top:16px">
-    <div class="muted" style="font-size:12px">Note / anomalie</div>
-    <div style="margin-top:5px;white-space:pre-wrap">
-      ${p.note ? esc(p.note) : 'Nessuna nota registrata.'}
-    </div>
-  </div>
-` : ''}
+      ${!(esitoNonConforme && notaOperativa) ? `<div style="margin-top:16px">
+        <div class="muted" style="font-size:12px;color:var(--m)">Note / anomalie</div>
+        <div style="margin-top:5px;white-space:pre-wrap">${notaOperativa ? esc(notaOperativa) : 'Nessuna nota registrata.'}</div>
+      </div>` : ''}
     </div>
   `;
 }

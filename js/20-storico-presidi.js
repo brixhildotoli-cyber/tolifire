@@ -18,22 +18,45 @@ const mesiSchede = {
 function gestisceStoricoPresidi() {
   return ['titolare', 'capo_tecnico'].includes(ROLE);
 }
+// Richiesta di Erika del 04/11: il riporto dallo storico lo fanno anche i
+// tecnici (solo i presidi dei clienti che leggono: sql/255).
+function riportaStoricoPresidi() {
+  return ['titolare', 'capo_tecnico', 'tecnico'].includes(ROLE);
+}
 
+// Il gruppo dice solo in quali mesi cade la verifica (1 e 7 oppure 2 e 8);
+// il semestre lo dà la data: 1° = gennaio-giugno, 2° = luglio-dicembre.
 function nomeCicloScheda(ciclo) {
   return {
-    gennaio_luglio: 'Gennaio – Giugno',
-    febbraio_agosto: 'Luglio – Dicembre'
+    gennaio_luglio: 'Gruppo gennaio/luglio',
+    febbraio_agosto: 'Gruppo febbraio/agosto'
   }[ciclo] || 'Gruppo non assegnato';
 }
 
 function periodoScheda(s) {
   if (s.dati?.tipo === 'manichetta') return s.data_intervento ? 'Intervento del '+fd(s.data_intervento) : 'Scheda documentale — data non indicata';
-  return `${nomeCicloScheda(s.ciclo)} · ${Number(s.mese) < 7 ? '1°' : '2°'} semestre ${s.anno}`;
+  return `${Number(s.mese) < 7 ? '1° semestre (gennaio–giugno)' : '2° semestre (luglio–dicembre)'} ${s.anno} · ${nomeCicloScheda(s.ciclo)}`;
+}
+// Periodo dello storico per una data di verifica (AAAA-MM-GG): semestre
+// della data, mese 1/7 o 2/8 secondo il gruppo (decisione di Erika del 04/11).
+function periodoDaDataVerifica(ciclo, data) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(data || ''))) return null;
+  const anno = Number(data.slice(0,4)), meseData = Number(data.slice(5,7));
+  const semestre = meseData <= 6 ? 1 : 2;
+  const gruppo = ciclo === 'febbraio_agosto' ? 'febbraio_agosto' : 'gennaio_luglio';
+  return { ciclo: gruppo, anno, semestre, mese: (gruppo === 'febbraio_agosto' ? [2,8] : [1,7])[semestre-1] };
+}
+// Scheda già presente nello stesso semestre (qualunque gruppo): si tiene la prima.
+function schedaStessoSemestre(schede, periodo) {
+  if (!periodo) return null;
+  const mesi = periodo.semestre === 1 ? [1,2] : [7,8];
+  return (schede || []).find(s => Number(s.anno) === periodo.anno && mesi.includes(Number(s.mese))) || null;
 }
 function periodoSuccessivo(s) {
   return { ciclo: s.ciclo, anno: Number(s.anno) + (Number(s.mese) >= 7 ? 1 : 0),
            mese: Number(s.mese) < 7 ? Number(s.mese) + 6 : Number(s.mese) - 6 };
 }
+// Non più usata dal 04/11 (il periodo lo dà la data: periodoDaDataVerifica).
 function periodoRiportoPresidio(s) {
   const oggi = new Date();
   const semestre = oggi.getMonth() < 6 ? 0 : 1;
@@ -119,7 +142,7 @@ function mostraStoricoPresidio() {
   if (!box) return;
   box.innerHTML = (storicoPresidi.anagrafica?.tipo === 'manichetta' ? '<h3>Storico interventi manichetta</h3><p>La scadenza della manichetta è distinta dalla data dell’intervento. Nessun riporto semestrale.</p>' : '<h3>Schede semestrali</h3><p>Il gruppo resta fisso. La data effettiva della verifica è indipendente dal semestre di riferimento.</p>') +
     (gestisceStoricoPresidi() ? '<button class="btn sm" onclick="registraSchedaGiaCaricata()">Registra nello storico la scheda già caricata</button>' : '') +
-    (storicoPresidi.schede.length ? '' : '<p>Nessuna scheda storica: registra la scheda già caricata o importa il CSV.</p>') +
+    (storicoPresidi.schede.length ? '' : (ROLE === 'tecnico' ? '<p>Nessuna scheda nello storico di questo presidio. Se il cliente ne ha, chiedi al capo tecnico: lo storico per il tecnico si attiva con l’aggiornamento del database (sql/255).</p>' : '<p>Nessuna scheda storica: registra la scheda già caricata o importa il CSV.</p>')) +
     storicoPresidi.schede.map((s,i) => {
       const d = s.dati || {};
       const tecnico = storicoPresidi.utenti.find(u => u.id === s.tecnico_id);
@@ -132,11 +155,11 @@ function mostraStoricoPresidio() {
   Apri / modifica ${esc(periodoScheda(s))}
 </button>
 
-<button class="btn sm p" onclick="apriEditorSchedaPresidio(${i},true)">
+${riportaStoricoPresidi() ? `<button class="btn sm p" onclick="apriEditorSchedaPresidio(${i},true)">
   ${s.dati?.tipo === 'manichetta'
     ? 'Riprendi per un nuovo intervento'
-    : 'Porta a ' + esc(periodoScheda(periodoRiportoPresidio(s)))}
-</button>
+    : 'Riporta in una nuova verifica'}
+</button>` : ''}
 
 ${gestisceStoricoPresidi() ? `
   <button
@@ -197,20 +220,17 @@ function apriEditorSchedaPresidio(indice, riporta) {
   const origine = storicoPresidi.schede[indice];
   if (!origine) return;
   const manichetta = origine.dati?.tipo === 'manichetta';
-  const target = riporta ? (manichetta ? origine : periodoRiportoPresidio(origine)) : origine;
-  const esistente = riporta && !manichetta && storicoPresidi.schede.find(s => Number(s.anno) === target.anno && Number(s.mese) === target.mese);
-  if (esistente) {
-    toast('Questo periodo esiste già: apro la scheda salvata.');
-    return apriEditorSchedaPresidio(storicoPresidi.schede.indexOf(esistente),false);
-  }
+  if (riporta && !riportaStoricoPresidi()) { toast('Il riporto lo fanno tecnico, capo tecnico e titolare.','err'); return; }
+  const target = origine;
   const d = origine.dati || {};
   storicoPresidi.token = riporta ? crypto.randomUUID() : null;
   const textarea = (id,label,val) => `<div class="f"><label>${label}</label><textarea id="${id}">${esc(val || '')}</textarea></div>`;
   const righe = a => Array.isArray(a) ? a.join('\n') : '';
   ge('storico-presidio').innerHTML = `<div class="card">
-    <h3>${manichetta && riporta ? 'Nuovo intervento manichetta' : (riporta ? 'Nuova scheda' : 'Modifica scheda')+': '+esc(periodoScheda(target))}</h3>
+    <h3>${manichetta && riporta ? 'Nuovo intervento manichetta' : riporta ? 'Nuova verifica dalla scheda '+esc(periodoScheda(origine)) : 'Modifica scheda: '+esc(periodoScheda(target))}</h3>
     <p>${riporta ? 'I controlli e le note sono già riportati. Se è tutto invariato, inserisci la data e salva. Altrimenti cambia le X o le note: lo storico precedente resta intatto.' : 'Stai modificando questo periodo, non creando il successivo.'}</p>
-    <div class="f"><label>Data della verifica</label><input id="sp-data" type="date" value="${esc(riporta ? '' : d.data_ultimo_controllo || '')}"></div>
+    <div class="f"><label>Data della verifica</label><input id="sp-data" type="date" max="${dataLocaleISO()}" value="${esc(riporta ? '' : d.data_ultimo_controllo || '')}" ${riporta && !manichetta ? `oninput="mostraPeriodoRiporto(${indice})"` : ''}></div>
+    ${riporta && !manichetta ? '<div id="sp-periodo" class="al2 i" style="margin-bottom:10px">Inserisci la data: la scheda andrà nel semestre della verifica (1° = gennaio–giugno, 2° = luglio–dicembre).</div>' : ''}
     ${manichetta ? '' : `<div class="f"><label>Prossima verifica</label><input id="sp-prossima" type="date" value="${esc(riporta ? '' : d.data_prossimo_controllo || '')}"></div>`}
     <div class="f"><label>Stato</label><select id="sp-stato"><option value="" ${!d.stato ? 'selected' : ''}>Non compilato</option>${['ok','anomalia','scaduto','fuori_servizio'].map(st => `<option value="${st}" ${st === d.stato ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
     ${textarea('sp-esito','Esito della verifica',d.esito_verifica)}
@@ -225,8 +245,21 @@ function apriEditorSchedaPresidio(indice, riporta) {
     ${gestisceStoricoPresidi() ? `<div class="f"><label>Operatore che può vedere e modificare questa scheda</label><select id="sp-tecnico"><option value="">Non assegnato</option>${storicoPresidi.utenti.map(u => `<option value="${esc(u.id)}" ${u.id === origine.tecnico_id ? 'selected' : ''}>${esc(`${u.nome || ''} ${u.cognome || ''}`)}</option>`).join('')}</select></div>` : ''}
     ${riporta ? '<div class="f"><label><input id="sp-conferma" type="checkbox"> Ho verificato i controlli riportati dalla scheda precedente.</label></div>' : ''}
     <button class="btn" onclick="mostraStoricoPresidio()">Annulla</button>
-    <button id="sp-salva" class="btn p" onclick="salvaSchedaPresidio(${indice},${riporta})">${manichetta ? 'Salva intervento' : 'Salva '+esc(periodoScheda(target))}</button>
+    <button id="sp-salva" class="btn p" onclick="salvaSchedaPresidio(${indice},${riporta})">${manichetta ? 'Salva intervento' : riporta ? 'Salva la nuova scheda' : 'Salva '+esc(periodoScheda(target))}</button>
   </div>`;
+}
+
+// Riporto: mostra in quale semestre andrà la scheda (dalla data della verifica).
+function mostraPeriodoRiporto(indice) {
+  const origine = storicoPresidi.schede[indice], box = ge('sp-periodo');
+  if (!origine || !box) return;
+  const periodo = periodoDaDataVerifica(origine.ciclo, v('sp-data'));
+  if (!periodo) { box.className = 'al2 i'; box.textContent = 'Inserisci la data: la scheda andrà nel semestre della verifica (1° = gennaio–giugno, 2° = luglio–dicembre).'; return; }
+  const gia = schedaStessoSemestre(storicoPresidi.schede, periodo);
+  box.className = gia ? 'al2 w' : 'al2 i';
+  box.textContent = gia
+    ? 'Nel ' + periodoScheda(periodo) + ' c’è già una scheda: si tiene quella (non si sovrascrive). Salvando la apro.'
+    : 'La scheda andrà in: ' + periodoScheda(periodo) + '.';
 }
 
 async function salvaSchedaPresidio(indice, riporta) {
@@ -234,11 +267,20 @@ async function salvaSchedaPresidio(indice, riporta) {
   const origine = storicoPresidi.schede[indice];
   if (!origine) return;
   const manichetta = origine.dati?.tipo === 'manichetta';
-  const target = riporta ? (manichetta ? origine : periodoRiportoPresidio(origine)) : origine;
   const impianto = storicoPresidi.impianto;
   const data = v('sp-data');
   if ((!data && (!manichetta || riporta)) || (data && !/^\d{4}-\d{2}-\d{2}$/.test(data))) {
     toast('Indica la data effettiva della verifica.','err'); return;
+  }
+  if (riporta && data > dataLocaleISO()) { toast('La data della verifica non può essere nel futuro.','err'); return; }
+  // Riporto: il periodo è il semestre della data della verifica.
+  const target = riporta && !manichetta ? periodoDaDataVerifica(origine.ciclo, data) : origine;
+  if (riporta && !manichetta) {
+    const gia = schedaStessoSemestre(storicoPresidi.schede, target);
+    if (gia) {
+      toast('Nel ' + periodoScheda(target) + ' c’è già una scheda: si tiene quella, non è stata sovrascritta. La apro.');
+      return apriEditorSchedaPresidio(storicoPresidi.schede.indexOf(gia), false);
+    }
   }
   if (riporta && !ge('sp-conferma')?.checked) { toast('Conferma i controlli prima di salvare.','err'); return; }
   const bottone = ge('sp-salva');
@@ -271,7 +313,7 @@ async function salvaSchedaPresidio(indice, riporta) {
         ? await db.rpc('nuovo_intervento_manichetta',{p_origine:origine.id,p_dati:dati,p_data:data,p_token:storicoPresidi.token})
         : await db.rpc('salva_riporto_presidio',{p_origine:origine.id,p_dati:dati,p_anno:target.anno,p_mese:target.mese});
       if (error) throw error;
-      toast(manichetta ? 'Nuovo intervento salvato. Lo storico precedente è conservato.' : 'Periodo pronto. Se esisteva già, i dati salvati sono stati conservati.');
+      toast(manichetta ? 'Nuovo intervento salvato. Lo storico precedente è conservato.' : 'Scheda salvata nel ' + periodoScheda(target) + '. Se il semestre aveva già una scheda, è stata tenuta quella.');
     } else {
       const {data:salvate,error} = await db.from(manichetta ? 'schede_manichette' : 'schede_presidi').update(manichetta ? {dati,tecnico_id:tecnico,data_intervento:data || null} : {dati,tecnico_id:tecnico})
         .eq('id',origine.id).eq('aggiornato_il',origine.aggiornato_il).select('id');

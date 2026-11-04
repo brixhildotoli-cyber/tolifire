@@ -3253,7 +3253,7 @@
       </p>
 
       <ul>
-        <li><b>Spunta</b> ogni presidio che hai verificato oggi: si apre il riquadro con <b>Stato dopo verifica</b> (✅ OK / Conforme, ⚠️ Anomalia rilevata, 🔴 Fuori servizio) e <b>Note intervento</b>. Ai presidi spuntati si aggiornano ultima e prossima verifica.</li>
+        <li><b>Spunta</b> ogni presidio che hai verificato oggi: si apre il riquadro con <b>Stato dopo verifica</b> (✅ OK / Conforme, ⚠️ Anomalia rilevata, 🔴 Fuori servizio), <b>Note intervento</b> e le voci del controllo (vedi il punto 15). Ai presidi spuntati si aggiornano ultima e prossima verifica e nasce la scheda nello storico.</li>
         <li>Con la matita <b>✏️</b> correggi i dati del presidio (matricola, ubicazione, piano…).</li>
         <li>Con <b>+ Aggiungi</b> inserisci un presidio che non è in elenco.</li>
         <li>Hai cambiato un presidio (estintore scaduto, manichetta rotta)? Premi <b>🔁 Sostituito</b> sul presidio vecchio: scrivi <b>Matricola</b> e <b>Annata</b> del nuovo, la marca, la capacità e il <b>Motivo</b>, poi <b>🔁 Registra la sostituzione</b>. Il vecchio esce dal registro, il nuovo entra al suo posto (stessa ubicazione) con il controllo di oggi.</li>
@@ -3427,6 +3427,29 @@
         più) compare <b>Non hai accesso</b> e resti sulla dashboard: chiedi a
         chi te l'ha mandato. I link dei preventivi, delle commesse e delle
         fatture non vanno mandati ai clienti: per loro c'è il portale.
+      </div>
+
+      <hr class="sep">
+
+      <h4 id="info-tec-15">15. I controlli del presidio e lo storico</h4>
+
+      <p>
+        Al passo <b>Step 4 — Aggiorna presidi</b>, quando spunti un presidio si aprono
+        <b>tutte le voci del suo controllo</b>, già segnate come nell’ultima scheda
+        (es. per una porta REI: Controllo chiusura, Controllo perno e molla, Lubrificante…).
+      </p>
+
+      <ul>
+        <li>Controlla ogni voce sul posto. Se è tutto come l’ultima volta <b>non devi toccare nulla</b>.</li>
+        <li>Se una voce è cambiata tocca <b>SI</b>, <b>NO</b> o <b>—</b> (senza esito). Con <b>✓ Tutti SI</b> metti SI a tutte le voci.</li>
+        <li>Alla chiusura (<b>Salva e chiudi intervento ✓</b>) ogni presidio spuntato va nello <b>storico</b>, nel semestre della data dell’intervento (1° = gennaio–giugno, 2° = luglio–dicembre). Il messaggio finale ti dice quante schede sono nate.</li>
+        <li>Se quel presidio ha già una scheda nello stesso semestre, <b>si tiene la prima</b>: la tua non la sostituisce.</li>
+        <li>Puoi anche aprire la scheda del presidio e premere <b>Riporta in una nuova verifica</b>: metti la data, controlla le voci e salva.</li>
+      </ul>
+
+      <div class="al2 i">
+        Se alla chiusura compare “Storico presidi non aggiornato”, l’intervento è salvato lo stesso:
+        avvisa il capo tecnico.
       </div>
 
       <hr class="sep">
@@ -3839,6 +3862,29 @@
         più) compare <b>Non hai accesso</b> e resti sulla dashboard: chiedi a
         chi te l'ha mandato. I link dei preventivi, delle commesse e delle
         fatture non vanno mandati ai clienti: per loro c'è il portale.
+      </div>
+
+      <hr class="sep">
+
+      <h4 id="info-ct-18">18. Storico semestrale dei presidi</h4>
+
+      <p>
+        Ogni presidio ha il suo <b>storico</b>: una scheda per semestre
+        (<b>1° semestre</b> = gennaio–giugno, <b>2° semestre</b> = luglio–dicembre).
+        Il semestre lo dà sempre la <b>data della verifica</b>, non il giorno in cui la scrivi.
+      </p>
+
+      <ul>
+        <li><b>Da Esegui intervento</b>: al passo <b>Step 4 — Aggiorna presidi</b> ogni presidio spuntato mostra le voci del controllo come nell’ultima scheda (SI / NO / —). Alla chiusura per ogni presidio spuntato nasce la scheda nello storico, nel semestre della data dell’intervento. Con <b>Non ho potuto completare</b> non nasce nessuna scheda.</li>
+        <li><b>Dallo storico</b>: apri la scheda del presidio, poi <b>Riporta in una nuova verifica</b> (o <b>Esegui nuovo controllo</b> dalle Scadenze). Metti la data: sotto vedi in quale semestre andrà. Se è tutto come prima basta confermare e salvare; se qualcosa è cambiato correggi le X o le note.</li>
+        <li>Se nello stesso semestre c’è già una scheda di quel presidio <b>si tiene la prima</b>: non viene sovrascritta e il sito te lo dice. Per correggerla usa <b>Apri / modifica</b>.</li>
+        <li>I tecnici vedono e riportano lo storico solo dei presidi dei clienti dei loro interventi.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>
+        <code>Intervento del 04/11/2026 → scheda nel 2° semestre (luglio–dicembre) 2026</code><br>
+        <code>Verifica del 15/03/2027 → scheda nel 1° semestre (gennaio–giugno) 2027</code>
       </div>
 
       <hr class="sep">
@@ -7853,6 +7899,7 @@
 <script defer src="js/52-nota-credito-parziale.js?v=202611041547"></script>
 <script defer src="js/53-lavori-extra-rappresentante.js?v=202611041547"></script>
 <script defer src="js/54-recupero-contratti.js?v=202611041547"></script>
+<script defer src="js/55-storico-esegui-intervento.js?v=202611041547"></script>
 <script defer src="js/19-init.js?v=202611041547"></script>
 
 

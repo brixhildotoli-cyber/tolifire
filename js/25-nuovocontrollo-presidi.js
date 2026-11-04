@@ -19,22 +19,17 @@ async function eseguiNuovoControllo(id) {
     if(!origine)throw new Error('Nessuna scheda storica disponibile. Apri lo storico e registra prima la scheda di origine.');
     const d=origine.dati||{},manichetta=p.tipo==='manichetta';
     nuovoControlloPresidio.origine=origine;nuovoControlloPresidio.presidio=p;nuovoControlloPresidio.token=crypto.randomUUID();
-    const target=manichetta?{anno:new Date().getFullYear(),mese:new Date().getMonth()<6?1:7}:periodoRiportoPresidio(origine);
+    // Richiesta di Erika del 04/11: il periodo è il semestre della DATA
+    // dell'intervento (1° gennaio-giugno, 2° luglio-dicembre), non di oggi.
     const ciclo=manichetta?(d.riferimento_ciclo||'gennaio_luglio'):origine.ciclo;
     ge('nc-contenuto').innerHTML=`<h2>Esegui nuovo controllo</h2><p><b>${esc(p.clienti?.ragione_sociale||'')}</b> · ${esc(p.sede_label||p.ubicazione||'')}<br>${tpl(p.tipo)} · ${esc(p.matricola||'')} · Progressivo ${esc(p.numero_progressivo||'—')}</p>
       <p>X e note provengono dall’ultima scheda. Confermale o modificale dopo il controllo.</p>
-      <div class="fr"><div class="f"><label>Anno della cartella di destinazione</label><input id="nc-anno" type="number" min="2020" max="2100" value="${target.anno}"></div>
-      <div class="f"><label>Periodo già presente in Vista cartelle</label><select id="nc-ciclo" ${manichetta?'':'disabled'}>
-      <option value="gennaio_luglio" ${ciclo === 'gennaio_luglio' ? 'selected' : ''}>
-  Gennaio – Giugno
-</option>
-
-<option value="febbraio_agosto" ${ciclo === 'febbraio_agosto' ? 'selected' : ''}>
-  Luglio – Dicembre
-</option>
+      <div class="f"><label>Gruppo</label><select id="nc-ciclo" ${manichetta?'':'disabled'}>
+        <option value="gennaio_luglio" ${ciclo === 'gennaio_luglio' ? 'selected' : ''}>Gruppo gennaio/luglio</option>
+        <option value="febbraio_agosto" ${ciclo === 'febbraio_agosto' ? 'selected' : ''}>Gruppo febbraio/agosto</option>
       </select></div>
-      <div class="f"><label>Riferimento della nuova scheda</label><select id="nc-semestre"><option value="1" ${target.mese<7?'selected':''}>Prima verifica del periodo</option><option value="2" ${target.mese>=7?'selected':''}>Seconda verifica del periodo</option></select></div></div>
-      <div class="f"><label>Data effettiva dell’intervento *</label><input id="nc-data" type="date"></div>
+      <div class="f"><label>Data effettiva dell’intervento *</label><input id="nc-data" type="date" max="${dataLocaleISO()}" oninput="mostraPeriodoNuovoControllo()"></div>
+      <div id="nc-periodo" class="al2 i" style="margin-bottom:10px">Inserisci la data: la scheda andrà nel semestre dell’intervento (1° = gennaio–giugno, 2° = luglio–dicembre).</div>
       ${['porta_rei','uscita_emergenza'].includes(p.tipo)?'<div class="f"><label>Prossimo controllo — 6 mesi</label><input id="nc-prossima" type="date" readonly></div>':'<div class="fr"><div class="f"><label>Prossimo controllo, se noto</label><input id="nc-prossima" type="date"></div><div class="f"><label>Scadenza, data precisa se nota</label><input id="nc-scadenza" type="date" value="'+esc(d.data_scadenza_collaudo||'')+'"></div><div class="f"><label>Scadenza solo anno, se nota</label><input id="nc-anno-scadenza" type="number" min="1900" max="2200" value="'+esc(d.anno_scadenza||'')+'"></div></div>'}
       <div class="f"><label>Stato</label><select id="nc-stato"><option value="">Non compilato</option>${['ok','anomalia','scaduto','fuori_servizio'].map(st=>`<option value="${st}" ${d.stato===st?'selected':''}>${st}</option>`).join('')}</select></div>
       <div class="f"><label>Esito</label><textarea id="nc-esito">${esc(d.esito_verifica||'')}</textarea></div>
@@ -50,12 +45,13 @@ async function salvaNuovoControlloPresidio() {
     ricordaPosizionePagina();
   if(nuovoControlloPresidio.salvataggio)return;
   const {origine,presidio:p}=nuovoControlloPresidio;if(!origine||!p)return;
-  const data=v('nc-data'),anno=Number(v('nc-anno')),semestre=Number(v('nc-semestre')),ciclo=v('nc-ciclo');
-  const mese=(ciclo==='febbraio_agosto'?[2,8]:[1,7])[semestre-1];
+  const data=v('nc-data'),ciclo=v('nc-ciclo');
   const manichetta=p.tipo==='manichetta';
   if(!data||!ge('nc-conferma').checked){toast('Inserisci la data effettiva e conferma il controllo.','err');return;}
-  if(!Number.isInteger(anno)||anno<2020||anno>2100||![1,2].includes(semestre)||!['gennaio_luglio','febbraio_agosto'].includes(ciclo)){toast('Periodo non valido.','err');return;}
-  if(!manichetta&&(anno<Number(origine.anno)||(anno===Number(origine.anno)&&mese<=Number(origine.mese)))){toast('Scegli un riferimento successivo alla scheda precedente.','err');return;}
+  if(data>dataLocaleISO()){toast('La data dell’intervento non può essere nel futuro.','err');return;}
+  const periodo=periodoDaDataVerifica(ciclo,data);
+  if(!periodo||periodo.anno<2020||periodo.anno>2100||!['gennaio_luglio','febbraio_agosto'].includes(ciclo)){toast('Data non valida.','err');return;}
+  const anno=periodo.anno,semestre=periodo.semestre,mese=periodo.mese;
   const esiti=new Map();ge('nc-controlli').querySelectorAll('.sp-controllo').forEach(el=>esiti.set(el.dataset.voce,el.querySelector('input:checked')?.value||''));
   listaControlliScheda(v('nc-aggiunte')).forEach(voce=>{if(!esiti.has(voce))esiti.set(voce,'SI');});
   const dati={...origine.dati,data_ultimo_controllo:data,data_prossimo_controllo:v('nc-prossima')||null,stato:v('nc-stato')||null,
@@ -74,7 +70,7 @@ async function salvaNuovoControlloPresidio() {
     const tabella=manichetta?'schede_manichette':'schede_presidi';
     if(!manichetta) {
       const esistenti=await leggiSchedeScadenze(tabella,[p.id]);
-      if(esistenti.some(s=>Number(s.anno)===anno&&Number(s.mese)===mese))throw new Error('Esiste già una scheda in questo riferimento. Aprila dallo storico: non è stata sovrascritta.');
+      if(schedaStessoSemestre(esistenti,periodo))throw new Error('Nel '+periodoScheda(periodo)+' c’è già una scheda: si tiene quella, non è stata sovrascritta. Aprila dallo storico.');
     }
     const {data:id,error}=manichetta
       ?await db.rpc('nuovo_intervento_manichetta',{p_origine:origine.id,p_dati:dati,p_data:data,p_token:nuovoControlloPresidio.token})
@@ -84,10 +80,18 @@ async function salvaNuovoControlloPresidio() {
     const {data:salvata,error:erroreLettura}=await db.from(tabella).select('dati').eq('id',id).single();
     if(erroreLettura)throw new Error('Salvataggio eseguito, ma verifica non riuscita. Riapri lo storico prima di riprovare.');
     if(!salvata?.dati||Object.entries(dati).some(([campo,valore])=>confrontaDatiControllo(salvata.dati[campo])!==confrontaDatiControllo(valore)))throw new Error('Il periodo contiene già una scheda salvata da un altro operatore. Aprila dallo storico.');
-    closeM('m-nuovo-controllo');toast('Nuova scheda salvata nella cartella '+nomeCicloScheda(ciclo)+' '+anno+'.');
+    closeM('m-nuovo-controllo');toast('Nuova scheda salvata nel '+(manichetta?semestre+'° semestre '+anno:periodoScheda(periodo))+'.');
     await loadPresidi();filterP();
   }catch(e){ge('nc-messaggio').textContent=e.message;toast(e.message,'err');}
   finally {nuovoControlloPresidio.salvataggio=false;if(ge('nc-salva'))ge('nc-salva').disabled=false;}
+}
+// Mostra in quale semestre andrà la scheda (dalla data dell'intervento).
+function mostraPeriodoNuovoControllo() {
+  const box=ge('nc-periodo'),periodo=periodoDaDataVerifica(v('nc-ciclo'),v('nc-data'));
+  if(!box)return;
+  box.className='al2 i';
+  box.textContent=periodo?'La scheda andrà in: '+(nuovoControlloPresidio.presidio?.tipo==='manichetta'?periodo.semestre+'° semestre '+periodo.anno:periodoScheda(periodo))+'.'
+    :'Inserisci la data: la scheda andrà nel semestre dell’intervento (1° = gennaio–giugno, 2° = luglio–dicembre).';
 }
 // Aggiunge il comando alle schede presenti in Scadenze.
 const renderScadenzePrimaNuovoControllo=renderPS;

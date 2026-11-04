@@ -3,7 +3,7 @@
 ## Cos'è
 Gestionale per azienda di antincendio. Frontend HTML/CSS/JS vanilla, non più
 file unico: `index.html` (markup) + `style.css` + moduli `js/00-…46-*.js`
-caricati in ordine 00–18, poi 20–54, infine `19-init.js` (dettagli in
+caricati in ordine 00–18, poi 20–55, infine `19-init.js` (dettagli in
 README.md). Backend: Supabase (Postgres + Auth + API + Storage).
 Librerie CDN: supabase-js v2, xlsx 0.18.5, jspdf 2.5.1, jspdf-autotable 3.8.2.
 La struttura aziendale costa 1000 €/giorno lavorativo: le KPI del titolare
@@ -244,6 +244,12 @@ Dopo sql/60 (spese insoluti RIBA e solleciti del contabile, ESEGUITO il 04/11, b
 richiede 47): registra_spese_insoluto_riba; registra_sollecito,
 esito_sollecito ed elimina_sollecito ridefinite (anche contabile);
 colonne nuove riba_righe.spese_insoluto*.
+Dopo sql/255 (storico presidi da Esegui intervento, DA ESEGUIRE, nessun
+prerequisito oltre lo schema del 04/11): registra_scheda_presidio_intervento
+(nuova, js/55); salva_riporto_presidio e nuovo_intervento_manichetta
+ridefinite (anche il tecnico sui clienti visibili; periodo dalla data della
+verifica); funzione semestre_scheda_presidio; policy schede_lettura e
+manichette_lettura: il tecnico legge lo storico dei clienti visibili.
 Dopo sql/240 (F13.6, ESEGUITO il 04/11, backup pre240, richiede 07 e 30):
 nessuna RPC nuova. Policy preventivi_fornitori_allegati_gestione al posto
 di "commerciale gestisce allegati fornitore" (titolare/informatico +
@@ -2963,3 +2969,63 @@ una sessione e l'altra.
       - U10 (default, modificabile nelle Regole): C6 e MD10: ordine delle
         corse di C6; porte di pronta consegna inserite da Acquisti,
         arrivo confermato da chi riceve.
+
+13. **Presidi: storico semestrale da Esegui intervento (richiesta di Erika
+   del 04/11)** — FATTO nel sito (js/55-storico-esegui-intervento.js,
+   js/07, js/20, js/25, guide info-tec-6, info-tec-15, info-ct-18);
+   database: sql/255-storico-presidi-esegui-intervento (DA ESEGUIRE, con
+   rollback e controllo; provato su Postgres con il backup pre240).
+   Decisioni di Erika:
+   1. "Esegui intervento", passo Presidi: spuntando un presidio si aprono
+      TUTTE le voci del controllo (ultima scheda dello storico, se no le
+      voci del registro impianti.voci_x_*, se no CKL_PRESIDIO del tipo;
+      manichette senza scheda: 5 voci proposte in VOCI_MANICHETTA_STORICO,
+      da confermare da Toli), già impostate come l'ultima volta e
+      cliccabili SI / NO / — ("✓ Tutti SI"); restano stato e note. Vale
+      anche con l'audit (js/40, presidi "trovati") e dopo ✏️, + Aggiungi e
+      🔁 Sostituito (le scelte restano in memoria). Alla chiusura
+      (salvaInt, anche dopo l'audit) per ogni presidio spuntato nasce la
+      scheda (schede_presidi; manichette in schede_manichette) nel SEMESTRE
+      DELLA DATA DELL'INTERVENTO: 1° gennaio-giugno, 2° luglio-dicembre,
+      mese 1/7 o 2/8 secondo il gruppo dell'ultima scheda, se no
+      impianti.ciclo_manutenzione, se no gennaio_luglio (scelta
+      dichiarata). La scheda copia i dati dell'ultima scheda e del
+      registro, con data, prossima verifica, stato, note, voci e odl_id.
+      Anche impianti.voci_x_* prende le voci dell'ultimo controllo. "Non ho
+      potuto completare": nessuna scheda. Intervento senza presidi: come
+      prima.
+   2. Semestre già occupato (con qualunque gruppo): SI TIENE LA PRIMA; il
+      messaggio finale dice quante schede sono nate e quante erano già
+      presenti.
+   3. Riporto dallo storico ("Riporta in una nuova verifica" in js/20, al
+      posto di "Porta a ...", ed "Esegui nuovo controllo" di js/25):
+      tecnico, capo tecnico, titolare (informatico = titolare); periodo =
+      semestre della DATA DELLA VERIFICA (periodoDaDataVerifica, mostrato
+      mentre si scrive la data; non più "successivo alla scheda di
+      origine": un semestre vuoto si può riempire); data mai nel futuro.
+      Tecnico: solo i presidi dei clienti che legge (cliente_visibile).
+      Nomi dei gruppi: "Gruppo gennaio/luglio", "Gruppo febbraio/agosto"
+      (prima "Gennaio – Giugno" e "Luglio – Dicembre", che si confondevano
+      con i semestri).
+   4. Grafica: apriSchedaPresidio (js/07) uguale per tutti i tipi, sul
+      modello degli estintori: riquadri colorati in evidenza (estintore:
+      mese manutenzione, prossima revisione, scadenza collaudo, ultima
+      verifica; porte e uscite: ultima e prossima verifica, classe REI;
+      manichetta: scadenza, ultima e prossima; idranti e naspi: più
+      scadenza collaudo; altri: ultima e prossima), campi del tipo,
+      controlli voce per voce (☒ SI / ☒ NO / ☐, con le voci standard se
+      non c'è una verifica registrata), legenda e note.
+   Senza sql/255: titolare e capo tecnico scrivono le schede direttamente
+   (come oggi); il tecnico vede i controlli ma alla chiusura legge "Storico
+   presidi non aggiornato ... sql/255" (oggi il tecnico non legge né
+   scrive lo storico: le schede hanno tecnico_id vuoto). Con sql/255 la
+   scheda nuova del tecnico è intestata a lui.
+   Limite: in produzione ci sono schede vecchie messe nel "mese 2" con la
+   verifica di settembre (regola di prima): restano dove sono; per quel
+   semestre la nuova regola le trova come "1° semestre".
+   Provato: SQL su Postgres (ruoli veri: tecnico Roberto, capo tecnico
+   Luca, segreteria, informatico, anon; rollback identico e riesecuzione);
+   sito in Chrome headless con risposte simulate (tecnico a 390 px con e
+   senza sql/255 e con audit, capo tecnico a 1280 px senza sql/255,
+   schede presidio e riporto).
+
