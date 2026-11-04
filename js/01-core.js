@@ -259,6 +259,116 @@ function testoValoreRegola(valore,unita){
   return unita==='euro'?n+' €':(n+(u?' '+u:''));
 }
 
+// ── F14.3 — FESTIVITÀ E GIORNI LAVORATIVI (sql/63) ───────────────────
+// Giorni lavorativi = dal lunedì al venerdì, tolti i giorni della tabella
+// festivita (festività nazionali, San Ranieri 17/6 patrono di Pisa,
+// chiusure aziendali), che cambia solo il titolare (Impostazioni, js/56).
+// Valgono per i conteggi interni, non per gli orari dei cantieri fuori Pisa.
+// Gemelle delle funzioni del database: giornoLavorativo = giorno_lavorativo,
+// giorniLavorativiTra = giorni_lavorativi_tra, aggiungiGgLav = aggiungi_gg_lav.
+// Senza sql/63 valgono le date qui sotto (le stesse del file SQL).
+// Es.: aggiungiGgLav('2026-12-04',2) = '2026-12-09' (salta l'8/12).
+const FESTIVITA_PREDEFINITE=[
+  {data:'2026-01-01',nome:'Capodanno',tipo:'nazionale'},
+  {data:'2026-01-06',nome:'Epifania',tipo:'nazionale'},
+  {data:'2026-04-06',nome:"Lunedì dell'Angelo",tipo:'nazionale'},
+  {data:'2026-04-25',nome:'Liberazione',tipo:'nazionale'},
+  {data:'2026-05-01',nome:'Festa del lavoro',tipo:'nazionale'},
+  {data:'2026-06-02',nome:'Festa della Repubblica',tipo:'nazionale'},
+  {data:'2026-06-17',nome:'San Ranieri (Pisa)',tipo:'patrono'},
+  {data:'2026-08-15',nome:'Ferragosto',tipo:'nazionale'},
+  {data:'2026-11-01',nome:'Ognissanti',tipo:'nazionale'},
+  {data:'2026-12-08',nome:'Immacolata',tipo:'nazionale'},
+  {data:'2026-12-25',nome:'Natale',tipo:'nazionale'},
+  {data:'2026-12-26',nome:'Santo Stefano',tipo:'nazionale'},
+  {data:'2027-01-01',nome:'Capodanno',tipo:'nazionale'},
+  {data:'2027-01-06',nome:'Epifania',tipo:'nazionale'},
+  {data:'2027-03-29',nome:"Lunedì dell'Angelo",tipo:'nazionale'},
+  {data:'2027-04-25',nome:'Liberazione',tipo:'nazionale'},
+  {data:'2027-05-01',nome:'Festa del lavoro',tipo:'nazionale'},
+  {data:'2027-06-02',nome:'Festa della Repubblica',tipo:'nazionale'},
+  {data:'2027-06-17',nome:'San Ranieri (Pisa)',tipo:'patrono'},
+  {data:'2027-08-15',nome:'Ferragosto',tipo:'nazionale'},
+  {data:'2027-11-01',nome:'Ognissanti',tipo:'nazionale'},
+  {data:'2027-12-08',nome:'Immacolata',tipo:'nazionale'},
+  {data:'2027-12-25',nome:'Natale',tipo:'nazionale'},
+  {data:'2027-12-26',nome:'Santo Stefano',tipo:'nazionale'}
+];
+const TIPI_FESTIVITA={nazionale:'Festività nazionale',patrono:'Patrono',chiusura:'Chiusura aziendale'};
+const FESTIVITA_STATO={disponibili:null,righe:null,date:null,lette:0,inCorso:null};
+
+// Legge la tabella festivita (cache di 5 minuti). Non dà mai errore:
+// senza sql/63 (o senza rete) restano le FESTIVITA_PREDEFINITE.
+async function caricaFestivita(forza){
+  if(!forza&&FESTIVITA_STATO.righe&&Date.now()-FESTIVITA_STATO.lette<REGOLE_CACHE_MS)return FESTIVITA_STATO.righe;
+  if(!forza&&FESTIVITA_STATO.disponibili===false)return null;
+  if(FESTIVITA_STATO.inCorso)return FESTIVITA_STATO.inCorso;
+  FESTIVITA_STATO.inCorso=(async()=>{
+    try{
+      const {data,error}=await db.from('festivita').select('*').order('data');
+      if(error){
+        const manca=error.code==='42P01'||error.code==='PGRST205'||/festivita/.test(error.message||'')&&/(does not exist|schema cache|not find)/i.test(error.message||'');
+        if(manca){FESTIVITA_STATO.disponibili=false;FESTIVITA_STATO.righe=null;FESTIVITA_STATO.date=null;}
+        return FESTIVITA_STATO.righe;
+      }
+      FESTIVITA_STATO.disponibili=true;FESTIVITA_STATO.righe=data||[];
+      FESTIVITA_STATO.date=new Set((data||[]).map(r=>String(r.data).slice(0,10)));
+      FESTIVITA_STATO.lette=Date.now();
+      return FESTIVITA_STATO.righe;
+    }catch(e){return FESTIVITA_STATO.righe;}
+    finally{FESTIVITA_STATO.inCorso=null;}
+  })();
+  return FESTIVITA_STATO.inCorso;
+}
+async function verificaFestivitaDisponibili(){
+  if(FESTIVITA_STATO.disponibili!==null)return FESTIVITA_STATO.disponibili;
+  await caricaFestivita(true);
+  return FESTIVITA_STATO.disponibili;
+}
+let _festivitaPredefiniteSet=null;
+function dateFestivita(){
+  if(FESTIVITA_STATO.date)return FESTIVITA_STATO.date;
+  if(!_festivitaPredefiniteSet)_festivitaPredefiniteSet=new Set(FESTIVITA_PREDEFINITE.map(f=>f.data));
+  return _festivitaPredefiniteSet;
+}
+// 'AAAA-MM-GG' o Date → Date a mezzogiorno locale (niente salti per l'ora legale); null se non valida
+function dataGiornoLavorativo(x){
+  if(x===null||x===undefined||x==='')return null;
+  if(x instanceof Date)return isNaN(x)?null:new Date(x.getFullYear(),x.getMonth(),x.getDate(),12);
+  const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(x));
+  if(!m)return null;
+  const d=new Date(+m[1],+m[2]-1,+m[3],12);
+  return isNaN(d)?null:d;
+}
+function giornoLavorativo(x){
+  const d=dataGiornoLavorativo(x);if(!d)return null;
+  const dow=d.getDay();
+  return dow!==0&&dow!==6&&!dateFestivita().has(dataLocaleISO(d));
+}
+// Giorni lavorativi DOPO "dal" fino ad "al" compreso; negativo se al < dal.
+function giorniLavorativiTra(dal,al){
+  const a=dataGiornoLavorativo(dal),b=dataGiornoLavorativo(al);
+  if(!a||!b)return null;
+  const segno=b<a?-1:1;
+  const da=segno>0?a:b,fino=segno>0?b:a;
+  let n=0;const g=new Date(da);
+  while(true){
+    g.setDate(g.getDate()+1);
+    if(g>fino)break;
+    if(giornoLavorativo(g))n++;
+  }
+  return segno*n;
+}
+// La data (AAAA-MM-GG) dopo n giorni lavorativi; n negativo = indietro, 0 = la data stessa.
+function aggiungiGgLav(data,n){
+  const d=dataGiornoLavorativo(data);const k=parseInt(n,10);
+  if(!d||!isFinite(k))return null;
+  if(Math.abs(k)>3650)return null;
+  const passo=k<0?-1:1;let restano=Math.abs(k);
+  while(restano>0){d.setDate(d.getDate()+passo);if(giornoLavorativo(d))restano--;}
+  return dataLocaleISO(d);
+}
+
 const NAV={
   titolare:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'trattative',l:'🎯 Lead'},{id:'progetti-da-preventivare',l:'📐 Da preventivare'},{id:'preventivi-titolare',l:'🧾 Preventivi'},{id:'commesse',l:'📁 Commesse'},{id:'ore-cantiere',l:'⏱️ Ore cantiere'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'presidi',l:'🧯 Presidi'},{id:'workflow',l:'📋 Da gestire'},{id:'interventi',l:'🔧 Interventi'},{id:'clienti',l:'🧍‍♂️ Clienti'},{id:'documenti',l:'📄 Documenti'},{id:'fatture',l:'💰 Fatture'},{id:'catalogo',l:'📦 Catalogo'},{id:'team-subappalti',l:'🦺 Team e subappalti'},{id:'impostazioni',l:'Impostazioni'},{id:'info',l:'ℹ️ Info'}],
   capo_tecnico:[{id:'dashboard',l:'📊 Dashboard'},{id:'calendario',l:'📅 Calendario'},{id:'calendario-team',l:'👥 Calendari team'},{id:'piano-mensile',l:'📋 Piano mensile'},{id:'commesse',l:'📁 Commesse'},{id:'ore-cantiere',l:'⏱️ Ore cantiere'},{id:'presidi',l:'🧯 Presidi'},{id:'interventi',l:'Interventi'},{id:'tecnico',l:'📝 Esegui intervento'},{id:'clienti',l:' 🧍‍♂️ Clienti'},{id:'documenti',l:'Documenti'},{id:'team-subappalti',l:'🦺 Team e subappalti'},{id:'info',l:'ℹ️ Info'}],
@@ -423,7 +533,7 @@ async function boot(ud){
   ge('tc3').value=today;ge('mo3').value=today;
   ge('tc4').value=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
  // F14.2: regole e soglie (sql/62) in cache per tutti i ruoli; non dà mai errore
- const caricamentiBase = [loadCS(), loadImp(), caricaRegole(true)];
+ const caricamentiBase = [loadCS(), loadImp(), caricaRegole(true), caricaFestivita(true)];
 
 // Carica utenti solo dove servono subito.
 if (['titolare', 'capo_tecnico', 'segreteria', 'commerciale'].includes(ROLE)) {

@@ -2360,6 +2360,34 @@
     <div class="f" style="margin-top:12px"><label>Motivo della modifica (facoltativo, va nel registro)</label><input type="text" id="si-regole-motivo" maxlength="500" placeholder="Es. nuovo accordo con i fornitori"></div>
     <button class="btn p" id="si-regole-salva" onclick="salvaRegoleImpostazioni()">💾 Salva regole</button>
   </div>
+  <!-- F14.3 — FESTIVITÀ E GIORNI LAVORATIVI (js/56 mostraFestivitaImpostazioni, sql/63): solo titolare -->
+  <div class="card" id="si-festivita-card" style="margin-top:14px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:13px;font-weight:600">📅 Festività e giorni lavorativi</div>
+      <button class="btn sm" title="Rileggi" onclick="mostraFestivitaImpostazioni()">↻</button>
+    </div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">I tempi in giorni lavorativi si contano dal lunedì al venerdì, tolti i giorni qui sotto (San Ranieri compreso). Valgono per i conteggi interni, non per gli orari dei cantieri fuori Pisa. Li cambi solo tu.</div>
+    <div class="al2 i" id="si-festivita-stato" style="display:none"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
+      <div class="f" style="flex:0 0 150px"><label>Giorno</label><input type="date" id="fes-data"></div>
+      <div class="f" style="flex:1 1 180px"><label>Nome</label><input type="text" id="fes-nome" maxlength="80" placeholder="Es. Chiusura estiva"></div>
+      <div class="f" style="flex:0 0 170px"><label>Tipo</label><select id="fes-tipo"><option value="nazionale">Festività nazionale</option><option value="patrono">Patrono</option><option value="chiusura">Chiusura aziendale</option></select></div>
+      <div class="f" style="flex:1 1 160px"><label>Nota (facoltativa)</label><input type="text" id="fes-nota" maxlength="300"></div>
+      <div class="f"><button class="btn p" id="fes-salva" onclick="salvaFestivita()">➕ Aggiungi o correggi</button></div>
+    </div>
+    <div id="si-festivita" style="max-height:360px;overflow:auto"><div class="load">Caricamento...</div></div>
+    <div style="font-size:13px;font-weight:600;margin:14px 0 6px">🧮 Prova il calcolo</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
+      <div class="f" style="flex:0 0 150px"><label>Dal giorno</label><input type="date" id="fes-prova-data" oninput="provaCalcoloGiorniLavorativi()"></div>
+      <div class="f" style="flex:0 0 140px"><label>+ giorni lavorativi</label><input type="number" id="fes-prova-gg" step="1" value="2" oninput="provaCalcoloGiorniLavorativi()"></div>
+    </div>
+    <div id="fes-prova-esito" style="font-size:13px;margin-top:4px"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:14px 0 6px">
+      <div style="font-size:13px;font-weight:600">⏰ Controllo orario delle scadenze</div>
+      <button class="btn sm" id="fes-esegui-ora" onclick="eseguiControlloOrarioOra()">▶️ Esegui ora</button>
+    </div>
+    <div id="si-controllo-orario"></div>
+  </div>
 </div>
 </div>
 
@@ -4236,6 +4264,53 @@
         Se il riquadro dice <b>non è ancora attiva</b> manca l'aggiornamento
         del database: i valori si vedono ma non si cambiano, e valgono quelli
         predefiniti.
+      </div>
+
+      <hr class="sep">
+
+      <h4 id="info-tit-11">11. Un giorno di chiusura o una festività nuova? Aggiorna il calendario</h4>
+
+      <p>
+        I tempi in <b>giorni lavorativi</b> (presa in carico, risposte,
+        documenti finali...) si contano dal lunedì al venerdì, tolte le
+        festività. Le trovi in <b>Impostazioni</b>, riquadro
+        <b>📅 Festività e giorni lavorativi</b>: ci sono già quelle del 2026 e
+        del 2027, con San Ranieri (17 giugno). Valgono per i conteggi del
+        gestionale, non per gli orari dei cantieri fuori Pisa.
+      </p>
+
+      <ul>
+        <li>Per una chiusura aziendale (es. ponte, ferie di agosto) scegli il <b>Giorno</b>, scrivi il <b>Nome</b>, tipo <b>Chiusura aziendale</b> e premi <b>➕ Aggiungi o correggi</b>. Un giorno alla volta.</li>
+        <li>Per correggere un nome premi <b>✏️</b> sulla riga: i dati tornano nei campi in alto, cambi e premi di nuovo <b>➕ Aggiungi o correggi</b>.</li>
+        <li><b>🗑️ Togli</b> rimette il giorno tra i lavorativi (se è dal lunedì al venerdì), dopo una conferma.</li>
+        <li>Prima della fine dell'anno aggiungi le festività dell'anno dopo (Pasquetta cambia ogni anno).</li>
+        <li>In <b>🧮 Prova il calcolo</b> scrivi un giorno e quanti giorni lavorativi aggiungere: vedi la data che ne esce e le festività saltate.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio: Immacolata</b><br>
+        Venerdì 4 dicembre 2026 + 2 giorni lavorativi = <b>mercoledì 9
+        dicembre</b>: lunedì 7 è il primo giorno, martedì 8 è l'Immacolata e
+        non conta, mercoledì 9 è il secondo. Se aggiungi lunedì 7 come
+        chiusura aziendale (ponte), la scadenza passa a giovedì 10.
+      </div>
+
+      <p>
+        Sotto, <b>⏰ Controllo orario delle scadenze</b>: ogni ora il gestionale
+        controlla da solo le scadenze. Vedi le ultime esecuzioni (✅ fatta,
+        ❌ errore) e con <b>▶️ Esegui ora</b> la lanci subito.
+      </p>
+
+      <div class="al2 i">
+        Il calendario lo cambi solo tu (e l'informatico): gli altri ruoli lo
+        usano ma il database rifiuta le loro modifiche.
+      </div>
+
+      <div class="al2 w">
+        Se il riquadro dice <b>non è ancora attivo</b> manca l'aggiornamento
+        del database: i giorni si contano con le festività già scritte, ma
+        non le puoi cambiare. Se l'ultimo controllo orario è di più di 2 ore
+        fa, avvisa la programmatrice.
       </div>
 
       <hr class="sep">
@@ -7968,6 +8043,7 @@
 <script defer src="js/53-lavori-extra-rappresentante.js?v=202611041656"></script>
 <script defer src="js/54-recupero-contratti.js?v=202611041656"></script>
 <script defer src="js/55-storico-esegui-intervento.js?v=202611041656"></script>
+<script defer src="js/56-festivita-giorni-lavorativi.js?v=202611041656"></script>
 <script defer src="js/19-init.js?v=202611041656"></script>
 
 

@@ -134,6 +134,15 @@ salva_regola e il trigger trg_impostazioni_registro_regole, che registra
 anche i cambi fatti da "Soglie e tariffe"). La soglia 3.000 € del
 rappresentante NON è una regola (D14).
 
+Usate dal frontend — festività e controllo orario (F14.3, sql/63 DA ESEGUIRE,
+richiede 07 e 58, non 62): festivita (giorni non lavorativi oltre a sabato e
+domenica: 24 date 2026-2027 con San Ranieri 17/6, tipo nazionale/patrono/
+chiusura; lettura per tutti gli utenti attivi, scrittura solo con le RPC
+del titolare), controllo_orario_esecuzioni (registro del controllo orario,
+sola lettura del titolare, 90 giorni). Non usata dal sito:
+controllo_orario_chiave (impronta della chiave dedicata di n8n, nessun
+permesso).
+
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
 è in costruzione, vedi sotto). Dopo sql/45 (F11.1, eseguito il 30/10):
@@ -267,6 +276,31 @@ leggiRegolaSubito('soglia_lavoro_grande') (smistamento T2). Prova:
 sql/62-impostazioni-regole-soglie-PROVA.sql (solo database di prova, finisce
 con rollback). Senza sql/62: predefiniti, riquadro in sola lettura "non
 ancora attiva", nessun errore.
+Dopo sql/63 (F14.3 festività, giorni lavorativi e controllo orario, DA ESEGUIRE,
+richiede 07 e 58; preparato e provato sul backup pre256 + sql/62 il 04/11):
+salva_festivita, togli_festivita (solo titolare/informatico),
+esegui_controllo_orario (dal sito solo il titolare, "▶️ Esegui ora");
+giorno_lavorativo, giorni_lavorativi_tra(dal, al) (giorni lavorativi dopo
+"dal" fino ad "al" compreso, negativo all'indietro), aggiungi_gg_lav(data,
+n) (venerdì 4/12/2026 + 2 = mercoledì 9/12): STABLE e non immutable perché
+leggono la tabella che il titolare cambia; per trigger e RPC dei moduli.
+genera_avvisi_scadenza() = AGGANCIO (oggi restituisce 0), la ridefiniscono
+F14.4 e F14.5. pg_cron (attivato dal file se disponibile: in produzione
+oggi non c'è, su Supabase sì in tutti i piani) lancia ogni ora al minuto 0
+esegui_controllo_orario('pg_cron') (lavoro toli_controllo_orario; esito in
+controllo_orario_esecuzioni). Riserva se pg_cron non si attiva:
+controllo_orario_n8n(chiave) per un workflow n8n orario con la chiave
+pubblica (anon) + chiave dedicata (impronta sha256 impostata dall'editor
+con imposta_chiave_controllo_orario; max una esecuzione ogni 10 minuti).
+Nel sito (js/01) le gemelle giornoLavorativo, giorniLavorativiTra,
+aggiungiGgLav (FESTIVITA_PREDEFINITE = stesse date del file SQL; tabella
+letta al login con caricaFestivita, verificaFestivitaDisponibili;
+confrontate con le funzioni SQL su 14.193 casi, nessuna differenza).
+Impostazioni > "📅 Festività e giorni lavorativi" (js/56-festivita-giorni-
+lavorativi.js: elenco per anno, aggiungi/correggi, togli, prova del
+calcolo, ultime 5 esecuzioni del controllo orario), guida titolare
+info-tit-11. Senza sql/63: festività predefinite, riquadro in sola lettura
+"non ancora attivo", nessun errore.
 Dopo sql/61 (telefoni italiani per Google Ads, ESEGUITO il 03/11, backup pre61, nessun
 prerequisito oltre le funzioni Ads): nessuna RPC del sito. Funzione nuova
 ads_crm_normalizza_telefono (immutable: +39 ai numeri italiani senza
