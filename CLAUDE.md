@@ -244,7 +244,7 @@ Dopo sql/60 (spese insoluti RIBA e solleciti del contabile, ESEGUITO il 04/11, b
 richiede 47): registra_spese_insoluto_riba; registra_sollecito,
 esito_sollecito ed elimina_sollecito ridefinite (anche contabile);
 colonne nuove riba_righe.spese_insoluto*.
-Dopo sql/255 (storico presidi da Esegui intervento, DA ESEGUIRE, nessun
+Dopo sql/255 (storico presidi da Esegui intervento, ESEGUITO il 04/11, backup pre255; policy con alter policy, nessun
 prerequisito oltre lo schema del 04/11): registra_scheda_presidio_intervento
 (nuova, js/55); salva_riporto_presidio e nuovo_intervento_manichetta
 ridefinite (anche il tecnico sui clienti visibili; periodo dalla data della
@@ -2973,7 +2973,7 @@ una sessione e l'altra.
 13. **Presidi: storico semestrale da Esegui intervento (richiesta di Erika
    del 04/11)** — FATTO nel sito (js/55-storico-esegui-intervento.js,
    js/07, js/20, js/25, guide info-tec-6, info-tec-15, info-ct-18);
-   database: sql/255-storico-presidi-esegui-intervento (DA ESEGUIRE, con
+   database: sql/255-storico-presidi-esegui-intervento (ESEGUITO il 04/11, backup pre255, con
    rollback e controllo; provato su Postgres con il backup pre240).
    Grafica delle schede (tutti i tipi sul modello degli estintori) e
    passo Presidi del tecnico: APPROVATI da Erika il 04/11 sulle immagini
