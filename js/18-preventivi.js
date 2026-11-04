@@ -3503,6 +3503,9 @@ async function renderFornitoriPreventivo() {
       tempi_consegna_proposti,
       note,
       allegati_progetto_ids,
+      richiesta_versione,
+      richiesta_pdf_generato_il,
+      richiesta_inviata_il,
       fornitori(
         ragione_sociale,
         telefono,
