@@ -2571,8 +2571,10 @@ una sessione e l'altra.
    TOLI (valgono come conferma della SCELTA, non come "CONFERMATO DA
    TOLI" per eseguire SQL in produzione). Fonte:
    gestione-task/LEGGIMI-ERIKA.md; le task del pacchetto F13-F27 le
-   applicano dove servono. Le decisioni delle 17:36-20:34 (E, G, MD, C,
-   O, U) si annotano con F13.7.
+   applicano dove servono. Le decisioni delle 17:36-17:43 (E1-E12) e
+   quelle delle 20:34 sui prezzi (G1-G2) sono in fondo a questo punto;
+   le altre delle 20:34 (MD, C, O) nel punto 12.d e i default U1-U10 nel
+   punto 12.f (F13.7).
    Ore 17:08:
    - T1 (n.1): Capo Operativo = ruolo capo_tecnico; capo_operativo non è
      un ruolo e non si crea (conferma la decisione del 26/10).
@@ -2624,6 +2626,53 @@ una sessione e l'altra.
      solo" del punto 10, risposta 2, quando la task relativa sarà fatta).
    Regola nuova del piano: ogni tabella nuova nasce con RLS, riga nella
    matrice dei permessi e trigger del registro (sezione SICUREZZA).
+   Ore 17:36, con le correzioni delle 17:40 e 17:43 (DECISE, F13.7):
+   - E1: documenti finali: il capo_tecnico controlla la completezza,
+     l'ingegnere firma digitalmente (anche prima), la segreteria li
+     CONSEGNA al cliente SOLO DOPO L'ULTIMO PAGAMENTO (saldo), salvo
+     "accordo diverso" messo dal titolare con nota sul preventivo o sulla
+     commessa. Ordine: raccolta → controllo → firma → fattura finale →
+     saldo incassato → invio (F21.5-F21.9).
+   - E2: agenti esterni = stesso ruolo rappresentante, vedono solo i
+     loro clienti (nessun potere ridotto; conferma D1).
+   - E3: margine di un gruppo di voci sotto il 20%: solo avviso giallo;
+     il blocco è solo sul 29% del totale.
+   - E4: ricarico sul COSTO TOTALE del preventivo o della commessa
+     (merce + manodopera + trasporti + noli + tutto), a scaglioni
+     progressivi a tranche (G1); pavimento: margine 29% DOPO la
+     provvigione; sotto il pavimento e ogni eccezione solo con sblocco
+     del titolare. Scaglioni in Impostazioni, li cambia solo il titolare.
+     Il preventivo mostra costo totale, ricarico applicato e margine.
+     Sostituisce il ricarico per riga di ricaricoFornituraDaCosto (F16.1).
+   - E5: reverse charge (natura N6.x) da aggiungere alle fatture.
+   - E6: varianti in cantiere = nuova revisione del preventivo da far
+     firmare al cliente.
+   - E7: anticipo non pagato: promemoria al rappresentante a 7 e 15
+     giorni, avviso al titolare a 30 (e di nuovo a 60) giorni, nessun
+     annullamento automatico.
+   - E8: ordina ai fornitori SOLO Acquisti (ruolo commerciale): tolto al
+     rappresentante (oggi js/27 e sql/30 glielo permettono); il titolare
+     può sempre.
+   - E9: contratto scaduto: interventi bloccati dopo 30 giorni di
+     tolleranza, salvo sblocco del titolare.
+   - E10: mandato agenti: nessuna esclusiva all'avvio, esclusiva dopo un
+     anno nella zona con più fatturato, provvigione mensile maturata
+     all'incasso.
+   - E11: costo operaio 150 € per persona al giorno, costo azienda.
+   - E12: provvigioni uguali per venditore interno (a partita IVA, ruolo
+     rappresentante) ed esterno: 5% su straordinari e forniture, 10% sui
+     contratti di manutenzione ordinaria; il 2,5% non esiste più. Il
+     pavimento del 29% resta DOPO la provvigione.
+   Ore 20:34, prezzi (DECISE, già gestite dal piano prezzi F16.1 e dal
+   budget della squadra di F18.12):
+   - G1: scaglioni PROGRESSIVI a tranche (come l'IRPEF) sul costo
+     totale: 70% sui primi 2.000 €, 55% sulla parte 2.000-10.000, 45% su
+     10.000-50.000, 41% oltre; il prezzo cresce sempre con il costo;
+     pavimento 29% dopo la provvigione (5%/10%); eccezioni solo con
+     sblocco del titolare.
+   - G2: riserva imprevisti del 3% nel costo del preventivo, invisibile
+     al cliente: è il budget consumabili e piccole spese della squadra
+     (soglie di spesa dinamiche, C2 del punto 12.d).
 
 12. **Magazzino e corse: domande aperte (F13.4, 04/11/2026)** — solo
    testo, nessun SQL. Prima del modulo Magazzino (fase 26) e delle corse
@@ -2698,13 +2747,20 @@ una sessione e l'altra.
    d) DECISIONI DI TOLI DEL 03/11 ALLE 20:34 (DECISE, valgono come
       conferma della SCELTA, non come "CONFERMATO DA TOLI" per l'SQL in
       produzione; testo completo in gestione-task/LEGGIMI-ERIKA.md). Le
-      altre delle 20:34 (G1-G2, U1, U5, U7, E) le annota F13.7.
-      - MD1: nessuna assunzione. Referente del capannone = un tecnico di
-        manutenzione di zona (7:45-8:05 ogni mattina) + Acquisti per i
-        dati; il gestionale misura le ore di magazzino e avvisa il
-        titolare oltre 12 h/settimana per 8 settimane (solo informativo
-        nelle prime 12 settimane dall'avvio). Il referente NON è un
-        ruolo: è il responsabile scritto sull'ubicazione.
+      altre delle 20:34 sono nel punto 11 (G1 scaglioni progressivi a
+      tranche, G2 riserva imprevisti 3%: già gestiti dal piano prezzi) e
+      i default U1-U10 nel punto f) qui sotto. Riepilogo (F13.7):
+      MD2-MD5 e MD9 ok come scritti; C1, C2, C4, C5 ok come scritti;
+      O5 e O6 superati (lettura AI nel primo rilascio, valori di stima
+      come default nelle Regole).
+      - MD1: nessuna assunzione.
+        Part-time di capannone: non si usa. Referente del capannone =
+        un tecnico di manutenzione di zona (7:45-8:05, 20 minuti ogni mattina) +
+        Acquisti per i dati; il gestionale misura le ore di magazzino e
+        avvisa il titolare oltre 12 h/settimana per 8 settimane di fila
+        (solo informativo nelle prime 12 settimane dall'avvio; default
+        U9). Il referente NON è un ruolo: è il responsabile scritto
+        sull'ubicazione.
       - MD2: prezzi d'acquisto chiusi DAVVERO al capo tecnico (permessi
         del database, non solo il sito: supera il limite dichiarato di
         F6.1).
@@ -2716,23 +2772,28 @@ una sessione e l'altra.
         il titolare.
       - MD5: minuteria (viti, siliconi, nastro) non a magazzino: a costo
         sulla commessa.
-      - MD6: magazzino APERTO a tutti (niente area chiusa): ogni prelievo
-        registrato ("📤 Prendo" o cassone + "Ritirato"), conteggi più
-        frequenti sugli articoli A e a matricola, giacenza negativa e
-        differenze per persona e ubicazione.
+      - MD6: magazzino APERTO a tutti.
+        Scaffali in area chiusa: non si usa. Cassone obbligatorio: non
+        si usa. Ogni prelievo registrato
+        ("📤 Prendo" dal telefono, sempre possibile, oppure cassone
+        preparato dal referente + "Ritirato"), conteggi più frequenti
+        sugli articoli A e a matricola, giacenza negativa e differenze
+        per persona e ubicazione (default U9).
       - MD7: rifiuti e smaltimenti: responsabile Acquisti (commerciale),
         il referente prepara; ritiro ogni 2 mesi o oltre 120 estintori,
-        avvisi a 50 e 70 giorni, costi collegati alle fatture dello
-        smaltitore. Limiti da verificare col consulente ambientale (b).
+        avvisi a 50 e 70 giorni (default U6), costi collegati alle
+        fatture dello smaltitore. Limiti da verificare col consulente
+        ambientale (b).
       - MD8: rimanenze di fine anno calcolate dal gestionale (quantità e
-        valore, costo medio ponderato) + cruscotto "soldi fermi" (valore
-        immobilizzato, anzianità, rotazione, articoli fermi).
+        valore, costo medio ponderato, default U7) + cruscotto "soldi
+        fermi" (valore immobilizzato, anzianità, rotazione, articoli
+        fermi; avvisi default U8).
       - MD9: ordini di scorta oltre 2.000 € approvati dal titolare prima
         dell'invio.
       - MD10: porte di pronta consegna: 1 per misura 80/90/100/120 x 215
         RAL 9010; prenotazione sul preventivo per 15 giorni; le inserisce
         SOLO Acquisti con l'ordine di pronta consegna, chi riceve conferma
-        l'arrivo (matricola e foto della targhetta).
+        l'arrivo (matricola e foto della targhetta) (default U10).
       - C1: carta aziendale per furgone di squadra: 200 € a corsa, 400 €
         a settimana (sopra 200 € tessera professionale su P.IVA o paga
         Acquisti); bloccata dopo 2 corse non autorizzate in un mese;
@@ -2743,7 +2804,8 @@ una sessione e l'altra.
         squadra = riserva imprevisti 3% (G2) + consumabili del kit.
       - C3: ordine settimanale chiuso il lunedì alle 12:00, ma non sempre
         si ordina: scorte minime e punto di riordino per articolo (classi
-        A/B/C, proposta d'ordine del lunedì, ricalcolo trimestrale).
+        A/B/C, proposta d'ordine del lunedì, ricalcolo trimestrale;
+        parametri default U5).
       - C4: corsa per causa del cliente: il costo va nella variante o nel
         lavoro extra e si paga solo se il cliente lo accetta.
       - C5: acquisti del weekend su P.IVA ammessi solo con la corsa
@@ -2751,7 +2813,8 @@ una sessione e l'altra.
       - C6 (deciso da Claude come chiesto da Toli): chi fa la corsa, in
         quest'ordine: consegna del fornitore → referente al mattino
         (richieste entro le 7:45) → tecnico in giro con deviazione sotto
-        20 minuti → una sola persona della squadra, mai tutta.
+        20 minuti → una sola persona della squadra, mai tutta
+        (part-time per le corse: non si usa; default U10).
       - O1: Acquisti NON decide la conformità; scelta: conformità → data
         del cliente → costo completo → fornitore unico entro il minore
         tra 3% e 150 € → spareggio entro il minore tra 1% e 50 €; Acquisti
@@ -2760,6 +2823,8 @@ una sessione e l'altra.
         (marca + codice produttore), distinta di riferimento degli
         impianti (es. cavi mancanti stimati), controlli fissi dei numeri;
         classe superiore verde se stessa norma, posa e documento valido.
+        O1 e O2 insieme: confronto e conformità AUTOMATICI (libreria +
+        distinta), una persona conferma solo i numeri letti.
       - O3: ingegnere: 1 giorno lavorativo (4 ore se urgente), solo righe
         incerte, codici nuovi che vincono, varianti che convengono,
         prezzi sospetti.
@@ -2785,3 +2850,39 @@ una sessione e l'altra.
         comprata al banco: il prodotto ha la stessa certificazione (EI)
         di quello dichiarato? Se no, la dichiarazione va controllata.
       Risposta: (in attesa)
+   f) DEFAULT U1-U10 (fonte: gestione-task/riferimenti/ultimi/proposta.md,
+      sezione H; decisi da Toli alle 20:34 come default). Tutti "default,
+      modificabili nelle Regole": le task li usano finché il titolare non
+      li cambia nelle Regole.
+      - U1 (default, modificabile nelle Regole): soglia di confidenza
+        della lettura AI 0,85; oltre il 30% di righe incerte l'offerta
+        torna ad Acquisti con "chiedi il modulo Excel".
+      - U2 (default, modificabile nelle Regole): codici nuovi:
+        l'ingegnere conferma con 1 clic solo quelli che vincono, prima
+        dell'ordine; dopo 2 conferme non tornano più.
+      - U3 (default, modificabile nelle Regole): offerta "incompleta":
+        con stime oltre il 15% del costo completo non vince in
+        automatico.
+      - U4 (default, modificabile nelle Regole): tetto del costo AI 50 €
+        al mese (oltre si inserisce a mano).
+      - U5 (default, modificabile nelle Regole): scorte: classi 80/15/5;
+        livello di servizio 95% (A) e 90% (B); costo di un ordine 25 €;
+        costo di tenuta 20%/anno; lotto A al massimo 8 settimane, B 12;
+        richieste oltre il 50% del trimestre "su commessa"; ricalcolo
+        trimestrale (C3).
+      - U6 (default, modificabile nelle Regole): rifiuti: responsabile
+        Acquisti; ritiro ogni 2 mesi o oltre 120 estintori; avvisi a 50 e
+        70 giorni (da confermare col consulente ambientale, b) (MD7).
+      - U7 (default, modificabile nelle Regole): metodo delle rimanenze:
+        costo medio ponderato, fisso negli anni, anzianità con gli strati
+        di carico FIFO (MD8; da confermare col commercialista, a).
+      - U8 (default, modificabile nelle Regole): avvisi "soldi fermi":
+        articolo fermo da oltre 180 giorni con valore > 3.000 €; totale
+        immobilizzato > 25.000 € o +20% in un mese.
+      - U9 (default, modificabile nelle Regole): MD6 e MD1: magazzino
+        aperto con "📤 Prendo"; referente = tecnico di zona 7:45-8:05;
+        avviso al titolare oltre 12 h/settimana per 8 settimane
+        (informativo nelle prime 12 settimane).
+      - U10 (default, modificabile nelle Regole): C6 e MD10: ordine delle
+        corse di C6; porte di pronta consegna inserite da Acquisti,
+        arrivo confermato da chi riceve.
