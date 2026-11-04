@@ -10648,3 +10648,58 @@ let salvataggioSchedaRilievoInCorso = false;
     }
   };
 });
+
+// ---------------------------------------------------------------------
+// "Cerca" nelle pagine Preventivi (richiesta di Erika del 04/11): titolare
+// (preventivi-titolare), commerciale (preventivi) e rappresentante
+// (preventivi-rapp). Filtra nel browser le schede già caricate: una scheda
+// resta visibile se contiene tutte le parole scritte (maiuscole e accenti
+// non contano). Quando un elenco si ricarica il filtro si riapplica da solo.
+// ---------------------------------------------------------------------
+const PAGINE_CERCA_PREVENTIVI = ['preventivi-titolare', 'preventivi', 'preventivi-rapp'];
+
+function testoCercaPreventivi(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function schedePaginaPreventivi(sezione) {
+  return Array.from(sezione.querySelectorAll('.card')).filter(function(card) {
+    return !card.parentElement.closest('.card') && !card.closest('.sb');
+  });
+}
+
+function filtraPreventiviPagina(pagina) {
+  const sezione = ge('pg-' + pagina);
+  const campo = ge('cerca-prev-' + pagina);
+  const esito = ge('cerca-prev-' + pagina + '-esito');
+  if (!sezione || !campo) return;
+  const parole = testoCercaPreventivi(campo.value).split(/\s+/).filter(Boolean);
+  const schede = schedePaginaPreventivi(sezione);
+  let trovate = 0;
+  schede.forEach(function(card) {
+    const testo = testoCercaPreventivi(card.textContent);
+    const ok = parole.every(function(p) { return testo.includes(p); });
+    card.style.display = ok ? '' : 'none';
+    if (ok) trovate++;
+  });
+  if (esito) {
+    const messaggio = !parole.length ? '' :
+      (trovate ? (trovate === 1 ? '1 preventivo trovato' : trovate + ' preventivi trovati')
+               : 'Nessun preventivo con questa ricerca');
+    if (esito.textContent !== messaggio) esito.textContent = messaggio;
+  }
+}
+
+PAGINE_CERCA_PREVENTIVI.forEach(function(pagina) {
+  const sezione = ge('pg-' + pagina);
+  if (!sezione || typeof MutationObserver !== 'function') return;
+  let attesa = null;
+  new MutationObserver(function(cambi) {
+    // Solo i cambi negli elenchi, non nel campo e nel messaggio della ricerca.
+    if (!cambi.some(function(c) { return !c.target.closest || !c.target.closest('.sb, [id$="-esito"]'); })) return;
+    const campo = ge('cerca-prev-' + pagina);
+    if (!campo || !campo.value.trim()) return;
+    clearTimeout(attesa);
+    attesa = setTimeout(function() { filtraPreventiviPagina(pagina); }, 50);
+  }).observe(sezione, { childList: true, subtree: true });
+});

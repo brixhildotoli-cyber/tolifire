@@ -2490,6 +2490,13 @@ una sessione e l'altra.
       pagina e al punto di prima (posizione in sessionStorage se il sito si
       ricarica; se il browser rimette la pagina, l'elenco del rappresentante
       si aggiorna). I PDF generati ("Genera PDF") si scaricano come prima.
+   v) Richiesta di Erika del 04/11: campo "🔍 Cerca" nelle pagine
+      Preventivi del titolare (preventivi-titolare), del commerciale
+      (preventivi) e del rappresentante (preventivi-rapp). FATTO (js/18
+      filtraPreventiviPagina, index.html cerca-prev-<pagina>, nessun SQL):
+      filtra nel browser le schede (.card) già caricate, tutte le parole
+      scritte, senza maiuscole né accenti, con "N preventivi trovati";
+      quando un elenco si ricarica il filtro si riapplica (MutationObserver).
    q0) vedi anche il punto 10 (risposte di Toli del 03/11).
    q) (28) Soglia "lavoro grande" = 30.000 € (la imposta il titolare in
       Impostazioni > Soglie e tariffe; esempio della guida aggiornato).
