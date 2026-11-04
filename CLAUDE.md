@@ -2624,3 +2624,164 @@ una sessione e l'altra.
      solo" del punto 10, risposta 2, quando la task relativa sarà fatta).
    Regola nuova del piano: ogni tabella nuova nasce con RLS, riga nella
    matrice dei permessi e trigger del registro (sezione SICUREZZA).
+
+12. **Magazzino e corse: domande aperte (F13.4, 04/11/2026)** — solo
+   testo, nessun SQL. Prima del modulo Magazzino (fase 26) e delle corse
+   al negozio (F18.12, fase 27) servono risposte scritte che il
+   gestionale non può decidere. Fonti: gestione-task/LEGGIMI-ERIKA.md
+   (decisioni delle 20:34 e "Ancora da verificare"),
+   gestione-task/riferimenti/magazzino/corse-negozio.md e
+   pagina-titolare.md, gestione-task/riferimenti/ultimi/proposta.md
+   (magazzino/proposta-v2.md e giudizio*.md NON sono nel pacchetto).
+   LE RISPOSTE, QUANDO ARRIVANO, SI SCRIVONO QUI sotto ogni domanda
+   ("Risposta del GG/MM, da chi: ..."). Le leggono F20.13 (rifiuti:
+   formulari e registro), F26.15 (elenco usati ritirati ed export) e
+   F26.17 (valore del magazzino e fine anno). SENZA RISPOSTE quelle task
+   NON si bloccano: usano i default prudenti qui sotto (MD7, MD8) e lo
+   scrivono nel sito ("regola provvisoria, da verificare con ...").
+   a) COMMERCIALISTA (rimanenze di fine anno). Default fino alla
+      risposta: il gestionale calcola comunque (MD8, U7).
+      - Rimanenze: il gestionale le calcola a quantità e valore. Va bene
+        dividerle in 4 parti: MAGAZZINO (capannone, furgoni,
+        laboratorio); LAVORI IN CORSO = materiale già nei cantieri delle
+        commesse aperte e non ancora fatturato (al costo o a una
+        percentuale di avanzamento?); BENI DI TERZI (materiale del
+        cliente o in conto deposito: fuori dalle rimanenze, solo
+        elenco?); NOLEGGI (estintori e attrezzature date a noleggio o di
+        cortesia: beni durevoli da ammortizzare, non rimanenze?).
+      - Formato dell'export di fine anno: Excel/CSV con articolo, codice,
+        ubicazione, quantità, costo unitario e valore? Separato per le 4
+        parti? Data e ora di taglio 31/12 alle 23:59 (inventario senza
+        fermare il lavoro): va bene?
+      - Metodo: COSTO MEDIO PONDERATO (decisione di Toli U7), fisso negli
+        anni; l'anzianità si legge dagli strati di carico FIFO. Confermi
+        il metodo e che va scritto nella nota integrativa?
+      - Articoli fermi da più di 365 giorni: il gestionale li segnala
+        "da valutare per svalutazione" con il valore; la decisione è del
+        commercialista. Serve un'altra regola?
+      Risposta: (in attesa)
+   b) CONSULENTE AMBIENTALE (rifiuti). Default fino alla risposta (MD7):
+      ritiro ogni 2 mesi o oltre 120 estintori (più prudente del limite
+      di 3 mesi), avvisi a 50 e 70 giorni, responsabile Acquisti; nel
+      sito la nota fissa "non sostituisce il registro di carico e scarico
+      né i formulari RENTRI".
+      - Chi è il PRODUTTORE del rifiuto della manutenzione (estintori,
+        manichette sostituiti dal cliente): noi (art. 266 c. 4 D.Lgs.
+        152/2006, rifiuto prodotto dall'attività di manutenzione) o il
+        cliente?
+      - RENTRI: siamo obbligati all'iscrizione? Da quando? Il FIR
+        digitale sostituisce il formulario cartaceo e la 4ª copia?
+      - ALBO GESTORI AMBIENTALI: per trasportare i nostri rifiuti sui
+        furgoni dal cliente al capannone serve l'iscrizione (categoria 2-bis)?
+      - DEPOSITO TEMPORANEO in capannone (art. 185-bis): frequenza e
+        quantità massime, come va segnalata l'area, registro.
+      - CODICI CER per: estintori a polvere, a CO2, a schiuma/acqua,
+        manichette, porte REI e coppelle tolte in cantiere (che non
+        passano dal capannone: ritiro diretto, F20.13).
+      - ESTINTORI USATI ANCORA IN PRESSIONE: vanno svuotati prima del
+        deposito? Area separata "in pressione"? Chi può farlo? (il
+        gestionale chiede la spunta allo scarico).
+      - I 345 estintori ritirati nel 2026 senza fattura di smaltitore:
+        verifica e domanda a parte in F13.8.
+      Risposta: (in attesa)
+   c) RSPP (materiali pericolosi e capannone).
+      - Il capannone (deposito di estintori, bombole CO2, schiume,
+        vernici intumescenti) è attività soggetta ai controlli dei VV.F.
+        (DPR 151/2011, allegato I: quali punti, es. 12 liquidi
+        infiammabili, 70 depositi)? Serve la SCIA antincendio?
+      - Cisternette IBC e fusti (schiumogeni, liquidi): servono bacini
+        di contenimento? Dove e quanti?
+      - Trasporto sui furgoni di estintori CARICHI (nuovi o di cortesia)
+        e di estintori USATI: limiti di quantità (esenzioni ADR 1.1.3.6),
+        dotazioni del furgone, formazione degli autisti.
+      Risposta: (in attesa)
+   d) DECISIONI DI TOLI DEL 03/11 ALLE 20:34 (DECISE, valgono come
+      conferma della SCELTA, non come "CONFERMATO DA TOLI" per l'SQL in
+      produzione; testo completo in gestione-task/LEGGIMI-ERIKA.md). Le
+      altre delle 20:34 (G1-G2, U1, U5, U7, E) le annota F13.7.
+      - MD1: nessuna assunzione. Referente del capannone = un tecnico di
+        manutenzione di zona (7:45-8:05 ogni mattina) + Acquisti per i
+        dati; il gestionale misura le ore di magazzino e avvisa il
+        titolare oltre 12 h/settimana per 8 settimane (solo informativo
+        nelle prime 12 settimane dall'avvio). Il referente NON è un
+        ruolo: è il responsabile scritto sull'ubicazione.
+      - MD2: prezzi d'acquisto chiusi DAVVERO al capo tecnico (permessi
+        del database, non solo il sito: supera il limite dichiarato di
+        F6.1).
+      - MD3: estintori ritirati per smaltimento MAI di nuovo in circolo;
+        cortesia e noleggio solo da stock nostro.
+      - MD4: rettifiche di giacenza: capannone fino a 50 € per articolo
+        e 300 € al mese il capo tecnico; furgoni fino a 20 € per
+        conteggio il capo tecnico; oltre, matricole, furti e smarrimenti
+        il titolare.
+      - MD5: minuteria (viti, siliconi, nastro) non a magazzino: a costo
+        sulla commessa.
+      - MD6: magazzino APERTO a tutti (niente area chiusa): ogni prelievo
+        registrato ("📤 Prendo" o cassone + "Ritirato"), conteggi più
+        frequenti sugli articoli A e a matricola, giacenza negativa e
+        differenze per persona e ubicazione.
+      - MD7: rifiuti e smaltimenti: responsabile Acquisti (commerciale),
+        il referente prepara; ritiro ogni 2 mesi o oltre 120 estintori,
+        avvisi a 50 e 70 giorni, costi collegati alle fatture dello
+        smaltitore. Limiti da verificare col consulente ambientale (b).
+      - MD8: rimanenze di fine anno calcolate dal gestionale (quantità e
+        valore, costo medio ponderato) + cruscotto "soldi fermi" (valore
+        immobilizzato, anzianità, rotazione, articoli fermi).
+      - MD9: ordini di scorta oltre 2.000 € approvati dal titolare prima
+        dell'invio.
+      - MD10: porte di pronta consegna: 1 per misura 80/90/100/120 x 215
+        RAL 9010; prenotazione sul preventivo per 15 giorni; le inserisce
+        SOLO Acquisti con l'ordine di pronta consegna, chi riceve conferma
+        l'arrivo (matricola e foto della targhetta).
+      - C1: carta aziendale per furgone di squadra: 200 € a corsa, 400 €
+        a settimana (sopra 200 € tessera professionale su P.IVA o paga
+        Acquisti); bloccata dopo 2 corse non autorizzate in un mese;
+        niente rimborsi senza corsa registrata.
+      - C2: soglie di spesa dinamiche: 0,5% dell'imponibile (min 50, max
+        400 €), margine minimo 29% dopo la provvigione, tetto 1.500 €,
+        manutenzione 15% (20-150 €), attesa minima 1 h; budget della
+        squadra = riserva imprevisti 3% (G2) + consumabili del kit.
+      - C3: ordine settimanale chiuso il lunedì alle 12:00, ma non sempre
+        si ordina: scorte minime e punto di riordino per articolo (classi
+        A/B/C, proposta d'ordine del lunedì, ricalcolo trimestrale).
+      - C4: corsa per causa del cliente: il costo va nella variante o nel
+        lavoro extra e si paga solo se il cliente lo accetta.
+      - C5: acquisti del weekend su P.IVA ammessi solo con la corsa
+        registrata (anche del titolare).
+      - C6 (deciso da Claude come chiesto da Toli): chi fa la corsa, in
+        quest'ordine: consegna del fornitore → referente al mattino
+        (richieste entro le 7:45) → tecnico in giro con deviazione sotto
+        20 minuti → una sola persona della squadra, mai tutta.
+      - O1: Acquisti NON decide la conformità; scelta: conformità → data
+        del cliente → costo completo → fornitore unico entro il minore
+        tra 3% e 150 € → spareggio entro il minore tra 1% e 50 €; Acquisti
+        conferma solo i numeri letti.
+      - O2: il gestionale confronta DA SOLO le offerte: libreria articoli
+        (marca + codice produttore), distinta di riferimento degli
+        impianti (es. cavi mancanti stimati), controlli fissi dei numeri;
+        classe superiore verde se stessa norma, posa e documento valido.
+      - O3: ingegnere: 1 giorno lavorativo (4 ore se urgente), solo righe
+        incerte, codici nuovi che vincono, varianti che convengono,
+        prezzi sospetti.
+      - O4: prezzo sospetto: 30% sotto la mediana delle altre offerte
+        verdi (almeno 2) o dello storico di 12 mesi (almeno 3 dati).
+      - O5: valori di stima predefiniti (materie prime +3%, trasporto =
+        media del fornitore o 90 €, validità 30 giorni, scarico interno
+        37,50 €, 30 € per ogni fornitore in più, tolleranza in fattura 1%
+        o 20 €), modificabili nelle Regole.
+      - O6: lettura automatica del PDF con AI nel PRIMO rilascio (serve
+        per O1); ogni numero ricontrollato dal database; costo reale del
+        servizio da verificare all'attivazione.
+   e) VERIFICHE DI ACQUISTI (commerciale, circa 1 ora, prima delle task
+      delle corse):
+      - Würth: le 15 fatture con "Servizio espresso S24 Pisa" e
+        "affrancatura" sono ritiri al banco o consegne?
+      - Tecnomat Pisa (in fattura BRICOMAN ITALIA S.R.L.): c'è la tessera
+        professionale su P.IVA con fattura mensile e un codice per
+        persona? Si può ritirare un ordine fatto online?
+      - Prezzo al banco e prezzo del fornitore su 5 articoli: schiuma
+        EI240, Silcoflex, dischi 115, FFP2, viti per cartongesso.
+      - Dichiarazioni di posa 2026 in cui è stata usata la schiuma
+        comprata al banco: il prodotto ha la stessa certificazione (EI)
+        di quello dichiarato? Se no, la dichiarazione va controllata.
+      Risposta: (in attesa)
