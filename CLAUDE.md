@@ -240,7 +240,7 @@ ads_crm_registra_nuovo_contatto (tolta la loro copia della regola). Non
 toccati: ads_crm_hash_email, ads_crm_export_v2, trigger, procedura_consenso,
 sito. Provato sul backup pre59: telefoni dei clienti riconosciuti da 10 a
 288 su 309, lead da 1 a 15 su 15, export "nuovi" con telefono da 1 a 16.
-Dopo sql/60 (spese insoluti RIBA e solleciti del contabile, DA ESEGUIRE,
+Dopo sql/60 (spese insoluti RIBA e solleciti del contabile, ESEGUITO il 04/11, backup pre60,
 richiede 47): registra_spese_insoluto_riba; registra_sollecito,
 esito_sollecito ed elimina_sollecito ridefinite (anche contabile);
 colonne nuove riba_righe.spese_insoluto*.
@@ -2254,7 +2254,7 @@ una sessione e l'altra.
       salvataggio, PDF).
    d) (9) RIBA: registrare le spese bancarie degli insoluti; il
       contabile registra anche i solleciti. PRONTO: sql/60-riba-spese-
-      insoluti-solleciti-contabile (DA ESEGUIRE, richiede 47) + js/45.
+      insoluti-solleciti-contabile (ESEGUITO il 04/11, backup pre60, richiede 47) + js/45.
       Colonne riba_righe.spese_insoluto (> 0, max 1.000 €), _nota, _da,
       _da_nome, _il; RPC registra_spese_insoluto_riba (titolare,
       segreteria, contabile; solo riga insoluta; 0 o vuoto = togli).
