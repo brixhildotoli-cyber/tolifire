@@ -321,24 +321,24 @@ const SCHEDE_CON_INDIRIZZO = {
     },
     finestra: function() { return ROLE === 'rappresentante'; }
   },
-  commessa: { nome: 'la commessa', pagina: 'commessa-detail', funzione: 'openCommessaDetail' },
+  commessa: { nome: 'la commessa', pagina: 'commessa-detail', funzione: 'openCommessaDetail', tabella: 'commesse' },
   cantiere: {
-    nome: 'la commessa', pagina: 'commessa-detail', comeIndirizzo: 'commessa',
+    nome: 'la commessa', pagina: 'commessa-detail', tabella: 'commesse',
     apri: function(id) {
       // Apre la commessa sulla scheda "🏗️ Cantiere" (js/32).
       if (typeof tabCommessaScelta !== 'undefined') tabCommessaScelta = { commessaId: id, tab: 'cantiere' };
       return openCommessaDetail(id);
     }
   },
-  cliente: { nome: 'il cliente', pagina: 'cliente-detail', funzione: 'openClienteDetail' },
+  cliente: { nome: 'il cliente', pagina: 'cliente-detail', funzione: 'openClienteDetail', tabella: 'clienti' },
   progetto: { nome: 'il progetto', pagina: 'progetto-detail', funzione: 'openProgettoDetail' },
   fornitore: { nome: 'il fornitore', pagina: 'fornitore-detail', funzione: 'openFornitoreDetail' },
   persona: {
-    nome: 'i documenti della persona', pagina: 'scheda-documenti',
+    nome: 'i documenti della persona', pagina: 'scheda-documenti', tabella: 'utenti',
     apri: function(id) { return openSchedaDocumenti('dipendente', id); }
   },
   subappaltatore: {
-    nome: 'i documenti del subappaltatore', pagina: 'scheda-documenti',
+    nome: 'i documenti del subappaltatore', pagina: 'scheda-documenti', tabella: 'subappaltatori',
     apri: function(id) { return openSchedaDocumenti('subappaltatore', id); }
   },
   fattura: {
@@ -417,6 +417,22 @@ async function apriRottaScheda(richiesta, opzioni) {
     vaiAllaDashboardDaIndirizzo();
     return false;
   }
+  // Schede che si aprono prima di leggere i dati (commessa, cliente, scheda
+  // documenti): si controlla prima che il database faccia leggere l'id
+  // (RLS del ruolo). utenti la leggono tutti i collegati; subappaltatori
+  // titolare, segreteria e capo tecnico, gli stessi della scheda documenti.
+  if (scheda.tabella) {
+    let leggibile = false;
+    try {
+      const r = await db.from(scheda.tabella).select('id').eq('id', richiesta.id).maybeSingle();
+      leggibile = !r.error && !!r.data;
+    } catch (e) { leggibile = false; }
+    if (!leggibile) {
+      toast('Non hai accesso: non puoi aprire ' + scheda.nome + ' di questo link, oppure non esiste più', 'err');
+      vaiAllaDashboardDaIndirizzo();
+      return false;
+    }
+  }
   const finestra = schedaInFinestra(scheda);
   const apri = scheda.apri || function(id) { return window[scheda.funzione](id); };
   if (opzioni.daBrowser) navigazioneDaBrowser = true;
@@ -433,8 +449,7 @@ async function apriRottaScheda(richiesta, opzioni) {
   const finestraAperta = !scheda.idFinestra || !!(ge(scheda.idFinestra) && ge(scheda.idFinestra).classList.contains('on'));
   const aperta = finestra
     ? paginaAperta && finestraAperta
-    : paginaAperta && !!rottaMostrata &&
-      rottaMostrata.rotta === '/' + (scheda.comeIndirizzo || richiesta.oggetto) + '/' + richiesta.id;
+    : paginaAperta && !!rottaMostrata && rottaMostrata.rotta.split('/')[2] === richiesta.id;
   if (!aperta) {
     // Il database non la fa leggere (permessi) o non esiste più.
     toast('Non hai accesso: non puoi aprire ' + scheda.nome + ' di questo link, oppure non esiste più', 'err');
@@ -480,6 +495,30 @@ Object.keys(SCHEDE_CON_INDIRIZZO).forEach(function(oggetto) {
     }
   };
 });
+
+// Commessa sul tab "🏗️ Cantiere" (js/32): l'indirizzo è #/cantiere/<id>,
+// sul tab "Commessa e documenti" #/commessa/<id>; cambiando tab si
+// sostituisce la voce attuale, così ricaricando o tornando indietro si
+// riapre sullo stesso tab.
+(function() {
+  if (typeof mostraTabCommessa !== 'function') return;
+  const mostraTabCommessaPrimaIndirizzo = mostraTabCommessa;
+  mostraTabCommessa = function(tab) {
+    const risultato = mostraTabCommessaPrimaIndirizzo.apply(this, arguments);
+    try {
+      if (paginaApertaId() === 'commessa-detail' && typeof commessaApertaId !== 'undefined' && commessaApertaId &&
+          rottaMostrata && rottaMostrata.pagina === 'commessa-detail' &&
+          rottaMostrata.rotta.split('/')[2] === String(commessaApertaId)) {
+        const rotta = '/' + (tab === 'cantiere' ? 'cantiere' : 'commessa') + '/' + commessaApertaId;
+        if (rotta !== rottaMostrata.rotta) {
+          rottaMostrata = { pagina: 'commessa-detail', rotta: rotta };
+          allineaIndirizzoPagina(false);
+        }
+      }
+    } catch (e) {}
+    return risultato;
+  };
+})();
 
 // Scheda documenti di un dipendente o di un subappaltatore (js/30).
 (function() {
