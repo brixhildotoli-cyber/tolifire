@@ -267,8 +267,8 @@ Sono gli accessi che le policy RLS per il portale dovranno permettere
 
 ## Mappa ruoli: organigramma → gestionale
 Da "Roadmap gestionale TOLI Fire" (gestione-task/ROADMAP.md). Si tengono i
-codici attuali di `utenti.ruolo`. Il ruolo capo_operativo NON si crea
-(decisione del 26/10).
+codici attuali di `utenti.ruolo`. capo_operativo non è un ruolo: NON
+si crea (decisione del 26/10, confermata da Toli il 03/11, T1).
 Esiste anche `informatico` (Erika Pistolesi): accesso completo come il
 titolare (decisione di Erika del 23/10, da confermare da Toli in F1.4).
 Cambiano solo le etichette in interfaccia (Fase 3), mai il codice.
@@ -276,7 +276,8 @@ Nomi visibili nel gestionale (decisione 26/10): "Rappresentante" e
 "Commerciale" restano così (NON "Commerciale"/"Acquisti" del flusso
 appeso in ufficio); le etichette servono solo a non mostrare codici grezzi
 (es. "Capo tecnico"). Soglia 3.000 € del rappresentante: resta fissa nel
-DB (trigger e policy di sql/10), non configurabile. Vale per CREARE o
+DB (trigger e policy di sql/10), non configurabile (confermato da Toli il
+03/11, D14). Vale per CREARE o
 ALZARE l'importo: l'esito del cliente (accettato/rifiutato) lo registra
 il rappresentante anche sopra 3.000 € (decisione 26/10, sql/23).
 
@@ -1708,6 +1709,19 @@ Toli, eseguita seguendo `sql/F1.4-ATTIVAZIONE.md`): policy per ruolo
 (13), regole dei file per cartella (14), trigger Piano mensile (17).
 Schema aggiornato in `sql/schema/` (export del 26/10). Ogni nuova
 tabella o funzione deve nascere con le sue policy e il suo rollback.
+Lettura del 04/11/2026 (MCP): in produzione 81 tabelle in `public`, tutte
+con RLS attiva (l'elenco delle tabelle sopra è ancora quello del 22/10).
+REGOLA DELLE TABELLE NUOVE (piano del titolare, F13.1): ogni tabella
+nuova nasce, nello stesso file sql/NN, con (1) RLS attiva e le sue policy
+per ruolo (niente policy "per tutti gli autenticati"), (2) la sua riga
+per ruolo nella matrice dei permessi `sql/matrice_permessi.csv` (lettura,
+inserimento, modifica, cancellazione; il file e lo script di controllo
+arrivano con F14.13: finché non c'è, la riga si prepara nel commento del
+file sql/NN) e (3) il trigger del registro delle azioni (chi, quando,
+cosa è cambiato; arriva con F14.11: finché non c'è, si scrive nel file
+che il trigger va aggiunto). Più il rollback e la riga nell'elenco
+"Tabelle Supabase" qui sopra. Una tabella senza queste tre cose non si
+esegue in produzione.
 Accesso di Claude Code a Supabase (decisione di Toli del 04/11): server
 MCP ufficiale in `.mcp.json` (escluso da git, login OAuth), in
 lettura e scrittura. Claude esegue in produzione SOLO un file sql/NN
@@ -2543,3 +2557,61 @@ una sessione e l'altra.
    riesecuzione) e nel browser di prova con risposte finte (box
    rappresentante e titolare a 390 px, Assegna venditore, Periodicità del
    rappresentante, bottone e finestra della distinta RIBA).
+
+11. **Decisioni di Toli del 03/11/2026 (17:08 e 17:13)** — DECISIONI DI
+   TOLI (valgono come conferma della SCELTA, non come "CONFERMATO DA
+   TOLI" per eseguire SQL in produzione). Fonte:
+   gestione-task/LEGGIMI-ERIKA.md; le task del pacchetto F13-F27 le
+   applicano dove servono. Le decisioni delle 17:36-20:34 (E, G, MD, C,
+   O, U) si annotano con F13.7.
+   Ore 17:08:
+   - T1 (n.1): Capo Operativo = ruolo capo_tecnico; capo_operativo non è
+     un ruolo e non si crea (conferma la decisione del 26/10).
+   - T2 (n.2): smistamento AUTOMATICO verso l'ingegnere con i blocchi del
+     piano; supera "decide il rappresentante, solo avviso giallo" di F3.3
+     e del punto 9.q (domanda 28).
+   - T3 (n.3): le tre fasce di prezzo (grandi quantità / cliente con
+     contratto / non cliente) valgono SOLO sui prodotti più venduti (voci
+     ricorrenti delle fatture 2026: estintori per tipo, piantane,
+     cartelli, registro, manichette, maniglioni...) e sulle vendite di
+     sola fornitura. Lavori e manutenzioni seguono il preventivo o il
+     contratto del cliente (come il punto 10, risposta 5).
+   Ore 17:13:
+   - D1 (n.1): contratti = si estende clienti_periodicita; nessuna
+     tabella nuova, la tabella `contratti` non si usa.
+   - D2 (n.2): schede: obbligatori SOLO i dati che servono a calcolare il
+     preventivo; tutto il resto facoltativo.
+   - D3 (n.3): ordini liberi e magazzino SI FANNO (supera il rinvio del
+     punto 9.m); il magazzino è un modulo a parte (numeri sql riservati).
+   - D4 (n.4): ordini ai subappaltatori, insieme agli ordini liberi.
+   - D5 (n.5): stati della commessa: il gestionale SUGGERISCE il
+     passaggio, una persona lo conferma (nessun cambio automatico).
+   - D6 (n.6): commessa senza preventivo (urgenze, lavori già aperti):
+     ammessa SOLO con sblocco del titolare (commesse.preventivo_id oggi è
+     NOT NULL UNIQUE: va cambiato, modifica di schema).
+   - D7 (n.7): la commessa nasce con l'anticipo pagato, come oggi
+     (nessuna commessa "in attesa anticipo").
+   - D8 (n.8): vendita senza scheda di lavoro: SÌ, solo per la sola
+     fornitura.
+   - D9 (n.9): corsi e documenti scaduti: BLOCCO per i corsi di legge
+     (PLE/piattaforme, lavori in quota, spazi confinati, preposto) e per
+     l'idoneità sanitaria; per il resto solo avviso.
+   - D10 (n.10): solleciti: il gestionale prepara l'elenco, la segreteria
+     conferma l'invio (niente invio automatico).
+   - D11 (n.11): le fatture restano emesse dal gestionale, con export
+     verso Aruba (vedi 9.a).
+   - D12 (n.12): appuntamento prenotato dal portale: per ora NO (il
+     cliente chiede, la segreteria fissa).
+   - D13 (n.13): sostituti per ruolo: nessuno; il titolare cambia il
+     ruolo all'utente e ha "Entra come" (conferma il punto 9, risposta
+     22).
+   - D14 (n.14): soglia 3.000 € del rappresentante: RESTA, fissa nel DB
+     (trigger e policy di sql/10), non configurabile.
+   - D15 (n.15): giornale di cantiere: lo compila il caposquadra dal
+     telefono, il capo_tecnico conferma (supera "solo capo tecnico e
+     titolare" di F8.4 quando la task relativa sarà fatta).
+   - D16 (n.16): piano dei controlli dopo una disdetta: si ferma da solo
+     alla data di fine del contratto (supera "il piano NON cambia da
+     solo" del punto 10, risposta 2, quando la task relativa sarà fatta).
+   Regola nuova del piano: ogni tabella nuova nasce con RLS, riga nella
+   matrice dei permessi e trigger del registro (sezione SICUREZZA).

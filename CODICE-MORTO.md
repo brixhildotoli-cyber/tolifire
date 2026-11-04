@@ -118,7 +118,8 @@ richiama), tutte da lasciare:
 - Nomi ripetuti ma **locali** dentro altre funzioni (non sono doppioni):
   `Q` e `num` in js/03-dashboard.js, `card`, `datoNota`, `scheda`, `righe`.
 
-Stato delle voci del vecchio CODICE-MORTO.md (`app.js`): i doppioni di
+Stato delle voci della prima versione di questo file (quando il codice
+era in un file unico, oggi diviso nei moduli js/): i doppioni di
 `toggleImpossibilitato`, `mostraRelazioneBox`, `mostraInfoSede`,
 `saveDdt`, `stampaDDT` sono già stati tolti col passaggio ai moduli (oggi
 una sola copia: js/11 righe 7, 13, 20; js/14 righe 296, 393).
