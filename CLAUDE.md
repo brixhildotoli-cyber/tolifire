@@ -231,6 +231,16 @@ più: 'confermato' da 'arrivato', solo titolare, con motivo).
 Dopo sql/48 (schede di rilievo multiple, ESEGUITO il 30/10, richiede 07 e 34;
 prima si pubblica il sito): elimina_scheda_rilievo; scheda_cantiere_commessa
 ridefinita (in più numero e nome della scheda; rollback = versione di sql/34).
+Dopo sql/256 (a Google Ads solo i lead del sito, decisione della titolare
+del 04/11, DA ESEGUIRE, richiede 61; chiesto come "sql/62", numero già
+usato da F14.2): nessuna RPC del sito. ads_crm_export_v2: primo ramo
+(ads_crm_nuovi_contatti, contatti dei rappresentanti) idoneo = false,
+ramo lead_sito invariato; ads_crm_export_nuovi: "and false" (zero righe);
+trigger ads_crm_registra_nuovo_contatto: procedura_consenso =
+'nessuna_procedura_definita' (prima 'cartaceo_dichiarato_dal_titolare_v1',
+procedura mai esistita). Righe esistenti non toccate. Provato sul backup
+pre255: export nuovi 17 -> 2 (solo sito-), non sito 15 -> 0, qualificati
+1 -> 0, export vecchio 13 -> 0; rollback identico.
 Dopo sql/61 (telefoni italiani per Google Ads, ESEGUITO il 03/11, backup pre61, nessun
 prerequisito oltre le funzioni Ads): nessuna RPC del sito. Funzione nuova
 ads_crm_normalizza_telefono (immutable: +39 ai numeri italiani senza
