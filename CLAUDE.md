@@ -168,7 +168,7 @@ Dopo sql/67 (F14.11, ESEGUITO il 05/11, backup pre67 e -REGISTRO-CANCELLAZIONI d
 delle azioni, NON usata dal sito per ora; sola lettura del titolare e
 dell'informatico; la scrive solo il trigger registra_azione; nessuno la
 modifica o la cancella, nemmeno service_role e il proprietario).
-Dopo sql/68 (F14.12, DA ESEGUIRE, richiede 07, 47, 64, 65; 67 facoltativo;
+Dopo sql/68 (F14.12, ESEGUITO il 05/11, backup pre68, e -REGISTRO-CANCELLAZIONI dall'editor, richiede 07, 47, 64, 65; 67 facoltativo;
 poi il file -REGISTRO-CANCELLAZIONI dall'editor, che richiede 67):
 motore_oggetti, motore_stati, motore_transizioni (configurazione del
 motore unico di stati e azioni: lettura per tutti i ruoli, si scrivono
@@ -486,7 +486,7 @@ x-agito-come: tecnico rifiutato, titolare come segreteria registrato),
 rollback identico allo schema di prima, smoke test con 67 eseguito.
 test/locale/avvia-db-locale.sh esegue NN-nome.sql prima dei suoi
 NN-nome-SUFFISSO.sql.
-Dopo sql/68 (F14.12 motore unico di stati e azioni, DA ESEGUIRE, richiede
+Dopo sql/68 (F14.12 motore unico di stati e azioni, ESEGUITO il 05/11, backup pre68, richiede
 07, 47, 64, 65, si ferma senza; sql/67 facoltativo; provato sul backup
 pre66 + 66 + 67 e senza 67): SOLO PER GLI OGGETTI NUOVI (POS, documenti
 finali, eventi di sicurezza, fermi...); le RPC di stato esistenti
