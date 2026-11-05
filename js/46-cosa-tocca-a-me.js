@@ -1237,6 +1237,22 @@ registraFonteToccaAMe({
   }
 });
 
+// ── F14.15: domande nel gestionale (js/62, sql/70) ──────────────────
+// Domande per me (o per il mio ruolo) senza risposta e risposte arrivate
+// alle mie domande non ancora chiuse; il titolare anche le domande di
+// tutti scadute senza risposta. Rossa se ce n'è una scaduta. Apre la
+// finestra "❓ Domande per me". Senza sql/70 la riga non c'è.
+registraFonteToccaAMe({
+  id: 'domande-per-me',
+  ruoli: ['titolare', 'segreteria', 'capo_tecnico', 'commerciale', 'rappresentante', 'tecnico', 'ingegnere', 'contabile'],
+  icona: '❓', titolo: 'Domande per me', priorita: 2,
+  vai: function() { if (funzioneEsiste('apriElencoDomande')) apriElencoDomande(); },
+  conta: async function() {
+    if (!funzioneEsiste('contaDomandePerMe')) return null;
+    return await contaDomandePerMe();
+  }
+});
+
 // ── F14.7: decisioni del titolare (js/60, avvisi di sql/65) ─────────
 // In cima al riquadro: quante decisioni aspettano il titolare; rossa se
 // una aspetta da almeno 1 giorno lavorativo (promemoria). Porta alla

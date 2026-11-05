@@ -1201,6 +1201,8 @@
     <div id="pd-info-content">
       <div class="load">Caricamento...</div>
     </div>
+    <!-- F14.15: domande sul progetto (js/62, attive con sql/70) -->
+    <div id="pd-domande"></div>
   </div>
 
   <div class="tc" id="pd-file">
@@ -1362,6 +1364,8 @@
     <div id="pvd-riepilogo-content">
       <div class="load">Caricamento...</div>
     </div>
+    <!-- F14.15: domande sul preventivo (js/62, attive con sql/70) -->
+    <div id="pvd-domande"></div>
   </div>
 
   <div class="tc" id="pvd-progetto">
@@ -2025,6 +2029,8 @@
   </div>
   <div class="tc on" id="cmd-tab-commessa">
     <div id="cmd-riepilogo"><div class="load">Caricamento...</div></div>
+    <!-- F14.15: domande sulla commessa (js/62, attive con sql/70) -->
+    <div id="cmd-domande"></div>
     <!-- F8.5: fine lavori, riepilogo per la chiusura della segreteria (js/36) -->
     <div id="cmd-chiusura"></div>
     <!-- F9.1: dichiarazione di corretta messa in opera (js/37, fine lavori e chiusa) -->
@@ -2943,6 +2949,27 @@
         <li>Il controllo vero lo fa il database: se un passaggio non è permesso al tuo ruolo, o mancano dei dati (es. la descrizione), il gestionale lo dice con un messaggio e lo stato non cambia.</li>
       </ul>
 
+      <h4 id="info-rap-22">22. Domande nel gestionale: rispondi entro il tempo, poi la vede il titolare</h4>
+
+      <p>
+        Acquisti, ingegnere, capo tecnico e segreteria possono chiederti un dato del cliente direttamente sul progetto, sul preventivo o sulla commessa. Hai 2 giorni lavorativi per le integrazioni e 1 giorno per le domande del capo tecnico sulla commessa (Regole); dopo la domanda sale al titolare.
+      </p>
+
+      <ul>
+        <li>Una domanda per te (o per il tuo ruolo) arriva subito nella campanella <b>🔔</b> e in <b>Cosa tocca a me</b> come <b>❓ Domande per me</b>: apri la riga e premi <b>💬 Rispondi</b> (puoi aggiungere un allegato). Con la risposta l'avviso si chiude da solo e chi ha chiesto riceve <b>💬 Risposta alla tua domanda</b>.</li>
+        <li>Se la domanda scade senza risposta sale al <b>titolare</b>: rispondi entro il tempo, anche solo "ci guardo domani".</li>
+        <li>Nella scheda del <b>progetto</b>, del <b>preventivo</b> o della <b>commessa</b> c'è il riquadro <b>❓ Domande</b>: <b>❓ Fai una domanda</b>, scegli <b>A chi</b> (una persona oppure "Chiunque" di un ruolo), scrivi la domanda e, se serve, aggiungi un allegato (foto, PDF, max 20 MB). Sotto il campo il gestionale dice entro quando è attesa la risposta.</li>
+        <li>Arrivata la risposta, chi ha chiesto preme <b>✓ Chiudi</b>; se la domanda non serve più, <b>↩️ Ritira la domanda</b>. Le domande le vedono solo chi chiede, chi risponde e il titolare.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Laura (Acquisti) ti chiede sul progetto "Mancano le misure delle porte del piano terra". Chiami il cliente, poi <b>💬 Rispondi</b> con le misure e alleghi la foto del rilievo. Se non riesci entro 2 giorni lavorativi la domanda la vede anche il titolare.
+      </div>
+
+      <div class="al2 w">
+        Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
+      </div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -3342,6 +3369,29 @@
         <li>Fatto il passaggio, l'avviso del passo di prima si chiude da solo e parte quello per chi fa il passo dopo.</li>
         <li>Il controllo vero lo fa il database: se un passaggio non è permesso al tuo ruolo, o mancano dei dati (es. la descrizione), il gestionale lo dice con un messaggio e lo stato non cambia.</li>
       </ul>
+
+      <h4 id="info-com-17">17. Domande nel gestionale: all'ingegnere con 1 giorno di tempo</h4>
+
+      <p>
+        Un dubbio sul progetto (diametri, classi REI, misure) lo chiedi all'ingegnere dal gestionale: ha 1 giorno lavorativo per rispondere (Regole), poi la domanda sale al titolare. Per i dati del cliente chiedi al rappresentante (2 giorni lavorativi). Non serve rimandare indietro il progetto per una domanda sola.
+      </p>
+
+      <ul>
+        <li>Nella scheda del <b>progetto</b>, del <b>preventivo</b> o della <b>commessa</b> c'è il riquadro <b>❓ Domande</b>: <b>❓ Fai una domanda</b>, scegli <b>A chi</b> (una persona oppure "Chiunque" di un ruolo), scrivi la domanda e, se serve, aggiungi un allegato (foto, PDF, max 20 MB). Sotto il campo il gestionale dice entro quando è attesa la risposta.</li>
+        <li>Nel progetto e nel preventivo la domanda è proposta a "Chiunque: Ingegnere"; puoi scegliere una persona precisa.</li>
+        <li>Una domanda per te (o per il tuo ruolo) arriva subito nella campanella <b>🔔</b> e in <b>Cosa tocca a me</b> come <b>❓ Domande per me</b>: apri la riga e premi <b>💬 Rispondi</b> (puoi aggiungere un allegato). Con la risposta l'avviso si chiude da solo e chi ha chiesto riceve <b>💬 Risposta alla tua domanda</b>.</li>
+        <li>Se la domanda scade senza risposta sale al <b>titolare</b>: rispondi entro il tempo, anche solo "ci guardo domani".</li>
+        <li>Arrivata la risposta, chi ha chiesto preme <b>✓ Chiudi</b>; se la domanda non serve più, <b>↩️ Ritira la domanda</b>. Le domande le vedono solo chi chiede, chi risponde e il titolare.</li>
+        <li>Se manca molto (rilievo da rifare, schede vuote) usa ancora <b>Richiedi integrazione</b> o <b>↩ Rimanda indietro</b>: la domanda serve per le cose puntuali.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Giovedì alle 10 chiedi all'ingegnere "Le tubazioni del piano terra sono DN 50 o DN 32?". Ti arriva "Risposta attesa entro venerdì 10:00". Se venerdì alle 10 non ha risposto, la domanda compare al titolare.
+      </div>
+
+      <div class="al2 w">
+        Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
+      </div>
 
   <h4>Checklist prima dell’invio</h4>
 
@@ -3743,6 +3793,26 @@
         <li>Fatto il passaggio, l'avviso del passo di prima si chiude da solo e parte quello per chi fa il passo dopo.</li>
         <li>Il controllo vero lo fa il database: se un passaggio non è permesso al tuo ruolo, o mancano dei dati (es. la descrizione), il gestionale lo dice con un messaggio e lo stato non cambia.</li>
       </ul>
+
+      <h4 id="info-tec-19">19. Domande nel gestionale: le domande che arrivano a te</h4>
+
+      <p>
+        Il capo tecnico o un collega dell'ufficio possono farti una domanda su un lavoro (per esempio "Quanti estintori hai trovato al piano interrato?"). Non apri progetti e commesse: rispondi dall'elenco delle domande, anche dal telefono.
+      </p>
+
+      <ul>
+        <li>Una domanda per te (o per il tuo ruolo) arriva subito nella campanella <b>🔔</b> e in <b>Cosa tocca a me</b> come <b>❓ Domande per me</b>: apri la riga e premi <b>💬 Rispondi</b> (puoi aggiungere un allegato). Con la risposta l'avviso si chiude da solo e chi ha chiesto riceve <b>💬 Risposta alla tua domanda</b>.</li>
+        <li>Se la domanda scade senza risposta sale al <b>titolare</b>: rispondi entro il tempo, anche solo "ci guardo domani".</li>
+        <li>Puoi allegare una foto alla risposta (📷 dal telefono, max 20 MB).</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>In campanella trovi "Domanda di Luca Roda: la porta REI del locale caldaia chiude da sola?". Premi <b>💬 Domande per me</b>, poi <b>💬 Rispondi</b>, scrivi "No, il chiudiporta è rotto" e alleghi la foto.
+      </div>
+
+      <div class="al2 w">
+        Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
+      </div>
 
       <h4>Regole pratiche</h4>
 
@@ -4257,6 +4327,28 @@
 
       <div class="al2 w">
         Finché il database non è aggiornato (sql/69) il bottone <b>🚫 Segna assenza</b> e il box non compaiono.
+      </div>
+
+      <h4 id="info-ct-23">23. Domande nel gestionale: al rappresentante sulla commessa, con 1 giorno di tempo</h4>
+
+      <p>
+        Quando sulla commessa ti manca un'informazione del cliente (accessi, orari, referente, una misura) la chiedi al rappresentante dal gestionale: ha 1 giorno lavorativo per rispondere (Regole), poi la domanda sale al titolare.
+      </p>
+
+      <ul>
+        <li>Nella scheda del <b>progetto</b>, del <b>preventivo</b> o della <b>commessa</b> c'è il riquadro <b>❓ Domande</b>: <b>❓ Fai una domanda</b>, scegli <b>A chi</b> (una persona oppure "Chiunque" di un ruolo), scrivi la domanda e, se serve, aggiungi un allegato (foto, PDF, max 20 MB). Sotto il campo il gestionale dice entro quando è attesa la risposta.</li>
+        <li>Nella scheda della commessa la domanda va di solito al rappresentante del cliente: sceglilo per nome nell'elenco (oppure "Chiunque: Rappresentante").</li>
+        <li>Una domanda per te (o per il tuo ruolo) arriva subito nella campanella <b>🔔</b> e in <b>Cosa tocca a me</b> come <b>❓ Domande per me</b>: apri la riga e premi <b>💬 Rispondi</b> (puoi aggiungere un allegato). Con la risposta l'avviso si chiude da solo e chi ha chiesto riceve <b>💬 Risposta alla tua domanda</b>.</li>
+        <li>Se la domanda scade senza risposta sale al <b>titolare</b>: rispondi entro il tempo, anche solo "ci guardo domani".</li>
+        <li>Arrivata la risposta, chi ha chiesto preme <b>✓ Chiudi</b>; se la domanda non serve più, <b>↩️ Ritira la domanda</b>. Le domande le vedono solo chi chiede, chi risponde e il titolare.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Commessa 2026-004, lunedì si comincia. Chiedi a Giulio "Il cliente conferma l'accesso alle 7:00 dal cancello sul retro?". Giulio risponde "Sì, chiedere di Marco"; la risposta resta scritta nella commessa e ti arriva nella campanella.
+      </div>
+
+      <div class="al2 w">
+        Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
       </div>
 
       <h4>Regole pratiche</h4>
@@ -4824,6 +4916,27 @@
         Finché il database non è aggiornato (sql/69) il box non compare.
       </div>
 
+      <h4 id="info-tit-19">19. Domande nel gestionale: quelle senza risposta arrivano a te</h4>
+
+      <p>
+        Le domande tra colleghi su un progetto, un preventivo o una commessa ora sono nel gestionale, con la scadenza per rispondere presa dalle Regole: ingegnere ad Acquisti 1 giorno lavorativo, capo tecnico al rappresentante 1, integrazione al venditore 2, tutte le altre 1. Se scade senza risposta la domanda arriva a te.
+      </p>
+
+      <ul>
+        <li>Nella scheda del <b>progetto</b>, del <b>preventivo</b> o della <b>commessa</b> c'è il riquadro <b>❓ Domande</b>: <b>❓ Fai una domanda</b>, scegli <b>A chi</b> (una persona oppure "Chiunque" di un ruolo), scrivi la domanda e, se serve, aggiungi un allegato (foto, PDF, max 20 MB). Sotto il campo il gestionale dice entro quando è attesa la risposta.</li>
+        <li>Una domanda scaduta ti arriva nella campanella come <b>⬆️ Risalita</b> (con <b>Apri il progetto</b>, il preventivo o la commessa) e in <b>Cosa tocca a me</b> nella riga <b>❓ Domande per me</b> ("di altri scadute senza risposta", rossa). Puoi rispondere tu con <b>💬 Rispondi</b> oppure sollecitare la persona.</li>
+        <li>Vedi tutte le domande; rispondi a qualunque domanda e chiudi qualunque domanda.</li>
+        <li>I tempi li cambi in <b>Impostazioni &gt; ⏳ Scadenze</b> (righe "Risposta dell'ingegnere ad Acquisti", "Risposta alle domande del capo tecnico", "Risposta del venditore a una domanda", "Risposta a una domanda nel gestionale") e nelle <b>📏 Regole</b>. Le domande fatte a te, o da te, hanno solo una scadenza indicativa e non salgono a nessuno.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Giovedì alle 10 Laura (Acquisti) chiede all'ingegnere "Le tubazioni del piano terra sono DN 50 o DN 32?". Venerdì alle 10 non ha ancora risposto nessuno: in campanella ti arriva "⬆️ Risalita: Progetto ... domanda di Laura Panseri". Apri il progetto, leggi la domanda nel riquadro <b>❓ Domande</b> e chiami l'ingegnere; quando risponde la risalita si chiude da sola.
+      </div>
+
+      <div class="al2 w">
+        Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
+      </div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -5320,6 +5433,27 @@
         <b>Esempio</b><br>Alle 8:30 vedi "Clienti da avvisare: tecnico assente oggi: 1". È la ditta Rossi, alle 10:00. Premi <b>📞 Chiama</b>, spieghi che il tecnico è assente e che li richiamerete, poi <b>✓ Avvisato</b>. Alle 9:15 il capo tecnico sposta l'intervento a giovedì: la ditta Rossi compare negli appuntamenti da fissare e fissi la nuova data.
       </div>
 
+      <h4 id="info-seg-21">21. Domande nel gestionale: chiedere e rispondere con la scadenza</h4>
+
+      <p>
+        Al posto della telefonata o della nota "ricordati di..." fai una domanda nel gestionale: resta scritta sul record, chi deve rispondere riceve l'avviso e, se non risponde in tempo, la domanda sale al titolare.
+      </p>
+
+      <ul>
+        <li>Nella scheda del <b>progetto</b>, del <b>preventivo</b> o della <b>commessa</b> c'è il riquadro <b>❓ Domande</b>: <b>❓ Fai una domanda</b>, scegli <b>A chi</b> (una persona oppure "Chiunque" di un ruolo), scrivi la domanda e, se serve, aggiungi un allegato (foto, PDF, max 20 MB). Sotto il campo il gestionale dice entro quando è attesa la risposta.</li>
+        <li>Una domanda per te (o per il tuo ruolo) arriva subito nella campanella <b>🔔</b> e in <b>Cosa tocca a me</b> come <b>❓ Domande per me</b>: apri la riga e premi <b>💬 Rispondi</b> (puoi aggiungere un allegato). Con la risposta l'avviso si chiude da solo e chi ha chiesto riceve <b>💬 Risposta alla tua domanda</b>.</li>
+        <li>Se la domanda scade senza risposta sale al <b>titolare</b>: rispondi entro il tempo, anche solo "ci guardo domani".</li>
+        <li>Arrivata la risposta, chi ha chiesto preme <b>✓ Chiudi</b>; se la domanda non serve più, <b>↩️ Ritira la domanda</b>. Le domande le vedono solo chi chiede, chi risponde e il titolare.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Nella commessa 2026-004 manca il referente in cantiere. Nel riquadro <b>❓ Domande</b> chiedi al rappresentante del cliente "Chi ci apre il cantiere lunedì?". Ha 2 giorni lavorativi per rispondere; la risposta ti arriva nella campanella.
+      </div>
+
+      <div class="al2 w">
+        Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
+      </div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -5569,6 +5703,26 @@
         <li>Fatto il passaggio, l'avviso del passo di prima si chiude da solo e parte quello per chi fa il passo dopo.</li>
         <li>Il controllo vero lo fa il database: se un passaggio non è permesso al tuo ruolo, o mancano dei dati (es. la descrizione), il gestionale lo dice con un messaggio e lo stato non cambia.</li>
       </ul>
+
+      <h4 id="info-con-12">12. Domande nel gestionale: le domande che arrivano a te</h4>
+
+      <p>
+        I colleghi possono farti una domanda su un preventivo o una commessa (per esempio su un anticipo o una fattura finale). Tu non apri quelle schede: rispondi dall'elenco delle domande.
+      </p>
+
+      <ul>
+        <li>Una domanda per te (o per il tuo ruolo) arriva subito nella campanella <b>🔔</b> e in <b>Cosa tocca a me</b> come <b>❓ Domande per me</b>: apri la riga e premi <b>💬 Rispondi</b> (puoi aggiungere un allegato). Con la risposta l'avviso si chiude da solo e chi ha chiesto riceve <b>💬 Risposta alla tua domanda</b>.</li>
+        <li>Se la domanda scade senza risposta sale al <b>titolare</b>: rispondi entro il tempo, anche solo "ci guardo domani".</li>
+        <li>Gli allegati della domanda (📎) si aprono anche se non vedi il record.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>La segreteria chiede a "Chiunque: Contabile" "La fattura d'anticipo del preventivo 86 è già nel registro IVA?". In <b>Cosa tocca a me</b> vedi <b>❓ Domande per me 1</b>, apri e premi <b>💬 Rispondi</b>.
+      </div>
+
+      <div class="al2 w">
+        Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
+      </div>
 
       <h4>Checklist</h4>
 
@@ -5895,6 +6049,28 @@
         <li>Fatto il passaggio, l'avviso del passo di prima si chiude da solo e parte quello per chi fa il passo dopo.</li>
         <li>Il controllo vero lo fa il database: se un passaggio non è permesso al tuo ruolo, o mancano dei dati (es. la descrizione), il gestionale lo dice con un messaggio e lo stato non cambia.</li>
       </ul>
+
+      <h4 id="info-ing-15">15. Domande nel gestionale: Acquisti ti chiede, rispondi entro 1 giorno</h4>
+
+      <p>
+        Acquisti (commerciale) ti fa le domande sul progetto dal gestionale: hai 1 giorno lavorativo per rispondere (Regole), poi la domanda sale al titolare.
+      </p>
+
+      <ul>
+        <li>Una domanda per te (o per il tuo ruolo) arriva subito nella campanella <b>🔔</b> e in <b>Cosa tocca a me</b> come <b>❓ Domande per me</b>: apri la riga e premi <b>💬 Rispondi</b> (puoi aggiungere un allegato). Con la risposta l'avviso si chiude da solo e chi ha chiesto riceve <b>💬 Risposta alla tua domanda</b>.</li>
+        <li>Se la domanda scade senza risposta sale al <b>titolare</b>: rispondi entro il tempo, anche solo "ci guardo domani".</li>
+        <li>Nella scheda del <b>progetto</b>, del <b>preventivo</b> o della <b>commessa</b> c'è il riquadro <b>❓ Domande</b>: <b>❓ Fai una domanda</b>, scegli <b>A chi</b> (una persona oppure "Chiunque" di un ruolo), scrivi la domanda e, se serve, aggiungi un allegato (foto, PDF, max 20 MB). Sotto il campo il gestionale dice entro quando è attesa la risposta.</li>
+        <li>Le domande arrivano anche se il progetto non è in verifica tecnica: rispondi dall'elenco <b>❓ Domande per me</b>, con <b>Apri il progetto</b> se ti serve vederlo.</li>
+        <li>Arrivata la risposta, chi ha chiesto preme <b>✓ Chiudi</b>; se la domanda non serve più, <b>↩️ Ritira la domanda</b>. Le domande le vedono solo chi chiede, chi risponde e il titolare.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>In <b>Cosa tocca a me</b> c'è "❓ Domande per me 1 da rispondere". La apri: "Le tubazioni del piano terra sono DN 50 o DN 32?". Premi <b>💬 Rispondi</b>: "DN 50 al piano terra, DN 32 ai piani" e alleghi lo schema.
+      </div>
+
+      <div class="al2 w">
+        Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
+      </div>
 
       <h4>Checklist veloce prima di chiudere la giornata</h4>
 
@@ -8819,6 +8995,7 @@
 <script defer src="js/59-notifiche-push.js?v=202611051342"></script>
 <script defer src="js/60-decisioni-titolare.js?v=202611051342"></script>
 <script defer src="js/61-motore-azioni.js?v=202611051342"></script>
+<script defer src="js/62-domande.js?v=202611051342"></script>
 <script defer src="js/19-init.js?v=202611051342"></script>
 
 

@@ -318,6 +318,7 @@ async function caricaSchedaCommessa(commessaId) {
   riepilogo.innerHTML = '<div class="load">Caricamento...</div>';
   cartella.innerHTML = '';
   if (ge('cmd-materiali')) ge('cmd-materiali').innerHTML = '';
+  if (ge('cmd-domande')) ge('cmd-domande').innerHTML = '';
   if (ge('cmd-ordini')) ge('cmd-ordini').innerHTML = '';
   if (ge('cmd-richieste')) ge('cmd-richieste').innerHTML = '';
   if (ge('cmd-faldone')) ge('cmd-faldone').innerHTML = '';
@@ -355,6 +356,8 @@ async function caricaSchedaCommessa(commessaId) {
   if (typeof caricaRiepilogoLavoriExtra === 'function') await caricaRiepilogoLavoriExtra(commessa.id);
   if (typeof caricaImportiExtraCommesse === 'function') await caricaImportiExtraCommesse([commessa.id]);
   riepilogo.innerHTML = htmlRiepilogoCommessa(commessa);
+  // F14.15: domande sulla commessa (js/62, attive con sql/70)
+  if (typeof caricaDomandeRecord === 'function') await caricaDomandeRecord('commesse', commessa.id, 'cmd-domande');
   // F6.1: ordini ai fornitori (js/27, attivi con sql/30).
   if (typeof caricaOrdiniCommessa === 'function') await caricaOrdiniCommessa(commessa);
   // F6.2: consumabili e noli (js/28, attivi con sql/31).

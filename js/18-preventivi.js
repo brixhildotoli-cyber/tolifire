@@ -331,6 +331,8 @@ ${ROLE === 'titolare' ? `
   await renderFornitoriPreventivo();
   await renderCostiPreventivo();
   await renderCertificatiPreventivo();
+  // F14.15: domande sul preventivo (js/62, attive con sql/70)
+  if (typeof caricaDomandeRecord === 'function') await caricaDomandeRecord('preventivi', preventivo.id, 'pvd-domande');
   gotoPage('preventivo-detail');
   
 }

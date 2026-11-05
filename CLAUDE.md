@@ -187,6 +187,16 @@ motore: lettura del titolare e di chi legge l'oggetto, lo scrive solo
 esegui_azione), motore_oggetti_prova (oggetto di prova a 3 stati: lettura
 per tutti i ruoli, nasce con crea_oggetto_prova_motore, cambia stato solo
 con esegui_azione). js/61-motore-azioni.js.
+Dopo sql/70 (F14.15, DA ESEGUIRE, richiede 07, 47, 62, 63, 64, 65, 67; poi
+il file -REGISTRO-CANCELLAZIONI dall'editor): domande (domande tra colleghi
+su progetto tecnico, preventivo, commessa o richiesta al fornitore: da, a
+persona o ruolo, testo, allegati jsonb, scadenza, risposta, chiusa;
+lettura titolare tutte, gli altri quelle fatte da loro, a loro o al loro
+ruolo; nasce con fai_domanda o insert diretto sotto RLS: chi chiede deve
+leggere il record, il resto lo scrive il database; risposta, chiusura e
+allegati solo con le RPC, js/62). Bucket NUOVO domande-allegati (privato,
+20 MB, <id domanda>/<file>; lo apre chi legge la domanda, caricano chi
+chiede e chi deve rispondere finché non è chiusa).
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -608,6 +618,53 @@ assente oggi". Guide: info-ct-22, info-tit-18, info-seg-20. Senza sql/69
 test TUTTO OK con sql/69). Rollback: toglie funzioni, policy, indice,
 trigger, le righe di assenza e rimette il vincolo di prima (schema
 identico a prima, provato).
+Dopo sql/70 (F14.15 domande nel gestionale, DA ESEGUIRE, richiede 07, 47,
+62, 63, 64, 65, 67, si ferma senza; poi
+70-domande-nel-gestionale-REGISTRO-CANCELLAZIONI.sql dall'editor; provato
+sul backup pre69 + sql/69 e -VINCOLO il 05/11): tabella domande (vedi
+"Tabelle Supabase"). RPC del sito: fai_domanda(p_rif_tabella, p_rif_id,
+p_testo, p_a_id, p_a_ruolo) (SECURITY INVOKER: insert sotto RLS, policy
+domande_inserimento con domanda_record_leggibile(tabella, id), invoker),
+rispondi_domanda(id, risposta) (la persona scelta, chiunque del ruolo se
+è al ruolo, il titolare; mai chi ha chiesto), chiudi_domanda(id, nota)
+(chi ha chiesto o il titolare; da aperta = ritirata),
+aggiungi_allegato_domanda(id, nome, percorso). Interne: trg_domande_prima
+(chi, nomi, ruolo, regola, scadenza), trg_domande_dopo (apri_scadenza con
+oggetto 'domande' e promemoria già segnato + avviso 'domanda' al
+destinatario con regola propria), trg_avvisi_rif_domanda (BEFORE INSERT su
+avvisi: rif 'domande' → progetto/preventivo/commessa della domanda, così
+"Apri" funziona anche per la risalita del motore), testo_domanda,
+chiudi_avviso_domanda, puo_rispondere_domanda. SCADENZA dalle righe del
+motore (sql/64): commerciale → ingegnere risposta_ingegnere_acquisti (1 g
+lav.), capo_tecnico → rappresentante domande_capo_tecnico (1), altri →
+rappresentante domanda_integrazione_venditore (NUOVA, regola
+integrazione_venditore_gg, 2), le altre domanda_generica (NUOVA, 1 g lav.
+nella riga; destinatario "titolare" solo perché obbligatorio); domande al
+o del titolare: scadenza indicativa, nessuna risalita. SCELTA da
+confermare: risalita al titolare APPENA SCADE (0 giorni lav. dalla
+scadenza) nelle 4 righe; le due di sql/64 (prima 1 giorno dopo) le cambia
+il file solo se ancora com'erano, con riga in regole_scadenze_storico.
+Con la risposta la scadenza si chiude (i suoi avvisi, risalita compresa,
+si chiudono da soli) e chi ha chiesto riceve l'avviso 'domanda_risposta';
+chiudendo la domanda si chiudono tutti i suoi avvisi. Nel sito (js/62):
+riquadro "❓ Domande" in progetto-detail (pd-domande, js/17), preventivo-
+detail (pvd-domande, js/18), commessa-detail (cmd-domande, js/26) con
+"❓ Fai una domanda" (finestra m-domanda, id dmn-: a chi persona o
+"Chiunque" di un ruolo, proposto per ruolo e record, tempo di risposta
+dalle Regole, allegati max 20 MB), "💬 Rispondi" (m-domanda-risposta,
+dmr-), "✓ Chiudi" / "↩️ Ritira la domanda"; finestra "❓ Domande per me"
+(m-domande-elenco, dme-: da rispondere, per il titolare le scadute di
+altri, risposte alle mie); riga "❓ Domande per me" in "Cosa tocca a me"
+per tutti i ruoli (js/46, priorità 2, rossa con scadute); tipi di avviso
+❓ domanda e 💬 domanda_risposta con l'azione rapida che apre l'elenco
+(js/58). Guide: info-tit-19, seg-21, con-12, ct-23, tec-19, com-17,
+rap-22, ing-15. Matrice: 10 righe di domande (sql/matrice-permessi.sh
+TUTTO OK). File principale senza parole di cancellazione (server MCP);
+rollback (dall'editor: domande, funzioni, trigger, regole dei file e
+bucket se vuoto; avvisi delle domande chiusi "annullato", non tolti;
+scadenze e righe nuove del motore tolte; le due righe di sql/64 tornano a
+1 giorno) provato: schema identico a prima. Senza sql/70 nessun riquadro,
+nessuna riga, nessun errore (smoke test TUTTO OK con e senza sql/70).
 Dopo sql/61 (telefoni italiani per Google Ads, ESEGUITO il 03/11, backup pre61, nessun
 prerequisito oltre le funzioni Ads): nessuna RPC del sito. Funzione nuova
 ads_crm_normalizza_telefono (immutable: +39 ai numeri italiani senza

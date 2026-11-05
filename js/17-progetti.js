@@ -2988,6 +2988,9 @@ if (btnModifica) {
       </div>
     `
     : '<div class="empty">Nessuna nota di verifica o integrazione.</div>';
+
+  // F14.15: domande sul progetto (js/62, attive con sql/70)
+  if (typeof caricaDomandeRecord === 'function') await caricaDomandeRecord('progetti_tecnici', progetto.id, 'pd-domande');
 }
 
 function tornaDaSchedaProgetto() {
