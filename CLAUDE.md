@@ -163,6 +163,11 @@ registra_dispositivo_push / togli_dispositivo_push), avvisi_invii
 (registro degli invii: lettura titolare e propri; lo scrivono database e
 Edge Function), avvisi_invio_impostazioni (una riga, lettura titolare;
 imposta_invio_avvisi). js/59-notifiche-push.js, sw.js.
+Dopo sql/67 (F14.11, DA ESEGUIRE, richiede 07 e 58; poi il file
+-REGISTRO-CANCELLAZIONI dall'editor): registro_azioni (registro generico
+delle azioni, NON usata dal sito per ora; sola lettura del titolare e
+dell'informatico; la scrive solo il trigger registra_azione; nessuno la
+modifica o la cancella, nemmeno service_role e il proprietario).
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -438,6 +443,40 @@ Provato: SQL e rollback sul backup pre65; Edge Function in Deno con
 Supabase, Brevo e servizio push simulati; catena completa con FCM vero
 (Chrome headless: notifica mostrata ~1 s dopo l'avviso). File senza parole
 di cancellazione; il rollback contiene drop.
+Dopo sql/67 (F14.11 funzioni ruolo e registro azioni, DA ESEGUIRE, richiede
+07 e 58; provato sul backup pre66 + sql/66): nessuna RPC chiamata dal sito.
+Funzioni nuove (execute per authenticated, pronte per "Entra come" di
+F14.17-18): ruolo_reale() (= ruolo_corrente(), nessuna copia della regola),
+agito_come_intestazione() (intestazione HTTP x-agito-come da
+current_setting('request.headers')), ruolo_effettivo() (senza intestazione =
+ruolo reale; con l'intestazione, SOLO se il ruolo reale è titolare, il
+ruolo impersonato: codice di utenti.ruolo oppure id di un utente attivo;
+per gli altri errore 42501 "Solo il titolare può agire come un altro
+ruolo"), agito_come_utente(). Le ~60 policy usano ANCORA ruolo_corrente()
+(passaggio a ruolo_effettivo in F14.18). Tabella registro_azioni (tabella,
+record_id = id della riga come testo, azione inserimento/modifica/
+cancellazione, campo, prima, dopo jsonb, utente_reale con nome e ruolo
+copiati, agito_come_ruolo, agito_come_utente, quando; nessuna chiave verso
+utenti). Trigger generico trg_registro_azioni (AFTER, funzione
+registra_azione(), argomenti = colonne in più da non registrare;
+aggiornato_il e updated_at mai) su progetti_tecnici,
+progetti_tecnici_schede, preventivi, preventivi_voci, preventivi_fornitori,
+impostazioni, utenti: una modifica = una riga per campo cambiato, nessuna
+riga se non cambia niente; con x-agito-come di un non titolare il
+salvataggio si ferma. Non cancellabile: nessun permesso di scrittura per
+anon, authenticated, service_role (DELETE dal sito = "permission denied"),
+trigger trg_registro_azioni_immutabile su update. LIMITE (server MCP): il
+file principale registra solo inserimenti e modifiche; le CANCELLAZIONI
+(trigger anche "after delete" sulle 7 tabelle, blocco delle cancellazioni
+e del truncate sul registro anche per il proprietario) sono in
+sql/67-funzioni-ruolo-registro-azioni-REGISTRO-CANCELLAZIONI.sql, che
+Erika esegue dall'editor SQL subito dopo il 67. Nessuna pagina del sito
+legge il registro (guida titolare info-tit-16: lo legge Erika dal
+database). Provato su Postgres locale e con PostgREST (curl con
+x-agito-come: tecnico rifiutato, titolare come segreteria registrato),
+rollback identico allo schema di prima, smoke test con 67 eseguito.
+test/locale/avvia-db-locale.sh esegue NN-nome.sql prima dei suoi
+NN-nome-SUFFISSO.sql.
 Dopo sql/61 (telefoni italiani per Google Ads, ESEGUITO il 03/11, backup pre61, nessun
 prerequisito oltre le funzioni Ads): nessuna RPC del sito. Funzione nuova
 ads_crm_normalizza_telefono (immutable: +39 ai numeri italiani senza
@@ -1941,8 +1980,14 @@ per ruolo nella matrice dei permessi `sql/matrice_permessi.csv` (lettura,
 inserimento, modifica, cancellazione; il file e lo script di controllo
 arrivano con F14.13: finché non c'è, la riga si prepara nel commento del
 file sql/NN) e (3) il trigger del registro delle azioni (chi, quando,
-cosa è cambiato; arriva con F14.11: finché non c'è, si scrive nel file
-che il trigger va aggiunto). Più il rollback e la riga nell'elenco
+cosa è cambiato; F14.11, sql/67): nel file sql/NN
+`create trigger trg_registro_azioni after insert or update on
+public.<tabella> for each row execute function public.registra_azione();`
+(la tabella deve avere la colonna id; colonne da non registrare come
+argomenti) e la versione "or delete" (create or replace trigger) nel suo
+file -REGISTRO-CANCELLAZIONI, da eseguire dall'editor. Finché sql/67 non
+è in produzione il trigger va nel file -REGISTRO-CANCELLAZIONI o si
+scrive nel file che va aggiunto. Più il rollback e la riga nell'elenco
 "Tabelle Supabase" qui sopra. Una tabella senza queste tre cose non si
 esegue in produzione.
 Accesso di Claude Code a Supabase (decisione di Toli del 04/11): server

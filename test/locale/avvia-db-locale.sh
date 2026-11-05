@@ -48,7 +48,9 @@ if (( $# > 0 )); then
 else
   NUM=$(basename "$BACKUP" | sed -n 's/.*-pre\([0-9][0-9]*\).*/\1/p')
   if [[ -n "$NUM" && -d "$SQLDIR" ]]; then
-    for f in $(ls "$SQLDIR"/[0-9][0-9]-*.sql 2>/dev/null | sort); do
+    # Ordine senza ".sql": NN-nome.sql prima dei suoi NN-nome-SUFFISSO.sql
+    # (es. 67-...-REGISTRO-CANCELLAZIONI.sql dopo 67-....sql)
+    for f in $(ls "$SQLDIR"/[0-9][0-9]-*.sql 2>/dev/null | sed 's/\.sql$//' | sort | sed 's/$/.sql/'); do
       n=$(basename "$f" | cut -c1-2)
       [[ "$f" == *-ROLLBACK.sql || "$f" == *-PROVA.sql ]] && continue
       (( 10#$n >= 10#$NUM )) && EXTRA+=("$f")
