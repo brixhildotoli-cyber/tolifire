@@ -1407,3 +1407,27 @@ pre {
   .orec-tab tr.orec-dettaglio{margin-top:-8px;border-top:0;border-radius:0 0 var(--rd) var(--rd);background:var(--bg)}
   .orec-tab tr.orec-dettaglio td{display:block;text-align:left;background:transparent;padding:4px 0}
 }
+
+/* ── F14.5 — Avvisi: campanella nel menu, finestra, barra (js/58) ── */
+.nav-avvisi{position:relative;border:none;background:rgba(255,255,255,.15);color:white;border-radius:20px;padding:4px 9px;font-size:14px;line-height:1;cursor:pointer;flex-shrink:0}
+.nav-avvisi:hover{background:rgba(255,255,255,.28)}
+.nav-avvisi-n{display:none;margin-left:4px;font-size:11px;font-weight:700;background:#f59e0b;color:#1f2937;border-radius:10px;padding:1px 6px;vertical-align:1px}
+.nav-avvisi.con-avvisi .nav-avvisi-n{display:inline-block}
+.nav-avvisi.urgenti .nav-avvisi-n{background:#dc2626;color:white}
+@media (max-width:900px){.nav-avvisi{padding:7px 9px}}
+.avv-filtri{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:13px;margin-bottom:10px}
+.avv-filtri label{display:flex;gap:6px;align-items:center;font-weight:400;cursor:pointer}
+.avv-vuoto{padding:14px 4px;color:var(--m);font-size:13px}
+.avv-card{border:0.5px solid var(--bo);border-left:4px solid #f59e0b;border-radius:10px;padding:9px 11px;margin-bottom:8px;background:var(--w)}
+.avv-card.scaduto,.avv-card.urgente{border-left-color:#dc2626}
+.avv-card.chiuso{border-left-color:var(--bo);opacity:.75}
+.avv-card.avv-evidenza{box-shadow:0 0 0 2px var(--g)}
+.avv-testo{font-size:14px;font-weight:500;overflow-wrap:anywhere}
+.avv-ico{margin-right:6px}
+.avv-meta{font-size:12px;color:var(--m);margin-top:3px;overflow-wrap:anywhere}
+.avv-scaduto{color:#dc2626;font-weight:600}
+.avv-azioni{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.avviso-barra{display:none;position:fixed;left:8px;right:8px;bottom:8px;z-index:150;max-width:900px;margin:0 auto;gap:8px;align-items:center;flex-wrap:wrap;background:#fff7e6;border:1px solid #f59e0b;border-radius:12px;padding:8px 10px;box-shadow:0 4px 14px rgba(0,0,0,.15);font-size:13px}
+.avb-testo{flex:1 1 220px;min-width:0;overflow-wrap:anywhere}
+.avb-azioni{display:flex;gap:6px;align-items:center;margin-left:auto}
+.avb-x{border:none;background:none;font-size:20px;line-height:1;cursor:pointer;color:var(--m);padding:0 4px}

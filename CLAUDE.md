@@ -152,6 +152,10 @@ scrittura solo con salva_regola_scadenza del titolare),
 regole_scadenze_storico (registro, sola lettura del titolare), scadenze
 (aperte e chiuse, mai cancellate; lettura del titolare e del destinatario;
 le scrivono solo le funzioni di sql/64).
+Dopo sql/65 (F14.5, DA ESEGUIRE, richiede 64): avvisi (avvisi persistenti;
+sola lettura: titolare tutti, gli altri i propri, quelli del proprio ruolo
+e quelli risaliti a loro come responsabili; li scrive solo il database,
+js/58-avvisi.js).
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -343,6 +347,47 @@ sql/64-motore-unico-scadenze-PROVA.sql (solo database di prova, finisce con
 rollback). File senza parole di cancellazione (eseguibile dal server MCP);
 il rollback contiene drop. Senza sql/64: riquadro "non ancora attivo",
 nessun errore.
+Dopo sql/65 (F14.5 avvisi e "Cosa tocca a me", DA ESEGUIRE, backup prima,
+richiede 64 (si ferma senza); provato sul backup pre63 + sql/63 + 64 il
+05/11): tabella avvisi (tipo, destinatario utente o ruolo, rif_tabella e
+rif_id, testo, scadenza, stato aperto/fatto/annullato, esito obbligatorio
+per alcuni tipi, chiuso_da/_nome/_ruolo/_il, urgente, regola_propria,
+scadenza_id, responsabile_ruolo e risalite; mai cancellati). RPC del sito:
+miei_avvisi(p_tutti, p_chiusi) (security invoker, con il "perché": tuo,
+ruolo, risalito_responsabile, risalito_titolare), segna_avviso_fatto(id,
+esito), annulla_avviso(id, motivo) (solo titolare), crea_avviso_prova
+(solo titolare: persona o ruolo, preventivo/commessa/progetto/cliente/
+fornitore/fattura/intervento, scadenza entro un anno anche passata,
+responsabile scelto, esito obbligatorio; max 20 aperte). Interne:
+crea_avviso (unica strada, niente doppioni), crea_avviso_da_scadenza
+(aggancio del motore: promemoria al destinatario, risalita al ruolo della
+riga; regola propria = niente risalita generale), risali_avvisi,
+responsabile_avviso (cantiere e Service = capo_tecnico; acquisti,
+preventivi e progetti = commerciale; tecnico senza area = capo_tecnico;
+altrimenti direttamente il titolare: SCELTA da confermare). Risalita
+generale (solo senza regola propria, con scadenza): responsabile dopo 1 gg
+lav., titolare dopo un altro. genera_avvisi_scadenza RIDEFINITA (corpo di
+64 + risali_avvisi; rollback = versione di 64). Trigger nuovi:
+trg_scadenze_chiudi_avvisi (scadenza chiusa → avvisi "fatto" da soli),
+trg_commesse_avvisi_passo (nascita e cambio di stato della commessa →
+chiude l'avviso del passo di prima e lo apre per chi fa il passo dopo:
+rappresentante del cliente, capo_tecnico, segreteria; senza scadenza; un
+errore resta WARNING, non blocca lo stato). SCADENZE ARRETRATE: alla fine
+del file, una volta sola, avvisi per le scadenze aperte già segnate
+(promemoria_il/risalita_il) dal controllo orario prima del 65 (indice
+unico per scadenza e tipo). Nel sito (js/58): campanella 🔔 col numero in
+#nav .nr (anche sul telefono; rossa con scaduti), finestra m-avvisi
+(Apri il record con la rotta F14.1, azioni rapide AZIONI_RAPIDE_AVVISO:
+passo commessa → "Stato e storico" di js/18, ✓ Fatto con esito
+m-avviso-chiudi, ✖ Annulla del titolare, filtri tutti/chiusi, 🧪 Avviso
+di prova m-avviso-prova con link e 📋 Copia), link #/avviso/<id> (wrapper
+di apriRottaScheda: apre la scheda del record e la barra in fondo con ✓
+Fatto), riga "🔔 Avvisi aperti" in "Cosa tocca a me" per tutti i ruoli
+(js/46, priorità 1), avviaAvvisi chiamata da boot (js/01). Guide: info-
+tit-13, seg-17, con-9, ct-19, tec-16, com-14, rap-19, ing-12. File senza
+parole di cancellazione (eseguibile dal server MCP); il rollback contiene
+drop. Senza sql/65: niente campanella né riga, link #/avviso "non ancora
+attivi", nessun errore.
 Dopo sql/61 (telefoni italiani per Google Ads, ESEGUITO il 03/11, backup pre61, nessun
 prerequisito oltre le funzioni Ads): nessuna RPC del sito. Funzione nuova
 ads_crm_normalizza_telefono (immutable: +39 ai numeri italiani senza

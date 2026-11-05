@@ -529,6 +529,8 @@ async function boot(ud){
   ge('nusr').textContent=esc(ud.nome)+' — Esci';ge('nrole').textContent=etichettaRuolo(ud.ruolo);
   ge('ddate').textContent=new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   buildNav();buildSB();
+  // F14.5: campanella degli avvisi nel menu (js/58; senza sql/65 non compare)
+  if(typeof avviaAvvisi==='function')avviaAvvisi();
   const today=dataLocaleISO();const now=new Date();
   ge('tc3').value=today;ge('mo3').value=today;
   ge('tc4').value=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');

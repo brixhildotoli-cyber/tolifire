@@ -1137,6 +1137,30 @@ registraFonteToccaAMe({
   }
 });
 
+// ── F14.5: avvisi aperti (sql/65, js/58) — per tutti i ruoli ─────────
+// Gli avvisi persistenti creati dal database (scadenze del motore, passi
+// della commessa, prove): suoi, del suo ruolo e risaliti a lui. Porta alla
+// finestra "🔔 Avvisi" (Apri, azioni rapide, ✓ Fatto). Senza sql/65 la
+// riga non c'è. Le fonti calcolate qui sopra restano com'erano.
+registraFonteToccaAMe({
+  id: 'avvisi-aperti',
+  ruoli: ['titolare', 'segreteria', 'capo_tecnico', 'commerciale', 'rappresentante', 'tecnico', 'ingegnere', 'contabile'],
+  icona: '🔔', titolo: 'Avvisi aperti', priorita: 1,
+  vai: function() { if (funzioneEsiste('apriAvvisi')) apriAvvisi(); },
+  conta: async function() {
+    if (!funzioneEsiste('leggiMieiAvvisi')) return null;
+    const elenco = await leggiMieiAvvisi(false);
+    if (!elenco) return null;
+    const aperti = elenco.filter(function(a) { return a.stato === 'aperto'; });
+    const scaduti = aperti.filter(function(a) { return avvisoScaduto(a); }).length;
+    const risaliti = aperti.filter(function(a) { return avvisoRisalitoAMe(a); }).length;
+    const urgenti = aperti.filter(function(a) { return a.urgente; }).length;
+    const nota = [scaduti ? scaduti + ' scadut' + (scaduti === 1 ? 'o' : 'i') : '',
+      risaliti ? risaliti + ' risalit' + (risaliti === 1 ? 'o' : 'i') + ' a te' : ''].filter(Boolean).join(' · ');
+    return { n: aperti.length, nota: nota, livello: (scaduti || urgenti) ? 'urgente' : '' };
+  }
+});
+
 // ── Titolare: dati da sapere (in fondo al riquadro, non "da fare") ──
 registraFonteToccaAMe({
   id: 'commesse-per-stato', ruoli: ['titolare'], icona: '📁', tipo: 'info',
