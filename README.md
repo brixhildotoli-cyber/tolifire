@@ -21,7 +21,7 @@ L'icona nella schermata Home apre comunque il gestionale via Internet. La connes
 
 Questa procedura la esegue chi amministra il repository GitHub.
 
-1. Verifica di aver salvato e inviato (`push`) sul branch da pubblicare i file `index.html`, `style.css`, `manifest.webmanifest`, la cartella `assets/` e tutti i moduli della cartella `js/` (da `00-librerie.js` a `56-festivita-giorni-lavorativi.js`).
+1. Verifica di aver salvato e inviato (`push`) sul branch da pubblicare i file `index.html`, `style.css`, `manifest.webmanifest`, la cartella `assets/` e tutti i moduli della cartella `js/` (da `00-librerie.js` a `57-motore-scadenze.js`).
 2. Apri il repository GitHub `brixhildotoli-cyber/tolifire`.
 3. Vai in **Settings** > **Pages**.
 4. In **Build and deployment**, seleziona **Deploy from a branch**.
@@ -72,7 +72,7 @@ assets/                immagini e icone
 js/00-*.js … js/49-*.js  logica frontend e chiamate Supabase, divisa in moduli
 ```
 
-I moduli in `js/` sono caricati da `index.html` con `defer`, nell'ordine numerico da `00-librerie.js` a `18-preventivi.js`, poi le estensioni da `20-storico-presidi.js` a `56-festivita-giorni-lavorativi.js` e per ultimo `19-init.js` (avvio). Le estensioni 20–56 possono ridefinire funzioni dei moduli precedenti: l'ordine di caricamento va rispettato.
+I moduli in `js/` sono caricati da `index.html` con `defer`, nell'ordine numerico da `00-librerie.js` a `18-preventivi.js`, poi le estensioni da `20-storico-presidi.js` a `57-motore-scadenze.js` e per ultimo `19-init.js` (avvio). Le estensioni 20–57 possono ridefinire funzioni dei moduli precedenti: l'ordine di caricamento va rispettato.
 
 ## Stato del progetto
 

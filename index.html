@@ -2388,6 +2388,38 @@
     </div>
     <div id="si-controllo-orario"></div>
   </div>
+  <!-- F14.4 — MOTORE UNICO DELLE SCADENZE (js/57 mostraMotoreScadenzeImpostazioni, sql/64): solo titolare -->
+  <div class="card" id="si-scadenze-card" style="margin-top:14px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:13px;font-weight:600">⏳ Scadenze: chi avvisare e quando</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn sm" onclick="apriRegistroScadenze()">📜 Registro delle modifiche</button>
+        <button class="btn sm" title="Rileggi" onclick="mostraMotoreScadenzeImpostazioni()">↻</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Ogni riga è una scadenza: entro quanto va fatta una cosa, chi riceve il promemoria e, se non è fatta, a chi risale e dopo quanto. Il controllo orario legge solo queste righe. I tempi con 📏 sono gli stessi delle Regole.</div>
+    <div class="al2 i" id="si-scadenze-stato" style="display:none"></div>
+    <div id="si-scadenze-attivo" style="display:none">
+      <div class="f"><label>Motivo della modifica (facoltativo, va nel registro)</label><input type="text" id="si-scadenze-motivo" maxlength="500" placeholder="Es. il venditore è spesso fuori sede"></div>
+      <div id="si-scadenze" style="max-height:520px;overflow:auto"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:16px 0 6px">
+        <div style="font-size:13px;font-weight:600">📋 Scadenze aperte <span id="si-scadenze-conta" style="font-weight:400;color:var(--m)"></span></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn sm" onclick="ricalcolaScadenzeMotore()">↻ Ricalcola</button>
+          <button class="btn sm" id="si-scadenze-esegui" onclick="eseguiControlloScadenzeOra()">▶️ Esegui controllo ora</button>
+        </div>
+      </div>
+      <div id="si-scadenze-aperte" style="max-height:360px;overflow:auto"></div>
+      <div style="font-size:13px;font-weight:600;margin:16px 0 6px">🧪 Promemoria di prova</div>
+      <div style="font-size:12px;color:var(--m);margin-bottom:6px">Segue la riga che scegli e arriva a te. Serve a vedere quando scade e quando risale.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
+        <div class="f" style="flex:1 1 200px"><label>Scadenza da provare</label><select id="sp-regola"></select></div>
+        <div class="f" style="flex:0 0 200px"><label>Parte da (giorno e ora)</label><input type="datetime-local" id="sp-inizio"></div>
+        <div class="f" style="flex:1 1 160px"><label>Nota (facoltativa)</label><input type="text" id="sp-nota" maxlength="200"></div>
+        <div class="f"><button class="btn p" id="sp-crea" onclick="creaScadenzaProva()">🧪 Crea prova</button></div>
+      </div>
+    </div>
+  </div>
 </div>
 </div>
 
@@ -4315,6 +4347,55 @@
 
       <hr class="sep">
 
+      <h4 id="info-tit-12">12. Vuoi cambiare entro quando va fatta una cosa e chi lo deve sapere? Usa le Scadenze</h4>
+
+      <p>
+        In <b>Impostazioni</b>, sotto le festività, c'è il riquadro
+        <b>⏳ Scadenze: chi avvisare e quando</b>. Ogni riga è una scadenza
+        del lavoro: <b>Entro</b> quanto va fatta, chi riceve il promemoria
+        (<b>Avvisa</b>) e, se non è fatta, a chi <b>risale</b> e dopo quanto
+        (dalla scadenza o dall'inizio). Ogni ora il gestionale controlla da
+        solo le scadenze aperte con queste righe e con il calendario delle
+        festività: se cambi una riga, le scadenze già aperte si spostano da
+        sole.
+      </p>
+
+      <ul>
+        <li>Cambia i campi della riga e premi il suo <b>💾 Salva</b>. Il <b>Motivo della modifica</b> (in alto, facoltativo) va nel registro.</li>
+        <li>I tempi con <b>📏</b> sono gli stessi delle <b>Regole</b> (es. “Integrazione chiesta al venditore”): cambiarli qui o là è uguale.</li>
+        <li><b>Avviso urgente</b> segna le cose che non possono aspettare (es. squadra ferma in cantiere). <b>Attiva</b> tolta: la scadenza non apre più nulla e non avvisa.</li>
+        <li>Le righe “<b>in attesa del modulo</b>” sono pronte ma partono quando arriva la parte del gestionale che le usa. Oggi è collegata “Integrazione chiesta al venditore” (progetti rimandati al rappresentante).</li>
+        <li><b>📋 Scadenze aperte</b>: per chi, quando scade (rossa se è già passata), quando è arrivato il promemoria (🔔) e la risalita (⬆️). <b>↻ Ricalcola</b> rilegge subito; <b>▶️ Esegui controllo ora</b> segna subito promemoria e risalite già scaduti.</li>
+        <li><b>🧪 Promemoria di prova</b>: scegli la riga e da quando parte, premi <b>🧪 Crea prova</b>. La prova arriva a te; con <b>✖ Chiudi la prova</b> la togli.</li>
+        <li><b>📜 Registro delle modifiche</b>: chi ha cambiato cosa, quando, prima e dopo e il motivo.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio: integrazione del venditore</b><br>
+        Crei una prova di “Integrazione chiesta al venditore” che parte
+        venerdì 4 dicembre 2026 alle 10:00: con 2 giorni lavorativi scade
+        <b>mercoledì 9 dicembre alle 10:00</b> (martedì 8 è l'Immacolata).
+        Porti la riga a 3 giorni e premi <b>💾 Salva</b>: la stessa prova ora
+        scade <b>giovedì 10 dicembre</b>. Se dopo 7 giorni dall'inizio
+        l'integrazione non è arrivata, la scadenza risale a te.
+      </div>
+
+      <div class="al2 i">
+        Promemoria e risalite oggi restano segnati qui, nelle scadenze aperte:
+        gli avvisi nel menu e sul telefono di chi li deve ricevere arrivano
+        con il prossimo aggiornamento. “Cosa tocca a me” in cima alle
+        dashboard resta come oggi. Le righe le cambi solo tu (e
+        l'informatico): il database rifiuta le modifiche degli altri ruoli.
+        Destinatari e risalite già scritti sono una proposta: controllali.
+      </div>
+
+      <div class="al2 w">
+        Se il riquadro dice <b>non è ancora attivo</b> manca l'aggiornamento
+        del database: tutto funziona come prima.
+      </div>
+
+      <hr class="sep">
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -6120,6 +6201,17 @@
     <div style="font-size:12px;color:var(--m);margin-bottom:8px">Le ultime 300 modifiche: chi, quando, valore prima e dopo, motivo. Comprende le soglie cambiate da “Soglie e tariffe”.</div>
     <div id="mrr-elenco" style="max-height:60vh;overflow:auto"></div>
     <div class="ma"><button class="btn" onclick="closeM('m-registro-regole')">Chiudi</button></div>
+  </div>
+</div>
+
+<!-- F14.4 — REGISTRO DELLE MODIFICHE ALLE SCADENZE (js/57) -->
+<div class="mbg" id="m-registro-scadenze">
+  <div class="modal" style="max-width:560px">
+    <button class="x" onclick="closeM('m-registro-scadenze')">×</button>
+    <h3>📜 Registro delle modifiche alle scadenze</h3>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Le ultime 300 modifiche: chi, quando, prima e dopo, motivo. I tempi con 📏 sono anche nel registro delle Regole.</div>
+    <div id="mrs2-elenco" style="max-height:60vh;overflow:auto"></div>
+    <div class="ma"><button class="btn" onclick="closeM('m-registro-scadenze')">Chiudi</button></div>
   </div>
 </div>
 
@@ -8044,6 +8136,7 @@
 <script defer src="js/54-recupero-contratti.js?v=202611041656"></script>
 <script defer src="js/55-storico-esegui-intervento.js?v=202611041656"></script>
 <script defer src="js/56-festivita-giorni-lavorativi.js?v=202611041656"></script>
+<script defer src="js/57-motore-scadenze.js?v=202611041656"></script>
 <script defer src="js/19-init.js?v=202611041656"></script>
 
 

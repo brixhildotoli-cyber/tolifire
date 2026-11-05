@@ -143,6 +143,16 @@ sola lettura del titolare, 90 giorni). Non usata dal sito:
 controllo_orario_chiave (impronta della chiave dedicata di n8n, nessun
 permesso).
 
+Usate dal frontend — motore unico delle scadenze (F14.4, sql/64 DA ESEGUIRE,
+richiede 07, 58, 62, 63, tutti in produzione): regole_scadenze (20 righe:
+evento, oggetto, tempo da una regola di sql/62 o scritto nella riga,
+destinatario per ruolo, risalita a chi e dopo quanto dalla scadenza o
+dall'inizio, urgente, attiva, fonte; lettura per tutti gli utenti attivi,
+scrittura solo con salva_regola_scadenza del titolare),
+regole_scadenze_storico (registro, sola lettura del titolare), scadenze
+(aperte e chiuse, mai cancellate; lettura del titolare e del destinatario;
+le scrivono solo le funzioni di sql/64).
+
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
 è in costruzione, vedi sotto). Dopo sql/45 (F11.1, eseguito il 30/10):
@@ -301,6 +311,38 @@ lavorativi.js: elenco per anno, aggiungi/correggi, togli, prova del
 calcolo, ultime 5 esecuzioni del controllo orario), guida titolare
 info-tit-11. Senza sql/63: festività predefinite, riquadro in sola lettura
 "non ancora attivo", nessun errore.
+Dopo sql/64 (F14.4 motore unico delle scadenze, DA ESEGUIRE, backup prima,
+richiede 07, 58, 62, 63; provato sul backup pre63 + sql/63 il 05/11):
+salva_regola_scadenza (solo titolare/informatico; tempo e risalita
+collegati a una regola passano da salva_regola, registro in
+regole_scadenze_storico; le scadenze aperte si ricalcolano subito),
+aggiorna_scadenze (rilegge le fonti e ricalcola, senza avvisi),
+crea_scadenza_prova e chiudi_scadenza_prova (promemoria di prova, va a chi
+lo crea), calcola_scadenza(inizio, valore, unità) (minuti, ore, giorni di
+calendario; giorni_lav = stessa ora dopo n giorni lavorativi, virgola per
+eccesso; ore_lav = dalle 08:00 alle 17:00 dei giorni lavorativi: scelta da
+confermare). Interne (nessun permesso ai ruoli del sito): apri_scadenza e
+chiudi_scadenza (per le RPC e i trigger dei moduli che passano al motore:
+"ogni task aggiunge le sue scadenze come righe"), sincronizza_scadenze,
+date_scadenza, tempi_regola_scadenza. genera_avvisi_scadenza RIDEFINITA:
+apre/chiude dalle fonti, ricalcola, segna promemoria (scade_il passata) e
+risalite (risale_il passata) e chiama crea_avviso_da_scadenza(id, tipo) se
+esiste (aggancio per F14.5, tabella avvisi); restituisce quanti ne ha
+segnati (lo vede il registro del controllo orario). Fonte collegata oggi:
+solo "Integrazione chiesta al venditore" (progetti in da_integrare,
+destinatario il rappresentante del progetto, risalita al titolare dopo
+integrazione_avviso_titolare_gg dall'inizio); le altre 19 righe (proposta
+di destinatari e risalite) sono "in attesa del modulo". Le fonti di js/46
+restano come conteggio finché ogni modulo non passa al motore. Al primo
+controllo i progetti già da integrare da tempo hanno subito promemoria e
+risalita segnati. Nel sito Impostazioni > "⏳ Scadenze: chi avvisare e
+quando" (js/57-motore-scadenze.js: righe con 💾 Salva per riga, registro
+m-registro-scadenze, scadenze aperte, ↻ Ricalcola, ▶️ Esegui controllo ora,
+🧪 promemoria di prova), guida titolare info-tit-12. Prova:
+sql/64-motore-unico-scadenze-PROVA.sql (solo database di prova, finisce con
+rollback). File senza parole di cancellazione (eseguibile dal server MCP);
+il rollback contiene drop. Senza sql/64: riquadro "non ancora attivo",
+nessun errore.
 Dopo sql/61 (telefoni italiani per Google Ads, ESEGUITO il 03/11, backup pre61, nessun
 prerequisito oltre le funzioni Ads): nessuna RPC del sito. Funzione nuova
 ads_crm_normalizza_telefono (immutable: +39 ai numeri italiani senza

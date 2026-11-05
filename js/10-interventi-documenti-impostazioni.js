@@ -132,6 +132,8 @@ async function loadImp(){
   if(ROLE==='titolare'&&ge('si-regole'))mostraRegoleImpostazioni().catch(e=>console.warn('Regole:',e));
   // F14.3: festività e controllo orario (solo titolare; senza sql/63 predefinite in sola lettura, js/56)
   if(ROLE==='titolare'&&ge('si-festivita')&&typeof mostraFestivitaImpostazioni==='function')mostraFestivitaImpostazioni().catch(e=>console.warn('Festività:',e));
+  // F14.4: motore unico delle scadenze (solo titolare; senza sql/64 "non ancora attivo", js/57)
+  if(ROLE==='titolare'&&ge('si-scadenze')&&typeof mostraMotoreScadenzeImpostazioni==='function')mostraMotoreScadenzeImpostazioni().catch(e=>console.warn('Scadenze:',e));
   // #nc (nome azienda nella barra) non esiste più dal commit 865b6ba: resta solo il titolo della scheda.
   if(data.ragione_sociale){const nc=ge('nc');if(nc)nc.textContent=data.ragione_sociale.split(' ')[0];document.title=data.ragione_sociale+' — Gestionale';}
   const fs=['ragione_sociale','indirizzo','cap','citta','piva','telefono','email'];const is=['si1','si2','si3','si4','si5','si6','si7'];
