@@ -425,7 +425,7 @@ function buildNav() {
 
 // Pagine accessibili per ruolo
 const PAGINE_RUOLO = {
-  titolare:       ['dashboard','calendario','piano-mensile','trattative','preventivi-titolare','preventivo-detail','progetti-da-preventivare','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','progetto-detail','fornitore-detail', 'tecnico','sopralluogo','commesse','commessa-detail','team-subappalti','scheda-documenti','ore-cantiere','info'],
+  titolare:       ['dashboard','calendario','piano-mensile','trattative','preventivi-titolare','preventivo-detail','progetti-da-preventivare','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','progetto-detail','fornitore-detail', 'tecnico','sopralluogo','commesse','commessa-detail','team-subappalti','scheda-documenti','ore-cantiere','decisioni','info'],
   capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','tecnico','clienti','documenti','cliente-detail','commesse','commessa-detail','team-subappalti','scheda-documenti','ore-cantiere','info'],
   segreteria:     ['dashboard','calendario','workflow','presidi','interventi','tecnico','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail','commesse','commessa-detail','team-subappalti','scheda-documenti','info'],
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo','info'],
@@ -548,6 +548,7 @@ function gotoPage(id){
   if(id==='commesse')loadCommesse(); // F5.3, js/26
   if(id==='team-subappalti')loadTeamSubappalti(); // F7.1, js/30
   if(id==='ore-cantiere')loadOreCantiere(); // riepilogo ore, js/49
+  if(id==='decisioni'&&typeof loadDecisioni==='function')loadDecisioni(); // F14.7, js/60
   if(id==='preventivazione') loadPreventivazione();
   if(id==='sopralluogo' && ROLE!=='rappresentante' && ROLE!=='titolare'){toast('Accesso non consentito','err');return;}
   if(id === 'info') loadInfo();

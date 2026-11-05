@@ -41,6 +41,10 @@
 // riassunti (es. "Cambia stato" di una commessa).
 // Nessun SQL nuovo: legge solo tabelle e RPC già usate dai box, con le
 // policy RLS che ci sono (ognuno conta solo quello che può leggere).
+// F14.7: le stesse fonti (non le 'info') si leggono anche fuori dalla
+// dashboard con leggiFontiToccaAMePerPagina e si aprono con
+// vaiFonteToccaAMeDaPagina (pagina "⚖️ Decisioni" del titolare, js/60);
+// riga 'decisioni-titolare' in cima al riquadro del titolare.
 // =====================================================================
 
 const BOX_TOCCA_A_ME = {
@@ -276,6 +280,49 @@ function vaiToccaAMe(id) {
   if (boxVisibileConContenuto(el)) { evidenziaBoxTAM(el); return; }
   if (vai.pagina && canAccessPage(vai.pagina)) { gotoPage(vai.pagina); return; }
   if (el && el.offsetParent !== null) { evidenziaBoxTAM(el); return; }
+  toast('Apri la sezione dal menu', 'ok');
+}
+
+// ── F14.7: le stesse fonti per la pagina "⚖️ Decisioni" (js/60) ──────
+// Legge le fonti "da fare" del ruolo (non i dati 'info', non quelle in
+// escludi) con le stesse regole del riquadro; restituisce solo quelle con
+// qualcosa da fare: [{ f, r }].
+async function leggiFontiToccaAMePerPagina(escludi) {
+  const fonti = fontiDelRuoloTAM().filter(function(f) { return f.tipo !== 'info' && !(escludi || []).includes(f.id); });
+  const memo = {};
+  const giro = {
+    memo: function(chiave, fn) {
+      if (!memo[chiave]) memo[chiave] = Promise.resolve().then(fn).catch(function(e) { console.warn('Cosa tocca a me (' + chiave + '):', e); return null; });
+      return memo[chiave];
+    }
+  };
+  const esiti = {};
+  await eseguiConLimiteTAM(fonti.map(function(f) {
+    return async function() {
+      try { esiti[f.id] = normalizzaToccaAMe(await f.conta(giro)); } catch (e) { esiti[f.id] = null; }
+    };
+  }), FONTI_TOCCA_A_ME_INSIEME);
+  return fonti.filter(function(f) { const r = esiti[f.id]; return r && Number(r.n) > 0; })
+    .map(function(f) { return { f: f, r: esiti[f.id] }; });
+}
+
+// "Apri" di una fonte fuori dalla dashboard: funzione o pagina come il
+// riquadro; un box della dashboard si apre andando sulla dashboard e
+// aspettando che il box si riempia.
+async function vaiFonteToccaAMeDaPagina(f, r) {
+  const vai = (r && r.vai) || f.vai;
+  if (typeof vai === 'function') { vai(); return; }
+  if (!vai) return;
+  const nomeBox = typeof vai.box === 'function' ? vai.box() : vai.box;
+  if (nomeBox && canAccessPage('dashboard')) {
+    gotoPage('dashboard');
+    for (let t = 0; t < 40; t++) {
+      const el = ge(nomeBox);
+      if (boxVisibileConContenuto(el)) { evidenziaBoxTAM(el); return; }
+      await new Promise(function(ok) { setTimeout(ok, 250); });
+    }
+  }
+  if (vai.pagina && canAccessPage(vai.pagina)) { gotoPage(vai.pagina); return; }
   toast('Apri la sezione dal menu', 'ok');
 }
 
@@ -1158,6 +1205,26 @@ registraFonteToccaAMe({
     const nota = [scaduti ? scaduti + ' scadut' + (scaduti === 1 ? 'o' : 'i') : '',
       risaliti ? risaliti + ' risalit' + (risaliti === 1 ? 'o' : 'i') + ' a te' : ''].filter(Boolean).join(' · ');
     return { n: aperti.length, nota: nota, livello: (scaduti || urgenti) ? 'urgente' : '' };
+  }
+});
+
+// ── F14.7: decisioni del titolare (js/60, avvisi di sql/65) ─────────
+// In cima al riquadro: quante decisioni aspettano il titolare; rossa se
+// una aspetta da almeno 1 giorno lavorativo (promemoria). Porta alla
+// pagina "⚖️ Decisioni". Senza sql/65 la riga non c'è.
+registraFonteToccaAMe({
+  id: 'decisioni-titolare', ruoli: ['titolare'], icona: '⚖️', titolo: 'Decisioni da prendere', priorita: 0,
+  vai: { pagina: 'decisioni' },
+  conta: async function() {
+    if (!funzioneEsiste('leggiDecisioniAperte')) return null;
+    const elenco = await leggiDecisioniAperte(false);
+    if (!elenco) return null;
+    const vecchie = elenco.filter(function(a) { return attesaDecisione(a).promemoria; }).length;
+    return {
+      n: elenco.length,
+      nota: vecchie ? '⏰ ' + vecchie + ' in attesa da più di 1 giorno lavorativo' : '',
+      livello: (vecchie || elenco.some(function(a) { return a.urgente; })) ? 'urgente' : ''
+    };
   }
 });
 

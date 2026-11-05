@@ -1439,3 +1439,21 @@ pre {
 .avv-push-riga{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between}
 .avv-push-imp{margin-top:8px}
 .avv-push-imp summary{cursor:pointer;font-weight:600}
+
+/* F14.7 — pagina Decisioni del titolare (js/60) */
+.dec-riepilogo{font-size:13px;margin:4px 0 10px}
+.dec-riga-testa{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:4px}
+.dec-etichetta{font-size:11px;font-weight:600;border-radius:10px;padding:1px 8px;background:var(--bg);color:var(--m)}
+.dec-etichetta.dec-dec{background:#ede9fe;color:#5b21b6}
+.dec-etichetta.dec-prom{background:var(--rl);color:var(--r)}
+.avv-card.dec-card{border-left-color:#7c3aed}
+.avv-card.dec-card.urgente{border-left-color:#dc2626}
+.dec-fonte .dec-riga-testa{justify-content:space-between}
+.dec-fonte .tam-num{min-width:26px;text-align:center;border-radius:10px;padding:1px 8px;font-weight:700;background:#fff7ed;color:#c2410c}
+.dec-fonte.urgente .tam-num{background:var(--rl);color:var(--r)}
+.btn.dec-no{color:var(--r)}
+@media (max-width:600px){
+  .dec-azioni .btn{min-height:40px;flex:1 1 auto}
+  .dec-m-bottoni{flex-wrap:wrap}
+  .dec-m-bottoni .btn{flex:1 1 40%;min-height:42px}
+}

@@ -2423,6 +2423,22 @@
 </div>
 </div>
 
+<div class="page" id="pg-decisioni">
+  <div class="sh">
+    <div>
+      <div class="st">⚖️ Decisioni</div>
+      <div style="font-size:12px;color:var(--m);margin-top:3px">Tutto quello che aspetta te, dal più urgente: le decisioni da approvare o rifiutare con il motivo, gli avvisi risaliti a te e le cose da controllare di “Cosa tocca a me”.</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="dec-prova-btn" style="display:none" onclick="apriDecisioneProva()">🧪 Decisione di prova</button>
+      <button class="btn" onclick="loadDecisioni()" title="Rileggi">↻ Aggiorna</button>
+    </div>
+  </div>
+  <div class="al2 i" id="dec-non-attivi" style="display:none">Le decisioni non sono ancora attive (servono gli avvisi del database): qui sotto trovi le cose da controllare di “Cosa tocca a me”.</div>
+  <div class="dec-riepilogo" id="dec-riepilogo"></div>
+  <div id="dec-elenco"></div>
+</div>
+
 <div class="page" id="pg-info">
   <div class="sh">
     <div>
@@ -4628,6 +4644,28 @@
 
       <div class="al2 i">
         Finché le notifiche non sono configurate sul server il riquadro <b>📱 Notifiche</b> non compare: gli avvisi restano nella campanella come prima. Niente WhatsApp né SMS: notifica, email e campanella.
+      </div>
+
+      <h4 id="info-tit-15">15. Una cosa aspetta la tua decisione? Pagina Decisioni</h4>
+
+      <p>
+        Nel menu c'è <b>⚖️ Decisioni</b>, subito dopo la Dashboard: una pagina sola con <b>tutto quello che aspetta te</b>, già in ordine di urgenza, comoda anche dal telefono. In cima a <b>Cosa tocca a me</b> la riga <b>⚖️ Decisioni da prendere</b> ti porta lì.
+      </p>
+
+      <ul>
+        <li><b>Decisioni</b> (etichetta viola): sblocchi del margine, anticipi parziali, ratifiche di spese, voci fuori modello, commesse senza preventivo. Premi <b>✅ Approva</b> oppure <b>❌ Rifiuta</b>, scrivi il <b>motivo</b> (obbligatorio) e conferma: la riga sparisce e il motivo resta scritto con il tuo nome (<b>🔔</b> &gt; <b>Anche i chiusi (30 giorni)</b>).</li>
+        <li><b>Apri il preventivo</b> (o la commessa) porta alla scheda per guardare i numeri prima di decidere. Su una commessa in preparazione c'è <b>🗂️ Consegna del faldone</b>, in fine lavori <b>🏁 Chiudi la commessa</b>: aprono le finestre di sempre, anche per la consegna o la chiusura <b>con motivo</b>.</li>
+        <li><b>⏰ Promemoria</b>: una decisione che aspetta da <b>1 giorno lavorativo</b> (o ha la scadenza passata) sale in cima e la riga di <b>Cosa tocca a me</b> diventa rossa.</li>
+        <li>Sotto le decisioni: gli avvisi <b>⬆️ Risalito a te</b> e le <b>⏰ Scadenze superate</b> (con <b>✓ Fatto</b>), poi le righe <b>Da controllare</b> di Cosa tocca a me (preventivi, anticipi, audit, contratti senza venditore...) con <b>Apri ›</b>.</li>
+        <li>Dal link di una notifica o di una mail (<b>#/avviso/…</b>) la barra in fondo allo schermo ha già <b>✅ Approva</b> e <b>❌ Rifiuta</b>; nella campanella c'è <b>⚖️ Decidi</b>.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio: uno sblocco del margine dal telefono</b><br>In <b>⚖️ Decisioni</b> premi <b>🧪 Decisione di prova</b>, scegli <b>📉 Sblocco del margine</b>, <b>Preventivo n.</b> 86 e <b>Crea la decisione di prova</b>. Compare in cima con <b>Apri il preventivo</b>, <b>✅ Approva</b> e <b>❌ Rifiuta</b>. Premi <b>✅ Approva</b>, scrivi "Cliente storico, recuperiamo sul contratto" e conferma: la decisione sparisce dalla lista. Con la spunta "Come se aspettasse da 1 giorno lavorativo" vedi anche il <b>⏰ Promemoria</b>.
+      </div>
+
+      <div class="al2 i">
+        Oggi le decisioni vere non nascono ancora da sole: arriveranno con i moduli che le chiedono (prima di tutti il margine minimo del 29% dei preventivi). La pagina è già pronta a riceverle; intanto ci trovi gli avvisi risaliti a te e le righe di Cosa tocca a me.
       </div>
 
       <h4>Regole pratiche</h4>
@@ -8511,6 +8549,7 @@
 <script defer src="js/57-motore-scadenze.js?v=202611051208"></script>
 <script defer src="js/58-avvisi.js?v=202611051208"></script>
 <script defer src="js/59-notifiche-push.js?v=202611051208"></script>
+<script defer src="js/60-decisioni-titolare.js?v=202611051208"></script>
 <script defer src="js/19-init.js?v=202611051208"></script>
 
 
