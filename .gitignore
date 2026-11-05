@@ -7,3 +7,7 @@ sql/
 *.dump
 # collegamento di Claude Code a Supabase (solo lettura), resta su questo Mac
 .mcp.json
+# F14.9 smoke test: dipendenze, impostazioni e password di prova restano sul Mac
+test/node_modules/
+test/.smoke-*.env
+test/utenti-prova.json

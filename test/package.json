@@ -1,0 +1,14 @@
+{
+  "name": "tolifire-smoke-test",
+  "version": "1.0.0",
+  "private": true,
+  "description": "F14.9 - Smoke test automatico per ruolo del gestionale TOLI Fire",
+  "scripts": {
+    "db-locale": "zsh locale/avvia-db-locale.sh",
+    "smoke": "node smoke.spec.js",
+    "ferma-db-locale": "zsh locale/ferma-db-locale.sh"
+  },
+  "dependencies": {
+    "puppeteer-core": "^22.15.0"
+  }
+}

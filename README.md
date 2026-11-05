@@ -55,6 +55,22 @@ python3 -m http.server 8080
 
 Poi apri [http://localhost:8080](http://localhost:8080).
 
+### Smoke test prima di ogni merge (F14.9)
+
+Login dei 9 ruoli, apertura di tutte le pagine di `PAGINE_RUOLO` e un
+salvataggio di prova di cliente, intervento, progetto e preventivo, su un
+database di prova (mai la produzione). Circa 2 minuti:
+
+```zsh
+cd ~/Desktop/GESTIONALE/test
+npm install                      # solo la prima volta
+zsh locale/avvia-db-locale.sh    # database di prova in Docker dall'ultimo backup
+npm run smoke                    # deve finire con "TUTTO OK"
+zsh locale/ferma-db-locale.sh
+```
+
+Dettagli e uso con il progetto Supabase di prova (F14.8) in `test/README.md`.
+
 ## Ruoli e sicurezza
 
 - Il ruolo applicativo viene letto dalla tabella `public.utenti`, campo `ruolo`.
