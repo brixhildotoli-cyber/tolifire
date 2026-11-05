@@ -45,7 +45,7 @@ Usate dal frontend — area commerciale (preventivi, progetti, fornitori, CRM):
   ai fornitori), preventivi_fornitori_allegati
 - pipeline_crm (trattative), lead_sito, appuntamenti_commerciali
 
-Dopo sql/69 (F14.14 assenze del personale, DA ESEGUIRE, richiede 07, 35, 47,
+Dopo sql/69 (F14.14 assenze del personale, ESEGUITO il 05/11 con il -VINCOLO, backup pre69, richiede 07, 35, 47,
 63; 67 facoltativo; poi il file -VINCOLO dall'editor): nessuna tabella
 nuova. calendario_personale ha i tipi nuovi 'assenza' e 'assenza_tolta'
 (vincolo calendario_personale_tipo_check cambiato da
@@ -563,7 +563,7 @@ con e senza 68). Un modulo nuovo: righe di motore_oggetti, motore_stati,
 motore_transizioni nel suo sql/NN, trigger motore_blocca_stato_diretto
 sulla sua tabella, RPC di creazione che chiama motore_nascita,
 htmlPulsantiAzioni nella sua scheda.
-Dopo sql/69 (F14.14 assenze del personale, DA ESEGUIRE, richiede 07, 35, 47,
+Dopo sql/69 (F14.14 assenze del personale, ESEGUITO il 05/11 con il -VINCOLO, backup pre69, richiede 07, 35, 47,
 63, si ferma senza; sql/67 facoltativo; provato sul backup pre68 + sql/68 e
 il suo -REGISTRO-CANCELLAZIONI). Decisione di Toli D13: NIENTE sostituti
 per ruolo. ORDINE: backup, 69-assenze-personale.sql (senza parole di
