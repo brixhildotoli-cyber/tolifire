@@ -187,7 +187,7 @@ motore: lettura del titolare e di chi legge l'oggetto, lo scrive solo
 esegui_azione), motore_oggetti_prova (oggetto di prova a 3 stati: lettura
 per tutti i ruoli, nasce con crea_oggetto_prova_motore, cambia stato solo
 con esegui_azione). js/61-motore-azioni.js.
-Dopo sql/70 (F14.15, DA ESEGUIRE, richiede 07, 47, 62, 63, 64, 65, 67; poi
+Dopo sql/70 (F14.15, ESEGUITO il 05/11 con il -REGISTRO-CANCELLAZIONI, backup pre70, richiede 07, 47, 62, 63, 64, 65, 67; poi
 il file -REGISTRO-CANCELLAZIONI dall'editor): domande (domande tra colleghi
 su progetto tecnico, preventivo, commessa o richiesta al fornitore: da, a
 persona o ruolo, testo, allegati jsonb, scadenza, risposta, chiusa;
@@ -618,7 +618,7 @@ assente oggi". Guide: info-ct-22, info-tit-18, info-seg-20. Senza sql/69
 test TUTTO OK con sql/69). Rollback: toglie funzioni, policy, indice,
 trigger, le righe di assenza e rimette il vincolo di prima (schema
 identico a prima, provato).
-Dopo sql/70 (F14.15 domande nel gestionale, DA ESEGUIRE, richiede 07, 47,
+Dopo sql/70 (F14.15 domande nel gestionale, ESEGUITO il 05/11 con il -REGISTRO-CANCELLAZIONI, backup pre70, richiede 07, 47,
 62, 63, 64, 65, 67, si ferma senza; poi
 70-domande-nel-gestionale-REGISTRO-CANCELLAZIONI.sql dall'editor; provato
 sul backup pre69 + sql/69 e -VINCOLO il 05/11): tabella domande (vedi
