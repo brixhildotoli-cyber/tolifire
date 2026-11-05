@@ -143,7 +143,7 @@ sola lettura del titolare, 90 giorni). Non usata dal sito:
 controllo_orario_chiave (impronta della chiave dedicata di n8n, nessun
 permesso).
 
-Usate dal frontend — motore unico delle scadenze (F14.4, sql/64 DA ESEGUIRE,
+Usate dal frontend — motore unico delle scadenze (F14.4, sql/64 ESEGUITO il 05/11, backup pre64,
 richiede 07, 58, 62, 63, tutti in produzione): regole_scadenze (20 righe:
 evento, oggetto, tempo da una regola di sql/62 o scritto nella riga,
 destinatario per ruolo, risalita a chi e dopo quanto dalla scadenza o
@@ -311,7 +311,7 @@ lavorativi.js: elenco per anno, aggiungi/correggi, togli, prova del
 calcolo, ultime 5 esecuzioni del controllo orario), guida titolare
 info-tit-11. Senza sql/63: festività predefinite, riquadro in sola lettura
 "non ancora attivo", nessun errore.
-Dopo sql/64 (F14.4 motore unico delle scadenze, DA ESEGUIRE, backup prima,
+Dopo sql/64 (F14.4 motore unico delle scadenze, ESEGUITO il 05/11, backup pre64,
 richiede 07, 58, 62, 63; provato sul backup pre63 + sql/63 il 05/11):
 salva_regola_scadenza (solo titolare/informatico; tempo e risalita
 collegati a una regola passano da salva_regola, registro in
