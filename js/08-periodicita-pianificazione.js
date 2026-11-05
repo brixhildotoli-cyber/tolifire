@@ -262,7 +262,8 @@ async function loadPianificazioneMensile(anno, mese) {
 
   var meseStr = anno + '-' + String(mese).padStart(2,'0');
   var primoGiorno = meseStr + '-01';
-  var ultimoGiorno = meseStr + '-31';
+  // ultimo giorno vero del mese (prima '-31': nei mesi di 30 giorni il database rifiutava la data)
+  var ultimoGiorno = meseStr + '-' + String(new Date(anno, mese, 0).getDate()).padStart(2,'0');
 
   var [rCicli, rOdl, rTec] = await Promise.all([
     db.from('cicli_pianificati')
