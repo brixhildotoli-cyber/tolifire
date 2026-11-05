@@ -2420,6 +2420,26 @@
       </div>
     </div>
   </div>
+  <!-- F14.12 — MOTORE UNICO DI STATI E AZIONI (js/61 mostraMotoreAzioniImpostazioni, sql/68): solo titolare -->
+  <div class="card" id="si-motore-card" style="margin-top:14px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:13px;font-weight:600">⚙️ Stati e azioni</div>
+      <button class="btn sm" title="Rileggi" onclick="mostraMotoreAzioniImpostazioni()">↻</button>
+    </div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Per gli oggetti nuovi ogni passaggio di stato è una riga: da quale stato a quale, il pulsante, chi può premerlo, se serve il motivo, i controlli, a chi va l'avviso e quali scadenze apre o chiude. Il pulsante compare solo a chi può usarlo e il database ricontrolla sempre. Le righe si cambiano con un aggiornamento del database (sola lettura qui).</div>
+    <div class="al2 i" id="si-motore-stato" style="display:none"></div>
+    <div id="si-motore-attivo" style="display:none">
+      <div id="si-motore-transizioni"></div>
+      <div style="font-size:13px;font-weight:600;margin:16px 0 6px">🧪 Oggetti di prova</div>
+      <div style="font-size:12px;color:var(--m);margin-bottom:6px">Bozza → In verifica → Approvato. Crealo tu: l'avviso va alla segreteria, che lo invia in verifica; il capo tecnico lo approva (serve la descrizione) o chiede una correzione con il motivo.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
+        <div class="f" style="flex:1 1 200px"><label>Titolo *</label><input type="text" id="mop-titolo" maxlength="120" placeholder="Es. Prova del motore"></div>
+        <div class="f" style="flex:1 1 240px"><label>Descrizione (senza, "Approva" si ferma)</label><input type="text" id="mop-descrizione" maxlength="1000"></div>
+        <div class="f"><button class="btn p" id="mop-crea" onclick="creaOggettoProvaMotore()">🧪 Crea oggetto di prova</button></div>
+      </div>
+      <div id="si-motore-prova" style="max-height:360px;overflow:auto"></div>
+    </div>
+  </div>
 </div>
 </div>
 
@@ -2903,6 +2923,16 @@
         Finché le notifiche non sono configurate sul server il riquadro <b>📱 Notifiche</b> non compare: gli avvisi restano nella campanella come prima. Niente WhatsApp né SMS: notifica, email e campanella.
       </div>
 
+      <h4 id="info-rap-21">21. Pulsanti dei passaggi di stato: compaiono solo quelli tuoi</h4>
+
+      <ul>
+        <li>Nelle schede degli oggetti nuovi (POS, documenti finali, eventi di sicurezza, fermi: arriveranno con i prossimi moduli) i pulsanti dei passaggi di stato compaiono <b>solo se il tuo ruolo li può usare</b> in quello stato. Se non vedi un pulsante, quel passaggio tocca a un altro: sotto i pulsanti c'è scritto chi lo fa.</li>
+        <li>Quando un passaggio tocca a te ti arriva un avviso nella campanella <b>🔔</b> con <b>⚙️ Apri e agisci</b>: si apre la scheda con lo stato, i pulsanti e il <b>📜 Registro delle azioni</b> (chi ha fatto cosa e quando).</li>
+        <li>Alcuni passaggi chiedono il <b>motivo</b> (per esempio una richiesta di correzione o un annullamento): senza motivo non si conferma. Il motivo va nel registro e nell'avviso a chi deve correggere.</li>
+        <li>Fatto il passaggio, l'avviso del passo di prima si chiude da solo e parte quello per chi fa il passo dopo.</li>
+        <li>Il controllo vero lo fa il database: se un passaggio non è permesso al tuo ruolo, o mancano dei dati (es. la descrizione), il gestionale lo dice con un messaggio e lo stato non cambia.</li>
+      </ul>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -3292,6 +3322,16 @@
       <div class="al2 i">
         Finché le notifiche non sono configurate sul server il riquadro <b>📱 Notifiche</b> non compare: gli avvisi restano nella campanella come prima. Niente WhatsApp né SMS: notifica, email e campanella.
       </div>
+
+      <h4 id="info-com-16">16. Pulsanti dei passaggi di stato: compaiono solo quelli tuoi</h4>
+
+      <ul>
+        <li>Nelle schede degli oggetti nuovi (POS, documenti finali, eventi di sicurezza, fermi: arriveranno con i prossimi moduli) i pulsanti dei passaggi di stato compaiono <b>solo se il tuo ruolo li può usare</b> in quello stato. Se non vedi un pulsante, quel passaggio tocca a un altro: sotto i pulsanti c'è scritto chi lo fa.</li>
+        <li>Quando un passaggio tocca a te ti arriva un avviso nella campanella <b>🔔</b> con <b>⚙️ Apri e agisci</b>: si apre la scheda con lo stato, i pulsanti e il <b>📜 Registro delle azioni</b> (chi ha fatto cosa e quando).</li>
+        <li>Alcuni passaggi chiedono il <b>motivo</b> (per esempio una richiesta di correzione o un annullamento): senza motivo non si conferma. Il motivo va nel registro e nell'avviso a chi deve correggere.</li>
+        <li>Fatto il passaggio, l'avviso del passo di prima si chiude da solo e parte quello per chi fa il passo dopo.</li>
+        <li>Il controllo vero lo fa il database: se un passaggio non è permesso al tuo ruolo, o mancano dei dati (es. la descrizione), il gestionale lo dice con un messaggio e lo stato non cambia.</li>
+      </ul>
 
   <h4>Checklist prima dell’invio</h4>
 
@@ -3683,6 +3723,16 @@
       <div class="al2 i">
         Finché le notifiche non sono configurate sul server il riquadro <b>📱 Notifiche</b> non compare: gli avvisi restano nella campanella come prima. Niente WhatsApp né SMS: notifica, email e campanella.
       </div>
+
+      <h4 id="info-tec-18">18. Pulsanti dei passaggi di stato: compaiono solo quelli tuoi</h4>
+
+      <ul>
+        <li>Nelle schede degli oggetti nuovi (POS, documenti finali, eventi di sicurezza, fermi: arriveranno con i prossimi moduli) i pulsanti dei passaggi di stato compaiono <b>solo se il tuo ruolo li può usare</b> in quello stato. Se non vedi un pulsante, quel passaggio tocca a un altro: sotto i pulsanti c'è scritto chi lo fa.</li>
+        <li>Quando un passaggio tocca a te ti arriva un avviso nella campanella <b>🔔</b> con <b>⚙️ Apri e agisci</b>: si apre la scheda con lo stato, i pulsanti e il <b>📜 Registro delle azioni</b> (chi ha fatto cosa e quando).</li>
+        <li>Alcuni passaggi chiedono il <b>motivo</b> (per esempio una richiesta di correzione o un annullamento): senza motivo non si conferma. Il motivo va nel registro e nell'avviso a chi deve correggere.</li>
+        <li>Fatto il passaggio, l'avviso del passo di prima si chiude da solo e parte quello per chi fa il passo dopo.</li>
+        <li>Il controllo vero lo fa il database: se un passaggio non è permesso al tuo ruolo, o mancano dei dati (es. la descrizione), il gestionale lo dice con un messaggio e lo stato non cambia.</li>
+      </ul>
 
       <h4>Regole pratiche</h4>
 
@@ -4163,6 +4213,20 @@
 
       <div class="al2 i">
         Finché le notifiche non sono configurate sul server il riquadro <b>📱 Notifiche</b> non compare: gli avvisi restano nella campanella come prima. Niente WhatsApp né SMS: notifica, email e campanella.
+      </div>
+
+      <h4 id="info-ct-21">21. Pulsanti dei passaggi di stato: approvare o chiedere una correzione</h4>
+
+      <ul>
+        <li>Nelle schede degli oggetti nuovi (POS, documenti finali, eventi di sicurezza, fermi: arriveranno con i prossimi moduli) i pulsanti dei passaggi di stato compaiono <b>solo se il tuo ruolo li può usare</b> in quello stato. Se non vedi un pulsante, quel passaggio tocca a un altro: sotto i pulsanti c'è scritto chi lo fa.</li>
+        <li>Quando un passaggio tocca a te ti arriva un avviso nella campanella <b>🔔</b> con <b>⚙️ Apri e agisci</b>: si apre la scheda con lo stato, i pulsanti e il <b>📜 Registro delle azioni</b> (chi ha fatto cosa e quando).</li>
+        <li>Alcuni passaggi chiedono il <b>motivo</b> (per esempio una richiesta di correzione o un annullamento): senza motivo non si conferma. Il motivo va nel registro e nell'avviso a chi deve correggere.</li>
+        <li>Fatto il passaggio, l'avviso del passo di prima si chiude da solo e parte quello per chi fa il passo dopo.</li>
+        <li>Il controllo vero lo fa il database: se un passaggio non è permesso al tuo ruolo, o mancano dei dati (es. la descrizione), il gestionale lo dice con un messaggio e lo stato non cambia.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio: l'oggetto di prova da verificare</b><br>Ti arriva "Oggetto di prova «Prova del motore»: da verificare", da fare entro 1 giorno lavorativo (poi risale al titolare). Premi <b>⚙️ Apri e agisci</b>: hai <b>✅ Approva</b> e <b>↩️ Chiedi una correzione</b>. Se la descrizione manca, Approva si ferma con "Manca la descrizione": premi <b>↩️ Chiedi una correzione</b>, scrivi cosa manca e conferma. L'oggetto torna in Bozza e la segreteria riceve l'avviso con il tuo motivo.
       </div>
 
       <h4>Regole pratiche</h4>
@@ -4689,6 +4753,26 @@
         Per ora il registro non ha ancora una pagina nel sito: lo legge Erika dal database quando ti serve. La lettura dalla scheda di ogni preventivo o progetto arriverà con le prossime funzioni (scheda "Collegati", "Annulla" e "Entra come"). Le altre tabelle si aggiungeranno man mano: ogni tabella nuova nasce già con il registro.
       </div>
 
+      <h4 id="info-tit-17">17. Stati e azioni: chi può premere quale pulsante</h4>
+
+      <p>
+        Per gli oggetti nuovi del gestionale (POS, documenti finali, eventi di sicurezza, fermi...) ogni passaggio di stato è una riga di una tabella unica: da quale stato a quale, il nome del pulsante, <b>chi può premerlo</b>, se serve il <b>motivo</b>, quali <b>controlli</b> fa il database, a chi va l'<b>avviso</b> e quali <b>scadenze</b> apre o chiude. Le commesse, i preventivi, gli ordini e le fatture restano come sono oggi.
+      </p>
+
+      <ul>
+        <li>In <b>Impostazioni</b>, riquadro <b>⚙️ Stati e azioni</b>, vedi la tabella per ogni oggetto (sola lettura: le righe si cambiano con un aggiornamento del database, chiedilo a Erika).</li>
+        <li>Tu sei nei <b>Chi può</b> di quasi tutte le righe (puoi fare ogni passaggio), ma solo se la riga lo dice: <b>🔓 Riapri</b> e gli annullamenti sono solo tuoi, sempre con il motivo.</li>
+        <li><b>🧪 Oggetti di prova</b>: scrivi un <b>Titolo</b> (e la <b>Descrizione</b>) e premi <b>🧪 Crea oggetto di prova</b>. Nasce in <b>Bozza</b> e la segreteria riceve l'avviso. Ogni riga ha i pulsanti che puoi usare e <b>Apri</b> con lo stato e il <b>📜 Registro delle azioni</b>.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio: la prova con tre ruoli</b><br>Crei "Prova del motore" senza descrizione. Assunta (segreteria) apre l'avviso con <b>⚙️ Apri e agisci</b> e preme <b>📤 Invia in verifica</b>: lei non vede <b>✅ Approva</b>. Il capo tecnico riceve l'avviso "da verificare" (entro 1 giorno lavorativo) e preme <b>✅ Approva</b>: il database risponde "Manca la descrizione". Preme <b>↩️ Chiedi una correzione</b>, scrive il motivo e l'oggetto torna in Bozza con l'avviso ad Assunta. Rifai la prova con la descrizione: approvato, e l'avviso arriva a te.
+      </div>
+
+      <div class="al2 i">
+        Finché il database non è aggiornato il riquadro dice "non ancora attivo" e nessun pulsante compare.
+      </div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -5157,6 +5241,20 @@
         Finché le notifiche non sono configurate sul server il riquadro <b>📱 Notifiche</b> non compare: gli avvisi restano nella campanella come prima. Niente WhatsApp né SMS: notifica, email e campanella.
       </div>
 
+      <h4 id="info-seg-19">19. Pulsanti dei passaggi di stato: compaiono solo quelli tuoi</h4>
+
+      <ul>
+        <li>Nelle schede degli oggetti nuovi (POS, documenti finali, eventi di sicurezza, fermi: arriveranno con i prossimi moduli) i pulsanti dei passaggi di stato compaiono <b>solo se il tuo ruolo li può usare</b> in quello stato. Se non vedi un pulsante, quel passaggio tocca a un altro: sotto i pulsanti c'è scritto chi lo fa.</li>
+        <li>Quando un passaggio tocca a te ti arriva un avviso nella campanella <b>🔔</b> con <b>⚙️ Apri e agisci</b>: si apre la scheda con lo stato, i pulsanti e il <b>📜 Registro delle azioni</b> (chi ha fatto cosa e quando).</li>
+        <li>Alcuni passaggi chiedono il <b>motivo</b> (per esempio una richiesta di correzione o un annullamento): senza motivo non si conferma. Il motivo va nel registro e nell'avviso a chi deve correggere.</li>
+        <li>Fatto il passaggio, l'avviso del passo di prima si chiude da solo e parte quello per chi fa il passo dopo.</li>
+        <li>Il controllo vero lo fa il database: se un passaggio non è permesso al tuo ruolo, o mancano dei dati (es. la descrizione), il gestionale lo dice con un messaggio e lo stato non cambia.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio: l'oggetto di prova</b><br>Nella campanella c'è "Oggetto di prova «Prova del motore»: tocca a te «Invia in verifica»". Premi <b>⚙️ Apri e agisci</b>, poi <b>📤 Invia in verifica</b>: lo stato diventa "In verifica" e l'avviso passa al capo tecnico. <b>✅ Approva</b> tu non lo vedi: tocca a lui.
+      </div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -5396,6 +5494,16 @@
       <div class="al2 i">
         Finché le notifiche non sono configurate sul server il riquadro <b>📱 Notifiche</b> non compare: gli avvisi restano nella campanella come prima. Niente WhatsApp né SMS: notifica, email e campanella.
       </div>
+
+      <h4 id="info-con-11">11. Pulsanti dei passaggi di stato: compaiono solo quelli tuoi</h4>
+
+      <ul>
+        <li>Nelle schede degli oggetti nuovi (POS, documenti finali, eventi di sicurezza, fermi: arriveranno con i prossimi moduli) i pulsanti dei passaggi di stato compaiono <b>solo se il tuo ruolo li può usare</b> in quello stato. Se non vedi un pulsante, quel passaggio tocca a un altro: sotto i pulsanti c'è scritto chi lo fa.</li>
+        <li>Quando un passaggio tocca a te ti arriva un avviso nella campanella <b>🔔</b> con <b>⚙️ Apri e agisci</b>: si apre la scheda con lo stato, i pulsanti e il <b>📜 Registro delle azioni</b> (chi ha fatto cosa e quando).</li>
+        <li>Alcuni passaggi chiedono il <b>motivo</b> (per esempio una richiesta di correzione o un annullamento): senza motivo non si conferma. Il motivo va nel registro e nell'avviso a chi deve correggere.</li>
+        <li>Fatto il passaggio, l'avviso del passo di prima si chiude da solo e parte quello per chi fa il passo dopo.</li>
+        <li>Il controllo vero lo fa il database: se un passaggio non è permesso al tuo ruolo, o mancano dei dati (es. la descrizione), il gestionale lo dice con un messaggio e lo stato non cambia.</li>
+      </ul>
 
       <h4>Checklist</h4>
 
@@ -5712,6 +5820,16 @@
       <div class="al2 i">
         Finché le notifiche non sono configurate sul server il riquadro <b>📱 Notifiche</b> non compare: gli avvisi restano nella campanella come prima. Niente WhatsApp né SMS: notifica, email e campanella.
       </div>
+
+      <h4 id="info-ing-14">14. Pulsanti dei passaggi di stato: compaiono solo quelli tuoi</h4>
+
+      <ul>
+        <li>Nelle schede degli oggetti nuovi (POS, documenti finali, eventi di sicurezza, fermi: arriveranno con i prossimi moduli) i pulsanti dei passaggi di stato compaiono <b>solo se il tuo ruolo li può usare</b> in quello stato. Se non vedi un pulsante, quel passaggio tocca a un altro: sotto i pulsanti c'è scritto chi lo fa.</li>
+        <li>Quando un passaggio tocca a te ti arriva un avviso nella campanella <b>🔔</b> con <b>⚙️ Apri e agisci</b>: si apre la scheda con lo stato, i pulsanti e il <b>📜 Registro delle azioni</b> (chi ha fatto cosa e quando).</li>
+        <li>Alcuni passaggi chiedono il <b>motivo</b> (per esempio una richiesta di correzione o un annullamento): senza motivo non si conferma. Il motivo va nel registro e nell'avviso a chi deve correggere.</li>
+        <li>Fatto il passaggio, l'avviso del passo di prima si chiude da solo e parte quello per chi fa il passo dopo.</li>
+        <li>Il controllo vero lo fa il database: se un passaggio non è permesso al tuo ruolo, o mancano dei dati (es. la descrizione), il gestionale lo dice con un messaggio e lo stato non cambia.</li>
+      </ul>
 
       <h4>Checklist veloce prima di chiudere la giornata</h4>
 
@@ -8571,6 +8689,7 @@
 <script defer src="js/58-avvisi.js?v=202611051342"></script>
 <script defer src="js/59-notifiche-push.js?v=202611051342"></script>
 <script defer src="js/60-decisioni-titolare.js?v=202611051342"></script>
+<script defer src="js/61-motore-azioni.js?v=202611051342"></script>
 <script defer src="js/19-init.js?v=202611051342"></script>
 
 

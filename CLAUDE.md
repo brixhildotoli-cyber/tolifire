@@ -168,6 +168,15 @@ Dopo sql/67 (F14.11, DA ESEGUIRE, richiede 07 e 58; poi il file
 delle azioni, NON usata dal sito per ora; sola lettura del titolare e
 dell'informatico; la scrive solo il trigger registra_azione; nessuno la
 modifica o la cancella, nemmeno service_role e il proprietario).
+Dopo sql/68 (F14.12, DA ESEGUIRE, richiede 07, 47, 64, 65; 67 facoltativo;
+poi il file -REGISTRO-CANCELLAZIONI dall'editor, che richiede 67):
+motore_oggetti, motore_stati, motore_transizioni (configurazione del
+motore unico di stati e azioni: lettura per tutti i ruoli, si scrivono
+solo da un file sql/NN), motore_azioni_storico (registro delle azioni del
+motore: lettura del titolare e di chi legge l'oggetto, lo scrive solo
+esegui_azione), motore_oggetti_prova (oggetto di prova a 3 stati: lettura
+per tutti i ruoli, nasce con crea_oggetto_prova_motore, cambia stato solo
+con esegui_azione). js/61-motore-azioni.js.
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -477,6 +486,73 @@ x-agito-come: tecnico rifiutato, titolare come segreteria registrato),
 rollback identico allo schema di prima, smoke test con 67 eseguito.
 test/locale/avvia-db-locale.sh esegue NN-nome.sql prima dei suoi
 NN-nome-SUFFISSO.sql.
+Dopo sql/68 (F14.12 motore unico di stati e azioni, DA ESEGUIRE, richiede
+07, 47, 64, 65, si ferma senza; sql/67 facoltativo; provato sul backup
+pre66 + 66 + 67 e senza 67): SOLO PER GLI OGGETTI NUOVI (POS, documenti
+finali, eventi di sicurezza, fermi...); le RPC di stato esistenti
+(cambia_stato_commessa, preventivi, ordini, richieste, fatture, RIBA,
+contratti, appuntamenti) NON si toccano e non cambiano comportamento.
+Tabella delle transizioni motore_transizioni: oggetto (= tabella in
+public con colonna id), azione ed etichetta del pulsante, stato_da (vuoto =
+nascita) → stato_a, ruoli_ammessi (il titolare solo se scritto), controlli
+(funzioni controllo_azione_*(oggetto, id, dati) → testo = blocco),
+motivo_obbligatorio, avvisi (jsonb: "ruolo:<codice>" o "campo:<colonna
+uuid>" con ruolo di riserva, testo con {oggetto} {azione} {da} {a}
+{motivo} {chi}, tipo azione_*, entro_valore/entro_unita = scadenza
+dell'avviso con la risalita generale di sql/65, esito_obbligatorio,
+urgente), chiudi_avvisi (gli avvisi azione_* aperti del record si chiudono
+"fatto" a ogni passaggio), scadenze_apri/scadenze_chiudi (righe di
+regole_scadenze, apri_/chiudi_scadenza di sql/64), funzione_dopo
+(azione_dopo_*), conferma, attiva; controlli di coerenza nei trigger
+trg_motore_oggetti_valida e trg_motore_transizioni_valida. RPC del sito:
+esegui_azione(p_oggetto, p_id, p_azione, p_motivo, p_dati) (riga bloccata,
+transizione per stato attuale, ruolo con motore_ruolo_attuale() =
+ruolo_effettivo() di sql/67 se c'è altrimenti ruolo_corrente(), accesso
+con la funzione_accesso dell'oggetto, motivo, dati, controlli; cambia lo
+stato; chiude gli avvisi del passo di prima, crea gli avvisi con
+crea_avviso, apre e chiude le scadenze; scrive motore_azioni_storico con
+ruolo vero, ruolo usato e utente impersonato; tutto o niente; errori 42501
+ruolo, 22023 stato/motivo/controllo, P0002 sconosciuto),
+azioni_disponibili(p_oggetto, p_id) (security invoker: stato e azioni del
+ruolo), crea_oggetto_prova_motore(p_titolo, p_descrizione) (solo
+titolare, max 20 non approvati), motore_ruolo_attuale(),
+motore_record_leggibile(oggetto, id) (usata dalla policy del registro).
+Interne: motore_nascita (per le RPC di creazione dei moduli, dopo
+l'insert), motore_applica, motore_controlla, motore_leggi_riga,
+motore_testo_avviso, controllo_azione_descrizione_compilata. Trigger
+generico motore_blocca_stato_diretto('<colonna>') (BEFORE UPDATE: lo stato
+cambia solo dentro esegui_azione, anche per il proprietario). Con sql/67
+già eseguito il file aggancia trg_registro_azioni alle 4 tabelle con id
+(motore_oggetti, motore_stati, motore_transizioni, motore_oggetti_prova);
+il file -REGISTRO-CANCELLAZIONI (editor SQL, richiede 67, anche se il 67
+arriva dopo il 68) li rifà con le cancellazioni e blocca le cancellazioni
+di motore_azioni_storico. OGGETTO DI PROVA (3 stati): Bozza → In verifica
+→ Approvato; crea titolare (avviso alla segreteria), "📤 Invia in
+verifica" titolare e segreteria (avviso al capo tecnico entro 1 gg lav.),
+"✅ Approva" titolare e capo tecnico (controllo descrizione compilata,
+avviso a chi l'ha creato), "↩️ Chiedi una correzione" titolare e capo
+tecnico con motivo (torna in Bozza, avviso alla segreteria), "🔓 Riapri"
+solo titolare con motivo; avvisi con prova = true. Nel sito (js/61):
+azioniDisponibili(oggetto, ruolo, stato) dalla stessa tabella,
+htmlPulsantiAzioni (solo i pulsanti del ruolo), apriAzioneMotore
+(finestra m-azione-motore, id azm-: motivo obbligatorio o conferma),
+eseguiAzioneMotore (RPC), registraDopoAzioneMotore(oggetto, fn),
+apriOggettoMotore (finestra m-oggetto-motore, id ogm-: stato, percorso
+degli stati, pulsanti, chi fa le altre azioni, registro); azione rapida
+"⚙️ Apri e agisci" degli avvisi azione_* (registraAzioneRapidaAvviso di
+js/58); Impostazioni > "⚙️ Stati e azioni" (si-motore-card, solo
+titolare, chiamata da loadImp di js/10): tabella delle transizioni in
+sola lettura e "🧪 Oggetti di prova" (mop-). Guide: info-tit-17, seg-19,
+con-11, ct-21, tec-18, com-16, rap-21, ing-14. Prova:
+sql/68-motore-unico-stati-azioni-PROVA.sql (solo database di prova,
+rollback). File senza parole di cancellazione (eseguibile dal server
+MCP); rollback (drop, chiude gli avvisi e le scadenze aperte degli
+oggetti del motore) identico allo schema di prima. Senza sql/68: riquadro
+"non ancora attivo", nessun pulsante, nessun errore (smoke test TUTTO OK
+con e senza 68). Un modulo nuovo: righe di motore_oggetti, motore_stati,
+motore_transizioni nel suo sql/NN, trigger motore_blocca_stato_diretto
+sulla sua tabella, RPC di creazione che chiama motore_nascita,
+htmlPulsantiAzioni nella sua scheda.
 Dopo sql/61 (telefoni italiani per Google Ads, ESEGUITO il 03/11, backup pre61, nessun
 prerequisito oltre le funzioni Ads): nessuna RPC del sito. Funzione nuova
 ads_crm_normalizza_telefono (immutable: +39 ai numeri italiani senza
