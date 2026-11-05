@@ -156,7 +156,7 @@ Dopo sql/65 (F14.5, ESEGUITO il 05/11, backup pre65, richiede 64): avvisi (avvis
 sola lettura: titolare tutti, gli altri i propri, quelli del proprio ruolo
 e quelli risaliti a loro come responsabili; li scrive solo il database,
 js/58-avvisi.js).
-Dopo sql/66 (F14.6, DA ESEGUIRE, richiede 65): push_subscriptions
+Dopo sql/66 (F14.6, ESEGUITO il 05/11, backup pre66, richiede 65; configurazione esterna da fare): push_subscriptions
 (dispositivi iscritti alle notifiche; lettura dei propri e del titolare
 SENZA endpoint e chiavi, permessi per colonna; si scrive solo con
 registra_dispositivo_push / togli_dispositivo_push), avvisi_invii
@@ -395,7 +395,7 @@ tit-13, seg-17, con-9, ct-19, tec-16, com-14, rap-19, ing-12. File senza
 parole di cancellazione (eseguibile dal server MCP); il rollback contiene
 drop. Senza sql/65: niente campanella né riga, link #/avviso "non ancora
 attivi", nessun errore.
-Dopo sql/66 (F14.6 avvisi urgenti immediati, DA ESEGUIRE con "CONFERMATO DA TOLI: sql/66"
+Dopo sql/66 (F14.6 avvisi urgenti immediati, ESEGUITO il 05/11 (backup pre66, pg_net attivo); mancano Edge Function, segreti e imposta_configurazione_push
 e backup, richiede 65 (si ferma senza), 07, 58, 63; provato sul backup
 pre65 + sql/65 il 05/11): un avviso con avvisi.urgente = true arriva entro
 un minuto come NOTIFICA (Web Push) e per EMAIL (Brevo); gli altri restano
