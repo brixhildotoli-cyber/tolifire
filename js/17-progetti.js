@@ -2816,6 +2816,9 @@ if (btnModifica) {
     ` : ''}
   `;
 
+  // F14.16: intestazione, "Cosa puoi fare", Collegati e Storico (js/63).
+  if (typeof caricaSchedaOggetto === 'function') await caricaSchedaOggetto('progetto', progetto, 'pd-scheda-oggetto');
+
   const { data: allegati, error: erroreAllegati } = await db
     .from('progetti_tecnici_allegati')
     .select('id,nome_file,storage_path,mime_type,dimensione,caricato_il')

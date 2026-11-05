@@ -673,6 +673,48 @@ bucket se vuoto; avvisi delle domande chiusi "annullato", non tolti;
 scadenze e righe nuove del motore tolte; le due righe di sql/64 tornano a
 1 giorno) provato: schema identico a prima. Senza sql/70 nessun riquadro,
 nessuna riga, nessun errore (smoke test TUTTO OK con e senza sql/70).
+Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
+solo tabelle che il ruolo già legge). In cima a preventivo-detail
+(pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),
+progetto-detail (pd-scheda-oggetto, js/17) e cliente-detail
+(cd-scheda-oggetto, js/09) la funzione unica
+caricaSchedaOggetto(oggetto, record, contenitore) disegna: intestazione
+(stato se il titolo non lo mostra già; scadenza: preventivo "Valido fino
+al", commessa "Fine lavori prevista", in rosso se passata), "Cosa puoi
+fare" = azioniScheda(oggetto, record, ruolo) (funzione di oggetto, ruolo e
+stato, MAI della pagina di provenienza; oggetti del motore = azioniDisponibili
+di js/61; oggetti di prima = righe AZIONI_SCHEDA con registraAzioneScheda,
+che richiamano le finestre già esistenti: esito del cliente, rimanda
+indietro, rimanda al commerciale, voci e PDF, anticipo, stato della
+commessa, sede, cantiere, ❓ domanda; pulsanti con data-azione-scheda),
+riquadro "🔗 Collegati" (registro delle fonti registraFonteCollegati:
+cliente, sede/sedi, progetto, preventivi e revisioni = gli altri dello
+stesso progetto e gli integrativi, commessa, cantiere, ordini ai
+fornitori, POS = voce "POS..." del faldone, documenti finali = cartella
+chiusura, fatture, richieste dal portale; ogni riga apre con
+apriRottaScheda di js/47 se il ruolo ha la pagina, altrimenti è solo
+testo; letture che falliscono per RLS o SQL mancante = riga assente) e
+"🕘 Storico" a richiesta (titolare: registro_azioni di preventivi e
+progetti_tecnici raggruppato per modifica; tutti: commesse_storico e
+motore_azioni_storico). Domande: restano i riquadri di js/62 (il cliente
+non ha domande: sql/70 accetta solo progetti, preventivi, commesse). Nella
+commessa i vecchi bottoni "Scheda cliente / Preventivo / Progetto
+tecnico" del riepilogo sono sostituiti dai Collegati (tornano se js/63
+manca). Test test/scheda-oggetto.spec.js (database locale): lo stesso
+preventivo aperto da dashboard, Collegati del cliente, "🔍 Cerca" della
+pagina Preventivi e avviso (apriRecordAvviso) deve avere gli stessi
+data-azione-scheda e gli stessi bottoni visibili (titolare e commerciale,
+fino a 3 stati), più commessa, progetto e cliente senza errori per 5
+ruoli. Guide: info-tit-20, seg-22, con-13, ct-24, tec-20, com-18, rap-23,
+ing-16. NON FATTO, in attesa di conferma di Toli (cambia il lavoro di 3
+ruoli): una sola lista dei preventivi con filtri per ruolo al posto di
+pg-preventivi, pg-preventivi-titolare, pg-preventivi-rapp, e
+preventivo-detail al rappresentante (oggi non in PAGINE_RUOLO: le sue
+schede hanno tab con costi e fornitori da nascondere prima).
+REGOLA (piano del titolare): ogni oggetto nuovo usa questa scheda comune
+(contenitore + caricaSchedaOggetto, le sue azioni dal motore o da
+registraAzioneScheda, le sue fonti con registraFonteCollegati, il suo
+Storico) e ha la sua rotta (una riga in SCHEDE_CON_INDIRIZZO di js/47).
 Dopo sql/61 (telefoni italiani per Google Ads, ESEGUITO il 03/11, backup pre61, nessun
 prerequisito oltre le funzioni Ads): nessuna RPC del sito. Funzione nuova
 ads_crm_normalizza_telefono (immutable: +39 ai numeri italiani senza

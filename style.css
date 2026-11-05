@@ -1457,3 +1457,27 @@ pre {
   .dec-m-bottoni{flex-wrap:wrap}
   .dec-m-bottoni .btn{flex:1 1 40%;min-height:42px}
 }
+/* F14.16 scheda oggetto: intestazione, Cosa puoi fare, Collegati, Storico (js/63) */
+.so-scheda{margin:0 0 12px}
+.so-testa{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;font-size:13px}
+.so-scadenza{color:var(--m)}
+.so-scadenza.scaduta{color:var(--r);font-weight:600}
+.so-azioni{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.so-etichetta{font-size:12px;color:var(--m);margin-right:2px}
+.so-riquadro{background:#fff;border:0.5px solid rgba(0,0,0,.1);border-radius:var(--rs);padding:8px 12px;margin-bottom:8px}
+.so-riquadro>summary{cursor:pointer;font-size:14px;font-weight:700;list-style-position:inside}
+.so-col-griglia{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-top:8px}
+.so-col-gruppo{min-width:0}
+.so-col-titolo{font-size:12px;font-weight:700;color:var(--m);margin-bottom:4px}
+.so-col-n{display:inline-block;font-size:11px;font-weight:600;padding:0 7px;border-radius:10px;background:var(--bl);color:var(--b)}
+.so-col-riga{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;width:100%;text-align:left;background:var(--bg);border:none;border-radius:var(--rs);padding:6px 8px;margin-bottom:4px;font:inherit;font-size:13px;color:inherit;min-width:0}
+button.so-col-riga{cursor:pointer}
+button.so-col-riga:hover{background:var(--bl)}
+.so-col-testo{font-weight:600;overflow-wrap:anywhere;min-width:0}
+.so-col-sotto{font-size:12px;color:var(--m);overflow-wrap:anywhere;flex:1 1 140px;min-width:0}
+.so-col-apri{font-size:12px;color:var(--b);margin-left:auto;white-space:nowrap}
+.so-col-altre>summary{cursor:pointer;font-size:12px;color:var(--b);margin:2px 0 4px}
+.so-sto-riga{border-left:3px solid var(--bl);padding:4px 8px;margin:6px 0;font-size:12px}
+.so-sto-testa{overflow-wrap:anywhere}
+.so-sto-dett{color:var(--m);margin-top:2px;overflow-wrap:anywhere}
+.so-evidenzia{outline:2px solid #f59e0b;outline-offset:2px;transition:outline-color .3s}

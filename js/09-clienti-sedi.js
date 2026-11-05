@@ -118,6 +118,13 @@ if (!erroreClienteAggiornato && clienteAggiornato) {
     nav.classList.remove('on');
   });
 
+  // F14.16: intestazione, Collegati (sedi, progetti, preventivi, commesse,
+  // fatture, richieste dal portale) e Storico (js/63).
+  if (ge('cd-scheda-oggetto')) ge('cd-scheda-oggetto').innerHTML = '';
+  if (cli && typeof caricaSchedaOggetto === 'function') {
+    caricaSchedaOggetto('cliente', cli, 'cd-scheda-oggetto').catch(function(e) { console.warn('Scheda cliente:', e); });
+  }
+
   const sediHtml = await loadSediDetail(id);
 
   ge('cd-info-content').innerHTML = `

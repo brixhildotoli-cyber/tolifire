@@ -110,3 +110,16 @@ di ogni ruolo, in una transazione annullata. Ultima riga `ESITO: TUTTO OK`
 Dopo F14.8: `MATRICE_DB_URL=<progetto di prova>` e
 `MATRICE_UTENTI="titolare=...,tecnico=..."`. Dettagli in testa a
 `sql/matrice-permessi.sh` e `sql/matrice-permessi-controllo.sql`.
+
+## Stesse azioni da tutte le strade (F14.16)
+
+`node scheda-oggetto.spec.js` (con il database locale avviato come sopra):
+lo stesso preventivo aperto dalla dashboard, dai **🔗 Collegati** della
+scheda cliente, da **🔍 Cerca** della pagina Preventivi e da un avviso della
+campanella deve mostrare, per lo stesso ruolo, gli stessi pulsanti "Cosa
+puoi fare" (`data-azione-scheda`, js/63) e gli stessi bottoni della scheda
+(titolare e commerciale, fino a 3 preventivi in stati diversi). Apre anche
+commessa, progetto e cliente con il riquadro comune per titolare,
+commerciale, rappresentante, segreteria e capo tecnico. Crea avvisi di
+prova nel database locale. Esito `TUTTO OK` (uscita 0) o `FALLITO`.
+`SMOKE_ENV_FILE=<file>` per leggere indirizzo e segreto da un altro file.

@@ -319,6 +319,7 @@ async function caricaSchedaCommessa(commessaId) {
   cartella.innerHTML = '';
   if (ge('cmd-materiali')) ge('cmd-materiali').innerHTML = '';
   if (ge('cmd-domande')) ge('cmd-domande').innerHTML = '';
+  if (ge('cmd-scheda-oggetto')) ge('cmd-scheda-oggetto').innerHTML = '';
   if (ge('cmd-ordini')) ge('cmd-ordini').innerHTML = '';
   if (ge('cmd-richieste')) ge('cmd-richieste').innerHTML = '';
   if (ge('cmd-faldone')) ge('cmd-faldone').innerHTML = '';
@@ -356,6 +357,10 @@ async function caricaSchedaCommessa(commessaId) {
   if (typeof caricaRiepilogoLavoriExtra === 'function') await caricaRiepilogoLavoriExtra(commessa.id);
   if (typeof caricaImportiExtraCommesse === 'function') await caricaImportiExtraCommesse([commessa.id]);
   riepilogo.innerHTML = htmlRiepilogoCommessa(commessa);
+  // F14.16: intestazione, "Cosa puoi fare", Collegati (cliente, sede,
+  // progetto, preventivi, ordini, cantiere, POS, documenti finali, fatture)
+  // e Storico (js/63), al posto dei vecchi bottoni dei collegamenti.
+  if (typeof caricaSchedaOggetto === 'function') await caricaSchedaOggetto('commessa', commessa, 'cmd-scheda-oggetto');
   // F14.15: domande sulla commessa (js/62, attive con sql/70)
   if (typeof caricaDomandeRecord === 'function') await caricaDomandeRecord('commesse', commessa.id, 'cmd-domande');
   // F6.1: ordini ai fornitori (js/27, attivi con sql/30).
@@ -398,15 +403,18 @@ function htmlRiepilogoCommessa(c) {
   const motivi = motiviToccaAMeCommessa(c);
   const numeroPreventivo = c.preventivi?.numero;
 
+  // Cliente, preventivo e progetto: riquadro "🔗 Collegati" (F14.16, js/63).
   const bottoniCollegati = [];
-  if (canAccessPage('cliente-detail') && c.cliente_id) {
-    bottoniCollegati.push(`<button class="btn sm" onclick="openClienteDetail('${esc(c.cliente_id)}')">🧍‍♂️ Scheda cliente</button>`);
-  }
-  if (canAccessPage('preventivo-detail') && c.preventivo_id) {
-    bottoniCollegati.push(`<button class="btn sm" onclick="openPreventivoDetail('${esc(c.preventivo_id)}')">🧾 Preventivo${numeroPreventivo ? ' n. ' + esc(numeroPreventivo) : ''}</button>`);
-  }
-  if (canAccessPage('progetto-detail') && c.progetto_tecnico_id) {
-    bottoniCollegati.push(`<button class="btn sm" onclick="openProgettoDetail('${esc(c.progetto_tecnico_id)}')">📐 Progetto tecnico</button>`);
+  if (typeof caricaSchedaOggetto !== 'function') {
+    if (canAccessPage('cliente-detail') && c.cliente_id) {
+      bottoniCollegati.push(`<button class="btn sm" onclick="openClienteDetail('${esc(c.cliente_id)}')">🧍‍♂️ Scheda cliente</button>`);
+    }
+    if (canAccessPage('preventivo-detail') && c.preventivo_id) {
+      bottoniCollegati.push(`<button class="btn sm" onclick="openPreventivoDetail('${esc(c.preventivo_id)}')">🧾 Preventivo${numeroPreventivo ? ' n. ' + esc(numeroPreventivo) : ''}</button>`);
+    }
+    if (canAccessPage('progetto-detail') && c.progetto_tecnico_id) {
+      bottoniCollegati.push(`<button class="btn sm" onclick="openProgettoDetail('${esc(c.progetto_tecnico_id)}')">📐 Progetto tecnico</button>`);
+    }
   }
 
   return `

@@ -1174,6 +1174,8 @@
       Modifica
     </button>
   </div>
+  <!-- F14.16: intestazione, Cosa puoi fare, Collegati e Storico (js/63) -->
+  <div id="pd-scheda-oggetto"></div>
 
   <div class="tabs">
     <button class="tab on" onclick="stab(this,'pd-info')">
@@ -1336,6 +1338,8 @@
 
     <span class="bx bblue" id="pvd-stato">Bozza</span>
   </div>
+  <!-- F14.16: intestazione, Cosa puoi fare, Collegati e Storico (js/63) -->
+  <div id="pvd-scheda-oggetto"></div>
 
   <div class="tabs">
     <button class="tab on" onclick="stab(this,'pvd-riepilogo')">
@@ -1798,6 +1802,8 @@
       <button class="btn p" id="cli-det-add-presidio" onclick="openM('m-presidio')">+ Nuovo presidio</button>
     </div>
   </div>
+  <!-- F14.16: intestazione, Cosa puoi fare, Collegati e Storico (js/63) -->
+  <div id="cd-scheda-oggetto"></div>
   <div class="tabs">
     <button class="tab on" onclick="stab(this,'cd-info')">Anagrafica</button>
     <button class="tab" onclick="stab(this,'cd-presidi')">Presidi</button>
@@ -2005,6 +2011,8 @@
     </div>
     <span id="cmd-stato"></span>
   </div>
+  <!-- F14.16: intestazione, Cosa puoi fare, Collegati e Storico (js/63) -->
+  <div id="cmd-scheda-oggetto"></div>
   <!-- F8.1: scheda cantiere (js/32) e tutto il resto della commessa -->
   <div class="tabs" id="cmd-tabs">
     <button class="tab" id="cmd-tab-btn-cantiere" onclick="mostraTabCommessa('cantiere')">🏗️ Cantiere</button>
@@ -2970,6 +2978,27 @@
         Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
       </div>
 
+      <h4 id="info-rap-23">23. Schede con Cosa puoi fare, Collegati e Storico</h4>
+
+      <p>
+        La scheda della commessa, del progetto tecnico e del cliente hanno in cima la stessa parte comune: stato e scadenza, i pulsanti del tuo ruolo, i collegamenti e lo storico.
+      </p>
+
+      <ul>
+        <li>La fila <b>Cosa puoi fare</b> mostra solo i pulsanti del tuo ruolo per lo stato in cui si trova la scheda: sono gli stessi da qualunque parte arrivi (dashboard, scheda cliente, ricerca, avviso della campanella 🔔). Sulla commessa per te: <b>📋 Stato e storico</b>, <b>📍 Sede del cantiere</b>, <b>🏗️ Scheda cantiere</b>, <b>❓ Fai una domanda</b>.</li>
+        <li>Sotto il titolo di ogni scheda c'è il riquadro <b>🔗 Collegati</b>: tutto quello che è legato a quella scheda, sempre nello stesso ordine (cliente, sede, progetto tecnico, preventivi e revisioni, commessa, cantiere, ordini ai fornitori, POS, documenti finali, fatture, richieste dal portale). Tocca una riga con <b>Apri ›</b> per andare alla sua scheda; le righe senza <b>Apri ›</b> sono solo informazioni (pagine che il tuo ruolo non apre). Toccando un <b>preventivo</b> si apre <b>I miei preventivi</b> con la ricerca già sul suo numero (se è in attesa dell'esito lo trovi lì).</li>
+        <li><b>🕘 Storico</b> (si apre toccandolo): i passaggi della scheda, con chi e quando.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Nella scheda del cliente "Bar Centrale" in <b>🔗 Collegati</b> vedi il progetto, il preventivo n. 86 "Inviato al rappresentante" e la commessa: tocchi il preventivo e sei in <b>I miei preventivi</b> con il n. 86 già cercato.
+      </div>
+
+      <div class="al2 i">
+        Per ora non hai la scheda del preventivo: resta <b>I miei preventivi</b>. Una lista unica dei preventivi con la scheda anche per te è in attesa della decisione del titolare.
+      </div>
+
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -3393,6 +3422,23 @@
         Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
       </div>
 
+      <h4 id="info-com-18">18. Una scheda per ogni cosa: Cosa puoi fare, Collegati e Storico</h4>
+
+      <p>
+        Preventivo, commessa, progetto tecnico e cliente hanno in cima la stessa parte comune: stato e scadenza, i pulsanti di quello che puoi fare, i collegamenti e lo storico.
+      </p>
+
+      <ul>
+        <li>La fila <b>Cosa puoi fare</b> mostra solo i pulsanti del tuo ruolo per lo stato in cui si trova la scheda: sono gli stessi da qualunque parte arrivi (dashboard, scheda cliente, ricerca, avviso della campanella 🔔). Sul preventivo per te: <b>💶 Voci e PDF per il cliente</b>, in bozza <b>↩ Rimanda indietro</b>, <b>❓ Fai una domanda</b>.</li>
+        <li>Sotto il titolo di ogni scheda c'è il riquadro <b>🔗 Collegati</b>: tutto quello che è legato a quella scheda, sempre nello stesso ordine (cliente, sede, progetto tecnico, preventivi e revisioni, commessa, cantiere, ordini ai fornitori, POS, documenti finali, fatture, richieste dal portale). Tocca una riga con <b>Apri ›</b> per andare alla sua scheda; le righe senza <b>Apri ›</b> sono solo informazioni (pagine che il tuo ruolo non apre). Sul preventivo trovi anche gli <b>altri preventivi dello stesso progetto</b> (revisioni e integrativi dei lavori extra).</li>
+        <li><b>🕘 Storico</b> (si apre toccandolo): i passaggi della scheda, con chi e quando. Il registro delle modifiche lo legge solo il titolare.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Apri il preventivo n. 87 da Preventivi con <b>🔍 Cerca</b>: in cima <b>↩ Rimanda indietro</b> e <b>💶 Voci e PDF per il cliente</b>. Lo stesso preventivo aperto dai Collegati del cliente ha gli stessi pulsanti.
+      </div>
+
+
   <h4>Checklist prima dell’invio</h4>
 
   <ul>
@@ -3813,6 +3859,21 @@
       <div class="al2 w">
         Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
       </div>
+
+      <h4 id="info-tec-20">20. Schede con Collegati: per te non cambia nulla</h4>
+
+      <p>
+        Le schede di preventivo, commessa, progetto e cliente hanno ora in cima una parte comune (<b>Cosa puoi fare</b>, <b>🔗 Collegati</b>, <b>🕘 Storico</b>). Non sono tra le tue pagine: i tuoi interventi e i tuoi cantieri restano nella dashboard e nel calendario come prima.
+      </p>
+
+      <ul>
+        <li>Le domande che ti fanno su una commessa o un progetto continui a riceverle nella campanella <b>🔔</b> e in <b>❓ Domande per me</b>.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Il capo tecnico apre la commessa e nei <b>Collegati</b> tocca <b>Cantiere</b>: vede la stessa scheda del cantiere che tu vedi in "🏗️ I miei cantieri".
+      </div>
+
 
       <h4>Regole pratiche</h4>
 
@@ -4350,6 +4411,25 @@
       <div class="al2 w">
         Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
       </div>
+
+      <h4 id="info-ct-24">24. Scheda della commessa e del cliente: Collegati e Storico</h4>
+
+      <p>
+        In cima alla scheda della commessa e del cliente trovi la stessa parte comune: stato e scadenza, i pulsanti del tuo ruolo, i collegamenti e lo storico.
+      </p>
+
+      <ul>
+        <li>La fila <b>Cosa puoi fare</b> mostra solo i pulsanti del tuo ruolo per lo stato in cui si trova la scheda: sono gli stessi da qualunque parte arrivi (dashboard, scheda cliente, ricerca, avviso della campanella 🔔). Sulla commessa per te: <b>📋 Stato e storico</b>, <b>🏗️ Scheda cantiere</b>, <b>❓ Fai una domanda</b>.</li>
+        <li>Sotto il titolo di ogni scheda c'è il riquadro <b>🔗 Collegati</b>: tutto quello che è legato a quella scheda, sempre nello stesso ordine (cliente, sede, progetto tecnico, preventivi e revisioni, commessa, cantiere, ordini ai fornitori, POS, documenti finali, fatture, richieste dal portale). Tocca una riga con <b>Apri ›</b> per andare alla sua scheda; le righe senza <b>Apri ›</b> sono solo informazioni (pagine che il tuo ruolo non apre). Preventivi e prezzi non li vedi: il preventivo compare solo con il numero.</li>
+        <li>Nei Collegati della commessa: <b>Cantiere</b> (apre la scheda 🏗️), <b>ordini ai fornitori</b> con la data di arrivo, <b>POS</b> del faldone, <b>documenti finali</b>.</li>
+        <li>In cima alla commessa la <b>fine lavori prevista</b>: in rosso se è passata e la commessa non è ancora in fine lavori.</li>
+        <li><b>🕘 Storico</b> (si apre toccandolo): i passaggi della scheda, con chi e quando.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Apri la commessa 2026-012 da un avviso: vedi in rosso "Fine lavori prevista 03/11/2026 (passata)" e in <b>🔗 Collegati</b> l'ordine 2026-012/1 con l'arrivo del 06/11.
+      </div>
+
 
       <h4>Regole pratiche</h4>
 
@@ -4937,6 +5017,28 @@
         Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
       </div>
 
+      <h4 id="info-tit-20">20. Una scheda per ogni cosa: Cosa puoi fare, Collegati e Storico</h4>
+
+      <p>
+        Preventivo, commessa, progetto tecnico e cliente hanno in cima la stessa parte comune: stato e scadenza, i pulsanti di quello che puoi fare, i collegamenti e lo storico. Ogni scheda nuova del gestionale (POS, documenti finali...) nascerà con questa stessa parte e con il suo indirizzo.
+      </p>
+
+      <ul>
+        <li>La fila <b>Cosa puoi fare</b> mostra solo i pulsanti del tuo ruolo per lo stato in cui si trova la scheda: sono gli stessi da qualunque parte arrivi (dashboard, scheda cliente, ricerca, avviso della campanella 🔔).</li>
+        <li>Sotto il titolo di ogni scheda c'è il riquadro <b>🔗 Collegati</b>: tutto quello che è legato a quella scheda, sempre nello stesso ordine (cliente, sede, progetto tecnico, preventivi e revisioni, commessa, cantiere, ordini ai fornitori, POS, documenti finali, fatture, richieste dal portale). Tocca una riga con <b>Apri ›</b> per andare alla sua scheda; le righe senza <b>Apri ›</b> sono solo informazioni (pagine che il tuo ruolo non apre).</li>
+        <li><b>🕘 Storico</b>: per preventivi e progetti tecnici leggi il registro delle modifiche (chi ha cambiato cosa, il valore prima e dopo, anche "come" un altro ruolo); per la commessa i passaggi di stato. Il registro lo leggi solo tu.</li>
+        <li>La scadenza in cima: per il preventivo "Valido fino al", per la commessa "Fine lavori prevista"; in rosso con "(passata)" se è superata.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Dalla campanella apri l'avviso sul preventivo n. 86: in cima trovi <b>✅ Accettato dal cliente</b>, <b>❌ Rifiutato dal cliente</b> e <b>↩ Rimanda al commerciale</b>, come se l'avessi aperto da Preventivi. In <b>🔗 Collegati</b> tocchi la commessa 2026-012 e poi, dalla commessa, il cliente.
+      </div>
+
+      <div class="al2 w">
+        Le tre liste dei preventivi (la tua, quella del commerciale e "I miei preventivi" del rappresentante) restano separate: unirle in una lista con filtri per ruolo e aprire la scheda del preventivo al rappresentante cambia il lavoro di tre ruoli e aspetta la tua decisione.
+      </div>
+
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -5454,6 +5556,24 @@
         Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
       </div>
 
+      <h4 id="info-seg-22">22. Scheda della commessa e del cliente: Collegati e Storico</h4>
+
+      <p>
+        In cima alla scheda della commessa e del cliente trovi la stessa parte comune: stato e scadenza, i pulsanti del tuo ruolo, i collegamenti e lo storico.
+      </p>
+
+      <ul>
+        <li>La fila <b>Cosa puoi fare</b> mostra solo i pulsanti del tuo ruolo per lo stato in cui si trova la scheda: sono gli stessi da qualunque parte arrivi (dashboard, scheda cliente, ricerca, avviso della campanella 🔔). Sulla commessa per te: <b>📋 Stato e storico</b>, <b>📍 Sede del cantiere</b>, <b>🏗️ Scheda cantiere</b>, <b>❓ Fai una domanda</b>.</li>
+        <li>Sotto il titolo di ogni scheda c'è il riquadro <b>🔗 Collegati</b>: tutto quello che è legato a quella scheda, sempre nello stesso ordine (cliente, sede, progetto tecnico, preventivi e revisioni, commessa, cantiere, ordini ai fornitori, POS, documenti finali, fatture, richieste dal portale). Tocca una riga con <b>Apri ›</b> per andare alla sua scheda; le righe senza <b>Apri ›</b> sono solo informazioni (pagine che il tuo ruolo non apre). Il preventivo della commessa compare con il suo numero ma senza <b>Apri ›</b> (non è tra le tue pagine).</li>
+        <li>Nei Collegati della commessa vedi anche il <b>POS</b> (la voce del faldone, fatto o da fare) e i <b>documenti finali</b> della cartella Chiusura (la dichiarazione di corretta messa in opera).</li>
+        <li><b>🕘 Storico</b> (si apre toccandolo): i passaggi della scheda, con chi e quando. Per la commessa: nascita e cambi di stato con la nota.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Apri il cliente "Rossi Srl": in <b>🔗 Collegati</b> vedi le 2 sedi, le commesse, le fatture e le richieste dal portale. Tocchi la commessa 2026-012 e controlli subito se c'è la dichiarazione tra i <b>Documenti finali</b>.
+      </div>
+
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -5723,6 +5843,21 @@
       <div class="al2 w">
         Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
       </div>
+
+      <h4 id="info-con-13">13. Schede con Collegati: per te non cambia nulla</h4>
+
+      <p>
+        Le schede di preventivo, commessa, progetto e cliente hanno ora in cima una parte comune (<b>Cosa puoi fare</b>, <b>🔗 Collegati</b>, <b>🕘 Storico</b>). Non sono tra le tue pagine: tu lavori da Fatture, Workflow e Documenti come prima.
+      </p>
+
+      <ul>
+        <li>Le fatture compaiono nei <b>Collegati</b> delle schede degli altri ruoli (fattura d'anticipo, finale, note di credito): se un collega ti chiede di una fattura, la trova da lì e la apre nella pagina Fatture.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>La segreteria apre la commessa 2026-012 e in <b>🔗 Collegati</b> vede "Fattura finale n. 45 · da pagare": tocca la riga e si apre la fattura nella pagina Fatture.
+      </div>
+
 
       <h4>Checklist</h4>
 
@@ -6071,6 +6206,22 @@
       <div class="al2 w">
         Finché il database non è aggiornato (sql/70) il riquadro <b>❓ Domande</b> non compare e si lavora come prima (note e "Richiedi integrazione").
       </div>
+
+      <h4 id="info-ing-16">16. Scheda del progetto e del cliente: Collegati e Storico</h4>
+
+      <p>
+        La scheda del progetto tecnico e del cliente hanno in cima la stessa parte comune: stato, i pulsanti del tuo ruolo (<b>❓ Fai una domanda</b> sul progetto), i collegamenti e lo storico.
+      </p>
+
+      <ul>
+        <li>Sotto il titolo di ogni scheda c'è il riquadro <b>🔗 Collegati</b>: tutto quello che è legato a quella scheda, sempre nello stesso ordine (cliente, sede, progetto tecnico, preventivi e revisioni, commessa, cantiere, ordini ai fornitori, POS, documenti finali, fatture, richieste dal portale). Tocca una riga con <b>Apri ›</b> per andare alla sua scheda; le righe senza <b>Apri ›</b> sono solo informazioni (pagine che il tuo ruolo non apre).</li>
+        <li><b>🕘 Storico</b> (si apre toccandolo): i passaggi della scheda, con chi e quando. Il registro delle modifiche lo legge solo il titolare.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Apri il progetto "Compartimentazione magazzino": in <b>🔗 Collegati</b> vedi il cliente e i preventivi fatti dal commerciale su quel progetto, con lo stato.
+      </div>
+
 
       <h4>Checklist veloce prima di chiudere la giornata</h4>
 
@@ -8996,6 +9147,7 @@
 <script defer src="js/60-decisioni-titolare.js?v=202611051342"></script>
 <script defer src="js/61-motore-azioni.js?v=202611051342"></script>
 <script defer src="js/62-domande.js?v=202611051342"></script>
+<script defer src="js/63-scheda-oggetto.js?v=202611051342"></script>
 <script defer src="js/19-init.js?v=202611051342"></script>
 
 

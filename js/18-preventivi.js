@@ -333,6 +333,9 @@ ${ROLE === 'titolare' ? `
   await renderCertificatiPreventivo();
   // F14.15: domande sul preventivo (js/62, attive con sql/70)
   if (typeof caricaDomandeRecord === 'function') await caricaDomandeRecord('preventivi', preventivo.id, 'pvd-domande');
+  // F14.16: intestazione, "Cosa puoi fare", Collegati e Storico (js/63):
+  // le azioni dipendono solo da ruolo e stato, non da dove si arriva.
+  if (typeof caricaSchedaOggetto === 'function') await caricaSchedaOggetto('preventivo', preventivo, 'pvd-scheda-oggetto');
   gotoPage('preventivo-detail');
   
 }
