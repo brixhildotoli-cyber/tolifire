@@ -134,7 +134,7 @@ salva_regola e il trigger trg_impostazioni_registro_regole, che registra
 anche i cambi fatti da "Soglie e tariffe"). La soglia 3.000 € del
 rappresentante NON è una regola (D14).
 
-Usate dal frontend — festività e controllo orario (F14.3, sql/63 DA ESEGUIRE,
+Usate dal frontend — festività e controllo orario (F14.3, sql/63 ESEGUITO il 05/11, backup pre63, pg_cron attivo,
 richiede 07 e 58, non 62): festivita (giorni non lavorativi oltre a sabato e
 domenica: 24 date 2026-2027 con San Ranieri 17/6, tipo nazionale/patrono/
 chiusura; lettura per tutti gli utenti attivi, scrittura solo con le RPC
@@ -276,7 +276,7 @@ leggiRegolaSubito('soglia_lavoro_grande') (smistamento T2). Prova:
 sql/62-impostazioni-regole-soglie-PROVA.sql (solo database di prova, finisce
 con rollback). Senza sql/62: predefiniti, riquadro in sola lettura "non
 ancora attiva", nessun errore.
-Dopo sql/63 (F14.3 festività, giorni lavorativi e controllo orario, DA ESEGUIRE,
+Dopo sql/63 (F14.3 festività, giorni lavorativi e controllo orario, ESEGUITO il 05/11 dall'editor (contiene delete), backup pre63, pg_cron attivo,
 richiede 07 e 58; preparato e provato sul backup pre256 + sql/62 il 04/11):
 salva_festivita, togli_festivita (solo titolare/informatico),
 esegui_controllo_orario (dal sito solo il titolare, "▶️ Esegui ora");
