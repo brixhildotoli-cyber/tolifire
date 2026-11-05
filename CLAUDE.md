@@ -163,7 +163,7 @@ registra_dispositivo_push / togli_dispositivo_push), avvisi_invii
 (registro degli invii: lettura titolare e propri; lo scrivono database e
 Edge Function), avvisi_invio_impostazioni (una riga, lettura titolare;
 imposta_invio_avvisi). js/59-notifiche-push.js, sw.js.
-Dopo sql/67 (F14.11, DA ESEGUIRE, richiede 07 e 58; poi il file
+Dopo sql/67 (F14.11, ESEGUITO il 05/11, backup pre67 e -REGISTRO-CANCELLAZIONI dall'editor, richiede 07 e 58; poi il file
 -REGISTRO-CANCELLAZIONI dall'editor): registro_azioni (registro generico
 delle azioni, NON usata dal sito per ora; sola lettura del titolare e
 dell'informatico; la scrive solo il trigger registra_azione; nessuno la
@@ -452,7 +452,7 @@ Provato: SQL e rollback sul backup pre65; Edge Function in Deno con
 Supabase, Brevo e servizio push simulati; catena completa con FCM vero
 (Chrome headless: notifica mostrata ~1 s dopo l'avviso). File senza parole
 di cancellazione; il rollback contiene drop.
-Dopo sql/67 (F14.11 funzioni ruolo e registro azioni, DA ESEGUIRE, richiede
+Dopo sql/67 (F14.11 funzioni ruolo e registro azioni, ESEGUITO il 05/11, backup pre67, richiede
 07 e 58; provato sul backup pre66 + sql/66): nessuna RPC chiamata dal sito.
 Funzioni nuove (execute per authenticated, pronte per "Entra come" di
 F14.17-18): ruolo_reale() (= ruolo_corrente(), nessuna copia della regola),
