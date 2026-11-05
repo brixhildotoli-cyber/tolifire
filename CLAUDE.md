@@ -192,9 +192,9 @@ il file -REGISTRO-CANCELLAZIONI dall'editor): domande (domande tra colleghi
 su progetto tecnico, preventivo, commessa o richiesta al fornitore: da, a
 persona o ruolo, testo, allegati jsonb, scadenza, risposta, chiusa;
 lettura titolare tutte, gli altri quelle fatte da loro, a loro o al loro
-ruolo; nasce con fai_domanda o insert diretto sotto RLS: chi chiede deve
-leggere il record, il resto lo scrive il database; risposta, chiusura e
-allegati solo con le RPC, js/62). Bucket NUOVO domande-allegati (privato,
+ruolo; nasce SOLO con fai_domanda: chi chiede deve leggere il record
+(RLS), l'insert diretto lo rifiuta il trigger, il resto lo scrive il
+database; risposta, chiusura e allegati solo con le RPC, js/62). Bucket NUOVO domande-allegati (privato,
 20 MB, <id domanda>/<file>; lo apre chi legge la domanda, caricano chi
 chiede e chi deve rispondere finché non è chiusa).
 
@@ -624,7 +624,9 @@ Dopo sql/70 (F14.15 domande nel gestionale, DA ESEGUIRE, richiede 07, 47,
 sul backup pre69 + sql/69 e -VINCOLO il 05/11): tabella domande (vedi
 "Tabelle Supabase"). RPC del sito: fai_domanda(p_rif_tabella, p_rif_id,
 p_testo, p_a_id, p_a_ruolo) (SECURITY INVOKER: insert sotto RLS, policy
-domande_inserimento con domanda_record_leggibile(tabella, id), invoker),
+domande_inserimento con domanda_record_leggibile(tabella, id), invoker;
+mette il segno di transazione toli.fai_domanda, senza il quale
+trg_domande_prima rifiuta l'insert: niente insert diretto dal sito),
 rispondi_domanda(id, risposta) (la persona scelta, chiunque del ruolo se
 è al ruolo, il titolare; mai chi ha chiesto), chiudi_domanda(id, nota)
 (chi ha chiesto o il titolare; da aperta = ritirata),
@@ -658,7 +660,13 @@ altri, risposte alle mie); riga "❓ Domande per me" in "Cosa tocca a me"
 per tutti i ruoli (js/46, priorità 2, rossa con scadute); tipi di avviso
 ❓ domanda e 💬 domanda_risposta con l'azione rapida che apre l'elenco
 (js/58). Guide: info-tit-19, seg-21, con-12, ct-23, tec-19, com-17,
-rap-22, ing-15. Matrice: 10 righe di domande (sql/matrice-permessi.sh
+rap-22, ing-15. Corretto dopo il controllo: puo_rispondere_domanda,
+rispondi_domanda, chiudi_domanda e aggiungi_allegato_domanda con coalesce
+(con a_id vuoto il confronto dava NULL e chiunque rispondeva a una domanda
+fatta a un ruolo). Prova: sql/70-domande-nel-gestionale-PROVA.sql (solo
+database di prova, rollback: ruolo diverso e chi non legge la domanda
+rifiutati, insert e update diretti rifiutati, risalita al titolare,
+persona scelta contro un altro dello stesso ruolo, titolare). Matrice: 10 righe di domande (sql/matrice-permessi.sh
 TUTTO OK). File principale senza parole di cancellazione (server MCP);
 rollback (dall'editor: domande, funzioni, trigger, regole dei file e
 bucket se vuoto; avvisi delle domande chiusi "annullato", non tolti;
