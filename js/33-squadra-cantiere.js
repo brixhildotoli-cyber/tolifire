@@ -157,8 +157,9 @@ function htmlAvvisiSquadra(impegni, avvisiDoc, piuGiorni) {
       return `<span class="bx ${a.grave ? 'berr' : 'bwarn'}">🪪 ${esc(a.testo)}</span>`;
     }))
     .concat((impegni || []).map(function(i) {
-      const icona = i.tipo === 'intervento' ? '🔧' : i.tipo === 'calendario' ? '📅' : '🏗️';
-      return `<span class="bx bwarn">${icona} ${piuGiorni ? esc(dataBreveSquadra(i.data)) + ': ' : ''}${esc(i.testo)}</span>`;
+      // F14.14: 'assenza' (sql/69) in rosso
+      const icona = i.tipo === 'intervento' ? '🔧' : i.tipo === 'calendario' ? '📅' : i.tipo === 'assenza' ? '🚫' : '🏗️';
+      return `<span class="bx ${i.tipo === 'assenza' ? 'berr' : 'bwarn'}">${icona} ${piuGiorni ? esc(dataBreveSquadra(i.data)) + ': ' : ''}${esc(i.testo)}</span>`;
     }));
   return righe.length ? `<div class="sq-avvisi">${righe.join('')}</div>` : '';
 }

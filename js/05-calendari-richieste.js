@@ -4,6 +4,7 @@ var _calTeamVista = 'settimana'; // 'giorno' | 'settimana' | 'mese'
 var _calTeamFiltro = 'tutti';    // 'tutti' | 'nessuno' | <tecnico_id>
 var _calTeamOdls = [];
 var _calTeamTecniciAll = [];     // tecnici attivi (per i bottoni filtro)
+var _calTeamAssenze = [];        // F14.14: assenze del periodo (sql/69, assenze_personale)
 window._calTeamSediMap = {};
 
 function ctmMondayOf(d){
@@ -81,12 +82,24 @@ async function loadCalendarioTeam(){
     db.from('ordini_lavoro')
       .select('id,numero,tipo,stato,data_pianificata,fascia_oraria,sede_id,in_ritardo_il,tecnico_id,clienti(ragione_sociale),utenti!ordini_lavoro_tecnico_id_fkey(id,nome,cognome)')
       .is('eliminato_il', null)
-      .gte('data_pianificata', start.toISOString().split('T')[0])
-      .lt('data_pianificata', end.toISOString().split('T')[0])
+      // F14.14: date in ora locale (con toISOString in Italia si partiva dal giorno prima)
+      .gte('data_pianificata', dataLocaleISO(start))
+      .lt('data_pianificata', dataLocaleISO(end))
       .neq('stato','annullato')
   ]);
   _calTeamTecniciAll = rTec.data || [];
   _calTeamOdls = rOdl.data || [];
+
+  // F14.14: assenze del periodo (solo con sql/69); il bottone "Segna assenza"
+  // compare per titolare e capo tecnico quando le assenze sono attive.
+  _calTeamAssenze = [];
+  var assenzeAttive = await verificaAssenzeDisponibili();
+  if(assenzeAttive){
+    var ultimo = new Date(end); ultimo.setDate(ultimo.getDate()-1);
+    _calTeamAssenze = (await leggiAssenzePersonale(dataLocaleISO(start), dataLocaleISO(ultimo))) || [];
+  }
+  var btnAss = ge('cteam-assenza-btn');
+  if(btnAss) btnAss.style.display = (assenzeAttive && RUOLI_SEGNANO_ASSENZE.includes(ROLE)) ? '' : 'none';
 
   // Bottoni filtro tecnico
   var bDiv = ge('cteam-btn-tecnici');
@@ -178,12 +191,14 @@ function renderCalTeamGriglia(giorni, odls, tecnici){
     html += '<tr><td><div class="ct-cal-tec" title="'+esc(t.nome+' '+t.cognome)+'">'+tecLabel+'</div></td>';
     giorni.forEach(function(d){
       var isToday = d.getTime() === today.getTime();
-      var ds = d.toISOString().split('T')[0];
+      var ds = dataLocaleISO(d);
       var dayInts = odls.filter(function(o){
         if(t.id === 'nessuno') return !o.tecnico_id && o.data_pianificata === ds;
         return o.tecnico_id === t.id && o.data_pianificata === ds;
       });
-      html += '<td class="ct-cal-cell '+(isToday?'today':'')+'">' + dayInts.map(renderCalTeamEv).join('') + '</td>';
+      // F14.14: assenza del tecnico quel giorno (sql/69)
+      var ass = t.id === 'nessuno' ? [] : _calTeamAssenze.filter(function(a){ return a.utente_id === t.id && a.data === ds; });
+      html += '<td class="ct-cal-cell '+(isToday?'today':'')+'">' + ass.map(renderCalTeamAssenza).join('') + dayInts.map(renderCalTeamEv).join('') + '</td>';
     });
     html += '</tr>';
   });
@@ -198,6 +213,16 @@ function renderCalTeamEv(o){
   return '<div class="ct-cal-ev '+tipoCls+ritardo+'" onclick="event.stopPropagation();openEditOdl(\''+o.id+'\')" title="'+esc(cli)+'">' +
     '<div class="ev-cli">'+esc(cli)+'</div>' +
     (o.fascia_oraria?'<div class="ev-meta">'+esc(o.fascia_oraria)+'</div>':'') +
+  '</div>';
+}
+
+// F14.14: riquadro "Assente" nella cella del tecnico (clic: cambia o togli)
+function renderCalTeamAssenza(a){
+  var puo = RUOLI_SEGNANO_ASSENZE.includes(ROLE);
+  return '<div class="ct-cal-ev" style="background:var(--rl);color:var(--r);border-left-color:var(--r)" title="'+esc(testoAssenza(a))+'"' +
+    (puo ? ' data-utente="'+esc(a.utente_id)+'" data-giorno="'+esc(a.data)+'" onclick="event.stopPropagation();apriAssenzaPersonale(this.dataset.utente,this.dataset.giorno)"' : '') + '>' +
+    '<div class="ev-cli">🚫 Assente</div>' +
+    '<div class="ev-meta">'+esc(orarioAssenza(a))+'</div>' +
   '</div>';
 }
 
@@ -217,7 +242,7 @@ function renderCalTeamMese(start, odls){
   // Numero settimane: max 6 per coprire tutti i mesi possibili
   for(var w=0; w<6; w++){
     for(var d=0; d<7; d++){
-      var ds = current.toISOString().split('T')[0];
+      var ds = dataLocaleISO(current);
       var isOtherMonth = current.getMonth() !== mese;
       var isToday = current.getTime() === today.getTime();
       var dayInts = odls.filter(function(o){return o.data_pianificata === ds;});
@@ -225,6 +250,14 @@ function renderCalTeamMese(start, odls){
       if(isOtherMonth) cls += ' other-month';
       if(isToday) cls += ' today';
       html += '<div class="'+cls+'"><div class="ctm-day-n">'+current.getDate()+'</div>';
+      // F14.14: assenti del giorno (con il filtro su un tecnico, solo lui)
+      _calTeamAssenze.filter(function(a){
+        return a.data === ds && (_calTeamFiltro === 'tutti' || a.utente_id === _calTeamFiltro);
+      }).forEach(function(a){
+        html += '<div class="ctm-month-ev" style="background:var(--rl);color:var(--r);font-weight:600" title="'+esc(testoAssenza(a))+'"' +
+          (RUOLI_SEGNANO_ASSENZE.includes(ROLE) ? ' data-utente="'+esc(a.utente_id)+'" data-giorno="'+esc(a.data)+'" onclick="event.stopPropagation();apriAssenzaPersonale(this.dataset.utente,this.dataset.giorno)"' : '') +
+          '>🚫 '+esc(a.nome)+'</div>';
+      });
       dayInts.slice(0,3).forEach(function(o){
         var tipoCls = {ordinario_programmato:'ev-ord',ordinario_chiamata:'ev-chi',straordinario:'ev-str',corso:'ev-cor'}[o.tipo] || 'ev-ord';
         var ritardo = o.in_ritardo_il ? ' ev-ritardo' : '';
@@ -1193,3 +1226,365 @@ async function creaOdlDaCiclo(cliId, meseAnno){
   var n = ge('mo6'); if(n) n.value = 'Intervento periodico — ' + (meseAnno || '');
 }
 
+
+// =====================================================================
+// F14.14 — ASSENZE DEL PERSONALE (sql/69-assenze-personale.sql e
+// 69-assenze-personale-VINCOLO.sql). Decisione di Toli D13: NIENTE
+// sostituti per ruolo (il titolare cambia il ruolo all'utente e ha
+// "Entra come"). Qui solo:
+//   - l'assenza di un tecnico o capo tecnico nel calendario personale
+//     (tipo 'assenza'), segnata e tolta SOLO da titolare (informatico) e
+//     capo_tecnico con le RPC segna_assenza_personale e
+//     togli_assenza_personale (il database rifiuta gli altri ruoli e le
+//     scritture dirette); finestra m-assenza-personale (id asz-), aperta
+//     dal calendario team ("🚫 Segna assenza", clic sul riquadro
+//     "Assente") e dal box della dashboard;
+//   - box della dashboard (caricaAssenzePersonaleDashboard, chiamata da
+//     js/03): capo tecnico e titolare "🚫 Assenze e interventi da
+//     riassegnare" (ct-assenze, tit-assenze); segreteria "📞 Clienti da
+//     avvisare: tecnico assente" (seg-assenze) con testo fisso, Chiama,
+//     Mail, Copia e "✓ Avvisato" (localStorage, come js/50);
+//   - righe di "Cosa tocca a me" in js/46 (fonti assenze-*).
+// Senza sql/69 (o senza il file -VINCOLO) nulla compare e nessun errore.
+// =====================================================================
+const RUOLI_SEGNANO_ASSENZE = ['titolare', 'capo_tecnico'];
+const RUOLI_LEGGONO_ASSENZE = ['titolare', 'capo_tecnico', 'segreteria'];
+const BOX_ASSENZE_DASHBOARD = { titolare: 'tit-assenze', capo_tecnico: 'ct-assenze', segreteria: 'seg-assenze' };
+const GIORNI_BOX_ASSENZE = 7;      // oggi e i 6 giorni dopo
+let assenzeDisponibiliPromessa = null;
+let assenzeBoxCorrenti = { interventi: [] };
+
+// Le assenze sono attive? (RPC di sql/69 e vincolo del file -VINCOLO)
+function verificaAssenzeDisponibili() {
+  if (!RUOLI_LEGGONO_ASSENZE.includes(ROLE)) return Promise.resolve(false);
+  if (!assenzeDisponibiliPromessa) {
+    assenzeDisponibiliPromessa = db.rpc('assenze_personale_attive').then(function(r) {
+      return !r.error && r.data === true;
+    }, function() { return false; });
+  }
+  return assenzeDisponibiliPromessa;
+}
+
+async function leggiAssenzePersonale(dal, al) {
+  if (!(await verificaAssenzeDisponibili())) return null;
+  const { data, error } = await db.rpc('assenze_personale', { p_dal: dal, p_al: al });
+  if (error) { console.warn('Assenze del personale:', error.message); return null; }
+  return Array.isArray(data) ? data : [];
+}
+
+async function leggiInterventiTecniciAssenti(dal, al) {
+  if (!(await verificaAssenzeDisponibili())) return null;
+  const { data, error } = await db.rpc('interventi_tecnici_assenti', { p_dal: dal, p_al: al });
+  if (error) { console.warn('Interventi dei tecnici assenti:', error.message); return null; }
+  return Array.isArray(data) ? data : [];
+}
+
+function orarioAssenza(a) {
+  return a && a.ora_inizio ? a.ora_inizio + '-' + (a.ora_fine || '') : 'tutto il giorno';
+}
+
+function testoAssenza(a) {
+  return (a.nome || 'Persona') + ' assente ' + orarioAssenza(a) + (a.nota ? ' · ' + a.nota : '');
+}
+
+function giornoAssenza(d) {
+  return typeof giornoLungo === 'function' ? giornoLungo(d) : fd(d);
+}
+
+function giorniDopoAssenze(iso, n) {
+  const d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return dataLocaleISO(d);
+}
+
+// Ora dell'intervento: appuntamento fissato, altrimenti la fascia.
+function oraInterventoAssente(o) {
+  return o.appuntamento_ora ? 'ore ' + o.appuntamento_ora : (o.fascia || '');
+}
+
+// ── Finestra "Segna assenza" ─────────────────────────────────────────
+async function apriAssenzaPersonale(utenteId, dal, al) {
+  if (!RUOLI_SEGNANO_ASSENZE.includes(ROLE)) { toast('Le assenze le segnano il capo tecnico e il titolare', 'err'); return; }
+  if (!(await verificaAssenzeDisponibili())) { toast('Le assenze non sono ancora attive', 'err'); return; }
+  const sel = ge('asz-persona');
+  sel.innerHTML = '<option value="">Caricamento...</option>';
+  const oggi = dataLocaleISO();
+  ge('asz-dal').value = dal || oggi;
+  ge('asz-al').value = al || '';
+  ge('asz-dal').min = ROLE === 'titolare' ? '' : oggi;
+  ge('asz-lavorativi').checked = true;
+  ge('asz-giornata').checked = true;
+  ge('asz-ora-inizio').value = '';
+  ge('asz-ora-fine').value = '';
+  ge('asz-nota').value = '';
+  ge('asz-esistente').innerHTML = '';
+  aggiornaOreAssenza();
+  openM('m-assenza-personale');
+
+  const r = await db.from('utenti').select('id,nome,cognome,ruolo')
+    .in('ruolo', ['tecnico', 'capo_tecnico']).eq('attivo', true).order('cognome').order('nome');
+  const persone = r.data || [];
+  sel.innerHTML = '<option value="">— Scegli la persona —</option>' + persone.map(function(p) {
+    return '<option value="' + esc(p.id) + '">' + esc((p.cognome || '') + ' ' + (p.nome || '')) +
+      (p.ruolo === 'capo_tecnico' ? ' (capo tecnico)' : '') + '</option>';
+  }).join('');
+  if (utenteId) sel.value = utenteId;
+  await mostraAssenzaEsistente();
+}
+
+function aggiornaOreAssenza() {
+  const giornata = ge('asz-giornata').checked;
+  ge('asz-ore').style.display = giornata ? 'none' : '';
+}
+
+// Se la persona è già assente in quei giorni lo dice (e propone "Togli").
+async function mostraAssenzaEsistente() {
+  const box = ge('asz-esistente');
+  const togli = ge('asz-togli');
+  const utente = v('asz-persona');
+  const dal = v('asz-dal');
+  const al = v('asz-al') || dal;
+  box.innerHTML = '';
+  togli.style.display = 'none';
+  if (!utente || !dal || al < dal) return;
+  const assenze = (await leggiAssenzePersonale(dal, al)) || [];
+  const sue = assenze.filter(function(a) { return a.utente_id === utente; });
+  if (!sue.length) return;
+  togli.style.display = '';
+  // la prima assenza esistente precompila orari e nota
+  const a = sue[0];
+  if (a.ora_inizio) {
+    ge('asz-giornata').checked = false;
+    ge('asz-ora-inizio').value = a.ora_inizio;
+    ge('asz-ora-fine').value = a.ora_fine || '';
+  }
+  if (a.nota && !v('asz-nota')) ge('asz-nota').value = a.nota;
+  aggiornaOreAssenza();
+  box.innerHTML = '<div class="al2 w" style="margin:0 0 10px">Già assente in ' + sue.length + ' ' + (sue.length === 1 ? 'giorno' : 'giorni') + ': ' +
+    esc(sue.map(function(x) { return giornoAssenza(x.data) + ' (' + orarioAssenza(x) + ')'; }).join(', ')) +
+    '. Salvando aggiorni orari e nota; con <b>Togli l\'assenza</b> la togli da questi giorni.</div>';
+}
+
+async function salvaAssenzaPersonale() {
+  const utente = v('asz-persona');
+  const dal = v('asz-dal');
+  const al = v('asz-al') || dal;
+  const giornata = ge('asz-giornata').checked;
+  const inizio = giornata ? '' : v('asz-ora-inizio');
+  const fine = giornata ? '' : v('asz-ora-fine');
+  const nota = v('asz-nota').trim();
+  if (!utente) { toast('Scegli la persona assente', 'err'); return; }
+  if (!dal) { toast('Indica il primo giorno', 'err'); return; }
+  if (al < dal) { toast('L\'ultimo giorno non può essere prima del primo', 'err'); return; }
+  if (!giornata && (!inizio || !fine)) { toast('Indica dalle e alle, oppure spunta "Tutto il giorno"', 'err'); return; }
+  if (!giornata && fine <= inizio) { toast('L\'ora di fine deve essere dopo l\'ora di inizio', 'err'); return; }
+  const btn = ge('asz-salva');
+  btn.disabled = true;
+  const { data, error } = await db.rpc('segna_assenza_personale', {
+    p_utente_id: utente, p_dal: dal, p_al: al,
+    p_ora_inizio: inizio || null, p_ora_fine: fine || null,
+    p_nota: nota || null, p_solo_lavorativi: ge('asz-lavorativi').checked
+  });
+  btn.disabled = false;
+  if (error) { toast('Assenza non salvata: ' + error.message, 'err'); return; }
+  closeM('m-assenza-personale');
+  const n = (data && data.interventi) || 0;
+  toast((data && data.persona ? data.persona : 'Persona') + ' assente per ' + ((data && data.giorni) || 0) + ' giorn' +
+    (((data && data.giorni) || 0) === 1 ? 'o' : 'i') + (n ? ': ' + n + ' intervent' + (n === 1 ? 'o' : 'i') + ' da riassegnare' : ''), n ? 'warn' : 'ok');
+  dopoCambioAssenze();
+}
+
+async function togliAssenzaPersonaleDaFinestra() {
+  const utente = v('asz-persona');
+  const dal = v('asz-dal');
+  const al = v('asz-al') || dal;
+  if (!utente || !dal || al < dal) { toast('Scegli persona e giorni', 'err'); return; }
+  if (!confirm('Togli l\'assenza da ' + fd(dal) + (al !== dal ? ' a ' + fd(al) : '') + '?')) return;
+  const { data, error } = await db.rpc('togli_assenza_personale', { p_utente_id: utente, p_dal: dal, p_al: al });
+  if (error) { toast('Assenza non tolta: ' + error.message, 'err'); return; }
+  closeM('m-assenza-personale');
+  toast(data ? 'Assenza tolta (' + data + ' giorn' + (data === 1 ? 'o' : 'i') + ')' : 'Nessuna assenza in quei giorni', data ? 'ok' : 'warn');
+  dopoCambioAssenze();
+}
+
+function dopoCambioAssenze() {
+  caricaAssenzePersonaleDashboard().catch(function(e) { console.warn('caricaAssenzePersonaleDashboard:', e); });
+  const pg = ge('pg-calendario-team');
+  if (pg && pg.classList.contains('on')) loadCalendarioTeam();
+  if (typeof aggiornaToccaAMePiuTardi === 'function') aggiornaToccaAMePiuTardi();
+}
+
+// ── Box della dashboard ──────────────────────────────────────────────
+function chiaveAvvisatoAssenza(o) {
+  return 'assenza_avvisato_' + o.odl_id + '_' + o.data + '_' + (o.tecnico_id || '');
+}
+
+function leggiAvvisatoAssenza(o) {
+  try { return localStorage.getItem(chiaveAvvisatoAssenza(o)); } catch (e) { return null; }
+}
+
+// Interventi di oggi da riassegnare (capo tecnico, titolare) o clienti da
+// avvisare (segreteria, senza quelli già avvisati): per "Cosa tocca a me".
+async function contaInterventiTecniciAssentiOggi(soloDaAvvisare) {
+  const oggi = dataLocaleISO();
+  const elenco = await leggiInterventiTecniciAssenti(oggi, oggi);
+  if (!elenco) return null;
+  return soloDaAvvisare ? elenco.filter(function(o) { return !leggiAvvisatoAssenza(o); }).length : elenco.length;
+}
+
+function testoAvvisoClienteAssenza(o) {
+  const azienda = (typeof IMPOSTAZIONI !== 'undefined' && IMPOSTAZIONI && IMPOSTAZIONI.ragione_sociale) || 'TOLI Fire';
+  const telAzienda = (typeof IMPOSTAZIONI !== 'undefined' && IMPOSTAZIONI && IMPOSTAZIONI.telefono) || '';
+  const quando = giornoAssenza(o.data) + (o.appuntamento_ora ? ' alle ore ' + o.appuntamento_ora : '');
+  const saluto = o.referente_nome ? 'Gentile ' + o.referente_nome + ',' : 'Gentile cliente,';
+  return {
+    oggetto: 'Intervento ' + azienda + ' del ' + quando + ': variazione',
+    corpo: saluto + '\n\n' +
+      'la informiamo che, per un\'assenza improvvisa del tecnico, l\'intervento previsto ' + quando +
+      (o.sede ? ' presso ' + o.sede : '') + ' potrebbe subire un ritardo o essere spostato.\n' +
+      'La ricontatteremo al più presto per confermare l\'orario o concordare una nuova data.\n\n' +
+      'Ci scusiamo per il disagio' + (telAzienda ? ' e restiamo a disposizione al numero ' + telAzienda : '') + '.\n\n' +
+      'Cordiali saluti,\n' + azienda
+  };
+}
+
+async function caricaAssenzePersonaleDashboard() {
+  const box = ge(BOX_ASSENZE_DASHBOARD[ROLE] || '');
+  if (!box) return;
+  if (!(await verificaAssenzeDisponibili())) { box.innerHTML = ''; return; }
+  const oggi = dataLocaleISO();
+  const al = giorniDopoAssenze(oggi, GIORNI_BOX_ASSENZE - 1);
+  const segna = RUOLI_SEGNANO_ASSENZE.includes(ROLE);
+  const [assenze, interventi] = await Promise.all([
+    segna ? leggiAssenzePersonale(oggi, al) : Promise.resolve([]),
+    leggiInterventiTecniciAssenti(oggi, al)
+  ]);
+  if (assenze === null || interventi === null) { box.innerHTML = ''; return; }
+  assenzeBoxCorrenti = { interventi: interventi };
+  box.innerHTML = segna ? htmlBoxAssenzeCapoTecnico(assenze, interventi, oggi) : htmlBoxAssenzeSegreteria(interventi, oggi);
+}
+
+function htmlBoxAssenzeCapoTecnico(assenze, interventi, oggi) {
+  // assenti raggruppati per persona
+  const perPersona = {};
+  assenze.forEach(function(a) {
+    (perPersona[a.utente_id] = perPersona[a.utente_id] || { nome: a.nome, giorni: [] }).giorni.push(a);
+  });
+  const assenti = Object.keys(perPersona).map(function(id) {
+    const p = perPersona[id];
+    const primo = p.giorni[0].data;
+    const ultimo = p.giorni[p.giorni.length - 1].data;
+    const note = p.giorni.map(function(g) { return g.nota; }).filter(Boolean);
+    return '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,.05);font-size:13px">' +
+      '<div style="min-width:0"><div style="font-weight:600">🚫 ' + esc(p.nome) + '</div>' +
+        '<div style="font-size:12px;color:var(--m);overflow-wrap:anywhere">' +
+          esc(p.giorni.map(function(g) { return giornoAssenza(g.data) + ' (' + orarioAssenza(g) + ')'; }).join(', ')) +
+          (note.length ? ' · ' + esc(note[0]) : '') + '</div></div>' +
+      '<button class="btn sm" data-utente="' + esc(id) + '" data-dal="' + esc(primo) + '" data-al="' + esc(ultimo) + '" ' +
+        'onclick="apriAssenzaPersonale(this.dataset.utente,this.dataset.dal,this.dataset.al)">✏️ Cambia o togli</button>' +
+    '</div>';
+  }).join('');
+
+  const diOggi = interventi.filter(function(o) { return o.data === oggi; });
+  const dopo = interventi.filter(function(o) { return o.data !== oggi; });
+  const riga = function(o) {
+    return '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,.05);font-size:13px">' +
+      '<div style="min-width:0"><div style="font-weight:600;overflow-wrap:anywhere">' + esc(o.cliente || 'Cliente') + '</div>' +
+        '<div style="font-size:12px">' + esc(giornoAssenza(o.data)) + (oraInterventoAssente(o) ? ' · ' + esc(oraInterventoAssente(o)) : '') +
+          ' · Intervento n. ' + esc(o.numero) + ' · <span style="color:var(--r)">' + esc(o.tecnico) + ' assente' +
+          (o.assenza_ora_inizio ? ' ' + esc(o.assenza_ora_inizio + '-' + (o.assenza_ora_fine || '')) : '') + '</span></div>' +
+        (o.sede ? '<div style="font-size:12px;color:var(--m);overflow-wrap:anywhere">📍 ' + esc(o.sede) + '</div>' : '') + '</div>' +
+      '<button class="btn sm p" data-id="' + esc(o.odl_id) + '" onclick="openEditOdl(this.dataset.id)">Riassegna</button>' +
+    '</div>';
+  };
+
+  return '<div class="tit-section" style="margin-top:14px">🚫 Assenze e interventi da riassegnare' +
+      (diOggi.length ? ' (' + diOggi.length + ' oggi)' : '') + '</div>' +
+    '<div class="rap-list-card" style="margin-bottom:14px">' +
+      '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px">' +
+        '<div style="font-size:12px;color:var(--m)">Chi manca oggi e nei prossimi ' + (GIORNI_BOX_ASSENZE - 1) + ' giorni.</div>' +
+        '<button class="btn sm" onclick="apriAssenzaPersonale()">🚫 Segna un\'assenza</button>' +
+      '</div>' +
+      (assenti || '<div class="tit-empty">✅ Nessuno assente</div>') +
+      (diOggi.length
+        ? '<div class="al2 e" style="margin:10px 0 4px"><b>Interventi di oggi del tecnico assente: ' + diOggi.length +
+          '</b>. Riassegnali entro le 9:00 (<b>Riassegna</b> apre l\'intervento: cambia il tecnico). La segreteria avvisa i clienti di quelli che restano.</div>' +
+          diOggi.map(riga).join('')
+        : '') +
+      (dopo.length
+        ? '<div style="font-size:12px;font-weight:700;color:var(--m);margin-top:10px;text-transform:uppercase">Prossimi giorni</div>' + dopo.map(riga).join('')
+        : '') +
+    '</div>';
+}
+
+function htmlBoxAssenzeSegreteria(interventi, oggi) {
+  if (!interventi.length) return '';
+  let daAvvisare = 0;
+  const righe = interventi.map(function(o, i) {
+    const avvisato = leggiAvvisatoAssenza(o);
+    if (!avvisato) daAvvisare++;
+    return '<div style="padding:10px 0;border-bottom:0.5px solid rgba(0,0,0,.05);font-size:13px;' + (avvisato ? 'opacity:.6' : '') + '">' +
+      '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">' +
+        '<div style="font-weight:600;overflow-wrap:anywhere">' + esc(o.cliente || 'Cliente') + '</div>' +
+        (avvisato ? '<span class="bx bok">✓ Avvisato ' + esc(avvisato) + '</span>' : '<span class="bx ' + (o.data === oggi ? 'berr' : 'bwarn') + '">Da avvisare</span>') +
+      '</div>' +
+      '<div style="font-size:12px;margin-top:2px"><strong>' + esc(giornoAssenza(o.data)) + (oraInterventoAssente(o) ? ' · ' + esc(oraInterventoAssente(o)) : '') + '</strong>' +
+        ' · Tecnico assente: ' + esc(o.tecnico) + '</div>' +
+      (o.sede ? '<div style="font-size:12px;color:var(--m);overflow-wrap:anywhere">📍 ' + esc(o.sede) + '</div>' : '') +
+      '<div style="font-size:12px;overflow-wrap:anywhere">' + esc(o.referente_nome || 'Referente non indicato') +
+        (o.referente_telefono ? ' · ' + esc(o.referente_telefono) : ' · <span style="color:var(--r)">telefono mancante</span>') +
+        (o.referente_email ? ' · ' + esc(o.referente_email) : '') + '</div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">' +
+        (o.referente_telefono ? '<a class="btn sm" href="tel:' + esc(o.referente_telefono) + '">📞 Chiama</a>' : '') +
+        (o.referente_email ? '<button class="btn sm" onclick="apriMailAssenzaCliente(' + i + ')">✉️ Mail</button>' : '') +
+        '<button class="btn sm" onclick="copiaTestoAssenzaCliente(' + i + ')">📋 Copia il testo</button>' +
+        (avvisato
+          ? '<button class="btn sm" onclick="segnaAvvisatoAssenza(' + i + ', false)">↩️ Togli "avvisato"</button>'
+          : '<button class="btn sm p" onclick="segnaAvvisatoAssenza(' + i + ', true)">✓ Avvisato</button>') +
+        '<button class="btn sm" data-id="' + esc(o.odl_id) + '" onclick="openEditOdl(this.dataset.id)">Apri intervento</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  return '<div class="tit-section" style="margin-top:14px">📞 Clienti da avvisare: tecnico assente' +
+      (daAvvisare ? ' (' + daAvvisare + ')' : '') + '</div>' +
+    '<div class="rap-list-card" style="margin-bottom:14px">' +
+      '<div style="font-size:12px;color:var(--m);margin-bottom:6px">Interventi di oggi e dei prossimi giorni ancora assegnati a un tecnico assente. ' +
+        'Il capo tecnico li riassegna entro le 9:00: quelli riassegnati escono da qui da soli. Avvisa i clienti degli altri con il testo fisso, poi premi <b>✓ Avvisato</b>.</div>' +
+      righe +
+    '</div>';
+}
+
+function apriMailAssenzaCliente(indice) {
+  const o = assenzeBoxCorrenti.interventi[indice];
+  if (!o || !o.referente_email) return;
+  const t = testoAvvisoClienteAssenza(o);
+  window.location.href = 'mailto:' + encodeURIComponent(o.referente_email) +
+    '?subject=' + encodeURIComponent(t.oggetto) + '&body=' + encodeURIComponent(t.corpo);
+}
+
+function copiaTestoAssenzaCliente(indice) {
+  const o = assenzeBoxCorrenti.interventi[indice];
+  if (!o) return;
+  const testo = testoAvvisoClienteAssenza(o).corpo;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(testo).then(function() { toast('Testo copiato', 'ok'); }, function() { prompt('Copia il testo', testo); });
+  } else {
+    prompt('Copia il testo', testo);
+  }
+}
+
+function segnaAvvisatoAssenza(indice, avvisato) {
+  const o = assenzeBoxCorrenti.interventi[indice];
+  if (!o) return;
+  try {
+    if (avvisato) {
+      const adesso = new Date();
+      localStorage.setItem(chiaveAvvisatoAssenza(o), adesso.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' ' +
+        adesso.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }));
+    } else {
+      localStorage.removeItem(chiaveAvvisatoAssenza(o));
+    }
+  } catch (e) {}
+  caricaAssenzePersonaleDashboard();
+  if (typeof aggiornaToccaAMePiuTardi === 'function') aggiornaToccaAMePiuTardi();
+}

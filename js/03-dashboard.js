@@ -514,6 +514,10 @@ async function loadDashTitolare(){
   if (typeof caricaAppuntamentiDaFissare === 'function') {
     caricaAppuntamentiDaFissare().catch(function(e){ console.warn('caricaAppuntamentiDaFissare:', e); });
   }
+  // F14.14: assenze e interventi del tecnico assente (js/05, solo con sql/69)
+  if (typeof caricaAssenzePersonaleDashboard === 'function') {
+    caricaAssenzePersonaleDashboard().catch(function(e){ console.warn('caricaAssenzePersonaleDashboard:', e); });
+  }
   var periodo = window._dashTitPeriodo || 'settimana';
   var range = getPeriodoRange(periodo);
   var oggi = new Date(); oggi.setHours(0,0,0,0);
@@ -722,6 +726,10 @@ async function loadDashSegreteriaPg(){
   if (typeof caricaAppuntamentiDaFissare === 'function') {
     try { await caricaAppuntamentiDaFissare(); } catch(e){ console.warn('caricaAppuntamentiDaFissare:', e); }
   }
+  // F14.14: assenze del personale (js/05, solo con sql/69)
+  if (typeof caricaAssenzePersonaleDashboard === 'function') {
+    try { await caricaAssenzePersonaleDashboard(); } catch(e){ console.warn('caricaAssenzePersonaleDashboard:', e); }
+  }
   // F5.2: commesse in cui tocca alla segreteria (js/18, solo con sql/28)
   try { await caricaCommesseToccaAMe(); } catch(e){ console.warn('caricaCommesseToccaAMe:', e); }
   // F7.1: documenti di team e subappalti scaduti o in scadenza (js/30, solo con sql/32)
@@ -856,6 +864,10 @@ async function loadDashCapoTecnicoPg(){
   // F10.3: interventi da confermare, in attesa dell'appuntamento della segreteria (js/41, solo con sql/43)
   if (typeof caricaAppuntamentiDaFissare === 'function') {
     try { await caricaAppuntamentiDaFissare(); } catch(e){ console.warn('caricaAppuntamentiDaFissare:', e); }
+  }
+  // F14.14: assenze del personale (js/05, solo con sql/69)
+  if (typeof caricaAssenzePersonaleDashboard === 'function') {
+    try { await caricaAssenzePersonaleDashboard(); } catch(e){ console.warn('caricaAssenzePersonaleDashboard:', e); }
   }
 
   // Pannelli riusati (refactored per accettare targetId)

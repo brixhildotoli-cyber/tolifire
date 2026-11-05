@@ -260,6 +260,8 @@
 <!-- F10.3 — interventi che aspettano l'appuntamento della segreteria (js/41, solo con sql/43) -->
 <div id="tit-appuntamenti"></div>
 <div id="tit-promemoria"></div>
+<!-- F14.14 — assenze del personale e interventi da riassegnare (js/05, solo con sql/69) -->
+<div id="tit-assenze"></div>
 <!-- F11.2 — scadenze e incassi delle fatture (js/44, solo con sql/46) -->
 <div id="tit-incassi"></div>
 <!-- F11.3 — fatturato, incassato, insoluti (js/45, solo con sql/47) -->
@@ -357,6 +359,8 @@
       <!-- F10.3 — appuntamenti da fissare con i clienti (js/41, solo con sql/43) -->
       <div id="seg-appuntamenti"></div>
       <div id="seg-promemoria"></div>
+      <!-- F14.14 — clienti da avvisare: tecnico assente (js/05, solo con sql/69) -->
+      <div id="seg-assenze"></div>
       <!-- sql/58 — contratti disdetti o non rinnovati da richiamare (js/54) -->
       <div id="seg-contratti-recupero"></div>
 
@@ -412,6 +416,9 @@
       </div>
       <!-- F12.1 — "Cosa tocca a me" (js/46) -->
       <div id="tam-capo-tecnico"></div>
+
+      <!-- F14.14 — assenze e interventi del tecnico assente da riassegnare (js/05, solo con sql/69) -->
+      <div id="ct-assenze"></div>
 
       <!-- KPI -->
       <div class="kpi-grid">
@@ -922,6 +929,8 @@
     <span style="font-size:13px;color:var(--m)">Tecnico:</span>
     <button class="btn on" id="cteam-btn-tutti" onclick="filtraCalTeam('tutti')">🗓️ Tutti</button>
     <div id="cteam-btn-tecnici" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    <!-- F14.14 — solo titolare e capo tecnico, solo con sql/69 (js/05) -->
+    <button class="btn" id="cteam-assenza-btn" style="display:none;margin-left:auto" onclick="apriAssenzaPersonale()">🚫 Segna assenza</button>
   </div>
 
   <!-- Legenda colori per tipo intervento -->
@@ -932,6 +941,7 @@
     <span><span class="sw" style="background:var(--r)"></span>Straordinario</span>
     <span><span class="sw" style="background:var(--p)"></span>Corso</span>
     <span style="margin-left:8px"><span class="sw" style="background:transparent;outline:2px solid var(--r);outline-offset:-2px"></span>In ritardo</span>
+    <span style="margin-left:8px">🚫 Assente</span>
   </div>
 
 
@@ -4229,6 +4239,26 @@
         <b>Esempio: l'oggetto di prova da verificare</b><br>Ti arriva "Oggetto di prova «Prova del motore»: da verificare", da fare entro 1 giorno lavorativo (poi risale al titolare). Premi <b>⚙️ Apri e agisci</b>: hai <b>✅ Approva</b> e <b>↩️ Chiedi una correzione</b>. Se la descrizione manca, Approva si ferma con "Manca la descrizione": premi <b>↩️ Chiedi una correzione</b>, scrivi cosa manca e conferma. L'oggetto torna in Bozza e la segreteria riceve l'avviso con il tuo motivo.
       </div>
 
+      <h4 id="info-ct-22">22. Un tecnico è assente: segnarlo e riassegnare i suoi interventi</h4>
+
+      <ul>
+        <li>Un tecnico ti avvisa che oggi non c'è (malattia, permesso, ferie): segna l'assenza dal <b>Calendari team</b> con <b>🚫 Segna assenza</b>, oppure dalla tua dashboard nel box <b>🚫 Assenze e interventi da riassegnare</b> con <b>🚫 Segna un'assenza</b>.</li>
+        <li>Nella finestra scegli <b>Chi è assente</b>, <b>Dal</b> e, se sono più giorni, <b>Al</b>. Lascia spuntato <b>Solo giorni lavorativi</b> (salta sabato, domenica e festività) e <b>Tutto il giorno</b>, oppure togli la spunta e scrivi <b>Dalle</b> e <b>Alle</b>. Premi <b>🚫 Segna assente</b>.</li>
+        <li>Nella nota non scrivere la malattia: basta "assente" o "ferie". La vedete solo tu e il titolare.</li>
+        <li>Subito dopo, in <b>Cosa tocca a me</b> compare in rosso <b>Interventi di oggi del tecnico assente</b>: riassegnali entro le 9:00. Nel box ogni intervento ha <b>Riassegna</b>, che apre l'intervento: cambia il tecnico (o la data) e salva. Quello riassegnato esce dall'elenco da solo.</li>
+        <li>La segreteria vede gli stessi interventi come <b>Clienti da avvisare</b> e chiama i clienti di quelli che restano al tecnico assente. Se sposti la data, l'appuntamento torna alla segreteria come sempre.</li>
+        <li>Nel calendario team il tecnico assente ha il riquadro rosso <b>🚫 Assente</b>: un clic apre la finestra per cambiare gli orari o premere <b>Togli l'assenza</b> (per esempio se rientra prima). Anche organizzando la squadra di un cantiere l'assenza compare come avviso rosso.</li>
+        <li>I giorni passati li segna e li toglie solo il titolare. Non c'è un "sostituto" da impostare: se manchi tu, il titolare può cambiare il ruolo a un utente o entrare come capo tecnico.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Alle 7:40 Roberto scrive che ha la febbre. Apri la dashboard, <b>🚫 Segna un'assenza</b>: Roberto, dal giorno di oggi, tutto il giorno, nota "assente". In <b>Cosa tocca a me</b> compare "Interventi di oggi del tecnico assente: 2". Premi <b>Riassegna</b> sul primo e lo dai a Miguel; il secondo non si può fare oggi e lo sposti a giovedì. Alle 9:00 l'elenco è vuoto e Assunta ha già richiamato il cliente spostato.
+      </div>
+
+      <div class="al2 w">
+        Finché il database non è aggiornato (sql/69) il bottone <b>🚫 Segna assenza</b> e il box non compaiono.
+      </div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -4773,6 +4803,27 @@
         Finché il database non è aggiornato il riquadro dice "non ancora attivo" e nessun pulsante compare.
       </div>
 
+      <h4 id="info-tit-18">18. Assenze del personale: chi manca e gli interventi da riassegnare</h4>
+
+      <p>
+        Un tecnico o il capo tecnico assente si segna nel gestionale: i suoi interventi tornano al capo tecnico da riassegnare entro le 9:00 e la segreteria vede i clienti da avvisare. Non esistono "sostituti" per ruolo (tua decisione del 03/11): se manca qualcuno cambi il ruolo all'utente in <b>Impostazioni &gt; Team</b> o entri come quel ruolo.
+      </p>
+
+      <ul>
+        <li>Nella tua dashboard il box <b>🚫 Assenze e interventi da riassegnare</b>: chi manca oggi e nei prossimi 6 giorni, con <b>🚫 Segna un'assenza</b> e <b>✏️ Cambia o togli</b>. Gli interventi del tecnico assente hanno <b>Riassegna</b> (apre l'intervento).</li>
+        <li>In <b>Cosa tocca a me</b> la riga rossa <b>Interventi di oggi del tecnico assente</b> c'è anche per te: serve soprattutto quando l'assente è il capo tecnico.</li>
+        <li>Solo tu puoi segnare o togliere assenze nei giorni passati (es. una malattia comunicata dopo). Il capo tecnico segna da oggi in avanti; gli altri ruoli non possono, nemmeno dal database.</li>
+        <li>La nota la vedete solo tu e il capo tecnico; la segreteria vede solo chi manca. Chi ha segnato o tolto un'assenza resta nel registro delle azioni.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Il capo tecnico è in ferie da lunedì a venerdì e martedì un tecnico si ammala. Segni il tecnico assente da martedì; in <b>Cosa tocca a me</b> vedi "Interventi di oggi del tecnico assente: 3". Li riassegni tu con <b>Riassegna</b>, oppure, se serve per tutta la settimana, in <b>Impostazioni &gt; Team</b> dai a un tecnico esperto il ruolo di capo tecnico fino al rientro.
+      </div>
+
+      <div class="al2 w">
+        Finché il database non è aggiornato (sql/69) il box non compare.
+      </div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -5253,6 +5304,20 @@
 
       <div class="info-esempio">
         <b>Esempio: l'oggetto di prova</b><br>Nella campanella c'è "Oggetto di prova «Prova del motore»: tocca a te «Invia in verifica»". Premi <b>⚙️ Apri e agisci</b>, poi <b>📤 Invia in verifica</b>: lo stato diventa "In verifica" e l'avviso passa al capo tecnico. <b>✅ Approva</b> tu non lo vedi: tocca a lui.
+      </div>
+
+      <h4 id="info-seg-20">20. Tecnico assente: i clienti da avvisare</h4>
+
+      <ul>
+        <li>Quando il capo tecnico segna un tecnico assente, nella tua dashboard compare <b>📞 Clienti da avvisare: tecnico assente</b> e in <b>Cosa tocca a me</b> la riga rossa <b>Clienti da avvisare: tecnico assente oggi</b>.</li>
+        <li>L'elenco ha gli interventi di oggi e dei prossimi giorni ancora assegnati al tecnico assente. Il capo tecnico li riassegna entro le 9:00: quelli riassegnati spariscono da soli. Avvisa i clienti di quelli che restano.</li>
+        <li>Per ogni cliente: <b>📞 Chiama</b>, <b>✉️ Mail</b> (si apre la mail con il testo già scritto), <b>📋 Copia il testo</b> (per WhatsApp o un messaggio), poi <b>✓ Avvisato</b>. Il testo è sempre lo stesso: l'intervento potrebbe subire un ritardo o essere spostato e lo richiamerete per confermare.</li>
+        <li><b>✓ Avvisato</b> resta solo su questo computer (come i promemoria degli appuntamenti).</li>
+        <li>Se poi il capo tecnico sposta la data, l'intervento torna in <b>Appuntamenti da fissare</b> come sempre.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Alle 8:30 vedi "Clienti da avvisare: tecnico assente oggi: 1". È la ditta Rossi, alle 10:00. Premi <b>📞 Chiama</b>, spieghi che il tecnico è assente e che li richiamerete, poi <b>✓ Avvisato</b>. Alle 9:15 il capo tecnico sposta l'intervento a giovedì: la ditta Rossi compare negli appuntamenti da fissare e fissi la nuova data.
       </div>
 
       <h4>Regole pratiche</h4>
@@ -8425,6 +8490,70 @@
 </div>
 
 <!-- MODALE ATTIVITÀ PERSONALE INGEGNERE -->
+<!-- F14.14 — ASSENZA DEL PERSONALE (js/05 apriAssenzaPersonale, sql/69): titolare e capo tecnico -->
+<div class="mbg" id="m-assenza-personale">
+  <div class="modal" style="max-width:520px">
+    <div class="mh">
+      <span>🚫 Segna assenza</span>
+      <button class="x" onclick="closeM('m-assenza-personale')">×</button>
+    </div>
+
+    <div class="f">
+      <label>Chi è assente *</label>
+      <select id="asz-persona" onchange="mostraAssenzaEsistente()"></select>
+    </div>
+
+    <div class="fr">
+      <div class="f">
+        <label>Dal *</label>
+        <input type="date" id="asz-dal" onchange="mostraAssenzaEsistente()">
+      </div>
+      <div class="f">
+        <label>Al (facoltativo)</label>
+        <input type="date" id="asz-al" onchange="mostraAssenzaEsistente()">
+      </div>
+    </div>
+
+    <div class="f">
+      <label style="display:flex;gap:8px;align-items:center;font-weight:400">
+        <input type="checkbox" id="asz-lavorativi" checked style="width:auto"> Solo giorni lavorativi (salta sabato, domenica e festività)
+      </label>
+      <label style="display:flex;gap:8px;align-items:center;font-weight:400">
+        <input type="checkbox" id="asz-giornata" checked style="width:auto" onchange="aggiornaOreAssenza()"> Tutto il giorno
+      </label>
+    </div>
+
+    <div class="fr" id="asz-ore" style="display:none">
+      <div class="f">
+        <label>Dalle *</label>
+        <input type="time" id="asz-ora-inizio">
+      </div>
+      <div class="f">
+        <label>Alle *</label>
+        <input type="time" id="asz-ora-fine">
+      </div>
+    </div>
+
+    <div class="f">
+      <label>Nota (facoltativa)</label>
+      <input type="text" id="asz-nota" maxlength="500" placeholder="Es. ferie, permesso, corso">
+      <div style="font-size:11px;color:var(--m);margin-top:4px">Non scrivere dati sulla salute: per una malattia basta "assente". La nota la vedono solo il capo tecnico e il titolare.</div>
+    </div>
+
+    <div id="asz-esistente"></div>
+
+    <div class="al2 i" style="margin:0 0 10px">
+      Gli interventi già assegnati a questa persona in quei giorni compaiono nel box <b>🚫 Assenze e interventi da riassegnare</b> e in <b>Cosa tocca a me</b>; la segreteria vede i clienti da avvisare.
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+      <button class="btn" onclick="closeM('m-assenza-personale')">Annulla</button>
+      <button class="btn" id="asz-togli" style="color:var(--r);display:none" onclick="togliAssenzaPersonaleDaFinestra()">Togli l'assenza</button>
+      <button class="btn p" id="asz-salva" onclick="salvaAssenzaPersonale()">🚫 Segna assente</button>
+    </div>
+  </div>
+</div>
+
 <div class="mbg" id="m-attivita-ingegnere">
   <div class="modal" style="max-width:560px">
     <div class="mh">

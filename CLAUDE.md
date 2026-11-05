@@ -45,6 +45,16 @@ Usate dal frontend — area commerciale (preventivi, progetti, fornitori, CRM):
   ai fornitori), preventivi_fornitori_allegati
 - pipeline_crm (trattative), lead_sito, appuntamenti_commerciali
 
+Dopo sql/69 (F14.14 assenze del personale, DA ESEGUIRE, richiede 07, 35, 47,
+63; 67 facoltativo; poi il file -VINCOLO dall'editor): nessuna tabella
+nuova. calendario_personale ha i tipi nuovi 'assenza' e 'assenza_tolta'
+(vincolo calendario_personale_tipo_check cambiato da
+69-assenze-personale-VINCOLO.sql), indice unico
+calendario_personale_assenza_unica (una assenza per persona e giorno) e la
+policy RESTRITTIVA calendario_personale_assenze_solo_rpc (for all: nessun
+utente legge, scrive o toglie righe di assenza direttamente, nemmeno le
+proprie; solo dalle RPC di sql/69). Le altre righe come prima.
+
 Usate dal frontend — commesse (F5.1, sql/26-commesse eseguito il 27/10):
 commesse (sola lettura dal sito; la crea il database, js/18)
 Dopo sql/28 (F5.2, eseguito il 27/10): commesse_storico (sola lettura; lo
@@ -553,6 +563,51 @@ con e senza 68). Un modulo nuovo: righe di motore_oggetti, motore_stati,
 motore_transizioni nel suo sql/NN, trigger motore_blocca_stato_diretto
 sulla sua tabella, RPC di creazione che chiama motore_nascita,
 htmlPulsantiAzioni nella sua scheda.
+Dopo sql/69 (F14.14 assenze del personale, DA ESEGUIRE, richiede 07, 35, 47,
+63, si ferma senza; sql/67 facoltativo; provato sul backup pre68 + sql/68 e
+il suo -REGISTRO-CANCELLAZIONI). Decisione di Toli D13: NIENTE sostituti
+per ruolo. ORDINE: backup, 69-assenze-personale.sql (senza parole di
+cancellazione, eseguibile dal server MCP), poi
+69-assenze-personale-VINCOLO.sql dall'EDITOR SQL (toglie e rimette il
+vincolo del tipo con 'assenza' e 'assenza_tolta': contiene drop), poi il
+controllo in fondo al 69. RPC del sito: assenze_personale_attive() (vero
+solo con il vincolo nuovo: senza, il sito non mostra nulla),
+segna_assenza_personale(utente, dal, al, ora_inizio, ora_fine, nota,
+solo_lavorativi) e togli_assenza_personale(utente, dal, al) (SOLO titolare
+e capo_tecnico, per tecnici e capi tecnici attivi, max 93 giorni, giorni
+passati solo il titolare, giorni lavorativi con giorno_lavorativo di
+sql/63; togliere = la riga diventa 'assenza_tolta' con "tolta da", niente
+cancellazioni), assenze_personale(dal, al) (titolare, capo_tecnico,
+segreteria; nota e "segnata da" solo ai primi due),
+interventi_tecnici_assenti(dal, al) (titolare, capo_tecnico, segreteria:
+interventi non completati né annullati di un tecnico assente quel giorno,
+con cliente, referente, telefono, mail, sede, ora dell'appuntamento
+fissato; con un'assenza di poche ore conta se l'ora non è nota o cade
+dentro). Ridefinite (stessa firma e permessi, rollback = sql/35 e sql/11):
+impegni_squadra_periodo (tipo 'assenza', testo "Assente (tutto il
+giorno)" o "Assente 08:00-12:00"; le altre righe "Impegno personale" come
+prima) e impegni_tecnici_dashboard (per il rappresentante anche le
+assenze come fascia "Assente ..."). Registro delle azioni: trigger
+trg_registro_azioni su calendario_personale SOLO per le righe di assenza
+(when), se c'è sql/67. Nel sito (js/05, nessun file js nuovo): finestra
+m-assenza-personale (id asz-: persona, dal, al, solo giorni lavorativi,
+tutto il giorno o dalle/alle, nota senza dati sanitari; "Togli
+l'assenza"), bottone "🚫 Segna assenza" e riquadro rosso "🚫 Assente" nel
+Calendari team (capo tecnico; corrette nello stesso giro le date del
+calendario team, che con toISOString finivano sul giorno prima), box
+"🚫 Assenze e interventi da riassegnare" (ct-assenze, tit-assenze: chi
+manca oggi e nei 6 giorni dopo, "Riassegna" = openEditOdl) e "📞 Clienti
+da avvisare: tecnico assente" (seg-assenze: testo fisso, Chiama, Mail,
+Copia il testo, "✓ Avvisato" in localStorage come js/50),
+caricaAssenzePersonaleDashboard chiamata da js/03; js/33 mostra
+l'assenza in rosso nella squadra del giorno. "Cosa tocca a me" (js/46):
+capo tecnico e titolare "Interventi di oggi del tecnico assente" (rossa,
+"da riassegnare entro le 9:00"), segreteria "Clienti da avvisare: tecnico
+assente oggi". Guide: info-ct-22, info-tit-18, info-seg-20. Senza sql/69
+(o senza il -VINCOLO) nessun box, bottone o riga, nessun errore (smoke
+test TUTTO OK con sql/69). Rollback: toglie funzioni, policy, indice,
+trigger, le righe di assenza e rimette il vincolo di prima (schema
+identico a prima, provato).
 Dopo sql/61 (telefoni italiani per Google Ads, ESEGUITO il 03/11, backup pre61, nessun
 prerequisito oltre le funzioni Ads): nessuna RPC del sito. Funzione nuova
 ads_crm_normalizza_telefono (immutable: +39 ai numeri italiani senza

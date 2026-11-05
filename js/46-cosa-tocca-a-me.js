@@ -374,7 +374,7 @@ function aggiornaToccaAMePiuTardi() {
   'caricaControlliDaRipianificareDashboard', 'caricaDocumentiInScadenzaDashboard',
   'caricaRibaSollecitiDashboard', 'caricaKpiIncassi', 'caricaInsolutiRappresentante',
   'caricaPromemoriaAnticipiRappresentante', 'loadRichiesteModifica', 'ctLoadListaDaPianificare',
-  'loadDashCapoTecnico'
+  'loadDashCapoTecnico', 'caricaAssenzePersonaleDashboard'
 ].forEach(function(nome) {
   const originale = window[nome];
   if (typeof originale !== 'function') return;
@@ -572,6 +572,35 @@ registraFonteToccaAMe({
     ]);
     if (tutti === null) return null;
     return { n: tutti, nota: rip ? 'di cui ' + rip + ' da riprogrammare (non completati dal tecnico)' : '', livello: rip ? 'urgente' : '' };
+  }
+});
+
+// ── F14.14: tecnico assente (sql/69, js/05) ─────────────────────────
+// Capo tecnico e titolare: gli interventi di OGGI ancora assegnati a un
+// tecnico segnato assente, da riassegnare entro le 9:00. Segreteria: i
+// clienti di quegli interventi da avvisare (senza quelli già segnati
+// "✓ Avvisato"). Portano al box "Assenze" della dashboard. Senza sql/69
+// (o senza il file -VINCOLO) le righe non ci sono. Nessun sostituto per
+// ruolo (decisione di Toli D13).
+registraFonteToccaAMe({
+  id: 'assenze-da-riassegnare', ruoli: ['capo_tecnico', 'titolare'], icona: '🚫', priorita: 5,
+  titolo: 'Interventi di oggi del tecnico assente', livello: 'urgente',
+  vai: { box: function() { return ROLE === 'titolare' ? 'tit-assenze' : 'ct-assenze'; } },
+  conta: async function() {
+    if (!funzioneEsiste('contaInterventiTecniciAssentiOggi')) return null;
+    const n = await contaInterventiTecniciAssentiOggi(false);
+    if (n === null) return null;
+    return { n: n, nota: n ? 'da riassegnare entro le 9:00' : '' };
+  }
+});
+
+registraFonteToccaAMe({
+  id: 'assenze-clienti-da-avvisare', ruoli: ['segreteria'], icona: '📞', priorita: 5,
+  titolo: 'Clienti da avvisare: tecnico assente oggi', livello: 'urgente',
+  vai: { box: 'seg-assenze' },
+  conta: async function() {
+    if (!funzioneEsiste('contaInterventiTecniciAssentiOggi')) return null;
+    return await contaInterventiTecniciAssentiOggi(true);
   }
 });
 
