@@ -94,3 +94,19 @@ produzione. Sul progetto di prova login, Storage e dati sono veri: i dati
 - Pagina di dettaglio nuova (si apre con un id): aggiungerla a `DETTAGLI`.
 - Campo obbligatorio nuovo in cliente, intervento, progetto o preventivo:
   aggiornare il salvataggio in `SALVATAGGI`.
+
+## Matrice dei permessi (F14.13)
+
+Con il database di prova acceso (stesso `avvia-db-locale.sh`):
+
+```zsh
+zsh ~/Desktop/GESTIONALE/sql/matrice-permessi.sh
+```
+
+Controlla `sql/matrice_permessi.csv` (per ogni tabella e ruolo: lettura,
+inserimento, modifica, cancellazione attesi) entrando come un utente vero
+di ogni ruolo, in una transazione annullata. Ultima riga `ESITO: TUTTO OK`
+(uscita 0) oppure le righe `DIVERSO: <tabella> | <ruolo> | ...` (uscita 1).
+Dopo F14.8: `MATRICE_DB_URL=<progetto di prova>` e
+`MATRICE_UTENTI="titolare=...,tecnico=..."`. Dettagli in testa a
+`sql/matrice-permessi.sh` e `sql/matrice-permessi-controllo.sql`.

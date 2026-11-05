@@ -2053,9 +2053,9 @@ REGOLA DELLE TABELLE NUOVE (piano del titolare, F13.1): ogni tabella
 nuova nasce, nello stesso file sql/NN, con (1) RLS attiva e le sue policy
 per ruolo (niente policy "per tutti gli autenticati"), (2) la sua riga
 per ruolo nella matrice dei permessi `sql/matrice_permessi.csv` (lettura,
-inserimento, modifica, cancellazione; il file e lo script di controllo
-arrivano con F14.13: finché non c'è, la riga si prepara nel commento del
-file sql/NN) e (3) il trigger del registro delle azioni (chi, quando,
+inserimento, modifica, cancellazione: 10 righe, una per ruolo più anon,
+valori si/no, nota facoltativa; F14.13, vedi "Matrice dei permessi" qui
+sotto) e (3) il trigger del registro delle azioni (chi, quando,
 cosa è cambiato; F14.11, sql/67): nel file sql/NN
 `create trigger trg_registro_azioni after insert or update on
 public.<tabella> for each row execute function public.registra_azione();`
@@ -2066,6 +2066,35 @@ file -REGISTRO-CANCELLAZIONI, da eseguire dall'editor. Finché sql/67 non
 scrive nel file che va aggiunto. Più il rollback e la riga nell'elenco
 "Tabelle Supabase" qui sopra. Una tabella senza queste tre cose non si
 esegue in produzione.
+Matrice dei permessi (F14.13, nel repository sql/): `sql/matrice_permessi.csv`
+(tabella;ruolo;lettura;inserimento;modifica;cancellazione;nota, separatore
+";", niente ";" nelle note) con le 93 tabelle del backup pre66 + sql/66 e
+le 6 di sql/67-68 (registro_azioni, motore_*: segnalate "non ancora nel
+database" finché non si eseguono). Controllo: `zsh sql/matrice-permessi.sh`
+sul database di PROVA (predefinito il Postgres locale dello smoke test,
+container toli-smoke-db, `MATRICE_CONTAINER=<nome>` per un altro; dopo
+F14.8 `MATRICE_DB_URL=<progetto di prova>` e `MATRICE_UTENTI=ruolo=email,...`
+per i 9 utenti di prova; la produzione è rifiutata), circa 20 secondi.
+Per ogni ruolo entra come un utente vero (authenticated/anon con
+request.jwt.claims) e prova select, update set chiave = chiave, delete,
+insert (copia di una riga, poi con le colonne verso utenti = chi prova,
+poi default values) dentro una transazione annullata; un trigger che
+ferma la prova = rifatta con i trigger spenti (la matrice controlla
+grant e policy, il messaggio va in nota); tabella vuota = policy valutate
+su una riga vuota (si solo per le regole per ruolo). Esito: righe
+"DIVERSO: <tabella> | <ruolo> | <operazione> | atteso .. | trovato ..",
+"MANCA NELLA MATRICE: <tabella>" (tabella nuova senza righe), ultima riga
+"ESITO: TUTTO OK" (uscita 0), "INCOMPLETO" (un ruolo senza utente) o
+"ERRORI in N caselle (tabelle: ...)" (uscita 1). Righe nuove: eseguire il
+sql/NN sul database di prova, `zsh sql/matrice-permessi.sh --genera`
+(scrive la matrice trovata, le note restano), rileggere con git diff che
+sia quella VOLUTA, poi commit nel repository sql. Logica in
+sql/matrice-permessi-controllo.sql (solo con lo script: usa \copy).
+Provato il 05/11 sul backup pre66 + sql/66 (e + 67, 68 e i loro
+-REGISTRO-CANCELLAZIONI, poi i rollback): TUTTO OK; policy sbagliate di
+proposito (lettura di preventivi per tutti, cancellazione di ordini_lavoro
+al tecnico, lettura di fatture_pagamenti, vuota, all'ingegnere) segnalate
+DIVERSO con il nome della tabella.
 Accesso di Claude Code a Supabase (decisione di Toli del 04/11): server
 MCP ufficiale in `.mcp.json` (escluso da git, login OAuth), in
 lettura e scrittura. Claude esegue in produzione SOLO un file sql/NN
