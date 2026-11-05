@@ -152,7 +152,7 @@ scrittura solo con salva_regola_scadenza del titolare),
 regole_scadenze_storico (registro, sola lettura del titolare), scadenze
 (aperte e chiuse, mai cancellate; lettura del titolare e del destinatario;
 le scrivono solo le funzioni di sql/64).
-Dopo sql/65 (F14.5, DA ESEGUIRE, richiede 64): avvisi (avvisi persistenti;
+Dopo sql/65 (F14.5, ESEGUITO il 05/11, backup pre65, richiede 64): avvisi (avvisi persistenti;
 sola lettura: titolare tutti, gli altri i propri, quelli del proprio ruolo
 e quelli risaliti a loro come responsabili; li scrive solo il database,
 js/58-avvisi.js).
@@ -347,7 +347,7 @@ sql/64-motore-unico-scadenze-PROVA.sql (solo database di prova, finisce con
 rollback). File senza parole di cancellazione (eseguibile dal server MCP);
 il rollback contiene drop. Senza sql/64: riquadro "non ancora attivo",
 nessun errore.
-Dopo sql/65 (F14.5 avvisi e "Cosa tocca a me", DA ESEGUIRE, backup prima,
+Dopo sql/65 (F14.5 avvisi e "Cosa tocca a me", ESEGUITO il 05/11, backup pre65, 17 avvisi arretrati creati,
 richiede 64 (si ferma senza); provato sul backup pre63 + sql/63 + 64 il
 05/11): tabella avvisi (tipo, destinatario utente o ruolo, rif_tabella e
 rif_id, testo, scadenza, stato aperto/fatto/annullato, esito obbligatorio
