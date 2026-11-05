@@ -156,6 +156,13 @@ Dopo sql/65 (F14.5, ESEGUITO il 05/11, backup pre65, richiede 64): avvisi (avvis
 sola lettura: titolare tutti, gli altri i propri, quelli del proprio ruolo
 e quelli risaliti a loro come responsabili; li scrive solo il database,
 js/58-avvisi.js).
+Dopo sql/66 (F14.6, DA ESEGUIRE, richiede 65): push_subscriptions
+(dispositivi iscritti alle notifiche; lettura dei propri e del titolare
+SENZA endpoint e chiavi, permessi per colonna; si scrive solo con
+registra_dispositivo_push / togli_dispositivo_push), avvisi_invii
+(registro degli invii: lettura titolare e propri; lo scrivono database e
+Edge Function), avvisi_invio_impostazioni (una riga, lettura titolare;
+imposta_invio_avvisi). js/59-notifiche-push.js, sw.js.
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -388,6 +395,49 @@ tit-13, seg-17, con-9, ct-19, tec-16, com-14, rap-19, ing-12. File senza
 parole di cancellazione (eseguibile dal server MCP); il rollback contiene
 drop. Senza sql/65: niente campanella né riga, link #/avviso "non ancora
 attivi", nessun errore.
+Dopo sql/66 (F14.6 avvisi urgenti immediati, DA ESEGUIRE con "CONFERMATO DA TOLI: sql/66"
+e backup, richiede 65 (si ferma senza), 07, 58, 63; provato sul backup
+pre65 + sql/65 il 05/11): un avviso con avvisi.urgente = true arriva entro
+un minuto come NOTIFICA (Web Push) e per EMAIL (Brevo); gli altri restano
+nella campanella e nel RIEPILOGO per email delle 8:00 (giorni lavorativi).
+Catena: trigger trg_avvisi_invio_urgente (after insert or update of
+urgente; mai bloccante) → chiama_funzione_avvisi (pg_net, estensione
+attivata dal file se può) → Edge Function supabase/functions/avvisi-
+urgenti (Deno, npm:web-push; deploy --no-verify-jwt, header
+x-toli-segreto) → dati_invio_avviso_urgente (destinatario o persone del
+ruolo, per il ruolo titolare anche l'informatico, + titolare se
+"urgenti anche al titolare") → registra_invio_avviso (esito in
+avvisi_invii; dispositivo 404/410 o 5 errori → spento). Riepilogo: pg_cron
+toli_riepilogo_avvisi ogni ora → avvia_riepilogo_avvisi (ora italiana =
+ora_riepilogo, giorno_lavorativo, una volta al giorno) →
+dati_riepilogo_avvisi (avvisi aperti come miei_avvisi). SEGRETI: indirizzo
+della funzione e chiave condivisa SOLO nel Vault (toli_push_url,
+toli_push_segreto: imposta_configurazione_push dall'editor SQL); chiavi
+VAPID private, Brevo e SITO_URL nei segreti della funzione; la chiave
+PUBBLICA VAPID in avvisi_invio_impostazioni. Istruzioni e costi (0 €):
+supabase/functions/avvisi-urgenti/LEGGIMI.md. RPC del sito:
+configurazione_push (attivo + chiave pubblica; al titolare impostazioni e
+diagnostica, mai i segreti), registra_dispositivo_push,
+togli_dispositivo_push, stato_dispositivo_push, imposta_invio_avvisi,
+crea_avviso_prova_urgente, prova_riepilogo_avvisi (titolare). Solo
+service_role: dati_invio_avviso_urgente, dati_riepilogo_avvisi,
+registra_invio_avviso. Interne: segreto_invio_avvisi,
+imposta_configurazione_push, chiama_funzione_avvisi,
+avvia_riepilogo_avvisi. Nel sito (js/59): senza sql/66 o senza
+configurazione NULLA (niente service worker, niente permesso); con:
+service worker sw.js (solo push e notificationclick, nessuna cache;
+registraServiceWorker in js/01), invito al primo accesso (iPhone senza
+app: "Installa l'app"; altri: "Attiva le notifiche" / "Non ora" 7
+giorni), riquadro "📱 Notifiche" in cima alla finestra Avvisi (Attiva /
+Spegni; titolare: ⚙️ Impostazioni degli invii, 🚨 Avviso urgente di prova
+a me, ✉️ Riepilogo di prova a me), spunta "🚨 Urgente" nell'avviso di
+prova (js/58 creaAvvisoProva), "Esci" scollega il dispositivo (doLogout
+js/01), rientrando si ricollega da solo per chi l'aveva attivato. Guide:
+info-tit-14, seg-18, con-10, ct-20, tec-17, com-15, rap-20, ing-13.
+Provato: SQL e rollback sul backup pre65; Edge Function in Deno con
+Supabase, Brevo e servizio push simulati; catena completa con FCM vero
+(Chrome headless: notifica mostrata ~1 s dopo l'avviso). File senza parole
+di cancellazione; il rollback contiene drop.
 Dopo sql/61 (telefoni italiani per Google Ads, ESEGUITO il 03/11, backup pre61, nessun
 prerequisito oltre le funzioni Ads): nessuna RPC del sito. Funzione nuova
 ads_crm_normalizza_telefono (immutable: +39 ai numeri italiani senza

@@ -512,11 +512,24 @@ async function doLogin(){
 }
 
 async function doLogout(){
+  // F14.6: le notifiche di questo dispositivo non vanno più a chi esce (js/59)
+  if(typeof scollegaDispositivoPush==='function'){try{await scollegaDispositivoPush();}catch(e){}}
   await db.auth.signOut();
   // F14.1: chi entra dopo parte dalla sua dashboard, non dalla scheda
   // dell'utente uscito (#/preventivo/<id> resterebbe nell'indirizzo).
   try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
   location.reload();
+}
+
+// F14.6: service worker minimo (sw.js: solo le notifiche, nessuna cache).
+// Lo chiama js/59 solo quando le notifiche sono configurate (sql/66).
+// Restituisce la registrazione pronta, o null (browser senza service worker,
+// pagina non https, errore).
+function registraServiceWorker(){
+  if(!('serviceWorker' in navigator)||!window.isSecureContext)return Promise.resolve(null);
+  return navigator.serviceWorker.register('sw.js',{scope:'./'})
+    .then(function(){return navigator.serviceWorker.ready;})
+    .catch(function(e){console.warn('Service worker non registrato:',e&&e.message);return null;});
 }
 
 async function boot(ud){
@@ -531,6 +544,9 @@ async function boot(ud){
   buildNav();buildSB();
   // F14.5: campanella degli avvisi nel menu (js/58; senza sql/65 non compare)
   if(typeof avviaAvvisi==='function')avviaAvvisi();
+  // F14.6: notifiche sul telefono degli avvisi urgenti (js/59; senza sql/66
+  // o senza configurazione non fa nulla: nessun permesso, nessun service worker)
+  if(typeof avviaNotifichePush==='function')avviaNotifichePush();
   const today=dataLocaleISO();const now=new Date();
   ge('tc3').value=today;ge('mo3').value=today;
   ge('tc4').value=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');

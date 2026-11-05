@@ -17,6 +17,7 @@
 // in js/46). Link unico #/avviso/<id> (lo stesso per email e notifiche):
 // apre la scheda del record collegato e in fondo allo schermo la barra
 // dell'avviso con "✓ Fatto". Senza sql/65 non compare nulla.
+// F14.6: gli urgenti arrivano anche come notifica ed email (js/59, sql/66).
 
 const AVVISI = {
   disponibili: null, miei: null, ultimoElenco: null, letti_il: 0, lettura: null,
@@ -477,16 +478,22 @@ async function creaAvvisoProva() {
   const btn = ge('avp-crea');
   btn.disabled = true;
   try {
-    const { data, error } = await db.rpc('crea_avviso_prova', {
+    // F14.6 (js/59, sql/66): con la spunta "Urgente" notifica ed email subito
+    const urgente = !!(ge('avp-urgente') && ge('avp-urgente').checked);
+    const base = {
       p_testo: testo,
       p_destinatario_id: dest.startsWith('u:') ? dest.slice(2) : null,
       p_destinatario_ruolo: dest.startsWith('r:') ? dest.slice(2) : null,
       p_rif_tabella: rifId ? rifTipo : null,
-      p_rif_id: rifId,
-      p_scadenza: scad ? new Date(scad).toISOString() : null,
-      p_responsabile_ruolo: ge('avp-resp').value || null,
-      p_esito_obbligatorio: ge('avp-esito').checked
-    });
+      p_rif_id: rifId
+    };
+    const { data, error } = urgente
+      ? await db.rpc('crea_avviso_prova_urgente', base)
+      : await db.rpc('crea_avviso_prova', Object.assign(base, {
+        p_scadenza: scad ? new Date(scad).toISOString() : null,
+        p_responsabile_ruolo: ge('avp-resp').value || null,
+        p_esito_obbligatorio: ge('avp-esito').checked
+      }));
     if (error) { toast('Errore: ' + error.message, 'err'); return; }
     const link = linkAvviso(data);
     ge('avp-esito-creato').innerHTML = '<div class="al2 i">✅ Avviso n. ' + esc(String(data)) + ' creato. Link diretto: <code>' + esc(link) + '</code> ' +

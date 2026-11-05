@@ -1431,3 +1431,11 @@ pre {
 .avb-testo{flex:1 1 220px;min-width:0;overflow-wrap:anywhere}
 .avb-azioni{display:flex;gap:6px;align-items:center;margin-left:auto}
 .avb-x{border:none;background:none;font-size:20px;line-height:1;cursor:pointer;color:var(--m);padding:0 4px}
+/* F14.6 notifiche sul telefono (js/59) */
+.push-invito{display:none;position:fixed;left:8px;right:8px;bottom:8px;z-index:160;max-width:620px;margin:0 auto;gap:10px;align-items:center;flex-wrap:wrap;background:#ecfdf5;border:1px solid #075b4c;border-radius:12px;padding:10px 12px;box-shadow:0 4px 14px rgba(0,0,0,.18);font-size:13px;line-height:1.4}
+.pin-testo{flex:1 1 240px;min-width:0}
+.pin-azioni{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.avv-push{background:#f0fdf9;border:1px solid #b7e4d8;border-radius:10px;padding:8px 10px;font-size:13px;margin-bottom:10px}
+.avv-push-riga{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.avv-push-imp{margin-top:8px}
+.avv-push-imp summary{cursor:pointer;font-weight:600}
