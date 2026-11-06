@@ -1481,3 +1481,12 @@ button.so-col-riga:hover{background:var(--bl)}
 .so-sto-testa{overflow-wrap:anywhere}
 .so-sto-dett{color:var(--m);margin-top:2px;overflow-wrap:anywhere}
 .so-evidenzia{outline:2px solid #f59e0b;outline-offset:2px;transition:outline-color .3s}
+
+/* ── F14.17 ENTRA COME: banner fisso in fondo allo schermo (js/01) ── */
+.entra-come-banner{display:none;position:fixed;left:0;right:0;bottom:0;z-index:180;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;background:#7c2d12;color:#fff;padding:8px 12px calc(8px + env(safe-area-inset-bottom));font-size:13px;line-height:1.35;box-shadow:0 -3px 12px rgba(0,0,0,.25)}
+.entra-come-banner .btn{background:#fff;color:#7c2d12;border-color:#fff;font-weight:600}
+.entra-come-banner .ecb-reale{opacity:.8;font-size:12px}
+body.entra-come-on{padding-bottom:64px}
+body.entra-come-on .toast{bottom:76px}
+body.entra-come-on .avviso-barra,body.entra-come-on .push-invito{bottom:64px}
+@media (max-width:600px){.entra-come-banner .ecb-reale{display:block}}

@@ -113,12 +113,16 @@ async function loadTeam(){
   const el=ge('teamlist');if(!el)return;
   if(error){el.innerHTML=`<div class="al2 e">Errore: ${error.message}</div>`;return;}
   if(!data?.length){el.innerHTML='<div class="empty">Nessun utente</div>';return;}
+  // F14.17: riquadro "👁️ Entra come" (js/01, solo titolare reale)
+  if(typeof mostraSelettoreEntraCome==='function')mostraSelettoreEntraCome(data);
+  const puoEntrareCome=u=>typeof utenteImpersonabile==='function'&&ROLE_REALE==='titolare'&&!ENTRA_COME&&utenteImpersonabile(ME_REALE,u);
   el.innerHTML=`<table><thead><tr><th>Nome</th><th>Ruolo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${data.map(u=>`<tr>
     <td><strong>${esc(u.nome)} ${esc(u.cognome)}</strong><br><span style="font-size:11px;color:var(--m)">${esc(u.email)}</span></td>
     <td><span class="bx bblue">${esc(etichettaRuolo(u.ruolo))}</span></td>
     <td>${u.attivo?'<span class="bx bok">Attivo</span>':'<span class="bx bgray">Inattivo</span>'}</td>
     <td style="display:flex;gap:6px">
       ${typeof openSchedaDocumenti==='function'&&canAccessPage('scheda-documenti')?`<button class="btn sm" title="Documenti con scadenza (F7.1)" onclick="openSchedaDocumenti('dipendente','${u.id}')">🪪 Documenti</button>`:''}
+      ${puoEntrareCome(u)?`<button class="btn sm" title="Vedi il gestionale come lo vede questa persona (F14.17)" onclick="entraCome('${u.id}')">👁️ Entra come</button>`:''}
       <button class="btn sm" onclick="toggleAttivoUtente('${u.id}',${u.attivo})">${u.attivo?'⏸️ Disattiva':'▶️ Riattiva'}</button>
       ${u.id!==ME?.id?`<button class="btn sm" style="color:var(--r)" onclick="eliminaUtente('${u.id}','${esc(u.nome)} ${esc(u.cognome)}')">🗑️</button>`:''}
     </td>

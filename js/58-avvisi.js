@@ -79,6 +79,9 @@ async function verificaAvvisiDisponibili() {
 // Avvisi APERTI miei (destinatario, ruolo, risaliti a me). null = non attivi
 // o errore. Una lettura vale 15 secondi (campanella e riquadro insieme).
 async function leggiMieiAvvisi(forza) {
+  // F14.17: lavorando "come" un altro il database darebbe gli avvisi del
+  // titolare: niente avvisi finché F14.18 non porta il ruolo al database.
+  if (typeof ENTRA_COME !== 'undefined' && ENTRA_COME) return null;
   if (!forza && AVVISI.miei && Date.now() - AVVISI.letti_il < AVVISI_VALIDI_MS) return AVVISI.miei;
   if (AVVISI.lettura) return AVVISI.lettura;
   AVVISI.lettura = (async function() {

@@ -715,6 +715,31 @@ REGOLA (piano del titolare): ogni oggetto nuovo usa questa scheda comune
 (contenitore + caricaSchedaOggetto, le sue azioni dal motore o da
 registraAzioneScheda, le sue fonti con registraFonteCollegati, il suo
 Storico) e ha la sua rotta (una riga in SCHEDE_CON_INDIRIZZO di js/47).
+"Entra come", parte 1 (F14.17, js/01 + js/10 + js/58, index.html, style.css,
+NESSUN SQL; decisione D13): boot(ud, utenteForzato) salva ME_REALE e
+ROLE_REALE (chi ha fatto il login) e, se il ruolo reale è titolare (anche
+l'informatico), mette in ME e ROLE la persona scelta (ENTRA_COME; utente
+attivo, non sé stessi, non titolare/informatico: RUOLI_ENTRA_COME). Scelta in
+Impostazioni > Team, riquadro "👁️ Entra come" (si-entra-come-card, ec-ruolo
+propone per primo l'utente di prova del ruolo = nome, cognome o email con
+prova/test/smoke, ec-utente) e bottone "👁️ Entra come" su ogni riga del Team
+(loadTeam chiama mostraSelettoreEntraCome). entraCome(id) salva l'id in
+sessionStorage (toli_entra_come: solo quella scheda del browser, resta
+ricaricando) e ricarica la pagina dalla dashboard: js/19 → boot → di nuovo
+"come"; banner fisso in fondo "👁️ Stai lavorando come …" (entra-come-banner,
+anche a 390 px) con "↩️ Esci" (esciDaEntraCome: toglie la chiave e rifà boot
+con il titolare); doLogout toglie la chiave. Ricaricare invece di rifare
+boot in memoria: nessun dato letto come titolare resta nelle cache dei
+moduli. Mentre si è "come" campanella, avvisi in "Cosa tocca a me"
+(leggiMieiAvvisi restituisce null) e notifiche sono spenti. LIMITE fino a
+F14.18 (intestazione x-agito-come con global.fetch, ruolo_corrente
+ridefinita): il database risponde ancora al titolare. Test
+test/entra-come.spec.js (database locale): login diretto contro "Entra
+come" per 7 ruoli, menu e pagine permesse uguali; testo delle pagine del
+menu uguale per commerciale, capo tecnico, ingegnere, contabile; differenze
+solo dove filtra il database (rappresentante: trattative, progetti, impegni
+del team; segreteria: conteggi dei presidi; tecnico: un nome nel
+calendario). Guida titolare info-tit-21.
 Dopo sql/61 (telefoni italiani per Google Ads, ESEGUITO il 03/11, backup pre61, nessun
 prerequisito oltre le funzioni Ads): nessuna RPC del sito. Funzione nuova
 ads_crm_normalizza_telefono (immutable: +39 ai numeri italiani senza

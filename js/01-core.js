@@ -512,6 +512,8 @@ async function doLogin(){
 }
 
 async function doLogout(){
+  // F14.17: chi esce chiude anche "Entra come" (chi entra dopo è sé stesso)
+  try{sessionStorage.removeItem(CHIAVE_ENTRA_COME);}catch(e){}
   // F14.6: le notifiche di questo dispositivo non vanno più a chi esce (js/59)
   if(typeof scollegaDispositivoPush==='function'){try{await scollegaDispositivoPush();}catch(e){}}
   await db.auth.signOut();
@@ -532,21 +534,122 @@ function registraServiceWorker(){
     .catch(function(e){console.warn('Service worker non registrato:',e&&e.message);return null;});
 }
 
-async function boot(ud){
+// ── F14.17 — "ENTRA COME" (parte 1: interfaccia) ─────────────────────
+// Il titolare (anche l'informatico, che è titolare) sceglie in Impostazioni >
+// Team una persona o un ruolo (proposto l'utente di prova di quel ruolo) e il
+// gestionale si riavvia con boot(utente reale, utente scelto): ME e ROLE
+// diventano la persona scelta, ME_REALE e ROLE_REALE restano il titolare.
+// Menu, pagine, filtri del sito e dashboard funzionano così senza toccare i
+// ME.id e i ROLE=== del codice. La scelta vive in sessionStorage (solo questa
+// scheda del browser: ricaricando si resta "come", chiudendo la scheda si
+// torna sé stessi); "Esci" nel banner la toglie e rifà boot con il titolare.
+// Entrare e uscire RICARICANO la pagina: così nessun dato già letto come
+// titolare (elenchi, cache dei moduli) resta in memoria.
+// LIMITE (parte 2 = F14.18): il database risponde ancora al titolare (le
+// richieste non portano l'intestazione x-agito-come e le policy usano
+// ruolo_corrente): gli elenchi filtrati SOLO dalle regole del database
+// possono mostrare più righe di quelle della persona; campanella e notifiche
+// restano spente mentre si lavora "come".
+let ME_REALE=null,ROLE_REALE=null,ENTRA_COME=null;
+const CHIAVE_ENTRA_COME='toli_entra_come';
+const RUOLI_ENTRA_COME=['segreteria','contabile','capo_tecnico','tecnico','commerciale','rappresentante','ingegnere'];
+function ruoloDelSito(ruolo){return ruolo==='informatico'?'titolare':ruolo;}
+// Utente di prova: nome, cognome o email con "prova", "test" o "smoke".
+function eUtenteDiProva(u){return /(^|[^a-z])(prova|test|smoke)/i.test([u&&u.nome,u&&u.cognome,u&&u.email].join(' '));}
+function idEntraComeSalvato(){try{return sessionStorage.getItem(CHIAVE_ENTRA_COME)||'';}catch(e){return '';}}
+// Chi si può impersonare: utente attivo, non sé stessi, non titolare/informatico.
+function utenteImpersonabile(reale,u){
+  return !!(u&&reale&&u.id!==reale.id&&u.attivo!==false&&RUOLI_ENTRA_COME.includes(u.ruolo));
+}
+async function utenteEntraComeSalvato(reale){
+  const id=idEntraComeSalvato();
+  if(!id)return null;
+  if(ruoloDelSito(reale.ruolo)!=='titolare')return null;
+  const {data,error}=await db.from('utenti').select('*').eq('id',id).maybeSingle();
+  if(error){console.warn('Entra come:',error.message);return null;}
+  return data||null;
+}
+// Entra come la persona scelta (id di utenti). Solo il titolare reale.
+async function entraCome(idUtente){
+  if(ROLE_REALE!=='titolare'||!ME_REALE){toast('Solo il titolare può entrare come un altro utente','err');return;}
+  if(!idUtente){toast('Scegli la persona','err');return;}
+  const {data:u,error}=await db.from('utenti').select('*').eq('id',idUtente).maybeSingle();
+  if(error||!u){toast('Utente non trovato'+(error?': '+error.message:''),'err');return;}
+  if(!utenteImpersonabile(ME_REALE,u)){toast('Non puoi entrare come questo utente (non attivo, titolare o sei tu)','err');return;}
+  try{sessionStorage.setItem(CHIAVE_ENTRA_COME,u.id);}catch(e){toast('Il browser non permette "Entra come" (memoria della scheda bloccata)','err');return;}
+  riavviaGestionale();
+}
+// "Esci" del banner: torna sé stessi (nuovo boot con il titolare).
+function esciDaEntraCome(){
+  try{sessionStorage.removeItem(CHIAVE_ENTRA_COME);}catch(e){}
+  riavviaGestionale();
+}
+// Si riparte dalla dashboard (l'indirizzo #/... della scheda aperta si toglie).
+function riavviaGestionale(){
+  try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
+  location.reload();
+}
+function mostraBannerEntraCome(){
+  let b=ge('entra-come-banner');
+  document.body.classList.toggle('entra-come-on',!!ENTRA_COME);
+  if(!ENTRA_COME){if(b)b.style.display='none';return;}
+  if(!b){b=document.createElement('div');b.id='entra-come-banner';b.className='entra-come-banner';b.setAttribute('role','status');document.body.appendChild(b);}
+  b.innerHTML=`<span class="ecb-testo">👁️ Stai lavorando come <b>${esc(((ENTRA_COME.nome||'')+' '+(ENTRA_COME.cognome||'')).trim())}</b> · ${esc(etichettaRuolo(ENTRA_COME.ruolo))}<span class="ecb-reale"> (sei ${esc(ME_REALE.nome||'')})</span></span><button type="button" class="btn sm" onclick="esciDaEntraCome()">↩️ Esci</button>`;
+  b.style.display='flex';
+}
+// Riquadro di Impostazioni > Team (lo chiama loadTeam con l'elenco utenti).
+let UTENTI_ENTRA_COME=[];
+function mostraSelettoreEntraCome(utenti){
+  const card=ge('si-entra-come-card');
+  if(!card)return;
+  if(ROLE_REALE!=='titolare'||ENTRA_COME){card.style.display='none';return;}
+  UTENTI_ENTRA_COME=(utenti||[]).filter(u=>utenteImpersonabile(ME_REALE,u));
+  card.style.display='';
+  const sr=ge('ec-ruolo');
+  const ruoli=RUOLI_ENTRA_COME.filter(r=>UTENTI_ENTRA_COME.some(u=>u.ruolo===r));
+  const prima=sr.value;
+  sr.innerHTML='<option value="">Scegli il ruolo...</option>'+ruoli.map(r=>`<option value="${r}">${esc(etichettaRuolo(r))}</option>`).join('');
+  if(prima&&ruoli.includes(prima))sr.value=prima;
+  aggiornaPersoneEntraCome();
+}
+function aggiornaPersoneEntraCome(){
+  const sr=ge('ec-ruolo'),su=ge('ec-utente');
+  if(!sr||!su)return;
+  const r=sr.value;
+  const lista=UTENTI_ENTRA_COME.filter(u=>!r||u.ruolo===r)
+    .sort((a,b)=>(eUtenteDiProva(b)-eUtenteDiProva(a))||String(a.nome).localeCompare(String(b.nome)));
+  su.innerHTML=lista.length?lista.map(u=>`<option value="${u.id}">${esc(u.nome)} ${esc(u.cognome)}${r?'':' · '+esc(etichettaRuolo(u.ruolo))}${eUtenteDiProva(u)?' (utente di prova)':''}</option>`).join(''):'<option value="">Nessun utente attivo</option>';
+  // Scelto il ruolo, la prima è l'utente di prova di quel ruolo (se c'è).
+  const nota=ge('ec-nota');
+  if(nota)nota.textContent=r&&lista.length&&!eUtenteDiProva(lista[0])?'Per questo ruolo non c\'è un utente di prova: entri come una persona vera.':'';
+}
+function entraComeScelto(){entraCome(v('ec-utente'));}
+
+async function boot(ud,utenteForzato){
+  // F14.17: ME_REALE/ROLE_REALE = chi ha fatto il login; ME/ROLE = la persona
+  // con cui si lavora (la stessa, oppure quella di "Entra come").
+  ME_REALE=ud;ROLE_REALE=ruoloDelSito(ud.ruolo);
+  if(utenteForzato===undefined)utenteForzato=await utenteEntraComeSalvato(ud);
+  ENTRA_COME=(ROLE_REALE==='titolare'&&utenteImpersonabile(ud,utenteForzato))?utenteForzato:null;
+  if(!ENTRA_COME){try{sessionStorage.removeItem(CHIAVE_ENTRA_COME);}catch(e){}}
+  const u=ENTRA_COME||ud;
   // L'informatico ha accesso completo, uguale al titolare (decisione di Erika
   // del 23/10, da confermare da Toli in F1.4): unico punto di normalizzazione,
   // così PAGINE_RUOLO, canAccessPage e i controlli ROLE==='titolare' valgono
   // anche per lui. ME.ruolo resta quello vero. Lato DB: sql/07 ruolo_corrente().
-  ME=ud;ROLE=(ud.ruolo==='informatico'?'titolare':ud.ruolo);
+  ME=u;ROLE=ruoloDelSito(u.ruolo);
   ge('lp').style.display='none';ge('nav').classList.add('on');ge('app').style.display='block';
-  ge('nusr').textContent=esc(ud.nome)+' — Esci';ge('nrole').textContent=etichettaRuolo(ud.ruolo);
+  ge('nusr').textContent=esc(ud.nome)+' — Esci';ge('nrole').textContent=ENTRA_COME?'👁️ '+etichettaRuolo(u.ruolo):etichettaRuolo(ud.ruolo);
+  mostraBannerEntraCome();
   ge('ddate').textContent=new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   buildNav();buildSB();
+  // F14.17: lavorando "come" un altro, campanella e notifiche sono spente: il
+  // database risponderebbe con gli avvisi e il telefono del titolare (F14.18).
   // F14.5: campanella degli avvisi nel menu (js/58; senza sql/65 non compare)
-  if(typeof avviaAvvisi==='function')avviaAvvisi();
+  if(!ENTRA_COME&&typeof avviaAvvisi==='function')avviaAvvisi();
   // F14.6: notifiche sul telefono degli avvisi urgenti (js/59; senza sql/66
   // o senza configurazione non fa nulla: nessun permesso, nessun service worker)
-  if(typeof avviaNotifichePush==='function')avviaNotifichePush();
+  if(!ENTRA_COME&&typeof avviaNotifichePush==='function')avviaNotifichePush();
   const today=dataLocaleISO();const now=new Date();
   ge('tc3').value=today;ge('mo3').value=today;
   ge('tc4').value=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');

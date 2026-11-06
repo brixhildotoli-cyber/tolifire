@@ -2366,6 +2366,14 @@
         <div id="teamlist"><div class="load">Caricamento...</div></div>
         <div style="margin-top:14px"><button class="btn p sm" onclick="openM('m-user')">+ Aggiungi utente</button></div>
       </div>
+      <!-- F14.17 — ENTRA COME (js/01 mostraSelettoreEntraCome): solo il titolare reale -->
+      <div class="card" id="si-entra-come-card" style="margin-top:14px;display:none">
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px">👁️ Entra come</div>
+        <div style="font-size:12px;color:var(--m);margin-bottom:10px">Vedi il gestionale come lo vede un'altra persona: menu, pagine, dashboard e liste del suo ruolo. Per provare un ruolo scegli il ruolo: ti proponiamo il suo utente di prova. Per sostituire qualcuno scegli la persona. In fondo allo schermo resta il banner "Stai lavorando come…" con <b>↩️ Esci</b>.</div>
+        <div class="f"><label>Ruolo</label><select id="ec-ruolo" onchange="aggiornaPersoneEntraCome()"></select></div>
+        <div class="f"><label>Persona</label><select id="ec-utente"></select><div id="ec-nota" style="font-size:11px;color:var(--m);margin-top:4px"></div></div>
+        <button class="btn p sm" onclick="entraComeScelto()">👁️ Entra come</button>
+      </div>
     </div>
   </div>
   <!-- F14.2 — REGOLE E SOGLIE (js/10 mostraRegoleImpostazioni, sql/62): solo titolare -->
@@ -5036,6 +5044,27 @@
 
       <div class="al2 w">
         Le tre liste dei preventivi (la tua, quella del commerciale e "I miei preventivi" del rappresentante) restano separate: unirle in una lista con filtri per ruolo e aprire la scheda del preventivo al rappresentante cambia il lavoro di tre ruoli e aspetta la tua decisione.
+      </div>
+
+      <h4 id="info-tit-21">21. Entra come: vedere il gestionale con gli occhi di un altro</h4>
+
+      <p>
+        Vuoi controllare cosa vede Acquisti, oppure c'è da portare avanti il lavoro di una persona assente? Non servono sostituti: entri come quella persona, lavori, poi esci. Serve per provare e per sostituire, non per il lavoro di tutti i giorni.
+      </p>
+
+      <ul>
+        <li>Vai in <b>Impostazioni</b>, riquadro <b>👁️ Entra come</b> sotto <b>Team</b>: scegli il <b>Ruolo</b> (ti proponiamo per primo l'utente di prova di quel ruolo, segnato "(utente di prova)") oppure la <b>Persona</b>, poi tocca <b>👁️ Entra come</b>. Lo stesso bottone c'è anche su ogni riga dell'elenco Team.</li>
+        <li>Il gestionale si riavvia: menu, pagine, dashboard, "Cosa tocca a me" e liste sono quelli della persona scelta. In fondo allo schermo, anche sul telefono, resta il banner <b>👁️ Stai lavorando come …</b> con il tuo nome tra parentesi.</li>
+        <li>Per tornare te stesso tocca <b>↩️ Esci</b> nel banner: il gestionale si riavvia da titolare. <b>Esci</b> in alto a destra invece ti scollega del tutto. Chiudendo la scheda del browser torni te stesso al prossimo accesso.</li>
+        <li>Puoi entrare solo come utenti attivi e non come un altro titolare o l'informatico. Lo può fare solo chi è davvero titolare (o informatico).</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Laura è in ferie e c'è da evadere una richiesta di consumabili. In <b>Impostazioni</b> scegli Ruolo "Commerciale", Persona "Laura", tocchi <b>👁️ Entra come</b>: vedi la sua dashboard con <b>Consumabili e noli da procurare</b>, evadi la richiesta e tocchi <b>↩️ Esci</b>.
+      </div>
+
+      <div class="al2 w">
+        Prima parte: finché non è pronta la seconda (aggiornamento del database) il database ti risponde ancora come titolare. Le liste che il sito filtra per ruolo sono quelle della persona, ma dove il filtro lo fa solo il database (per esempio i clienti di un rappresentante) puoi vedere qualche riga in più; quello che salvi passa con i tuoi permessi di titolare e va a nome della persona scelta dove il sito scrive "chi". La campanella 🔔 e le notifiche restano spente mentre lavori "come".
       </div>
 
 
