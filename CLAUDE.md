@@ -197,7 +197,7 @@ ruolo; nasce SOLO con fai_domanda: chi chiede deve leggere il record
 database; risposta, chiusura e allegati solo con le RPC, js/62). Bucket NUOVO domande-allegati (privato,
 20 MB, <id domanda>/<file>; lo apre chi legge la domanda, caricano chi
 chiede e chi deve rispondere finché non è chiusa).
-Dopo sql/72 (F14.19 "Annulla" e richiesta di correzione, DA ESEGUIRE, richiede 07, 47,
+Dopo sql/72 (F14.19 "Annulla" e richiesta di correzione, ESEGUITO il 06/11 con il -REGISTRO-CANCELLAZIONI, backup pre72, richiede 07, 47,
 62-65, 67, 68, 71; poi il file -REGISTRO-CANCELLAZIONI dall'editor):
 annullabili (oggetti con "Annulla"/"Chiedi correzione": funzione_info,
 funzione_annulla, funzione_passo, responsabile_ruolo; lettura per tutti i
@@ -690,8 +690,8 @@ ruolo_corrente, ruolo_reale, ruolo_effettivo, agito_come_utente,
 agito_come_intestazione, get_mio_utente_id, registra_azione, motore_applica
 e, con auth.uid() → utente_effettivo(), 121 funzioni e 69 policy (dettagli
 in "Entra come", parte 2, più sotto).
-Dopo sql/72 (F14.19 "Annulla" e richiesta di correzione per tutti, DA ESEGUIRE
-(serve "CONFERMATO DA TOLI: sql/72" e il backup pre72), richiede 07, 47, 62,
+Dopo sql/72 (F14.19 "Annulla" e richiesta di correzione per tutti, ESEGUITO il 06/11
+con il -REGISTRO-CANCELLAZIONI, backup pre72, controllo in regola, richiede 07, 47, 62,
 63, 64, 65, 67, 68, 71 (si ferma senza); poi
 72-annulla-richiesta-correzione-tutti-REGISTRO-CANCELLAZIONI.sql dall'editor;
 provato sul backup pre71 + sql/71 il 06/11). Chi ha fatto un'azione la
