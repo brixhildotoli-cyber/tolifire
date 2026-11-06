@@ -207,7 +207,7 @@ richieste di correzione aperta → applicata | corretta | rifiutata |
 ritirata; lettura titolare tutti, gli altri i propri e le correzioni al
 loro ruolo responsabile; lo scrivono solo le RPC di sql/72; cancellazione
 bloccata dal trigger del -REGISTRO-CANCELLAZIONI). js/64.
-Dopo sql/73 (F14.20 deleghe del titolare, DA ESEGUIRE (provato il 06/11 sul
+Dopo sql/73 (F14.20 deleghe del titolare, ESEGUITO il 06/11 con il -REGISTRO-CANCELLAZIONI, backup pre73 (provato il 06/11 sul
 backup pre72, con e senza sql/72), richiede 07, 28, 33, 39, 63, 65, 67, 71; poi il
 file -REGISTRO-CANCELLAZIONI dall'editor): deleghe_titolare (tipo, delegato
 con nome e ruolo copiati, tetto in €, valida dal/fino al, nota, revoca; una
@@ -770,7 +770,7 @@ righe nuove); smoke test TUTTO OK con e senza sql/72; rollback provato
 (schema identico; avvisi delle richieste chiusi "annullato"; regole tolte
 solo se mai cambiate). File principale senza parole di cancellazione
 (server MCP). Senza sql/72 nessun pulsante, nessun errore.
-Dopo sql/73 (F14.20 deleghe del titolare, DA ESEGUIRE: backup, poi
+Dopo sql/73 (F14.20 deleghe del titolare, ESEGUITO il 06/11 (backup pre73, controllo in regola): backup, poi
 73-deleghe-titolare.sql (senza parole di cancellazione, server MCP), poi
 73-deleghe-titolare-REGISTRO-CANCELLAZIONI.sql dall'editor, poi il controllo
 in fondo al 73; richiede 07, 28, 33, 39, 63, 65, 67, 71, tutti in
