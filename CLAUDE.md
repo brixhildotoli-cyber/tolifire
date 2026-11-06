@@ -219,7 +219,7 @@ tutto, il delegato le proprie righe; cancellazione bloccata dal
 -REGISTRO-CANCELLAZIONI); nessuna scrittura diretta, solo RPC; colonne nuove
 avvisi.decisione_importo e avvisi.delega_id (le scrive solo il database).
 js/65.
-Dopo sql/74 (F14.21 riassegnazione delle pratiche, DA ESEGUIRE (provato il
+Dopo sql/74 (F14.21 riassegnazione delle pratiche, ESEGUITO il 06/11 con il -REGISTRO-CANCELLAZIONI, backup pre74 (provato il
 06/11 sul backup pre73 + sql/73), richiede 07, 47, 67, 71; poi il file
 -REGISTRO-CANCELLAZIONI dall'editor): riassegnazioni_pratiche (da chi, a
 chi con nomi e ruoli copiati, tipi, motivo, conteggi, totale, rimaste, chi
@@ -854,7 +854,7 @@ matrice dei permessi TUTTO OK (30 righe nuove); smoke test TUTTO OK con e
 senza sql/73; rollback provato (schema identico). Senza sql/73: riquadro
 "non ancora attive", nessun bottone in più, nessun errore (la chiamata
 mie_deleghe_titolare al login risponde 404 senza conseguenze).
-Dopo sql/74 (F14.21 riassegnazione delle pratiche, DA ESEGUIRE: backup, poi
+Dopo sql/74 (F14.21 riassegnazione delle pratiche, ESEGUITO il 06/11 (backup pre74, controllo in regola): backup, poi
 74-riassegnazione-pratiche.sql (senza parole di cancellazione, server MCP),
 poi 74-riassegnazione-pratiche-REGISTRO-CANCELLAZIONI.sql dall'editor, poi
 il controllo in fondo al 74; richiede 07, 47, 67, 71, tutti in produzione).
