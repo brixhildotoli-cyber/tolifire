@@ -69,7 +69,9 @@ function euroDelega(n) {
 function numeroDelega(testo) {
   const s = String(testo || '').trim().replace(/\s|€/g, '');
   if (!s) return null;
-  const n = Number(s.replace(/\./g, '').replace(',', '.'));
+  // "1.500" = 1500 (punto delle migliaia); "150.50" o "150.5" senza virgola = decimale
+  const t = (s.indexOf(',') < 0 && /^\d+\.\d{1,2}$/.test(s)) ? s : s.replace(/\./g, '').replace(',', '.');
+  const n = Number(t);
   return isFinite(n) ? n : NaN;
 }
 
