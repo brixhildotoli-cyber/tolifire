@@ -207,6 +207,18 @@ richieste di correzione aperta → applicata | corretta | rifiutata |
 ritirata; lettura titolare tutti, gli altri i propri e le correzioni al
 loro ruolo responsabile; lo scrivono solo le RPC di sql/72; cancellazione
 bloccata dal trigger del -REGISTRO-CANCELLAZIONI). js/64.
+Dopo sql/73 (F14.20 deleghe del titolare, DA ESEGUIRE (provato il 06/11 sul
+backup pre72, con e senza sql/72), richiede 07, 28, 33, 39, 63, 65, 67, 71; poi il
+file -REGISTRO-CANCELLAZIONI dall'editor): deleghe_titolare (tipo, delegato
+con nome e ruolo copiati, tetto in €, valida dal/fino al, nota, revoca; una
+non revocata per tipo; lettura titolare tutte, il delegato le proprie),
+assenze_titolare (dal, al, nota, tolta; lettura titolare e delegato generale
+valido oggi), deleghe_registro (usi delle deleghe: decisione assegnata,
+passata, chiusa, tornata, sblocco usato, oltre il tetto; lettura titolare
+tutto, il delegato le proprie righe; cancellazione bloccata dal
+-REGISTRO-CANCELLAZIONI); nessuna scrittura diretta, solo RPC; colonne nuove
+avvisi.decisione_importo e avvisi.delega_id (le scrive solo il database).
+js/65.
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -758,6 +770,82 @@ righe nuove); smoke test TUTTO OK con e senza sql/72; rollback provato
 (schema identico; avvisi delle richieste chiusi "annullato"; regole tolte
 solo se mai cambiate). File principale senza parole di cancellazione
 (server MCP). Senza sql/72 nessun pulsante, nessun errore.
+Dopo sql/73 (F14.20 deleghe del titolare, DA ESEGUIRE: backup, poi
+73-deleghe-titolare.sql (senza parole di cancellazione, server MCP), poi
+73-deleghe-titolare-REGISTRO-CANCELLAZIONI.sql dall'editor, poi il controllo
+in fondo al 73; richiede 07, 28, 33, 39, 63, 65, 67, 71, tutti in
+produzione; 66 facoltativo per la notifica dell'urgente; 72 non serve).
+Tipi delegabili = funzione tipi_delega_titolare() (catalogo, non tabella;
+un modulo che aggiunge un tipo la ridefinisce nel suo sql/NN): generale
+(delegato per le assenze), decisioni con importo sblocco_margine,
+ratifica_spesa, anticipo_parziale, voce_fuori_modello,
+commessa_senza_preventivo, urgenza (a segreteria, capo_tecnico,
+commerciale, rappresentante, contabile, ingegnere), sblocchi senza importo
+consegna_forzata_faldone e chiusura_forzata_commessa (solo segreteria: le
+RPC ammettono titolare e segreteria), riporto_indietro_commessa (segreteria,
+capo_tecnico). RPC del sito: salva_delega_titolare(tipo, delegato, tetto,
+fino_al, nota) (solo titolare; persona attiva del ruolo ammesso, tetto solo
+per i tipi con importo, fino al obbligatorio max 366 giorni; sostituisce la
+precedente), revoca_delega_titolare(id, motivo) (le decisioni ancora
+aperte tornano al titolare), segna_assenza_titolare(dal, al, nota) (max 93
+giorni, niente sovrapposizioni; passa subito le decisioni ferme),
+togli_assenza_titolare(id), controlla_deleghe_ora(),
+crea_decisione_prova_delega(tipo, importo, testo, ferma_da_1_giorno)
+(titolare; max 20 prove aperte), mie_deleghe_titolare() (tutti: deleghe
+valide ora, modo delega o assenza), tipi_delega_titolare(). Interne (per i
+moduli): apri_decisione_titolare(tipo, testo, importo, rif, scadenza,
+urgente, prova) = UNICA STRADA per chiedere una decisione al titolare
+(avviso con esito obbligatorio al delegato del tipo se l'importo è entro il
+tetto e chi chiede non è il delegato, altrimenti al titolare; i moduli
+F16.1, F18.12... la usano al posto di crea_avviso), delega_sblocco(tipo,
+importo, rif) (vero per titolare, delegato del tipo entro il tetto, e con
+il titolare assente per il delegato generale entro il suo tetto se il suo
+ruolo è tra quelli del tipo; scrive il registro: le RPC di approvazione dei
+moduli la usano al posto di "ruolo = titolare"), passa_decisioni_al_delegato
+(titolare assente: decisioni al titolare ferme da 1 g lav. o con la
+scadenza superata → al delegato generale entro il tetto, testo "Passata a
+te (titolare assente): "; oltre il tetto, importo sconosciuto con un tetto
+o chieste dal delegato stesso: restano al titolare e diventano urgenti, una
+volta; pg_cron toli_deleghe_assenze al minuto 7 di ogni ora se pg_cron
+c'è), titolare_assente, delega_valida_per, delega_attiva_tipo,
+ho_delega_generale (policy), avviso_e_decisione, registra_uso_delega,
+chi_sblocca_testo, trigger trg_avvisi_deleghe_chiusura (decisione delegata
+chiusa → registro con l'esito). AGGANCIO SUL POSTO (pg_get_functiondef +
+replace, il file si ferma se il testo non c'è una volta sola; rollback =
+replace al contrario): consegna_faldone_commessa (sql/33),
+chiudi_commessa (sql/39) e cambia_stato_commessa (sql/28, solo il ramo
+"indietro") hanno "v_ruolo <> 'titolare' and not delega_sblocco(...)" e
+nello storico "da <nome> (delega del titolare)"; annullare e riattivare
+restano solo del titolare. SCELTE DA CONFERMARE DA TOLI: delega a una
+persona con scadenza obbligatoria; importo sconosciuto con tetto = fuori
+delega; chi chiede non decide da delegato; il delegato generale in assenza
+fa anche gli sblocchi senza importo del suo ruolo; senza delegato generale
+l'assenza non cambia nulla; le decisioni passate restano al delegato anche
+al rientro. Nel sito (js/65): Impostazioni > "🤝 Deleghe del titolare"
+(si-deleghe-card, da loadImp di js/10; id dlg-, dla-, dlp-: assenze con
+"🏖️ Segna assenza" e "▶️ Controlla ora", una riga per tipo con A chi, Fino
+a €, Fino al, Nota, 💾 Delega/Cambia, ✖ Revoca, "🧪 Decisione di prova con
+importo", "📒 Registro delle deleghe" ultime 40 righe); caricaMieDeleghe()
+al login (boot di js/01) e haDelegaTitolare(tipo)/testoMiaDelega(tipo):
+"Consegna comunque" (js/31), "Chiudi comunque" (js/38, js/36) e "←
+Indietro a ..." in "Stato e storico" (js/18) anche al delegato; js/60
+puoDecidereAvviso: "⚖️ Decidi" (campanella, barra del link #/avviso) e la
+finestra m-decisione anche per il delegato destinatario dell'avviso
+(chiude con segna_avviso_fatto). Guida titolare info-tit-23. Prove:
+sql/73-deleghe-titolare-PROVA.sql (solo database di prova, rollback: spese
+fino a 150 € al commerciale → 120 € al commerciale, 200 € al titolare;
+chi chiede non decide; ruolo cambiato = delega non vale; delegato generale
+5.000 € e ferie: 3.000 € fermo da 1 giorno passa, 8.000 € urgente al
+titolare, appena arrivata aspetta; consegna e chiusura forzata della
+segreteria rifiutate senza delega e riuscite con; riporto indietro del
+capo tecnico solo in assenza; revoca; rifiuti di segreteria, tecnico,
+titolare "come" segreteria, insert diretto, funzioni interne);
+test/deleghe-titolare.spec.js (Chrome headless: titolare delega da
+Impostazioni, commerciale e capo tecnico decidono da "⚖️ Decidi" a 390 px);
+matrice dei permessi TUTTO OK (30 righe nuove); smoke test TUTTO OK con e
+senza sql/73; rollback provato (schema identico). Senza sql/73: riquadro
+"non ancora attive", nessun bottone in più, nessun errore (la chiamata
+mie_deleghe_titolare al login risponde 404 senza conseguenze).
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),

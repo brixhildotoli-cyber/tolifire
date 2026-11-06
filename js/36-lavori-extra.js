@@ -649,8 +649,8 @@ async function caricaRiepilogoChiusuraCommessa(commessa) {
           }).join('')}
         </div>
       ` : ''}
-      ${puntiF92 && bloccanti ? `<div style="font-size:12px;color:var(--m);margin-top:4px">${ROLE === 'titolare'
-        ? 'La commessa si chiude con la dichiarazione e la fattura finale; senza, solo il titolare e scrivendo il motivo.'
+      ${puntiF92 && bloccanti ? `<div style="font-size:12px;color:var(--m);margin-top:4px">${ROLE === 'titolare' || (typeof haDelegaTitolare === 'function' && haDelegaTitolare('chiusura_forzata_commessa'))
+        ? 'La commessa si chiude con la dichiarazione e la fattura finale; senza, solo il titolare (o chi ha la sua delega) e scrivendo il motivo.'
         : '"Chiudi la commessa" si attiva con la dichiarazione di corretta messa in opera e la fattura finale.'}</div>` : ''}
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
         ${typeof vaiABoxCommessa === 'function' ? `<button class="btn sm" onclick="vaiABoxCommessa('cmd-documenti')">📂 Cartella documenti</button>` : ''}

@@ -217,7 +217,7 @@ function disegnaBoxFatturaFinale(commessa) {
         <div style="font-size:13px;margin-top:6px;color:var(--a)">⚠️ Fattura finale non ancora registrata.</div>
       `}
       ${cambiato ? `<div class="al2 w" style="margin-top:6px">${esc(cambiato.testo)}</div>` : ''}
-      ${commessa.stato === 'chiusa' && s.chiusura_forzata ? `<div class="al2 e" style="margin-top:6px">Commessa chiusa dal titolare senza dichiarazione o fattura finale. Motivo: ${esc(s.chiusura_motivo_forzatura || '')}</div>` : ''}
+      ${commessa.stato === 'chiusa' && s.chiusura_forzata ? `<div class="al2 e" style="margin-top:6px">Commessa chiusa senza dichiarazione o fattura finale (titolare o suo delegato). Motivo: ${esc(s.chiusura_motivo_forzatura || '')}</div>` : ''}
       ${f ? '' : htmlAvvisiCalcoloFatturaFinale(calcolo)}
       ${!puo && commessa.stato === 'chiusa' ? '<div style="font-size:11px;color:var(--m);margin-top:4px">Commessa chiusa: la fattura finale la corregge solo il titolare.</div>' : ''}
       ${puo ? `
@@ -359,8 +359,8 @@ function htmlBottoneChiudiCommessa(commessa) {
   if (!bloccanti) {
     return `<button class="btn sm p" id="cmd-chiudi-commessa" onclick="apriChiusuraCommessa()">✅ Chiudi la commessa</button>`;
   }
-  if (ROLE === 'titolare') {
-    return `<button class="btn sm" id="cmd-chiudi-commessa" onclick="apriChiusuraCommessa()">Chiudi comunque (con motivo)</button>`;
+  if (ROLE === 'titolare' || (typeof haDelegaTitolare === 'function' && haDelegaTitolare('chiusura_forzata_commessa'))) {
+    return `<button class="btn sm" id="cmd-chiudi-commessa" onclick="apriChiusuraCommessa()">Chiudi comunque (con motivo${ROLE === 'titolare' ? '' : ', ' + testoMiaDelega('chiusura_forzata_commessa')})</button>`;
   }
   return `<button class="btn sm" id="cmd-chiudi-commessa" disabled title="Servono la dichiarazione e la fattura finale">✅ Chiudi la commessa</button>`;
 }
@@ -374,7 +374,7 @@ function apriChiusuraCommessa() {
     return;
   }
   const bloccanti = bloccantiChiusuraCommessa(commessa);
-  if (bloccanti && ROLE !== 'titolare') {
+  if (bloccanti && ROLE !== 'titolare' && !(typeof haDelegaTitolare === 'function' && haDelegaTitolare('chiusura_forzata_commessa'))) {
     toast('Servono la dichiarazione di corretta messa in opera e la fattura finale', 'err');
     return;
   }

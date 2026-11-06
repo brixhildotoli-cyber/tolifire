@@ -691,6 +691,8 @@ async function boot(ud,utenteForzato){
   // F14.6: notifiche sul telefono degli avvisi urgenti (js/59; senza sql/66
   // o senza configurazione non fa nulla: nessun permesso, nessun service worker)
   if(!ENTRA_COME&&typeof avviaNotifichePush==='function')avviaNotifichePush();
+  // F14.20: deleghe del titolare valide ora per chi entra (js/65; senza sql/73 nessuna)
+  if(typeof caricaMieDeleghe==='function')caricaMieDeleghe().catch(()=>{});
   const today=dataLocaleISO();const now=new Date();
   ge('tc3').value=today;ge('mo3').value=today;
   ge('tc4').value=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');

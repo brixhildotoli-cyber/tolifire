@@ -2472,6 +2472,38 @@
       <div id="si-motore-prova" style="max-height:360px;overflow:auto"></div>
     </div>
   </div>
+  <!-- F14.20 — DELEGHE DEL TITOLARE (js/65 mostraDelegheImpostazioni, sql/73): solo titolare -->
+  <div class="card" id="si-deleghe-card" style="margin-top:14px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:13px;font-weight:600">🤝 Deleghe del titolare</div>
+      <button class="btn sm" title="Rileggi" onclick="mostraDelegheImpostazioni()">↻</button>
+    </div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Per ogni sblocco puoi dare una delega a una persona: fino a quale importo e fino a quando. Le decisioni entro il tetto arrivano direttamente a lei (non a te) e ogni uso resta nel registro qui sotto. Il <b>delegato generale</b> ti sostituisce quando segni un'assenza: le decisioni ferme da 1 giorno lavorativo passano a lui entro il suo tetto; quelle oltre restano a te con l'avviso urgente. Il database ricontrolla sempre.</div>
+    <div class="al2 i" id="si-deleghe-stato" style="display:none"></div>
+    <div id="si-deleghe-attivo" style="display:none">
+      <div style="font-size:13px;font-weight:600;margin:6px 0">🏖️ Le tue assenze</div>
+      <div id="si-deleghe-assenze"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;margin-top:6px">
+        <div class="f" style="margin:0"><label>Dal *</label><input type="date" id="dla-dal"></div>
+        <div class="f" style="margin:0"><label>Al *</label><input type="date" id="dla-al"></div>
+        <div class="f" style="flex:1 1 160px;margin:0"><label>Nota</label><input id="dla-nota" maxlength="200" placeholder="es. Ferie"></div>
+        <button class="btn sm p" type="button" onclick="segnaAssenzaTitolare()">🏖️ Segna assenza</button>
+        <button class="btn sm" type="button" id="dlg-controlla" title="Passa subito al delegato generale le decisioni ferme" onclick="controllaDelegheOra()">▶️ Controlla ora</button>
+      </div>
+      <div id="si-deleghe-righe"></div>
+      <div style="font-size:13px;font-weight:600;margin:16px 0 6px">🧪 Decisione di prova con importo</div>
+      <div style="font-size:12px;color:var(--m);margin-bottom:6px">Va al delegato del tipo se l'importo è entro il suo tetto, altrimenti a te (pagina ⚖️ Decisioni). Con "ferma da 1 giorno" e un'assenza di oggi passa subito al delegato generale.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end">
+        <div class="f" style="flex:1 1 200px;margin:0"><label>Decisione *</label><select id="dlp-tipo"></select></div>
+        <div class="f" style="flex:0 1 110px;margin:0"><label>Importo €</label><input id="dlp-importo" inputmode="decimal" placeholder="es. 120"></div>
+        <div class="f" style="flex:1 1 200px;margin:0"><label>Testo *</label><input id="dlp-testo" maxlength="300" value="spesa al negozio fuori budget"></div>
+        <label style="display:flex;gap:6px;align-items:center;font-size:12px;font-weight:400"><input type="checkbox" id="dlp-vecchia"> ferma da 1 giorno</label>
+        <button class="btn sm p" type="button" id="dlp-crea" onclick="creaDecisioneProvaDelega()">🧪 Crea</button>
+      </div>
+      <div style="font-size:13px;font-weight:600;margin:16px 0 6px">📒 Registro delle deleghe <span id="si-deleghe-registro-conta" style="font-weight:400;color:var(--m)"></span></div>
+      <div id="si-deleghe-registro" style="max-height:320px;overflow:auto"></div>
+    </div>
+  </div>
 </div>
 </div>
 
@@ -5195,6 +5227,29 @@
 
       <div class="al2 w">
         Finché il database non è aggiornato (sql/72) i pulsanti <b>↩️ Annulla</b> e <b>✏️ Chiedi correzione</b> non compaiono e si lavora come prima.
+      </div>
+
+      <h4 id="info-tit-23">23. 🤝 Deleghe: chi decide al posto tuo, fino a quanto e fino a quando</h4>
+
+      <p>
+        Se una spesa da 120 € o una consegna del faldone aspettano te, il lavoro si ferma. Con le deleghe scegli tu chi può decidere al posto tuo, entro un importo e fino a una data; quando sei in ferie un delegato generale prende le decisioni rimaste ferme.
+      </p>
+
+      <ul>
+        <li>Vai in <b>Impostazioni › 🤝 Deleghe del titolare</b>. Per ogni sblocco scegli <b>A chi</b> (una persona), <b>Fino a €</b> (vuoto = senza tetto, solo per le decisioni con un importo) e <b>Fino al</b> (obbligatorio, al massimo un anno), poi <b>💾 Delega</b>. Per cambiarla <b>💾 Cambia</b>, per toglierla <b>✖ Revoca</b>: le decisioni che il delegato ha ancora aperte tornano a te.</li>
+        <li><b>Decisioni</b> (sblocco del margine, ratifica di una spesa, anticipo parziale, voce fuori modello, commessa senza preventivo, urgenza): entro il tetto arrivano come avviso direttamente al delegato, che le approva o le rifiuta con il motivo da <b>⚖️ Decidi</b> nella sua campanella. Oltre il tetto arrivano a te come oggi. Chi ha chiesto la decisione non la decide da delegato: arriva a te.</li>
+        <li><b>Sblocchi della commessa</b>: <b>Consegna comunque</b> del faldone e <b>Chiudi comunque</b> la commessa si delegano alla segreteria; il riporto indietro dello stato a segreteria o capo tecnico. Il delegato vede il bottone nella scheda della commessa e deve scrivere il motivo come te; nello storico resta "da Assunta d'Elia (delega del titolare)". Annullare e riattivare una commessa restano solo tuoi.</li>
+        <li><b>Delegato generale</b> e <b>🏖️ Segna assenza</b>: con un'assenza segnata per oggi, ogni decisione ferma da 1 giorno lavorativo passa al delegato generale se l'importo è entro il suo tetto (il database controlla ogni ora; <b>▶️ Controlla ora</b> lo fa subito). Oltre il tetto resta a te e diventa <b>🚨 urgente</b> (notifica sul telefono, se l'hai attivata). Durante l'assenza il delegato generale può anche fare gli sblocchi della commessa del suo ruolo. Senza delegato generale l'assenza non cambia nulla.</li>
+        <li>Ogni uso di una delega resta nel <b>📒 Registro delle deleghe</b> (in fondo al riquadro): a chi è andata la decisione, l'importo, l'esito. Lo leggerà anche il report del venerdì.</li>
+        <li>Con <b>🧪 Decisione di prova con importo</b> provi le tue deleghe: una prova entro il tetto va al delegato e non a te.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Dai a Laura (Commerciale, acquisti) <b>Ratifica di una spesa fuori budget</b> fino a 150 € fino al 31/12. Una corsa al negozio da 120 € fuori budget arriva a Laura, non a te; una da 260 € arriva a te. Ad agosto segni le ferie dal 10 al 24 e hai Luca (Capo tecnico) come delegato generale fino a 5.000 €: lo sblocco del margine di un preventivo da 3.000 € fermo da un giorno passa a Luca, quello da 8.000 € resta a te come urgente.
+      </div>
+
+      <div class="al2 w">
+        Finché il database non è aggiornato (sql/73) il riquadro dice "non ancora attive" e gli sblocchi restano solo tuoi, come prima.
       </div>
 
 
@@ -9377,6 +9432,7 @@
 <script defer src="js/62-domande.js?v=202611051342"></script>
 <script defer src="js/63-scheda-oggetto.js?v=202611051342"></script>
 <script defer src="js/64-annulla-correzione.js?v=202611051342"></script>
+<script defer src="js/65-deleghe-titolare.js?v=202611051342"></script>
 <script defer src="js/19-init.js?v=202611051342"></script>
 
 

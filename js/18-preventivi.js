@@ -10452,13 +10452,16 @@ async function apriStatoCommessa(commessaId, preventivoId) {
     if (prossimo && !prontaDalFaldone && !chiusaDallaScheda && (ROLE === 'titolare' || RUOLO_PASSO_COMMESSA[prossimo] === ROLE)) {
       opzioni.push({ stato: prossimo, tipo: 'avanti', testo: '→ ' + ETICHETTE_STATO_COMMESSA[prossimo] });
     }
-    if (ROLE === 'titolare') {
+    // F14.20: il riporto indietro anche a chi ha la delega del titolare (js/65, sql/73)
+    if (ROLE === 'titolare' || (typeof haDelegaTitolare === 'function' && haDelegaTitolare('riporto_indietro_commessa'))) {
       ORDINE_STATI_COMMESSA
         .slice(0, ORDINE_STATI_COMMESSA.indexOf(commessa.stato))
         .reverse()
         .forEach(function(stato) {
           opzioni.push({ stato: stato, tipo: 'indietro', testo: '← Indietro a ' + ETICHETTE_STATO_COMMESSA[stato] });
         });
+    }
+    if (ROLE === 'titolare') {
       opzioni.push({ stato: 'annullata', tipo: 'annullamento', testo: '✕ Annulla la commessa' });
     }
   }
@@ -10600,7 +10603,7 @@ function aggiornaCambioStatoCommessa() {
         ? 'La commessa resta salvata con il suo codice e lo storico, ma non va più avanti.'
         : (tipo === 'riattivazione'
           ? 'La commessa torna nello stato che aveva prima dell\'annullamento.'
-          : 'Solo il titolare riporta indietro una commessa.'));
+          : (ROLE === 'titolare' ? 'Solo il titolare riporta indietro una commessa.' : 'Riporti indietro la commessa ' + (typeof testoMiaDelega === 'function' ? testoMiaDelega('riporto_indietro_commessa') : 'con la delega del titolare') + ': resta nello storico.')));
   }
 
   if (bottone) bottone.disabled = notaObbligatoria && !nota;

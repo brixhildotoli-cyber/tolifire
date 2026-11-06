@@ -199,7 +199,7 @@ function htmlFaldoneCommessa(commessa, f) {
     esito = `
       <div class="al2 ${f.consegnato_forzato ? 'w' : 'ok'}">
         <b>Faldone consegnato al capo tecnico</b> il ${esc(new Date(f.consegnato_il).toLocaleDateString('it-IT'))}${f.consegnato_da_nome ? ' da ' + esc(f.consegnato_da_nome) : ''}.
-        ${f.consegnato_forzato ? '<div>Consegnato dal titolare con problemi aperti. Motivo: ' + esc(f.nota_consegna || '') + '</div>' : (f.nota_consegna ? '<div>Nota: ' + esc(f.nota_consegna) + '</div>' : '')}
+        ${f.consegnato_forzato ? '<div>Consegnato con problemi aperti (titolare o suo delegato). Motivo: ' + esc(f.nota_consegna || '') + '</div>' : (f.nota_consegna ? '<div>Nota: ' + esc(f.nota_consegna) + '</div>' : '')}
         ${bloccanti.length ? '<div style="margin-top:4px">Oggi il faldone ha ' + bloccanti.length + (bloccanti.length === 1 ? ' problema' : ' problemi') + ': avvisa il capo tecnico.</div>' : ''}
       </div>
     `;
@@ -293,8 +293,8 @@ function htmlFaldoneCommessa(commessa, f) {
     if (puoConsegnareFaldone(commessa)) {
       if (!bloccanti.length) {
         consegna = '<button class="btn p" onclick="apriConsegnaFaldone()">✅ Faldone consegnato al capo tecnico</button>';
-      } else if (ROLE === 'titolare') {
-        consegna = '<button class="btn" onclick="apriConsegnaFaldone()">Consegna comunque (titolare, con motivo)</button>';
+      } else if (ROLE === 'titolare' || (typeof haDelegaTitolare === 'function' && haDelegaTitolare('consegna_forzata_faldone'))) {
+        consegna = '<button class="btn" onclick="apriConsegnaFaldone()">Consegna comunque (' + (ROLE === 'titolare' ? 'titolare' : testoMiaDelega('consegna_forzata_faldone')) + ', con motivo)</button>';
       } else {
         consegna = '<button class="btn p" disabled>✅ Faldone consegnato al capo tecnico</button><div style="font-size:12px;color:var(--m);margin-top:4px">Si segna quando i problemi in rosso sono risolti.</div>';
       }
@@ -496,14 +496,14 @@ function apriConsegnaFaldone() {
   const bloccanti = (f.problemi || []).filter(function(p) { return p.blocca; });
   const forzata = bloccanti.length > 0;
 
-  if (forzata && ROLE !== 'titolare') {
+  if (forzata && ROLE !== 'titolare' && !(typeof haDelegaTitolare === 'function' && haDelegaTitolare('consegna_forzata_faldone'))) {
     toast('Il faldone non è in regola: risolvi prima i problemi in rosso', 'err');
     return;
   }
 
   ge('fald-consegna-sottotitolo').textContent = 'Commessa ' + (faldoneAperto.commessa.codice || '') + ' → Pronta';
   ge('fald-consegna-problemi').innerHTML = forzata
-    ? `<div class="al2 e"><b>Il faldone ha ${bloccanti.length} ${bloccanti.length === 1 ? 'problema' : 'problemi'}:</b>${bloccanti.map(function(p) { return '<div>→ ' + esc(testoProblemaFaldone(p)) + '</div>'; }).join('')}<div style="margin-top:4px">Come titolare puoi consegnarlo lo stesso: il motivo resta nello storico della commessa.</div></div>`
+    ? `<div class="al2 e"><b>Il faldone ha ${bloccanti.length} ${bloccanti.length === 1 ? 'problema' : 'problemi'}:</b>${bloccanti.map(function(p) { return '<div>→ ' + esc(testoProblemaFaldone(p)) + '</div>'; }).join('')}<div style="margin-top:4px">${ROLE === 'titolare' ? 'Come titolare' : 'Con la delega del titolare'} puoi consegnarlo lo stesso: il motivo resta nello storico della commessa.</div></div>`
     : `<div class="al2 ok">Date fissate, personale con i documenti validi alla data di inizio, voci del faldone completate. La commessa passa a <b>Pronta</b> e il capo tecnico può avviare il cantiere.</div>`;
   ge('fald-consegna-nota-label').textContent = forzata ? 'Motivo della consegna con problemi aperti *' : 'Nota (facoltativa)';
   ge('fald-consegna-nota').value = '';

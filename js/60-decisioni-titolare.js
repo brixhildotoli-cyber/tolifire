@@ -290,11 +290,18 @@ function decisioneInMemoria(id) {
   return tutte.find(function(a) { return String(a.id) === String(id); }) || null;
 }
 
+// F14.20: decide il titolare oppure il delegato a cui la decisione è
+// arrivata (delega del titolare, sql/73: avviso con destinatario la persona).
+function puoDecidereAvviso(a) {
+  return ROLE === 'titolare' || !!(a && a.destinatario_id && typeof ME !== 'undefined' && ME && String(a.destinatario_id) === String(ME.id));
+}
+
 async function apriDecisione(id, modo) {
-  if (ROLE !== 'titolare') { toast('Le decisioni le prende il titolare', 'err'); return; }
   preparaFinestreDecisioni();
   let a = decisioneInMemoria(id);
   if (!a && typeof leggiAvviso === 'function') a = await leggiAvviso(id);
+  if (a && !puoDecidereAvviso(a)) { toast('Le decisioni le prende il titolare (o chi ha la sua delega)', 'err'); return; }
+  if (!a && ROLE !== 'titolare') { toast('Le decisioni le prende il titolare (o chi ha la sua delega)', 'err'); return; }
   const tipo = tipoDecisioneAvviso(a);
   if (!a || !tipo) { toast('Decisione non trovata o già presa', 'err'); return; }
   DECISIONI.aperta = a;
@@ -404,13 +411,13 @@ async function creaDecisioneProva() {
 // ── Stessa azione dalla campanella e dal link #/avviso/<id> (js/58) ──
 registraAzioneRapidaAvviso('prova', {
   etichetta: '⚖️ Decidi',
-  puo: function(a) { return ROLE === 'titolare' && !!tipoDecisioneAvviso(a); },
+  puo: function(a) { return puoDecidereAvviso(a) && !!tipoDecisioneAvviso(a); },
   fai: function(a) { closeM('m-avvisi'); return apriDecisione(a.id); }
 });
 Object.keys(TIPI_DECISIONE).forEach(function(tipo) {
   registraAzioneRapidaAvviso(tipo, {
     etichetta: '⚖️ Decidi',
-    puo: function() { return ROLE === 'titolare'; },
+    puo: function(a) { return puoDecidereAvviso(a); },
     fai: function(a) { closeM('m-avvisi'); return apriDecisione(a.id); }
   });
 });
@@ -422,7 +429,7 @@ Object.keys(TIPI_DECISIONE).forEach(function(tipo) {
     const r = mostraBarraAvvisoPrimaDecisioni.apply(this, arguments);
     const barra = ge('avviso-barra');
     const azioni = barra && barra.querySelector('.avb-azioni');
-    if (azioni && ROLE === 'titolare' && a && tipoDecisioneAvviso(a)) {
+    if (azioni && a && puoDecidereAvviso(a) && tipoDecisioneAvviso(a)) {
       const fatto = azioni.querySelector('.btn.p');
       if (fatto) fatto.remove();   // una decisione si approva o si rifiuta, con il motivo
       azioni.insertAdjacentHTML('afterbegin',
