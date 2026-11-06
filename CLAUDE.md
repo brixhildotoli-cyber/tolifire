@@ -673,7 +673,7 @@ bucket se vuoto; avvisi delle domande chiusi "annullato", non tolti;
 scadenze e righe nuove del motore tolte; le due righe di sql/64 tornano a
 1 giorno) provato: schema identico a prima. Senza sql/70 nessun riquadro,
 nessuna riga, nessun errore (smoke test TUTTO OK con e senza sql/70).
-Dopo sql/71 (F14.18 "Entra come" parte 2, DA ESEGUIRE, richiede 07, 47,
+Dopo sql/71 (F14.18 "Entra come" parte 2, ESEGUITO il 06/11, backup pre71, richiede 07, 47,
 67): nessuna tabella nuova; nessuna RPC nuova (il banner chiama ruolo_corrente);
 funzioni nuove utente_effettivo, agito_come_risolto; ridefinite
 ruolo_corrente, ruolo_reale, ruolo_effettivo, agito_come_utente,
@@ -748,7 +748,7 @@ solo dove filtra il database (rappresentante: trattative, progetti, impegni
 del team; segreteria: conteggi dei presidi; tecnico: un nome nel
 calendario). Guida titolare info-tit-21.
 "Entra come", parte 2 (F14.18, js/01 + style.css + index.html;
-sql/71-entra-come DA ESEGUIRE, serve "CONFERMATO DA TOLI: sql/71", richiede
+sql/71-entra-come ESEGUITO il 06/11 (backup pre71, controllo in regola), richiede
 07, 47, 67; 68 facoltativo; provato sul backup pre70 + sql/70 e il suo
 -REGISTRO-CANCELLAZIONI il 06/11). Sito: il client db di js/01 ha
 global.fetch = fetchConAgitoCome: mentre si è "come" OGNI richiesta
