@@ -227,7 +227,7 @@ e quando) e riassegnazioni_pratiche_righe (una riga per pratica spostata:
 tipo, tabella, id, colonna, descrizione); sola lettura del titolare, le
 scrive solo riassegna_pratiche, cancellazione bloccata dal
 -REGISTRO-CANCELLAZIONI. js/10 (nessun file js nuovo).
-Dopo sql/75 (F15.1 catalogo lavorazioni, DA ESEGUIRE (provato il 06/11 sul
+Dopo sql/75 (F15.1 catalogo lavorazioni, ESEGUITO il 06/11 con il -REGISTRO-CANCELLAZIONI, backup pre75 (provato il 06/11 sul
 backup pre74 + sql/74), richiede 07, 67, 71; poi il file
 -REGISTRO-CANCELLAZIONI dall'editor): lavorazioni (codice = famiglia delle
 schede, nome, famiglia, documento finale, descrizione, attiva, versione),
@@ -919,7 +919,7 @@ permessi TUTTO OK (20 righe nuove); smoke test TUTTO OK con e senza
 sql/74; rollback provato (schema identico; le pratiche spostate restano
 spostate). Senza sql/74: elenco Team come prima, nessun bottone, nessun
 errore.
-Dopo sql/75 (F15.1 catalogo lavorazioni in tabella, DA ESEGUIRE: backup, poi
+Dopo sql/75 (F15.1 catalogo lavorazioni in tabella, ESEGUITO il 06/11 (backup pre75, controllo in regola): backup, poi
 75-catalogo-lavorazioni-tabella.sql (senza parole di cancellazione, server
 MCP), poi 75-catalogo-lavorazioni-tabella-REGISTRO-CANCELLAZIONI.sql
 dall'editor, poi il controllo in fondo al 75; richiede 07, 67, 71, tutti in
