@@ -3204,9 +3204,16 @@ async function renderSchedeProgettoCommerciale(progettoId) {
             `
             : '<div class="empty">La scheda non contiene dati.</div>'
         }
+
+        <div id="pd-posizioni-${scheda.id}" style="margin-top:12px"></div>
       </div>
     `;
   }).join('');
+
+  // F15.2 (js/66, sql/76): posizioni P-xx di ogni scheda (nulla senza sql/76)
+  if (typeof disegnaPosizioniProgetto === 'function') {
+    await disegnaPosizioniProgetto(progettoId, ordinaSchedeRilievo(data));
+  }
 }
 
 // schedaId: la scheda precisa (con sql/48 ci possono essere più schede

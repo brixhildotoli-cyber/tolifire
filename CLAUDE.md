@@ -241,6 +241,19 @@ titolare (informatico) e ingegnere, nessuna cancellazione (Togli = attivo
 false), "attiva" la cambia solo il titolare (trigger); lavorazioni_registro
 (chi, quando, prima/dopo; lettura titolare e ingegnere, lo scrive solo il
 database, non si modifica né si cancella). js/55-catalogo-lavorazioni.js.
+Dopo sql/76 (F15.2 tabella posizioni, DA ESEGUIRE (preparato e provato il
+06/11 sul backup pre75 + sql/75), richiede 07, 48, 67, 71; poi il file
+-REGISTRO-CANCELLAZIONI dall'editor): progetti_tecnici_posizioni (posizioni
+P-xx dentro una scheda di rilievo: id fisso, progetto copiato dalla scheda,
+scheda_id, numero e codice P-xx dati dal database per PROGETTO e mai
+riusati, ubicazione, quantita, dati jsonb, foto jsonb = allegati del
+progetto, duplicata_da, tolta con chi/quando, chi/quando; progetto, scheda,
+numero e origine fissi). Lettura titolare e ingegnere tutte, rappresentante
+e commerciale come la scheda (sottoquery sotto le RLS delle schede);
+inserimento e modifica DIRETTI titolare, ingegnere e rappresentante sui
+suoi progetti in bozza o da integrare; nessuna cancellazione (Togli =
+tolta true); con il -REGISTRO-CANCELLAZIONI le posizioni seguono a cascata
+la scheda (elimina_scheda_rilievo) e il progetto. js/66-posizioni.js.
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -969,6 +982,50 @@ rifiutata); matrice dei permessi TUTTO OK (50 righe nuove); smoke test
 TUTTO OK con e senza sql/75; rollback provato (schema identico). Senza
 sql/75: elenco fisso e menu di js/18, riquadro "non ancora attivo",
 nessun bottone in Verifiche, nessun errore (una lettura 404 della tabella).
+Dopo sql/76 (F15.2 posizioni P-xx nelle schede di rilievo, DA ESEGUIRE:
+backup, poi 76-tabella-posizioni.sql (senza parole di cancellazione, server
+MCP), poi 76-tabella-posizioni-REGISTRO-CANCELLAZIONI.sql dall'editor
+(registro con le cancellazioni + chiavi esterne "a cascata" verso scheda e
+progetto: prima di questo file una scheda o un progetto CON posizioni non
+si eliminano, errore di chiave esterna), poi il controllo in fondo al 76;
+richiede 07, 48, 67, 71, tutti in produzione; non richiede 75). RPC
+duplica_posizione(p_posizione_id, p_copie 1-50) (SECURITY INVOKER: le copie
+nascono sotto le RLS di chi duplica; ubicazione, quantità e dati uguali,
+foto no; posizione tolta = rifiuto). Funzione interna
+trg_progetti_tecnici_posizioni_prima (progetto dalla scheda, numero = il più
+alto del progetto + 1 sotto pg_advisory_xact_lock per progetto, max 999,
+campi fissi, tolta con chi/quando, chi/quando con utente_effettivo()).
+Nel sito (js/66-posizioni.js): riquadro "📍 Posizioni" rsm-posizioni nella
+scheda di rilievo aperta (js/18 htmlBarraSchedeRilievo, solo con sql/48 e
+una scheda già salvata: prima "Salva la scheda per aggiungere le
+posizioni") e pd-posizioni-<id scheda> in ogni scheda del tab "📝 Rilievi
+tecnici" della scheda progetto (js/17 renderSchedeProgettoCommerciale,
+disegnaPosizioniProgetto); righe P-xx con ubicazione, quantità, misure,
+foto, campi del catalogo; "+ Aggiungi posizione", "✏️ Modifica", "⧉ Duplica"
+(finestra m-posizione-duplica, id posd-), "🗑️ Togli la posizione" /
+"↩️ Rimetti" (sotto "Tolte"), chi non scrive "👁 Apri". Finestra m-posizione
+(id pos-): ubicazione, quantità (con la virgola), larghezza e altezza in cm
+(dati.larghezza/dati.altezza, numeri), note (dati.note), i campi del
+catalogo segnati "per posizione" (sql/75, in dati.<codice>), foto con il
+metro (bucket progetti-tecnici <utente>/<progetto>/posizioni/, riga in
+progetti_tecnici_allegati, poi posizione.foto). Le posizioni si salvano
+subito, una per una (non con "Salva" della scheda). SCELTE DA CONFERMARE DA
+TOLI: numerazione P-xx per progetto (non per scheda); il rappresentante
+scrive solo con il progetto in bozza o da integrare, il commerciale mai;
+duplicando non si copiano le foto. Guide info-rap-25, info-ing-19,
+info-com-20, info-tit-26. Prove: sql/76-tabella-posizioni-PROVA.sql (solo
+database di prova, rollback: P-01 + 9 copie, misura della P-07, letture per
+ruolo, commerciale/tecnico/rappresentante fuori stato e titolare "come"
+commerciale rifiutati, rappresentante sul progetto da integrare e "Entra
+come", codice/scheda fissi, togli/rimetti, numero mai riusato, scheda
+eliminata a cascata); test/posizioni.spec.js (Chrome headless a 390 px:
+ingegnere P-01..P-10 con "⧉ Duplica" e P-07 a 120 cm; rappresentante in
+sola lettura e console rifiutata, poi con il progetto da integrare duplica;
+commerciale in sola lettura e console rifiutata; tecnico nessuna riga;
+POSIZIONI_SENZA_SQL=1 dopo il rollback); matrice dei permessi TUTTO OK
+anche con MATRICE_AGITO_COME=1 (10 righe nuove); smoke test TUTTO OK con e
+senza sql/76; rollback provato (schema identico). Senza sql/76: nessun
+riquadro, nessun errore (una lettura 404 della tabella).
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),

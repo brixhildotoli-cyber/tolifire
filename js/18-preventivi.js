@@ -905,6 +905,11 @@ function htmlBarraSchedeRilievo() {
   if (!numeri.includes(s.numero)) numeri.push(s.numero);
   numeri.sort(function(a, b) { return a - b; });
 
+  // F15.2 (js/66, sql/76): elenco delle posizioni P-xx della scheda, disegnato
+  // subito dopo la scheda (la funzione lo toglie se la tabella non c'è).
+  const posizioniNellaScheda = typeof disegnaPosizioniSchedaAperta === 'function';
+  if (posizioniNellaScheda) setTimeout(disegnaPosizioniSchedaAperta, 0);
+
   function nomeTab(n) {
     const bozza = s.bozze[n];
     if (bozza) return String(bozza.nome || '');
@@ -995,6 +1000,8 @@ function htmlBarraSchedeRilievo() {
         }
       </div>
     </div>
+
+    ${posizioniNellaScheda ? '<div class="card" id="rsm-posizioni" style="margin-bottom:16px;display:none"></div>' : ''}
   `;
 }
 
@@ -1172,7 +1179,7 @@ async function eliminaSchedaRilievo() {
   const ok = confirm(
     'Eliminare ' + etichettaFamigliaTecnica(s.famiglia) + ' – scheda ' + s.numero + nome + '?\n\n' +
     (salvata
-      ? 'I dati di questa scheda si perdono e non si possono recuperare. '
+      ? 'I dati di questa scheda (comprese le sue posizioni P-xx) si perdono e non si possono recuperare. '
       : 'La scheda non è mai stata salvata: si toglie e basta. ') +
     'Le altre schede restano.'
   );

@@ -3074,6 +3074,29 @@
       </div>
 
 
+      <h4 id="info-rap-25">25. 📍 Posizioni P-01, P-02...: dieci porte uguali in un minuto</h4>
+
+      <p>
+        Dentro ogni scheda di rilievo c'è l'elenco delle <b>📍 Posizioni</b>: una riga per ogni porta, attraversamento o elemento, con il suo codice (P-01, P-02...), dove si trova, la quantità, le misure, le note e le foto. La scheda resta per i dati comuni del piano o della zona.
+      </p>
+
+      <ul>
+        <li>Apri il progetto, tab <b>📝 Rilievi tecnici</b>: sotto ogni scheda trovi le posizioni.</li>
+        <li>Con il progetto <b>in bozza</b> o <b>da integrare</b> puoi scriverle tu: <b>+ Aggiungi posizione</b>, compili <b>Ubicazione</b>, <b>Quantità</b>, <b>Larghezza</b> e <b>Altezza</b> (cm), <b>💾 Salva posizione</b>.</li>
+        <li><b>⧉ Duplica</b> crea le copie uguali (da 1 a 50): poi apri con <b>✏️ Modifica</b> solo quella diversa.</li>
+        <li><b>📷 Aggiungi foto</b> (dopo il primo salvataggio): foto con il metro, finiscono anche tra i file del progetto.</li>
+        <li>Quando il progetto è passato all'ingegnere o al commerciale le vedi con <b>👁 Apri</b>, senza modificarle.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Dieci porte REI uguali al piano 1: <b>+ Aggiungi posizione</b> con 90 × 210 cm, <b>💾 Salva posizione</b> (nasce P-01), <b>⧉ Duplica</b> con 9 copie (P-02...P-10). La P-07 è larga 120: <b>✏️ Modifica</b> sulla P-07, Larghezza 120, <b>💾 Salva posizione</b>.
+      </div>
+
+      <div class="al2 w">
+        Il codice P-xx lo dà il gestionale e non cambia mai: una posizione sbagliata si toglie con <b>🗑️ Togli la posizione</b> (si può rimettere) e il suo codice non si riusa. Le posizioni si salvano subito, una per una. Finché il database non è aggiornato (sql/76) l'elenco non compare.
+      </div>
+
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -3535,6 +3558,23 @@
 
       <div class="al2 w">
         Finché il database non è aggiornato (sql/72) i pulsanti <b>↩️ Annulla</b> e <b>✏️ Chiedi correzione</b> non compaiono e si lavora come prima.
+      </div>
+
+
+      <h4 id="info-com-20">20. 📍 Posizioni P-01, P-02...: le righe dentro i rilievi</h4>
+
+      <p>
+        Nei rilievi tecnici del progetto (tab <b>📝 Rilievi tecnici</b>) ogni scheda può avere l'elenco delle <b>📍 Posizioni</b>: una riga per porta, attraversamento o elemento, con codice P-xx, ubicazione, quantità e misure. Ti servono per preparare richieste ai fornitori e preventivo voce per voce.
+      </p>
+
+      <ul>
+        <li>Le leggi con <b>👁 Apri</b> (misure, note, foto): le scrivono ingegnere, rappresentante e titolare, non tu.</li>
+        <li>Il codice P-xx non cambia mai: puoi citarlo nella richiesta al fornitore ("P-07: porta 120 × 210").</li>
+        <li>Se una misura non torna, chiedi con <b>❓ Fai una domanda</b> sul progetto.</li>
+      </ul>
+
+      <div class="al2 w">
+        Finché il database non è aggiornato (sql/76) l'elenco non compare.
       </div>
 
 
@@ -5312,6 +5352,27 @@
       </div>
 
 
+      <h4 id="info-tit-26">26. 📍 Posizioni P-01, P-02... nelle schede di rilievo</h4>
+
+      <p>
+        Ogni scheda di rilievo ha l'elenco delle <b>📍 Posizioni</b> (una porta, un attraversamento, una trave): codice P-xx dato dal gestionale e unico nel progetto, ubicazione, quantità, misure, note, foto. Lo trovi nella scheda aperta da <b>🔧 Verifiche</b> e nella scheda progetto, tab <b>📝 Rilievi tecnici</b>.
+      </p>
+
+      <ul>
+        <li>Scrivono titolare, ingegnere e il rappresentante del progetto (solo con il progetto <b>in bozza</b> o <b>da integrare</b>); il commerciale le legge; gli altri ruoli non le vedono. Lo impone il database, anche dalla console.</li>
+        <li><b>⧉ Duplica</b> crea fino a 50 copie in un colpo; <b>🗑️ Togli la posizione</b> la nasconde, niente cancellazioni (il codice non si riusa).</li>
+        <li>Ogni inserimento e modifica finisce nel registro delle azioni (chi, quando, cosa).</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Dieci porte uguali: P-01 e <b>⧉ Duplica</b> 9 copie (P-02...P-10); la P-07 più larga si corregge da sola con <b>✏️ Modifica</b>.
+      </div>
+
+      <div class="al2 w">
+        Eliminando una scheda (o il progetto) si tolgono anche le sue posizioni. Finché il database non è aggiornato (sql/76) l'elenco non compare.
+      </div>
+
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -6587,6 +6648,29 @@
       </div>
 
 
+      <h4 id="info-ing-19">19. 📍 Posizioni P-01, P-02... dentro la scheda di rilievo</h4>
+
+      <p>
+        Nella scheda di rilievo, sotto <b>Nome / riferimento della scheda</b>, c'è l'elenco delle <b>📍 Posizioni</b>: una riga per ogni porta, attraversamento o elemento, con codice P-xx, ubicazione, quantità, misure, note, foto e i campi del catalogo segnati <b>Per posizione</b>. I dati comuni del piano o della zona restano nella scheda.
+      </p>
+
+      <ul>
+        <li>La scheda nuova va prima salvata con <b>Salva</b>: poi compare <b>+ Aggiungi posizione</b>.</li>
+        <li><b>⧉ Duplica</b>: scrivi quante copie (da 1 a 50); nascono uguali (ubicazione, quantità, misure e dati, senza foto) con i codici in fila.</li>
+        <li><b>✏️ Modifica</b> per cambiare una sola posizione; <b>🗑️ Togli la posizione</b> la nasconde (si rimette con <b>↩️ Rimetti</b> da "Tolte").</li>
+        <li>Le posizioni si salvano subito, una per una: non serve premere <b>Salva</b> della scheda.</li>
+        <li>Le stesse posizioni le vedi anche nella scheda progetto, tab <b>📝 Rilievi tecnici</b>.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Porte e portoni REI, scheda "Piano 1": P-01 da 90 × 210 cm, <b>⧉ Duplica</b> 9 copie, poi <b>✏️ Modifica</b> sulla P-07 e larghezza 120. Il commerciale e il rappresentante vedono le dieci righe con la P-07 diversa.
+      </div>
+
+      <div class="al2 w">
+        Eliminando una scheda si eliminano anche le sue posizioni. Il codice P-xx è unico in tutto il progetto e non si riusa. Finché il database non è aggiornato (sql/76) l'elenco non compare.
+      </div>
+
+
       <h4>Checklist veloce prima di chiudere la giornata</h4>
 
       <ul>
@@ -7506,6 +7590,53 @@
     <div style="font-size:12px;color:var(--m);margin-bottom:8px">Le ultime 300 modifiche: chi, quando, valore prima e dopo, motivo. Comprende le soglie cambiate da “Soglie e tariffe”.</div>
     <div id="mrr-elenco" style="max-height:60vh;overflow:auto"></div>
     <div class="ma"><button class="btn" onclick="closeM('m-registro-regole')">Chiudi</button></div>
+  </div>
+</div>
+
+<!-- F15.2 — POSIZIONI P-xx DELLE SCHEDE DI RILIEVO (js/66-posizioni.js, sql/76) -->
+<div class="mbg" id="m-posizione">
+  <div class="modal" style="max-width:560px">
+    <div class="mh"><span id="pos-titolo">Posizione</span><button class="mx" onclick="closeM('m-posizione')">✕</button></div>
+    <div id="pos-codice-info" style="font-size:12px;color:var(--m);margin:-8px 0 10px"></div>
+    <div class="fr">
+      <div class="f"><label for="pos-ubicazione">Ubicazione / riferimento</label><input id="pos-ubicazione" maxlength="120" placeholder="Es. Corridoio piano 1, locale caldaia"></div>
+      <div class="f"><label for="pos-quantita">Quantità *</label><input id="pos-quantita" inputmode="decimal" placeholder="Es. 1"></div>
+    </div>
+    <div class="fr">
+      <div class="f"><label for="pos-larghezza">Larghezza (cm)</label><input id="pos-larghezza" inputmode="decimal" placeholder="Es. 90"></div>
+      <div class="f"><label for="pos-altezza">Altezza (cm)</label><input id="pos-altezza" inputmode="decimal" placeholder="Es. 210"></div>
+    </div>
+    <div id="pos-campi" class="fr" style="flex-wrap:wrap"></div>
+    <div class="f"><label for="pos-note">Note della posizione</label><textarea id="pos-note" rows="2" maxlength="1000" placeholder="Es. verso di apertura diverso, maniglione da sostituire"></textarea></div>
+    <div class="f">
+      <label>Foto (con il metro)</label>
+      <div id="pos-foto"></div>
+      <div id="pos-foto-riga" style="margin-top:6px">
+        <label class="btn sm" style="display:inline-block;cursor:pointer">📷 Aggiungi foto
+          <input type="file" accept="image/jpeg,image/png" capture="environment" multiple style="display:none" onchange="caricaFotoPosizione(this)">
+        </label>
+        <span style="font-size:11px;color:var(--m)">Le foto vanno anche tra i file del progetto.</span>
+      </div>
+      <div id="pos-foto-nuova-info" style="font-size:12px;color:var(--m)">Le foto si aggiungono dopo aver salvato la posizione.</div>
+    </div>
+    <div class="ma">
+      <button class="btn" type="button" id="pos-togli" style="margin-right:auto" onclick="togliPosizione()">🗑️ Togli la posizione</button>
+      <button class="btn" onclick="closeM('m-posizione')">Annulla</button>
+      <button class="btn p" type="button" id="pos-salva" onclick="salvaPosizione()">💾 Salva posizione</button>
+    </div>
+  </div>
+</div>
+
+<div class="mbg" id="m-posizione-duplica">
+  <div class="modal" style="max-width:440px">
+    <div class="mh"><span id="posd-titolo">⧉ Duplica</span><button class="mx" onclick="closeM('m-posizione-duplica')">✕</button></div>
+    <div id="posd-info" style="font-size:13px;margin-bottom:10px"></div>
+    <div class="f"><label for="posd-copie">Quante copie? (da 1 a 50)</label><input id="posd-copie" type="number" min="1" max="50" step="1" value="1" onkeydown="if(event.key==='Enter'){event.preventDefault();duplicaPosizione();}"></div>
+    <div style="font-size:12px;color:var(--m)">Esempio: 10 porte uguali = P-01 e 9 copie.</div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-posizione-duplica')">Annulla</button>
+      <button class="btn p" type="button" id="posd-conferma" onclick="duplicaPosizione()">⧉ Duplica</button>
+    </div>
   </div>
 </div>
 
@@ -9612,6 +9743,7 @@
 <script defer src="js/63-scheda-oggetto.js?v=202611061637"></script>
 <script defer src="js/64-annulla-correzione.js?v=202611061637"></script>
 <script defer src="js/65-deleghe-titolare.js?v=202611061637"></script>
+<script defer src="js/66-posizioni.js?v=202611061637"></script>
 <script defer src="js/19-init.js?v=202611061637"></script>
 
 
