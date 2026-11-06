@@ -339,12 +339,13 @@ async function opzioniScheda(s, progettoId, apri, idSelect) {
     const etich = await t.page.evaluate(() => etichettaFamigliaTecnica('coppelle') + '|' + etichettaFamigliaTecnica('famiglia_sconosciuta'));
     if (etich !== 'Coppelle antincendio|Famiglia Sconosciuta') KO('1: etichettaFamigliaTecnica non legge la tabella: ' + etich);
     else righe.push('   etichettaFamigliaTecnica: prima la tabella ("Coppelle antincendio"), poi l\'elenco fisso');
-    // spegne e riaccende
+    // spegne e riaccende (conta solo le righe nuove: il registro non si cancella mai)
+    const regPrima = psql("select coalesce(max(id), 0) from public.lavorazioni_registro");
     await t.page.click('#cl-attiva-btn');
     await attendiQuiete(t.stato, 1000);
     await t.page.click('#cl-attiva-btn');
     await attendiQuiete(t.stato, 1000);
-    const att = psql("select string_agg(azione, ',' order by id) from public.lavorazioni_registro where lavorazione_id = (select id from public.lavorazioni where codice = 'coppelle') and azione in ('attivata','disattivata')");
+    const att = psql("select string_agg(azione, ',' order by id) from public.lavorazioni_registro where lavorazione_id = (select id from public.lavorazioni where codice = 'coppelle') and azione in ('attivata','disattivata') and id > " + regPrima);
     if (att !== 'disattivata,attivata' || psql("select attiva from public.lavorazioni where codice = 'coppelle'") !== 't') KO('1: spegni/riaccendi del titolare non registrati: ' + att);
     else righe.push('   il titolare spegne e riaccende Coppelle (registro: disattivata, attivata)');
     await chiudi(t);
