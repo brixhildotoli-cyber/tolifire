@@ -3097,6 +3097,30 @@
       </div>
 
 
+      <h4 id="info-rap-26">26. 📝 Compilare tu la scheda di rilievo dal telefono</h4>
+
+      <p>
+        Dal cliente, con il telefono, compili tu la scheda della lavorazione (per esempio <b>Porte e portoni REI</b>): menu chiusi, unità già scritte accanto ai numeri (cm, mm, pz), luogo dei lavori e referente già presi dalla scheda del cliente. L'ingegnere la trova pronta.
+      </p>
+
+      <ul>
+        <li>Apri il progetto (in <b>bozza</b> o <b>da integrare</b>), tab <b>📝 Rilievi tecnici</b>: in cima c'è <b>📝 Compila una scheda di rilievo</b>. Scegli la <b>Lavorazione</b> e premi <b>📝 Compila la scheda</b>.</li>
+        <li><b>Tipo di richiesta</b>: <b>Definitiva</b> se hai misurato e verificato tutto; <b>Indicativa</b> se il cliente non conosce ancora alcuni dati. Solo nell'indicativa puoi scegliere <b>❓ Non noto</b> (nei menu) o spuntare <b>❓ Non noto</b> accanto a un numero.</li>
+        <li><b>Luogo dei lavori e referente</b>: sede, indirizzo, referente e telefono arrivano dalla scheda del cliente; se sul posto è diverso, correggili.</li>
+        <li>I dati con <b>*</b> servono a calcolare il preventivo: compilali sempre. Gli altri sono facoltativi. I campi con <b>🎓</b> li compila l'ingegnere: tu li vedi e basta.</li>
+        <li>Numeri con la virgola (92,5). <b>💾 Salva scheda</b> salva; la scheda resta aperta e puoi aggiungere le <b>📍 Posizioni</b> o una <b>+ Nuova scheda</b> (per esempio una per piano), come le tab di un file Excel.</li>
+        <li>Quando il progetto passa all'ingegnere la scheda non la modifichi più: la vedi nel tab <b>📝 Rilievi tecnici</b>.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Due porte REI 60 al piano terra: <b>Lavorazione</b> Porte e portoni REI → <b>📝 Compila la scheda</b> → Tipo di intervento "Fornitura e posa", Resistenza "REI 60", Tipologia "Battente singolo", Quantità 2, Larghezza 90 cm, Altezza 210 cm → <b>💾 Salva scheda</b>. Il cliente non sa il verso di apertura? Scegli <b>Indicativa</b> e nel menu <b>❓ Non noto</b>.
+      </div>
+
+      <div class="al2 w">
+        Se dopo il salvataggio compare "Per il preventivo mancano: ...", la scheda è salvata ma quei dati vanno completati. Finché il database non è aggiornato (sql/77) il riquadro <b>📝 Compila una scheda di rilievo</b> non compare e le schede le compila l'ingegnere, come prima.
+      </div>
+
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -6671,6 +6695,29 @@
       </div>
 
 
+      <h4 id="info-ing-20">20. 📝 Schede disegnate dal catalogo: quelle del rappresentante</h4>
+
+      <p>
+        Il rappresentante compila dal telefono la scheda della lavorazione disegnata dal <b>📚 Catalogo lavorazioni</b> (prima la porte REI): menu e unità sono quelli del catalogo, i dati finiscono nella stessa scheda che apri tu dalla <b>Verifica tecnica</b> (stesse voci, stesse tab Scheda 1, Scheda 2...).
+      </p>
+
+      <ul>
+        <li>La trovi già compilata quando il progetto ti arriva: <b>🚪 Compila porte REI</b> (o la scheda del tipo) nella verifica tecnica, oppure nella scheda progetto, tab <b>📝 Rilievi tecnici</b>.</li>
+        <li>Anche tu puoi usarla: tab <b>📝 Rilievi tecnici</b> → <b>📝 Compila una scheda di rilievo</b> → <b>Lavorazione</b> → <b>📝 Compila la scheda</b>. Per te i campi <b>🎓</b> (livello ingegnere, es. "Indicazioni per preventivo e posa") sono modificabili; per il rappresentante sono in sola lettura.</li>
+        <li><b>Tipo di richiesta</b> <b>Indicativa</b>: alcuni dati possono essere "Non noto (da chiedere al cliente)"; vanno chiariti prima del preventivo definitivo.</li>
+        <li>In più trovi <b>Indirizzo dei lavori</b>, <b>Referente sul posto</b> e <b>Telefono del referente</b>, presi dalla scheda del cliente.</li>
+        <li>Quale dato è obbligatorio (<b>*</b>, solo quelli che servono al preventivo), quale è di livello ingegnere, unità e minimo/massimo si cambiano dal <b>📚 Catalogo lavorazioni</b>.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Il rappresentante salva "Porte REI – scheda 1 (Piano terra)" con 2 porte 90 × 210 cm, verso di apertura "Non noto". Tu apri la stessa scheda dalla verifica tecnica, scrivi le indicazioni per il preventivo e salvi: i dati del rappresentante (anche indirizzo e referente) restano.
+      </div>
+
+      <div class="al2 i">
+        Salvando una scheda (anche quella scritta a mano) i dati che il tuo modulo non mostra restano com'erano: nessuna scheda cancella quelli dell'altra. Finché il database non è aggiornato (sql/77) il rappresentante non compila le schede.
+      </div>
+
+
       <h4>Checklist veloce prima di chiudere la giornata</h4>
 
       <ul>
@@ -9744,6 +9791,7 @@
 <script defer src="js/64-annulla-correzione.js?v=202611061637"></script>
 <script defer src="js/65-deleghe-titolare.js?v=202611061637"></script>
 <script defer src="js/66-posizioni.js?v=202611061637"></script>
+<script defer src="js/56-motore-schede.js?v=202611061637"></script>
 <script defer src="js/19-init.js?v=202611061637"></script>
 
 

@@ -493,6 +493,10 @@ function selectPreventivo(label, id, valore, opzioni) {
     label = dalCatalogo.label;
     opzioni = dalCatalogo.opzioni;
   }
+  // F15.3: "non noto" della richiesta indicativa (motore delle schede, js/56)
+  opzioni = opzioni.map(function(o) {
+    return o.value === 'non_noto' ? { value: o.value, label: '❓ Non noto (da chiedere al cliente)' } : o;
+  });
   return `
     <div class="f">
       <label>${label}</label>
@@ -593,10 +597,18 @@ function etichettaCampoTecnico(campo) {
     note_posa: 'Forature, ripristini e note posa',
     collaudo: 'Collaudo e chiusura',
     manutenzione: 'Dati manutenzione',
-    note_calcolo: 'Note interne per il calcolo'
+    note_calcolo: 'Note interne per il calcolo',
+    // F15.3: dati scritti dal motore delle schede (js/56)
+    tipo_richiesta: 'Tipo di richiesta',
+    indirizzo_lavori: 'Indirizzo dei lavori',
+    referente_lavori: 'Referente sul posto',
+    telefono_referente: 'Telefono del referente'
   };
 
-  return etichette[campo] ||
+  // F15.3: le chiavi che non sono qui prendono il nome dal catalogo (js/56), se c'è
+  const daCatalogo = !etichette[campo] && typeof etichettaCampoCatalogo === 'function' ? etichettaCampoCatalogo(campo) : '';
+
+  return etichette[campo] || daCatalogo ||
     String(campo)
       .replace(/_/g, ' ')
       .replace(/\b\w/g, function(lettera) {
@@ -611,6 +623,9 @@ function valoreSchedaTecnica(valore) {
 
   if (valore === 'si') return 'Sì';
   if (valore === 'no') return 'No';
+  // F15.3: "non noto" della richiesta indicativa e numeri del motore delle schede (js/56)
+  if (valore === 'non_noto') return 'Non noto (da chiedere al cliente)';
+  if (typeof valore === 'number') return valore.toLocaleString('it-IT', { maximumFractionDigits: 3 });
 
   if (Array.isArray(valore)) {
     if (!valore.length) return '—';
@@ -693,7 +708,20 @@ function titoloSchedaRilievo(scheda, schede, quanteStesse) {
 
 // Il nome della scheda va nel titolo, non tra i campi.
 function campoSchedaDaElencare(chiave) {
-  return chiave !== 'nome_scheda';
+  // F15.3: sede_id (motore delle schede) serve solo a riproporre la sede
+  return chiave !== 'nome_scheda' && chiave !== 'sede_id';
+}
+
+// F15.3: salvando, i dati della scheda che il modulo aperto non ha (scritti
+// da un'altra scheda, per esempio dal motore delle schede di js/56, o da un
+// campo aggiunto dopo) restano com'erano: nessuna scheda cancella i dati
+// dell'altra. Il nome della scheda lo decide la barra delle schede.
+function conservaDatiFuoriModulo(datiNuovi, datiSalvati) {
+  const dati = Object.assign({}, datiNuovi || {});
+  Object.keys(datiSalvati || {}).forEach(function(chiave) {
+    if (chiave !== 'nome_scheda' && !(chiave in dati)) dati[chiave] = datiSalvati[chiave];
+  });
+  return dati;
 }
 
 // Con sql/48: tipi nell'ordine di oggi (il più recente prima), dentro lo
@@ -750,6 +778,7 @@ async function leggiSchedaRilievo(famiglia, numeroRichiesto) {
       elenco: null,
       bozze: {},
       nomeOriginale: String((data && data.dati && data.dati.nome_scheda) || ''),
+      datiOriginali: (data && data.dati) || {},
       modificata: false
     };
     return { dati: (data && data.dati) || {} };
@@ -1074,6 +1103,9 @@ async function salvaRigaSchedaRilievo(riga) {
     if (s && s.nomeOriginale && riga.dati && !riga.dati.nome_scheda) {
       riga.dati.nome_scheda = s.nomeOriginale;
     }
+    if (s && s.famiglia === riga.famiglia && s.datiOriginali) {
+      riga.dati = conservaDatiFuoriModulo(riga.dati, s.datiOriginali);
+    }
     return db
       .from('progetti_tecnici_schede')
       .upsert(riga, { onConflict: 'progetto_tecnico_id,famiglia' });
@@ -1092,7 +1124,8 @@ async function salvaRigaSchedaRilievo(riga) {
 
   for (const numero of numeri) {
     const bozza = s.bozze[numero];
-    const dati = Object.assign({}, bozza.dati);
+    const salvataPrima = rigaSalvataSchedaRilievo(numero);
+    const dati = conservaDatiFuoriModulo(bozza.dati, salvataPrima && salvataPrima.dati);
     if (bozza.nome) {
       dati.nome_scheda = bozza.nome;
     } else {

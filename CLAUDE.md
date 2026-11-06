@@ -254,6 +254,14 @@ inserimento e modifica DIRETTI titolare, ingegnere e rappresentante sui
 suoi progetti in bozza o da integrare; nessuna cancellazione (Togli =
 tolta true); con il -REGISTRO-CANCELLAZIONI le posizioni seguono a cascata
 la scheda (elimina_scheda_rilievo) e il progetto. js/66-posizioni.js.
+Dopo sql/77 (F15.3 motore delle schede, 1a, DA ESEGUIRE, richiede 07, 48,
+71, 75; preparato e provato il 06/11 sul backup pre76 + sql/76): nessuna
+tabella nuova. progetti_tecnici_schede: due policy NUOVE
+progetti_tecnici_schede_inserimento_rappresentante e _modifica_rappresentante
+(il rappresentante inserisce e modifica le schede dei SUOI progetti in bozza
+o da integrare; le policy di prima non cambiano; nessuna cancellazione).
+lavorazioni_campi: 9 campi della porte REI (stessi codici della scheda di
+js/18) e obbligatori i 6 dati del prezzo (D2). js/56-motore-schede.js.
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -1026,6 +1034,63 @@ POSIZIONI_SENZA_SQL=1 dopo il rollback); matrice dei permessi TUTTO OK
 anche con MATRICE_AGITO_COME=1 (10 righe nuove); smoke test TUTTO OK con e
 senza sql/76; rollback provato (schema identico). Senza sql/76: nessun
 riquadro, nessun errore (una lettura 404 della tabella).
+Dopo sql/77 (F15.3 motore delle schede, parte 1a: disegno e salvataggio,
+DA ESEGUIRE: backup, poi 77-motore-schede.sql (senza parole di
+cancellazione, server MCP), poi il controllo in fondo; nessun file
+-REGISTRO-CANCELLAZIONI (nessuna tabella nuova); richiede 07, 48, 71, 75,
+tutti in produzione; non richiede 76). RPC motore_schede_attivo() (true:
+il sito sa che il 77 c'è; execute solo authenticated). Policy nuove su
+progetti_tecnici_schede: il rappresentante inserisce e modifica le schede
+dei suoi progetti (rappresentante_id = utente_effettivo()) in bozza o da
+integrare (ruolo_corrente(), valgono con "Entra come"); gli altri ruoli
+come prima (tecnico, segreteria, commerciale in inserimento, altro
+rappresentante, progetto inviato all'ingegnere: rifiutati dal database).
+Catalogo (dati): porte_rei + quantita (pz, 1-500), larghezza e altezza (cm,
+60-300), colore, spessore_parete (mm), note_vano, piano, logistica,
+note_tecniche (livello ingegnere); obbligatori tipo_intervento, rei,
+tipologia, quantita, larghezza, altezza (D2). NIENTE controlli nel database
+su livello ingegnere, plausibilità e obbligatori: sono F15.4 (1b). Nel sito
+(js/56-motore-schede.js, caricato dopo js/66 e prima di js/19): riquadro
+"📝 Compila una scheda di rilievo" (msm-apri, in cima al tab "📝 Rilievi
+tecnici" della scheda progetto, avvolgendo renderSchedeProgettoCommerciale;
+rappresentante sui suoi progetti in bozza/da integrare, ingegnere e
+titolare sempre): scelta della lavorazione (attive con campi), "📝 Compila
+la scheda" (apriSchedaMotore) disegna nella finestra m-rilievo-tecnico
+(#msm-motore, id msm-c-<codice>) dai lavorazioni_campi attivi, non "per
+posizione", non foto: menu CHIUSI (valori del catalogo, valore salvato
+fuori elenco = "non più in elenco"), numeri con la virgola e unità accanto,
+Sì/No, testi; "Tipo di richiesta" Definitiva/Indicativa (dati.tipo_richiesta):
+"❓ Non noto" (valore 'non_noto') SOLO nell'indicativa (opzione nei menu,
+casella per numeri e testi brevi); campi livello ingegnere disabilitati per
+il rappresentante (il valore salvato resta); * sugli obbligatori (non
+bloccano: dopo il salvataggio "Per il preventivo mancano: ..."); "Luogo dei
+lavori e referente" precompilati (sede principale o unica del cliente, se
+no indirizzo del cliente; referente e telefono dall'anagrafica):
+dati.sede_id (non elencato), indirizzo_lavori, referente_lavori,
+telefono_referente. Tab, nome, bozze in memoria, "+ Nuova scheda",
+conferma alla chiusura e posizioni = quelle di js/18 (avvolte
+datiFormSchedaRilievo e apriFamigliaSchedaRilievo solo con #msm-motore
+nella finestra). js/18: etichettaCampoTecnico (nomi delle chiavi del
+motore e, per le chiavi non in elenco, il nome del catalogo se unico:
+etichettaCampoCatalogo), valoreSchedaTecnica ('non_noto' = "Non noto (da
+chiedere al cliente)", numeri con la virgola), campoSchedaDaElencare (non
+sede_id), conservaDatiFuoriModulo in salvaRigaSchedaRilievo: salvando
+(anche le 7 schede scritte a mano) le chiavi dei dati salvati che il
+modulo non ha restano (nessuna scheda cancella i dati dell'altra; il nome
+della scheda escluso). Guide info-rap-26, info-ing-20. SCELTE DA
+CONFERMARE DA TOLI: rappresentante solo in bozza/da integrare; quali campi
+porte REI obbligatori e di livello ingegnere; policy senza limite di
+colonne (dati_commerciali scrivibile da console dal rappresentante sui
+suoi progetti in bozza: F15.4). Prove: sql/77-motore-schede-PROVA.sql
+(solo database di prova, rollback); test/motore-schede.spec.js (Chrome
+headless a 390 px: rappresentante compila porte REI, scheda 2 con i tab,
+salva, riapre con gli stessi dati, scheda progetto, console del
+rappresentante e del tecnico rifiutata, ingegnere con la scheda di js/18
+che conserva i dati del motore; MOTORE_SENZA_SQL=1 dopo il rollback);
+matrice dei permessi TUTTO OK (nota nella riga del rappresentante); smoke
+test TUTTO OK con e senza sql/77; rollback provato (schema identico; i 9
+campi diventano "tolti", gli obbligatori tornano come prima). Senza sql/77:
+nessun riquadro, nessun errore (una chiamata RPC 404).
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),

@@ -123,3 +123,17 @@ commessa, progetto e cliente con il riquadro comune per titolare,
 commerciale, rappresentante, segreteria e capo tecnico. Crea avvisi di
 prova nel database locale. Esito `TUTTO OK` (uscita 0) o `FALLITO`.
 `SMOKE_ENV_FILE=<file>` per leggere indirizzo e segreto da un altro file.
+
+## Motore delle schede (F15.3)
+
+`node motore-schede.spec.js` (database locale avviato come sopra, con
+sql/77): il rappresentante, a 390 px, compila sul suo progetto in bozza la
+scheda Porte e portoni REI disegnata dal catalogo (menu chiusi, unità,
+"non noto" solo nell'indicativa, campo 🎓 in sola lettura, luogo e
+referente precompilati da una sede di prova), crea la scheda 2 passando tra
+i tab, salva, riapre con gli stessi dati; la scheda progetto legge i dati;
+console del rappresentante (progetto in verifica tecnica) e del tecnico
+rifiutate; l'ingegnere apre e salva la scheda scritta a mano di js/18 e i
+dati del motore restano. Dopo il ROLLBACK di sql/77:
+`MOTORE_SENZA_SQL=1 node motore-schede.spec.js` (nessun riquadro, scheda a
+mano come prima). Alla fine toglie schede e sede di prova (solo locale).
