@@ -227,6 +227,20 @@ e quando) e riassegnazioni_pratiche_righe (una riga per pratica spostata:
 tipo, tabella, id, colonna, descrizione); sola lettura del titolare, le
 scrive solo riassegna_pratiche, cancellazione bloccata dal
 -REGISTRO-CANCELLAZIONI. js/10 (nessun file js nuovo).
+Dopo sql/75 (F15.1 catalogo lavorazioni, DA ESEGUIRE (provato il 06/11 sul
+backup pre74 + sql/74), richiede 07, 67, 71; poi il file
+-REGISTRO-CANCELLAZIONI dall'editor): lavorazioni (codice = famiglia delle
+schede, nome, famiglia, documento finale, descrizione, attiva, versione),
+lavorazioni_campi (codice, etichetta, tipo numero/menu/si_no/testo/foto,
+unità, valori ammessi, min/max plausibili, livello base/ingegnere,
+normativo, obbligatorio, per posizione, uso a valle obbligatorio, ordine,
+attivo), lavorazioni_documenti (foto, documenti, video obbligatori e
+quanti), lavorazioni_checklist (punti di posa, foto di posa): lettura per
+tutti gli utenti attivi, inserimento e modifica DIRETTI dal sito solo
+titolare (informatico) e ingegnere, nessuna cancellazione (Togli = attivo
+false), "attiva" la cambia solo il titolare (trigger); lavorazioni_registro
+(chi, quando, prima/dopo; lettura titolare e ingegnere, lo scrive solo il
+database, non si modifica né si cancella). js/55-catalogo-lavorazioni.js.
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -905,6 +919,56 @@ permessi TUTTO OK (20 righe nuove); smoke test TUTTO OK con e senza
 sql/74; rollback provato (schema identico; le pratiche spostate restano
 spostate). Senza sql/74: elenco Team come prima, nessun bottone, nessun
 errore.
+Dopo sql/75 (F15.1 catalogo lavorazioni in tabella, DA ESEGUIRE: backup, poi
+75-catalogo-lavorazioni-tabella.sql (senza parole di cancellazione, server
+MCP), poi 75-catalogo-lavorazioni-tabella-REGISTRO-CANCELLAZIONI.sql
+dall'editor, poi il controllo in fondo al 75; richiede 07, 67, 71, tutti in
+produzione). Nessuna RPC: il sito scrive con insert/update diretti sotto
+RLS. Funzioni interne: lavorazioni_chi(), trg_lavorazioni_prima (ruolo:
+solo titolare e ingegnere anche dentro il database; "attiva" solo titolare,
+anche "Entra come" ingegnere = rifiuto 42501; codici della lavorazione e del
+campo e lavorazione di una riga fissi; valori del menu
+[{"valore","etichetta"}] senza doppioni; uso a valle obbligatorio; chi e
+quando; versione +1 per salvataggio), trg_lavorazioni_dopo (registro con
+prima/dopo per colonna, azioni creata, modificata, attivata, disattivata,
+tolta, rimessa; versione della lavorazione quando cambia una sua riga),
+lavorazioni_registro_immutabile. Fuori dal sito (editor, nessun utente) i
+limiti di ruolo non valgono. Dati di partenza: le 11 voci di
+etichettaFamigliaTecnica (7 schede attive; comune, manutenzione porte REI,
+progettazione, formazione spente) e i 48 menu delle 7 schede di js/18 con
+gli stessi valori (uso a valle generico "da precisare dall'ingegnere"); gli
+altri campi arrivano con F15.10 (import) e F15.6-F15.7. Nel sito
+(js/55-catalogo-lavorazioni.js; stesso numero 55 di
+js/55-storico-esegui-intervento.js, nome dato dalla task): etichettaFamigliaTecnica
+(js/18) legge prima nomeLavorazioneCatalogo poi l'elenco fisso;
+selectPreventivo (js/18) chiede adattaMenuSchedaCatalogo (id = prefisso
+della scheda pr, es, ri, cp, vi, co, is + codice del campo con "-": etichetta
+e valori dal catalogo, il valore salvato e tolto resta "(non più in
+elenco)"); il catalogo si rilegge prima di aprire una scheda
+(leggiSchedaRilievo avvolta, 60 s). Pagina: finestra m-catalogo-lavorazioni
+(id cl-: lavorazione, ✅ Attiva / ⏸ Disattiva solo titolare, dati, campi,
+foto e documenti, checklist, registro) e m-campo-lavorazione (id clc-:
+valori del menu con ➕ Aggiungi al menu, ↑, ✖), aperta da Impostazioni >
+"📚 Catalogo lavorazioni" (si-catalogo-lav-card, loadImp di js/10) e dal
+bottone vt-catalogo-btn nella pagina Verifiche tecniche (titolare e
+ingegnere; loadVerificheTecniche avvolta). SCELTE DA CONFERMARE DA TOLI:
+documento finale e famiglia delle 11 lavorazioni; il menu "tipo servizio"
+delle sigillature è il menu "Intervento" della Compartimentazione (non c'è
+una scheda Sigillature a sé); lettura del catalogo per tutti gli utenti
+attivi; le formule dei prezzi non sono nel catalogo. Guide info-tit-25,
+info-ing-18. Prove: sql/75-catalogo-lavorazioni-tabella-PROVA.sql (solo
+database di prova, rollback: titolare aggiunge un valore al menu,
+ingegnere modifica campi ma non attiva, nemmeno creando, titolare "come"
+ingegnere rifiutato, commerciale e rappresentante rifiutati o zero righe,
+cancellazioni e scrittura del registro rifiutate, codici fissi, controlli
+dei valori); test/catalogo-lavorazioni.spec.js (Chrome headless: titolare
+aggiunge "Sigillatura di canaline" e lo vede nella scheda, nome dalla
+tabella, spegni/riaccendi; ingegnere a 390 px aggiunge "EI 240" alle
+Coppelle e la console gli rifiuta l'attivazione; console del commerciale
+rifiutata); matrice dei permessi TUTTO OK (50 righe nuove); smoke test
+TUTTO OK con e senza sql/75; rollback provato (schema identico). Senza
+sql/75: elenco fisso e menu di js/18, riquadro "non ancora attivo",
+nessun bottone in Verifiche, nessun errore (una lettura 404 della tabella).
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),

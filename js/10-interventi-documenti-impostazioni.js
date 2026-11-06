@@ -314,6 +314,8 @@ async function loadImp(){
   if(ge('si-motore-card')){if(ROLE!=='titolare')ge('si-motore-card').style.display='none';else if(typeof mostraMotoreAzioniImpostazioni==='function')mostraMotoreAzioniImpostazioni().catch(e=>console.warn('Stati e azioni:',e));}
   // F14.20: deleghe del titolare e sue assenze (solo titolare; senza sql/73 "non ancora attive", js/65)
   if(ge('si-deleghe-card')){if(ROLE!=='titolare')ge('si-deleghe-card').style.display='none';else if(typeof mostraDelegheImpostazioni==='function')mostraDelegheImpostazioni().catch(e=>console.warn('Deleghe:',e));}
+  // F15.1: catalogo lavorazioni (solo titolare qui; l'ingegnere lo apre da Verifiche tecniche; senza sql/75 "non ancora attivo", js/55)
+  if(ge('si-catalogo-lav-card')){if(ROLE!=='titolare')ge('si-catalogo-lav-card').style.display='none';else if(typeof mostraCatalogoLavorazioniImpostazioni==='function')mostraCatalogoLavorazioniImpostazioni().catch(e=>console.warn('Catalogo lavorazioni:',e));}
   // #nc (nome azienda nella barra) non esiste più dal commit 865b6ba: resta solo il titolo della scheda.
   if(data.ragione_sociale){const nc=ge('nc');if(nc)nc.textContent=data.ragione_sociale.split(' ')[0];document.title=data.ragione_sociale+' — Gestionale';}
   const fs=['ragione_sociale','indirizzo','cap','citta','piva','telefono','email'];const is=['si1','si2','si3','si4','si5','si6','si7'];

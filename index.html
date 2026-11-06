@@ -1510,6 +1510,7 @@
       <h2>🔧 Verifiche tecniche</h2>
       <p>Progetti inviati all’ingegnere per valutazione tecnica</p>
     </div>
+    <button class="btn" type="button" id="vt-catalogo-btn" style="display:none" onclick="apriCatalogoLavorazioni()">📚 Catalogo lavorazioni</button>
   </div>
 
   <div id="verifiche-tecniche-lista">
@@ -2503,6 +2504,16 @@
       <div style="font-size:13px;font-weight:600;margin:16px 0 6px">📒 Registro delle deleghe <span id="si-deleghe-registro-conta" style="font-weight:400;color:var(--m)"></span></div>
       <div id="si-deleghe-registro" style="max-height:320px;overflow:auto"></div>
     </div>
+  </div>
+  <!-- F15.1 — CATALOGO LAVORAZIONI (js/55-catalogo-lavorazioni.js, sql/75): solo titolare qui; l'ingegnere da Verifiche tecniche -->
+  <div class="card" id="si-catalogo-lav-card" style="margin-top:14px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:13px;font-weight:600">📚 Catalogo lavorazioni</div>
+      <button class="btn sm" title="Rileggi" onclick="mostraCatalogoLavorazioniImpostazioni()">↻</button>
+    </div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Le lavorazioni delle schede di rilievo (porte REI, estintori, compartimentazione e sigillature, vernice, coppelle, impianti...): nome, famiglia, documento finale, campi con i valori dei menu, foto e documenti obbligatori, checklist di posa. Tu e l'ingegnere correggete campi e menu; <b>attivare o spegnere</b> una lavorazione lo puoi fare solo tu. Ogni modifica resta nel registro.</div>
+    <div class="al2 i" id="si-catalogo-lav-stato"></div>
+    <button class="btn p" type="button" id="si-catalogo-lav-apri" style="display:none" onclick="apriCatalogoLavorazioni()">📚 Apri il catalogo</button>
   </div>
 </div>
 </div>
@@ -5276,6 +5287,30 @@
         Avvisi, domande e interventi della persona non si spostano da qui (gli interventi di un tecnico si riassegnano dal box delle assenze). Finché il database non è aggiornato (sql/74) l'elenco Team è come prima e il bottone non c'è.
       </div>
 
+      <h4 id="info-tit-25">25. 📚 Catalogo lavorazioni: aggiungere un valore a un menu delle schede</h4>
+
+      <p>
+        Le lavorazioni delle schede di rilievo (porte REI, estintori, compartimentazione e sigillature, vernice intumescente, coppelle, rilevazione incendi, impianti di spegnimento) non sono più scritte solo nel programma: stanno nel catalogo, che correggete tu e l'ingegnere.
+      </p>
+
+      <ul>
+        <li>Vai in <b>Impostazioni › 📚 Catalogo lavorazioni</b> e premi <b>📚 Apri il catalogo</b>. In cima scegli la <b>Lavorazione</b>.</li>
+        <li>In <b>Campi della scheda</b> premi <b>✏️ Modifica</b> sul menu da cambiare: scrivi il <b>Nuovo valore</b>, premi <b>➕ Aggiungi al menu</b> e poi <b>💾 Salva campo</b>. Aprendo la scheda il valore c'è già (per gli altri entro un minuto).</li>
+        <li>Puoi cambiare l'etichetta di un valore o toglierlo (✖): nelle schede già salvate il valore tolto resta scritto con "(non più in elenco)".</li>
+        <li><b>➕ Aggiungi campo</b>: etichetta, tipo (numero, menu, sì/no, testo breve, foto), unità, minimo e massimo plausibili, chi lo compila, dato normativo, obbligatorio, per posizione e l'<b>Uso a valle</b> (obbligatorio: quale calcolo o documento lo usa). Oggi le schede prendono dal catalogo solo i menu che hanno già; i campi nuovi li userà il motore delle schede.</li>
+        <li>Per ogni lavorazione anche <b>Foto e documenti obbligatori</b> (quanti, per posizione) e la <b>Checklist di posa</b>.</li>
+        <li><b>✅ Attiva</b> / <b>⏸ Disattiva</b>: solo tu. L'ingegnere può creare una lavorazione nuova, ma nasce spenta finché non la attivi.</li>
+        <li>In fondo il <b>📒 Registro delle modifiche</b>: chi, quando, prima e dopo.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Il venditore chiede di poter scegliere "Sigillatura di canaline" tra i servizi delle sigillature. Apri il catalogo, scegli <b>Compartimentazione</b>, <b>✏️ Modifica</b> su <b>Intervento</b>, scrivi "Sigillatura di canaline", <b>➕ Aggiungi al menu</b>, <b>💾 Salva campo</b>. Aprendo la scheda Compartimentazione di un progetto, nel menu <b>Intervento</b> c'è il valore nuovo.
+      </div>
+
+      <div class="al2 w">
+        Le righe non si cancellano: <b>🗑️ Togli</b> le nasconde e si possono rimettere. I codici (della lavorazione e del campo) non si cambiano: li usano le schede salvate. Finché il database non è aggiornato (sql/75) il riquadro dice "non ancora attivo" e nomi e menu delle schede restano quelli di sempre.
+      </div>
+
 
       <h4>Regole pratiche</h4>
 
@@ -6529,6 +6564,28 @@
         Finché il database non è aggiornato (sql/72) i pulsanti <b>↩️ Annulla</b> e <b>✏️ Chiedi correzione</b> non compaiono e si lavora come prima.
       </div>
 
+      <h4 id="info-ing-18">18. 📚 Catalogo lavorazioni: correggere campi e menu delle schede</h4>
+
+      <p>
+        Campi, menu, foto obbligatorie e checklist di posa delle lavorazioni stanno nel catalogo: li correggi tu, senza aspettare una modifica del programma.
+      </p>
+
+      <ul>
+        <li>Nella pagina <b>🔧 Verifiche</b> premi <b>📚 Catalogo lavorazioni</b> e scegli la <b>Lavorazione</b>.</li>
+        <li>Per un menu: <b>✏️ Modifica</b>, <b>Nuovo valore</b>, <b>➕ Aggiungi al menu</b>, <b>💾 Salva campo</b>. La scheda lo mostra alla prossima apertura.</li>
+        <li><b>➕ Aggiungi campo</b>: scrivi sempre l'<b>Uso a valle</b> (quale calcolo o documento usa il dato) e segna <b>Dato normativo</b> per classi, minuti di resistenza al fuoco e simili.</li>
+        <li><b>Foto e documenti obbligatori</b> e <b>Checklist di posa</b>: una riga per cosa serve, con <b>💾</b> per salvare e <b>🗑️ Togli</b> per nascondere.</li>
+        <li><b>➕ Nuova lavorazione…</b> la crea <b>spenta</b>: la attiva il titolare quando è pronta. Attivare o spegnere non è tra i tuoi permessi, nemmeno dal database.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Nella scheda Coppelle serve la classe "EI 240". <b>✏️ Modifica</b> su <b>Classe di resistenza al fuoco</b>, aggiungi "EI 240", <b>💾 Salva campo</b>: dal prossimo rilievo il valore si può scegliere, e nel registro resta scritto che l'hai aggiunto tu.
+      </div>
+
+      <div class="al2 w">
+        Le formule dei prezzi non sono nel catalogo e non si toccano da qui. Finché il database non è aggiornato (sql/75) il bottone non compare.
+      </div>
+
 
       <h4>Checklist veloce prima di chiudere la giornata</h4>
 
@@ -7449,6 +7506,61 @@
     <div style="font-size:12px;color:var(--m);margin-bottom:8px">Le ultime 300 modifiche: chi, quando, valore prima e dopo, motivo. Comprende le soglie cambiate da “Soglie e tariffe”.</div>
     <div id="mrr-elenco" style="max-height:60vh;overflow:auto"></div>
     <div class="ma"><button class="btn" onclick="closeM('m-registro-regole')">Chiudi</button></div>
+  </div>
+</div>
+
+<!-- F15.1 — CATALOGO LAVORAZIONI (js/55-catalogo-lavorazioni.js, sql/75): titolare e ingegnere -->
+<div class="mbg" id="m-catalogo-lavorazioni">
+  <div class="modal" style="max-width:760px">
+    <button class="x" onclick="closeM('m-catalogo-lavorazioni')">×</button>
+    <h3>📚 Catalogo lavorazioni</h3>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Scegli la lavorazione e correggi i suoi dati, i campi (con i valori dei menu), le foto e i documenti obbligatori e la checklist di posa. Ogni modifica resta nel registro qui sotto, con chi e quando. Le righe non si cancellano: <b>🗑️ Togli</b> le nasconde e si possono rimettere.</div>
+    <div id="cl-contenuto"></div>
+    <div class="ma"><button class="btn" onclick="closeM('m-catalogo-lavorazioni')">Chiudi</button></div>
+  </div>
+</div>
+
+<!-- F15.1 — CAMPO DI UNA LAVORAZIONE (js/55 apriCampoLavorazione): dopo m-catalogo-lavorazioni, così resta sopra -->
+<div class="mbg" id="m-campo-lavorazione">
+  <div class="modal" style="max-width:560px">
+    <button class="x" onclick="closeM('m-campo-lavorazione')">×</button>
+    <h3 id="clc-titolo">Campo</h3>
+    <div class="fr">
+      <div class="f"><label>Etichetta *</label><input id="clc-etichetta" maxlength="160" oninput="codiceCampoDaEtichettaLav()" placeholder="Es. Tipo di servizio"></div>
+      <div class="f"><label>Codice (non si cambia più) *</label><input id="clc-codice" maxlength="41" oninput="this.dataset.toccato='1'" placeholder="Es. tipo_servizio"></div>
+    </div>
+    <div class="fr">
+      <div class="f"><label>Tipo *</label><select id="clc-tipo" onchange="aggiornaTipoCampoLav()"></select></div>
+      <div class="f"><label>Unità di misura</label><input id="clc-unita" maxlength="20" placeholder="Es. m², ml, pz, mm"></div>
+    </div>
+    <div id="clc-box-menu">
+      <label style="font-size:12px;font-weight:600">Valori del menu *</label>
+      <div id="clc-valori" style="margin:4px 0"></div>
+      <div style="display:flex;gap:6px;align-items:flex-end">
+        <div class="f" style="flex:1 1 auto;margin:0"><label>Nuovo valore</label><input id="clc-nuovo-valore" maxlength="120" placeholder="Es. Sigillatura di canaline" onkeydown="if(event.key==='Enter'){event.preventDefault();aggiungiValoreCampoLav();}"></div>
+        <button class="btn sm" type="button" onclick="aggiungiValoreCampoLav()">➕ Aggiungi al menu</button>
+      </div>
+      <div style="font-size:11px;color:var(--m);margin-top:4px">Il testo grigio è il valore salvato nelle schede: non si cambia, cambia solo l'etichetta. Un valore tolto resta visibile nelle schede già salvate.</div>
+    </div>
+    <div class="fr" id="clc-box-numero">
+      <div class="f"><label>Minimo plausibile</label><input id="clc-min" inputmode="decimal" placeholder="Es. 0,5"></div>
+      <div class="f"><label>Massimo plausibile</label><input id="clc-max" inputmode="decimal" placeholder="Es. 500"></div>
+    </div>
+    <div class="fr">
+      <div class="f"><label>Chi lo compila</label><select id="clc-livello"><option value="base">Base (venditore)</option><option value="ingegnere">Ingegnere</option></select></div>
+      <div class="f"><label>Ordine</label><input id="clc-ordine" type="number" min="0" max="9999"></div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;margin:4px 0 8px">
+      <label style="display:flex;gap:6px;align-items:center;font-size:13px;font-weight:400"><input type="checkbox" id="clc-normativo" style="width:auto"> Dato normativo</label>
+      <label style="display:flex;gap:6px;align-items:center;font-size:13px;font-weight:400"><input type="checkbox" id="clc-obbligatorio" style="width:auto"> Obbligatorio</label>
+      <label style="display:flex;gap:6px;align-items:center;font-size:13px;font-weight:400"><input type="checkbox" id="clc-posizione" style="width:auto"> Per posizione (P-01, P-02...)</label>
+    </div>
+    <div class="f"><label>Uso a valle * (quale calcolo o documento lo usa)</label><textarea id="clc-uso" rows="2" maxlength="500" placeholder="Es. Quantità per il preventivo; dichiarazione di corretta posa"></textarea></div>
+    <div class="ma">
+      <button class="btn" type="button" id="clc-togli" style="margin-right:auto" onclick="togliCampoLavorazione()">🗑️ Togli il campo</button>
+      <button class="btn" onclick="closeM('m-campo-lavorazione')">Annulla</button>
+      <button class="btn p" type="button" id="clc-salva" onclick="salvaCampoLavorazione()">💾 Salva campo</button>
+    </div>
   </div>
 </div>
 
@@ -9489,6 +9601,7 @@
 <script defer src="js/53-lavori-extra-rappresentante.js?v=202611061551"></script>
 <script defer src="js/54-recupero-contratti.js?v=202611061551"></script>
 <script defer src="js/55-storico-esegui-intervento.js?v=202611061551"></script>
+<script defer src="js/55-catalogo-lavorazioni.js?v=202611061551"></script>
 <script defer src="js/56-festivita-giorni-lavorativi.js?v=202611061551"></script>
 <script defer src="js/57-motore-scadenze.js?v=202611061551"></script>
 <script defer src="js/58-avvisi.js?v=202611061551"></script>

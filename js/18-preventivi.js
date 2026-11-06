@@ -487,6 +487,12 @@ function areaPreventivo(label, id, valore = '', placeholder = '') {
 }
 
 function selectPreventivo(label, id, valore, opzioni) {
+  // F15.1: etichetta e valori del menu dal catalogo lavorazioni (js/55, sql/75), se c'è
+  if (typeof adattaMenuSchedaCatalogo === 'function') {
+    const dalCatalogo = adattaMenuSchedaCatalogo(label, id, valore, opzioni);
+    label = dalCatalogo.label;
+    opzioni = dalCatalogo.opzioni;
+  }
   return `
     <div class="f">
       <label>${label}</label>
@@ -507,6 +513,10 @@ function selectPreventivo(label, id, valore, opzioni) {
 }
 
 function etichettaFamigliaTecnica(famiglia) {
+  // F15.1: prima il nome nel catalogo lavorazioni (js/55, sql/75), poi l'elenco fisso
+  const daCatalogo = typeof nomeLavorazioneCatalogo === 'function' ? nomeLavorazioneCatalogo(famiglia) : '';
+  if (daCatalogo) return daCatalogo;
+
   const etichette = {
     comune: 'Blocco comune',
     porte_rei: 'Porte e portoni REI',
