@@ -241,7 +241,7 @@ titolare (informatico) e ingegnere, nessuna cancellazione (Togli = attivo
 false), "attiva" la cambia solo il titolare (trigger); lavorazioni_registro
 (chi, quando, prima/dopo; lettura titolare e ingegnere, lo scrive solo il
 database, non si modifica né si cancella). js/55-catalogo-lavorazioni.js.
-Dopo sql/76 (F15.2 tabella posizioni, DA ESEGUIRE (preparato e provato il
+Dopo sql/76 (F15.2 tabella posizioni, ESEGUITO il 06/11 con il -REGISTRO-CANCELLAZIONI, backup pre76 (preparato e provato il
 06/11 sul backup pre75 + sql/75), richiede 07, 48, 67, 71; poi il file
 -REGISTRO-CANCELLAZIONI dall'editor): progetti_tecnici_posizioni (posizioni
 P-xx dentro una scheda di rilievo: id fisso, progetto copiato dalla scheda,
@@ -982,7 +982,7 @@ rifiutata); matrice dei permessi TUTTO OK (50 righe nuove); smoke test
 TUTTO OK con e senza sql/75; rollback provato (schema identico). Senza
 sql/75: elenco fisso e menu di js/18, riquadro "non ancora attivo",
 nessun bottone in Verifiche, nessun errore (una lettura 404 della tabella).
-Dopo sql/76 (F15.2 posizioni P-xx nelle schede di rilievo, DA ESEGUIRE:
+Dopo sql/76 (F15.2 posizioni P-xx nelle schede di rilievo, ESEGUITO il 06/11 (backup pre76, controllo in regola):
 backup, poi 76-tabella-posizioni.sql (senza parole di cancellazione, server
 MCP), poi 76-tabella-posizioni-REGISTRO-CANCELLAZIONI.sql dall'editor
 (registro con le cancellazioni + chiavi esterne "a cascata" verso scheda e
