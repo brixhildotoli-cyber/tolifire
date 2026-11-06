@@ -738,7 +738,14 @@ anche_chiuso). Pulsanti in: finestra 🔔 Avvisi con "Anche i chiusi" (js/58),
 finestra dell'oggetto del motore e oggetti di prova (js/61), scheda comune
 per gli oggetti del motore (js/63), scheda del presidio "Ultimo esito
 registrato da te" (js/07, msp-annulla). REGOLE_PREDEFINITE di js/01 con le
-2 regole nuove. Guide: info-tit-22, seg-23, con-14, ct-25, tec-21, com-19,
+2 regole nuove. LIMITI (controllo del 06/11): annullando un'azione del
+motore quello che ha fatto la sua funzione_dopo (azione_dopo_*) NON si
+disfa: un modulo con funzione_dopo deve prevedere da sé come tornare
+indietro; giornale di cantiere: solo la parte del database
+(annullabile_giornale), nessun pulsante in js/35 (lo scrivono capo
+tecnico e titolare, che lo correggono da soli); sull'avviso
+correzione_richiesta il titolare non ha "✖ Annulla" (si chiude dalla
+finestra della correzione). Guide: info-tit-22, seg-23, con-14, ct-25, tec-21, com-19,
 rap-24, ing-17. Prove: sql/72-annulla-richiesta-correzione-tutti-PROVA.sql
 (solo database di prova, rollback: tecnico annulla entro 24 h, altro
 tecnico no, dopo 25 h correzione al capo tecnico con scadenza 1 g lav.,

@@ -338,7 +338,7 @@ function htmlAvviso(a) {
     });
     // F14.19: le richieste di correzione si chiudono dalla loro finestra (js/64)
     if (!tipo.senzaFatto) azioni.push('<button type="button" class="btn sm p" onclick="chiudiAvviso(' + Number(a.id) + ',\'fatto\')">✓ Fatto</button>');
-    if (ROLE === 'titolare') azioni.push('<button type="button" class="btn sm" onclick="chiudiAvviso(' + Number(a.id) + ',\'annulla\')">✖ Annulla</button>');
+    if (ROLE === 'titolare' && !tipo.senzaFatto) azioni.push('<button type="button" class="btn sm" onclick="chiudiAvviso(' + Number(a.id) + ',\'annulla\')">✖ Annulla</button>');
   } else if (a.stato === 'fatto' && typeof segnapostoAnnulla === 'function') {
     // F14.19: chi l'ha chiuso a mano lo riapre (↩️ Annulla, 24 h) o chiede la correzione
     (AZIONI_RAPIDE_AVVISO[a.tipo] || []).forEach(function(az, i) {
