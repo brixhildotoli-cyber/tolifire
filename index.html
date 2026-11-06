@@ -5253,6 +5253,30 @@
       </div>
 
 
+      <h4 id="info-tit-24">24. 🔀 Riassegna le pratiche: quando qualcuno esce o cambia zona</h4>
+
+      <p>
+        Quando un venditore se ne va, o gli togli una zona, i suoi clienti e i lavori aperti non devono restare senza nessuno. Con una sola operazione li sposti a un collega e resta scritto chi, quando, perché e quali pratiche.
+      </p>
+
+      <ul>
+        <li>Vai in <b>Impostazioni › Team</b>. Sotto lo stato di ogni persona vedi quante <b>pratiche aperte</b> ha a suo nome: clienti, trattative aperte, progetti tecnici aperti, preventivi aperti, commesse aperte.</li>
+        <li>Premi <b>🔀 Riassegna</b>: scegli <b>Quali pratiche</b> (tutte già spuntate), <b>A chi</b> e il <b>Motivo</b>, poi <b>🔀 Sposta le pratiche</b>. Prima di confermare leggi cosa si sposta e cosa resta.</li>
+        <li>Clienti, trattative, progetti, preventivi e commesse del venditore vanno a un <b>Rappresentante</b> (o a te); i preventivi seguiti dagli acquisti vanno a un <b>Commerciale</b> (o a te). Quello che la persona scelta non può ricevere resta dov'è e te lo dice: lo sposti con un'altra riassegnazione.</li>
+        <li>Si spostano solo le pratiche <b>aperte</b>: i preventivi accettati o rifiutati, i progetti archiviati, le commesse chiuse e le trattative vinte o perse restano a chi le ha seguite, così lo storico non cambia.</li>
+        <li><b>Uscita di una persona</b>: <b>⏸️ Disattiva</b> toglie subito l'accesso. Se ha ancora pratiche aperte il gestionale te lo dice, apre la riassegnazione e nell'elenco la persona risulta <b>Uscita da completare</b>; diventa <b>✓ Uscita completata</b> solo quando non ha più pratiche a suo nome.</li>
+        <li>In fondo alla finestra il <b>📒 Ultime riassegnazioni</b>: chi le ha spostate, quando, il motivo e, con <b>▸ Cosa è stato spostato</b>, l'elenco di ogni cliente, preventivo, progetto e commessa.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Mario lascia l'azienda: ha 8 clienti, 4 trattative, 4 progetti, 3 preventivi e 1 commessa aperta. Premi <b>⏸️ Disattiva</b>: Mario non entra più, il gestionale ti avvisa delle 20 pratiche e apre la riassegnazione. Scegli Giulio (Rappresentante), scrivi "Uscita di Mario" e premi <b>🔀 Sposta le pratiche</b>: le 20 pratiche passano a Giulio in un colpo solo e Mario risulta "Uscita completata".
+      </div>
+
+      <div class="al2 w">
+        Avvisi, domande e interventi della persona non si spostano da qui (gli interventi di un tecnico si riassegnano dal box delle assenze). Finché il database non è aggiornato (sql/74) l'elenco Team è come prima e il bottone non c'è.
+      </div>
+
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -9161,6 +9185,48 @@
       <button class="btn" id="asz-togli" style="color:var(--r);display:none" onclick="togliAssenzaPersonaleDaFinestra()">Togli l'assenza</button>
       <button class="btn p" id="asz-salva" onclick="salvaAssenzaPersonale()">🚫 Segna assente</button>
     </div>
+  </div>
+</div>
+
+<!-- F14.21 — RIASSEGNAZIONE DELLE PRATICHE (js/10 apriRiassegnaPratiche, sql/74): solo titolare -->
+<div class="mbg" id="m-riassegna-pratiche">
+  <div class="modal" style="max-width:560px">
+    <div class="mh">
+      <span>🔀 Riassegna le pratiche</span>
+      <button class="x" onclick="closeM('m-riassegna-pratiche')">×</button>
+    </div>
+
+    <div class="f">
+      <label>Pratiche aperte di</label>
+      <div id="rpr-da" style="font-weight:700"></div>
+    </div>
+
+    <div class="f">
+      <label>Quali pratiche</label>
+      <div id="rpr-tipi"></div>
+      <div style="font-size:11px;color:var(--m);margin-top:4px">Si spostano solo le pratiche aperte: preventivi accettati o rifiutati, progetti archiviati, commesse chiuse e trattative vinte o perse restano a chi le ha seguite.</div>
+    </div>
+
+    <div class="f">
+      <label>A chi *</label>
+      <select id="rpr-a" onchange="anteprimaRiassegnaPratiche()"></select>
+      <div style="font-size:11px;color:var(--m);margin-top:4px">Clienti, trattative, progetti, preventivi e commesse del venditore vanno a un Rappresentante (o a te); i preventivi seguiti dagli acquisti a un Commerciale (o a te).</div>
+    </div>
+
+    <div class="f">
+      <label>Motivo *</label>
+      <input id="rpr-motivo" maxlength="300" placeholder="es. Uscita di Mario Rossi, clienti della zona Pisa a Giulio">
+    </div>
+
+    <div id="rpr-anteprima"></div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+      <button class="btn" onclick="closeM('m-riassegna-pratiche')">Chiudi</button>
+      <button class="btn p" id="rpr-sposta" onclick="salvaRiassegnaPratiche()">🔀 Sposta le pratiche</button>
+    </div>
+
+    <div style="font-size:13px;font-weight:600;margin:16px 0 6px">📒 Ultime riassegnazioni</div>
+    <div id="rpr-registro"></div>
   </div>
 </div>
 

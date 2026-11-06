@@ -87,10 +87,178 @@ async function loadUS(){
 }
 
 async function toggleAttivoUtente(id, attivoAttuale) {
+  // F14.21: chi esce con pratiche aperte a suo nome perde subito l'accesso,
+  // ma la sua uscita resta "da completare" finché non le riassegni (sql/74)
+  var pr = attivoAttuale && RIASSEGNA.disponibili ? RIASSEGNA.pratiche[id] : null;
+  if(pr && pr.totale > 0 && !confirm(nomeUtenteRiassegna(id) + ' ha ' + pr.totale + ' pratiche aperte a suo nome (' + testoPraticheAperte(pr) + ').\n\n' +
+     'L\'accesso si toglie subito, ma l\'uscita resta "da completare" finché non sposti le sue pratiche a un collega.\n\nDisattivo e apro la riassegnazione?')) return;
   var r = await db.from('utenti').update({attivo: !attivoAttuale}).eq('id', id);
   if(r.error) { toast('Errore: '+r.error.message,'err'); return; }
   toast(attivoAttuale ? 'Utente disattivato' : 'Utente riattivato', 'ok');
-  loadTeam(); loadUS();
+  await loadTeam(); loadUS();
+  if(pr && pr.totale > 0) apriRiassegnaPratiche(id);
+}
+
+// ── F14.21 — RIASSEGNAZIONE DELLE PRATICHE (sql/74, solo titolare) ──
+// Nell'elenco Team: quante pratiche aperte ha ogni persona (clienti,
+// trattative, progetti, preventivi, commesse), "🔀 Riassegna" e lo stato
+// dell'uscita di chi è disattivato ("Uscita da completare" finché restano
+// pratiche, poi "Uscita completata"). Finestra m-riassegna-pratiche (id
+// rpr-): a chi, quali tipi, motivo, anteprima di cosa si sposta e cosa resta
+// (le pratiche del venditore vanno a un rappresentante o al titolare, quelle
+// degli acquisti a un commerciale o al titolare), registro delle ultime
+// riassegnazioni. Il database ricontrolla tutto (riassegna_pratiche).
+// Senza sql/74: elenco Team come prima, nessun bottone, nessun errore.
+const RIASSEGNA = { disponibili: null, tipi: [], pratiche: {}, utenti: [], da: null, righe: [] };
+const RUOLI_RICEVONO_PRATICHE = { venditore: ['rappresentante', 'titolare'], acquisti: ['commerciale', 'titolare'] };
+
+async function caricaPraticheAperteTeam() {
+  RIASSEGNA.pratiche = {};
+  if (ROLE !== 'titolare') { RIASSEGNA.disponibili = null; return; }
+  try {
+    const [tipi, pr] = await Promise.all([db.rpc('tipi_riassegnazione_pratiche'), db.rpc('pratiche_aperte_utenti')]);
+    if (tipi.error || pr.error) { RIASSEGNA.disponibili = false; return; }
+    RIASSEGNA.disponibili = true;
+    RIASSEGNA.tipi = (tipi.data || []).sort(function(a, b) { return a.ordine - b.ordine; });
+    (pr.data || []).forEach(function(r) {
+      const p = RIASSEGNA.pratiche[r.utente_id] || (RIASSEGNA.pratiche[r.utente_id] = { totale: 0, tipi: {} });
+      p.totale += Number(r.n) || 0;
+      p.tipi[r.tipo] = (p.tipi[r.tipo] || 0) + (Number(r.n) || 0);
+    });
+  } catch (e) { RIASSEGNA.disponibili = false; }
+}
+
+function nomeTipoPratica(tipo) {
+  const t = (RIASSEGNA.tipi || []).find(function(x) { return x.tipo === tipo; });
+  return t ? t.nome.toLowerCase() : tipo;
+}
+
+function testoPraticheAperte(pr) {
+  return (RIASSEGNA.tipi || []).filter(function(t) { return pr.tipi[t.tipo]; })
+    .map(function(t) { return pr.tipi[t.tipo] + ' ' + t.nome.toLowerCase(); }).join(', ');
+}
+
+function nomeUtenteRiassegna(id) {
+  const u = (RIASSEGNA.utenti || []).find(function(x) { return x.id === id; });
+  return u ? ((u.nome || '') + ' ' + (u.cognome || '')).trim() : 'Questa persona';
+}
+
+function statoUtenteTeam(u) {
+  const pr = RIASSEGNA.disponibili ? RIASSEGNA.pratiche[u.id] : null;
+  if (u.attivo) {
+    return '<span class="bx bok">Attivo</span>' + (pr ? '<div style="font-size:11px;color:var(--m);margin-top:3px">' + pr.totale + ' pratiche aperte</div>' : '');
+  }
+  if (!RIASSEGNA.disponibili) return '<span class="bx bgray">Inattivo</span>';
+  return pr
+    ? '<span class="bx berr">Uscita da completare</span><div style="font-size:11px;color:var(--r);margin-top:3px">' + pr.totale + ' pratiche aperte a suo nome: riassegnale</div>'
+    : '<span class="bx bgray">Inattivo</span><div style="font-size:11px;color:var(--m);margin-top:3px">✓ Uscita completata</div>';
+}
+
+async function apriRiassegnaPratiche(id) {
+  if (!RIASSEGNA.disponibili) { toast('La riassegnazione delle pratiche non è ancora attiva (sql/74)', 'err'); return; }
+  RIASSEGNA.da = id;
+  ge('rpr-da').textContent = nomeUtenteRiassegna(id);
+  ge('rpr-motivo').value = '';
+  ge('rpr-tipi').innerHTML = '<div class="load">Caricamento...</div>';
+  ge('rpr-anteprima').innerHTML = '';
+  ge('rpr-registro').innerHTML = '';
+  const u = (RIASSEGNA.utenti || []).find(function(x) { return x.id === id; });
+  if (u && u.attivo === false) ge('rpr-motivo').value = 'Uscita di ' + nomeUtenteRiassegna(id);
+  const persone = (RIASSEGNA.utenti || []).filter(function(x) {
+    return x.id !== id && x.attivo !== false && ['rappresentante', 'commerciale', 'titolare'].includes(x.ruolo);
+  });
+  ge('rpr-a').innerHTML = '<option value="">— scegli —</option>' + persone.map(function(x) {
+    return '<option value="' + esc(x.id) + '">' + esc(((x.nome || '') + ' ' + (x.cognome || '')).trim()) + ' · ' + esc(etichettaRuolo(x.ruolo)) + '</option>';
+  }).join('');
+  openM('m-riassegna-pratiche');
+  const [pr, reg] = await Promise.all([
+    db.rpc('pratiche_aperte_utente', { p_utente: id }),
+    db.from('riassegnazioni_pratiche').select('*').or('da_utente_id.eq.' + id + ',a_utente_id.eq.' + id).order('fatta_il', { ascending: false }).limit(10)
+  ]);
+  if (pr.error) { ge('rpr-tipi').innerHTML = '<div class="al2 e">Pratiche non lette: ' + esc(pr.error.message) + '</div>'; return; }
+  RIASSEGNA.righe = (pr.data || []).filter(function(r) { return Number(r.n) > 0; });
+  const perTipo = {};
+  RIASSEGNA.righe.forEach(function(r) { perTipo[r.tipo] = (perTipo[r.tipo] || 0) + Number(r.n); });
+  const conPratiche = RIASSEGNA.tipi.filter(function(t) { return perTipo[t.tipo]; });
+  ge('rpr-tipi').innerHTML = conPratiche.length
+    ? conPratiche.map(function(t) {
+        return '<label style="display:flex;gap:8px;align-items:center;font-weight:400;margin:4px 0"><input type="checkbox" class="rpr-tipo" value="' + esc(t.tipo) + '" checked style="width:auto" onchange="anteprimaRiassegnaPratiche()"> ' +
+          esc(t.icona + ' ' + t.nome) + ': <b>' + perTipo[t.tipo] + '</b></label>';
+      }).join('')
+    : '<div class="al2 i">Nessuna pratica aperta a nome di questa persona.' + (u && u.attivo === false ? ' La sua uscita è completata.' : '') + '</div>';
+  ge('rpr-sposta').disabled = !conPratiche.length;
+  anteprimaRiassegnaPratiche();
+  disegnaRegistroRiassegnazioni(reg.error ? [] : (reg.data || []), id);
+}
+
+function anteprimaRiassegnaPratiche() {
+  const box = ge('rpr-anteprima');
+  const aId = v('rpr-a');
+  const a = (RIASSEGNA.utenti || []).find(function(x) { return x.id === aId; });
+  const scelti = Array.from(document.querySelectorAll('.rpr-tipo:checked')).map(function(c) { return c.value; });
+  if (!a || !scelti.length) { box.innerHTML = ''; return; }
+  let sposta = 0, resta = 0;
+  const restano = {};
+  RIASSEGNA.righe.filter(function(r) { return scelti.includes(r.tipo); }).forEach(function(r) {
+    if ((RUOLI_RICEVONO_PRATICHE[r.gruppo] || []).includes(a.ruolo)) sposta += Number(r.n);
+    else { resta += Number(r.n); restano[r.tipo] = (restano[r.tipo] || 0) + Number(r.n); }
+  });
+  const nomeA = ((a.nome || '') + ' ' + (a.cognome || '')).trim();
+  box.innerHTML = (sposta
+      ? '<div class="al2 i" style="margin:0 0 8px">Si spostano <b>' + sposta + '</b> pratiche a <b>' + esc(nomeA) + '</b>, in una sola operazione.</div>'
+      : '<div class="al2 e" style="margin:0 0 8px">Nessuna di queste pratiche può andare a ' + esc(nomeA) + ' (' + esc(etichettaRuolo(a.ruolo)) + ').</div>') +
+    (resta
+      ? '<div class="al2 w" style="margin:0 0 8px">Restano <b>' + resta + '</b> pratiche (' + esc(Object.keys(restano).map(function(t) { return restano[t] + ' ' + nomeTipoPratica(t); }).join(', ')) +
+        '): sono di un altro ruolo (venditore → Rappresentante; acquisti → Commerciale). Spostale con un\'altra riassegnazione.</div>'
+      : '');
+  ge('rpr-sposta').disabled = !sposta;
+}
+
+function disegnaRegistroRiassegnazioni(righe, id) {
+  const box = ge('rpr-registro');
+  if (!righe.length) { box.innerHTML = '<div style="font-size:12px;color:var(--m)">Nessuna riassegnazione registrata per questa persona.</div>'; return; }
+  box.innerHTML = righe.map(function(r) {
+    const c = r.conteggi || {};
+    const conteggi = (RIASSEGNA.tipi || []).filter(function(t) { return c[t.tipo]; })
+      .map(function(t) { return c[t.tipo] + ' ' + t.nome.toLowerCase(); }).join(', ');
+    return '<div style="padding:5px 0;border-bottom:1px solid var(--bo);font-size:12px;overflow-wrap:anywhere">' +
+      '<b>' + esc(new Date(r.fatta_il).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })) + '</b> · ' +
+      esc(r.da_nome || '') + ' → ' + esc(r.a_nome || '') + ' · <b>' + Number(r.totale) + '</b> pratiche' + (conteggi ? ' (' + esc(conteggi) + ')' : '') +
+      '<div style="color:var(--m)">' + esc(r.motivo || '') + (r.fatta_da_nome ? ' · da ' + esc(r.fatta_da_nome) : '') + '</div>' +
+      '<button class="btn sm" type="button" style="margin-top:4px" onclick="mostraRigheRiassegnazione(' + Number(r.id) + ', this)">▸ Cosa è stato spostato</button>' +
+      '<div id="rpr-righe-' + Number(r.id) + '"></div></div>';
+  }).join('');
+}
+
+async function mostraRigheRiassegnazione(idRiass, btn) {
+  const box = ge('rpr-righe-' + idRiass);
+  if (box.innerHTML) { box.innerHTML = ''; btn.textContent = '▸ Cosa è stato spostato'; return; }
+  const { data, error } = await db.from('riassegnazioni_pratiche_righe').select('tipo, descrizione, colonna').eq('riassegnazione_id', idRiass).order('id').limit(1000);
+  if (error) { box.innerHTML = '<div class="al2 e">' + esc(error.message) + '</div>'; return; }
+  btn.textContent = '▾ Nascondi';
+  box.innerHTML = '<ul style="margin:4px 0 0 16px;padding:0">' + (data || []).map(function(x) {
+    return '<li>' + esc(nomeTipoPratica(x.tipo)) + ': ' + esc(x.descrizione || '') + (x.colonna === 'commerciale_id' ? ' <span style="color:var(--m)">(acquisti)</span>' : '') + '</li>';
+  }).join('') + '</ul>';
+}
+
+async function salvaRiassegnaPratiche() {
+  const da = RIASSEGNA.da;
+  const a = v('rpr-a');
+  const tipi = Array.from(document.querySelectorAll('.rpr-tipo:checked')).map(function(c) { return c.value; });
+  const motivo = v('rpr-motivo').trim();
+  if (!a) { toast('Scegli a chi spostare le pratiche', 'err'); return; }
+  if (!tipi.length) { toast('Scegli almeno un tipo di pratica', 'err'); return; }
+  if (motivo.length < 3) { toast('Scrivi il motivo (es. "Uscita di Mario Rossi")', 'err'); return; }
+  if (!confirm('Spostare le pratiche aperte di ' + nomeUtenteRiassegna(da) + ' a ' + nomeUtenteRiassegna(a) + '?\nL\'operazione resta nel registro.')) return;
+  const btn = ge('rpr-sposta');
+  btn.disabled = true;
+  const { data, error } = await db.rpc('riassegna_pratiche', { p_da: da, p_a: a, p_tipi: tipi, p_motivo: motivo });
+  btn.disabled = false;
+  if (error) { toast('Pratiche non spostate: ' + error.message, 'err'); return; }
+  const rimaste = Object.keys(data.rimaste || {}).reduce(function(s, t) { return s + Number(data.rimaste[t]); }, 0);
+  toast(data.totale + ' pratiche spostate a ' + (data.a_nome || '') + (rimaste ? ' · ' + rimaste + ' restano (altro ruolo)' : ''), 'ok');
+  await loadTeam();
+  apriRiassegnaPratiche(da);
 }
 
 async function eliminaUtente(id, nome) {
@@ -113,16 +281,20 @@ async function loadTeam(){
   const el=ge('teamlist');if(!el)return;
   if(error){el.innerHTML=`<div class="al2 e">Errore: ${error.message}</div>`;return;}
   if(!data?.length){el.innerHTML='<div class="empty">Nessun utente</div>';return;}
+  // F14.21: pratiche aperte per persona e stato dell'uscita (solo titolare, sql/74)
+  RIASSEGNA.utenti=data;
+  await caricaPraticheAperteTeam();
   // F14.17: riquadro "👁️ Entra come" (js/01, solo titolare reale)
   if(typeof mostraSelettoreEntraCome==='function')mostraSelettoreEntraCome(data);
   const puoEntrareCome=u=>typeof utenteImpersonabile==='function'&&ROLE_REALE==='titolare'&&!ENTRA_COME&&utenteImpersonabile(ME_REALE,u);
   el.innerHTML=`<table><thead><tr><th>Nome</th><th>Ruolo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${data.map(u=>`<tr>
     <td><strong>${esc(u.nome)} ${esc(u.cognome)}</strong><br><span style="font-size:11px;color:var(--m)">${esc(u.email)}</span></td>
     <td><span class="bx bblue">${esc(etichettaRuolo(u.ruolo))}</span></td>
-    <td>${u.attivo?'<span class="bx bok">Attivo</span>':'<span class="bx bgray">Inattivo</span>'}</td>
+    <td>${statoUtenteTeam(u)}</td>
     <td style="display:flex;gap:6px">
       ${typeof openSchedaDocumenti==='function'&&canAccessPage('scheda-documenti')?`<button class="btn sm" title="Documenti con scadenza (F7.1)" onclick="openSchedaDocumenti('dipendente','${u.id}')">🪪 Documenti</button>`:''}
       ${puoEntrareCome(u)?`<button class="btn sm" title="Vedi il gestionale come lo vede questa persona (F14.17)" onclick="entraCome('${u.id}')">👁️ Entra come</button>`:''}
+      ${RIASSEGNA.disponibili&&RIASSEGNA.pratiche[u.id]?`<button class="btn sm" title="Sposta in blocco le sue pratiche aperte a un collega (F14.21)" onclick="apriRiassegnaPratiche('${u.id}')">🔀 Riassegna</button>`:''}
       <button class="btn sm" onclick="toggleAttivoUtente('${u.id}',${u.attivo})">${u.attivo?'⏸️ Disattiva':'▶️ Riattiva'}</button>
       ${u.id!==ME?.id?`<button class="btn sm" style="color:var(--r)" onclick="eliminaUtente('${u.id}','${esc(u.nome)} ${esc(u.cognome)}')">🗑️</button>`:''}
     </td>

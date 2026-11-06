@@ -219,6 +219,14 @@ tutto, il delegato le proprie righe; cancellazione bloccata dal
 -REGISTRO-CANCELLAZIONI); nessuna scrittura diretta, solo RPC; colonne nuove
 avvisi.decisione_importo e avvisi.delega_id (le scrive solo il database).
 js/65.
+Dopo sql/74 (F14.21 riassegnazione delle pratiche, DA ESEGUIRE (provato il
+06/11 sul backup pre73 + sql/73), richiede 07, 47, 67, 71; poi il file
+-REGISTRO-CANCELLAZIONI dall'editor): riassegnazioni_pratiche (da chi, a
+chi con nomi e ruoli copiati, tipi, motivo, conteggi, totale, rimaste, chi
+e quando) e riassegnazioni_pratiche_righe (una riga per pratica spostata:
+tipo, tabella, id, colonna, descrizione); sola lettura del titolare, le
+scrive solo riassegna_pratiche, cancellazione bloccata dal
+-REGISTRO-CANCELLAZIONI. js/10 (nessun file js nuovo).
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -846,6 +854,57 @@ matrice dei permessi TUTTO OK (30 righe nuove); smoke test TUTTO OK con e
 senza sql/73; rollback provato (schema identico). Senza sql/73: riquadro
 "non ancora attive", nessun bottone in più, nessun errore (la chiamata
 mie_deleghe_titolare al login risponde 404 senza conseguenze).
+Dopo sql/74 (F14.21 riassegnazione delle pratiche, DA ESEGUIRE: backup, poi
+74-riassegnazione-pratiche.sql (senza parole di cancellazione, server MCP),
+poi 74-riassegnazione-pratiche-REGISTRO-CANCELLAZIONI.sql dall'editor, poi
+il controllo in fondo al 74; richiede 07, 47, 67, 71, tutti in produzione).
+Tipi = funzione tipi_riassegnazione_pratiche() (catalogo): clienti
+(clienti.rappresentante_id e commerciale_id, non eliminati), trattative
+(pipeline_crm.rappresentante_id, fase non vinto/perso), progetti
+(progetti_tecnici.rappresentante_id, stato non approvato/archiviato),
+preventivi (rappresentante_id e commerciale_id, stati aperti: bozza, in
+attesa di approvazione, approvato, inviato, inviato al rappresentante, in
+attesa anticipo), commesse (non chiuse né annullate: si sposta il
+rappresentante del loro preventivo accettato, la commessa non ha una
+colonna persona). Le pratiche chiuse restano a chi le ha seguite. RPC del
+sito, SOLO titolare (informatico compreso; "Entra come" un altro ruolo =
+rifiuto 42501): riassegna_pratiche(p_da, p_a, p_tipi, p_motivo) (p_tipi
+vuoto = tutti; persona attiva diversa; colonne del venditore a un
+rappresentante o al titolare, degli acquisti a un commerciale o al
+titolare, le altre restano e si contano in "rimaste"; motivo 3-300
+caratteri; max 5000; tutto o niente; registro; search_path public, pg_temp
+per il trigger dei 3.000 € con get_user_role() senza schema),
+pratiche_aperte_utente(id), pratiche_aperte_utenti() (per l'elenco Team),
+stato_uscita_utente(id) ('attivo', 'uscita_da_completare' = non attivo con
+pratiche aperte, 'uscita_completata'). Interne: pratiche_aperte_di(id),
+uscita_completata(id) (per l'iter di uscita F19.17). Il registro delle
+azioni di sql/67 registra da solo il campo cambiato su preventivi e
+progetti_tecnici. SCELTE DA CONFERMARE DA TOLI: "⏸️ Disattiva" resta
+immediato (l'accesso si toglie subito, caso T7): è l'USCITA che resta "da
+completare" finché ci sono pratiche aperte; solo pratiche aperte; motivo
+obbligatorio; avvisi, domande, interventi, lead_sito.assegnato_a e
+appuntamenti_commerciali NON si spostano qui (F19.17 e assenze di sql/69).
+Nel sito (js/10): Impostazioni > Team, per il titolare sotto lo stato
+"N pratiche aperte", per chi è disattivato "Uscita da completare" (rossa)
+o "✓ Uscita completata", bottone "🔀 Riassegna"; "⏸️ Disattiva" di chi ha
+pratiche avvisa, disattiva e apre la riassegnazione; finestra
+m-riassegna-pratiche (id rpr-: quali pratiche con i conteggi, a chi
+(rappresentanti, commerciali, titolare attivi), motivo, anteprima di cosa
+si sposta e cosa resta, "📒 Ultime riassegnazioni" con "▸ Cosa è stato
+spostato"). Guida titolare info-tit-24. Prove:
+sql/74-riassegnazione-pratiche-PROVA.sql (solo database di prova,
+rollback: 20 pratiche di prova spostate in una operazione con 20 righe di
+registro e 8 righe nel registro delle azioni, uscita da completare →
+completata, chiuse non spostate, rifiuti di segreteria, rappresentante,
+commerciale, tecnico, titolare "come" segreteria, funzioni interne, insert
+e update diretti, cancellazione del registro anche dal proprietario;
+venditore + acquisti a un rappresentante = rimaste);
+test/riassegnazione-pratiche.spec.js (Chrome headless a 390 px: Team,
+Disattiva, riassegnazione, registro; rifiuti via PostgREST); matrice dei
+permessi TUTTO OK (20 righe nuove); smoke test TUTTO OK con e senza
+sql/74; rollback provato (schema identico; le pratiche spostate restano
+spostate). Senza sql/74: elenco Team come prima, nessun bottone, nessun
+errore.
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),
