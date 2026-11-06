@@ -328,8 +328,11 @@ async function apriSchedaPresidio(id) {
         <div class="muted" style="font-size:12px;color:var(--m)">Note / anomalie</div>
         <div style="margin-top:5px;white-space:pre-wrap">${notaOperativa ? esc(notaOperativa) : 'Nessuna nota registrata.'}</div>
       </div>` : ''}
+      <div id="msp-annulla"></div>
     </div>
   `;
+  // F14.19 (js/64, sql/72): l'ultimo esito registrato da chi guarda → "Chiedi correzione"
+  if (typeof caricaAnnullaSchedaPresidio === 'function') caricaAnnullaSchedaPresidio(p).catch(function() {});
 }
 
 function editP(id) {

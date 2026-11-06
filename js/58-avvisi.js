@@ -316,6 +316,7 @@ async function disegnaAvvisi() {
   AVVISI.ultimoElenco = elenco;
   if (!elenco.length) { box.innerHTML = '<div class="avv-vuoto">Nessun avviso aperto 🎉</div>'; return; }
   box.innerHTML = elenco.map(htmlAvviso).join('');
+  if (typeof riempiPulsantiAnnulla === 'function') riempiPulsantiAnnulla(box).catch(function() {});
   if (AVVISI.evidenzia) {
     const el = ge('avv-' + AVVISI.evidenzia);
     if (el) { el.classList.add('avv-evidenza'); el.scrollIntoView({ block: 'center' }); }
@@ -335,8 +336,15 @@ function htmlAvviso(a) {
     (AZIONI_RAPIDE_AVVISO[a.tipo] || []).forEach(function(az, i) {
       if (!az.puo || az.puo(a)) azioni.push('<button type="button" class="btn sm" onclick="azioneRapidaAvviso(' + Number(a.id) + ',' + i + ')">' + esc(az.etichetta) + '</button>');
     });
-    azioni.push('<button type="button" class="btn sm p" onclick="chiudiAvviso(' + Number(a.id) + ',\'fatto\')">✓ Fatto</button>');
+    // F14.19: le richieste di correzione si chiudono dalla loro finestra (js/64)
+    if (!tipo.senzaFatto) azioni.push('<button type="button" class="btn sm p" onclick="chiudiAvviso(' + Number(a.id) + ',\'fatto\')">✓ Fatto</button>');
     if (ROLE === 'titolare') azioni.push('<button type="button" class="btn sm" onclick="chiudiAvviso(' + Number(a.id) + ',\'annulla\')">✖ Annulla</button>');
+  } else if (a.stato === 'fatto' && typeof segnapostoAnnulla === 'function') {
+    // F14.19: chi l'ha chiuso a mano lo riapre (↩️ Annulla, 24 h) o chiede la correzione
+    (AZIONI_RAPIDE_AVVISO[a.tipo] || []).forEach(function(az, i) {
+      if (az.anche_chiuso && (!az.puo || az.puo(a))) azioni.push('<button type="button" class="btn sm" onclick="azioneRapidaAvviso(' + Number(a.id) + ',' + i + ')">' + esc(az.etichetta) + '</button>');
+    });
+    azioni.push(segnapostoAnnulla('avvisi', a.id));
   }
   const chiuso = aperto ? '' :
     '<div class="avv-meta">' + (a.stato === 'fatto' ? '✅ Fatto' : '✖ Annullato') +
@@ -408,7 +416,8 @@ async function confermaChiusuraAvviso() {
       : await db.rpc('segna_avviso_fatto', { p_id: id, p_esito: testo || null });
     if (r.error) { toast('Errore: ' + r.error.message, 'err'); return; }
     closeM('m-avviso-chiudi');
-    toast(modo === 'annulla' ? 'Avviso annullato' : 'Avviso chiuso: fatto ✓', 'ok');
+    toast(modo === 'annulla' ? 'Avviso annullato'
+      : 'Avviso chiuso: fatto ✓' + (typeof segnapostoAnnulla === 'function' && ANNULLA.disponibile ? ' (sbagliato? «Anche i chiusi» → ↩️ Annulla entro 24 h)' : ''), 'ok');
     if (AVVISI.barra && String(AVVISI.barra.id) === String(id)) nascondiBarraAvviso();
     await ricaricaDopoAzioneAvviso();
   } finally {

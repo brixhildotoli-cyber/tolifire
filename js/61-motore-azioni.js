@@ -259,6 +259,8 @@ async function apriOggettoMotore(oggetto, id) {
   html += pulsanti
     ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">' + pulsanti + '</div>'
     : '<div class="al2 i" style="margin-bottom:8px">In questo stato non ci sono azioni per il tuo ruolo.</div>';
+  // F14.19 (js/64, sql/72): "↩️ Annulla" la tua ultima azione o "✏️ Chiedi correzione"
+  if (typeof segnapostoAnnulla === 'function') html += '<div style="margin-bottom:8px">' + segnapostoAnnulla(oggetto, id) + '</div>';
   if (altre.length) {
     html += '<div style="font-size:12px;color:var(--m);margin-bottom:10px">Le altre azioni di questo stato le fanno: ' +
       altre.map(function(t) { return esc(t.etichetta) + ' (' + t.ruoli_ammessi.map(etichettaRuolo).map(esc).join(', ') + ')'; }).join('; ') + '.</div>';
@@ -275,6 +277,7 @@ async function apriOggettoMotore(oggetto, id) {
     '</div>';
   }).join('') : '<div style="font-size:12px;color:var(--m)">Nessuna azione registrata.</div>';
   ge('ogm-corpo').innerHTML = html;
+  if (typeof riempiPulsantiAnnulla === 'function') riempiPulsantiAnnulla(ge('ogm-corpo')).catch(function() {});
 }
 
 // ── Avvisi del motore (js/58) ────────────────────────────────────────
@@ -369,9 +372,11 @@ async function disegnaOggettiProvaMotore() {
         ' <span class="bx ' + classeStatoMotore('motore_oggetti_prova', r.stato) + '">' + esc(nomeStatoMotore('motore_oggetti_prova', r.stato)) + '</span>' +
         (r.descrizione ? '' : ' <span style="font-size:11px;color:var(--m)">(senza descrizione)</span>') + '</div>' +
       '<div style="display:flex;gap:6px;flex-wrap:wrap">' + htmlPulsantiAzioni('motore_oggetti_prova', r.id, r.stato) +
+        (typeof segnapostoAnnulla === 'function' ? segnapostoAnnulla('motore_oggetti_prova', r.id) : '') +
         '<button type="button" class="btn sm" onclick="apriOggettoMotore(\'motore_oggetti_prova\',' + Number(r.id) + ')">Apri</button></div>' +
     '</div>';
   }).join('');
+  if (typeof riempiPulsantiAnnulla === 'function') riempiPulsantiAnnulla(box).catch(function() {});
 }
 
 async function creaOggettoProvaMotore() {

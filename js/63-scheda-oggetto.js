@@ -744,10 +744,14 @@ async function caricaSchedaOggetto(oggetto, record, contenitoreId) {
     '<div class="so-scheda" data-oggetto="' + esc(oggetto) + '" data-id="' + esc(String(record.id)) + '">' +
       htmlTestaScheda(oggetto, record) +
       htmlAzioniScheda(oggetto, record, ROLE) +
+      // F14.19 (js/64): per gli oggetti del motore "↩️ Annulla" / "✏️ Chiedi correzione"
+      (MOTORE_AZIONI_ATTIVO_PER(oggetto) && typeof segnapostoAnnulla === 'function'
+        ? '<div class="so-annulla">' + segnapostoAnnulla(TABELLA_OGGETTO_SCHEDA[oggetto] || oggetto, record.id) + '</div>' : '') +
       '<div id="' + esc(idCol) + '"><div class="load" style="padding:6px">Collegati...</div></div>' +
       '<div id="' + esc(idSto) + '"><details class="so-riquadro" ontoggle="if(this.open)caricaStoricoScheda(\'' + esc(oggetto) + '\',\'' + esc(idSto) + '\')">' +
         '<summary>🕘 Storico</summary><div class="so-storico-corpo"></div></details></div>' +
     '</div>';
+  if (typeof riempiPulsantiAnnulla === 'function') riempiPulsantiAnnulla(box).catch(function() {});
   await caricaCollegatiScheda(oggetto, record, idCol);
 }
 

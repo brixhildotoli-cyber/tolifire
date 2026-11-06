@@ -197,6 +197,16 @@ ruolo; nasce SOLO con fai_domanda: chi chiede deve leggere il record
 database; risposta, chiusura e allegati solo con le RPC, js/62). Bucket NUOVO domande-allegati (privato,
 20 MB, <id domanda>/<file>; lo apre chi legge la domanda, caricano chi
 chiede e chi deve rispondere finché non è chiusa).
+Dopo sql/72 (F14.19 "Annulla" e richiesta di correzione, DA ESEGUIRE, richiede 07, 47,
+62-65, 67, 68, 71; poi il file -REGISTRO-CANCELLAZIONI dall'editor):
+annullabili (oggetti con "Annulla"/"Chiedi correzione": funzione_info,
+funzione_annulla, funzione_passo, responsabile_ruolo; lettura per tutti i
+ruoli, si scrive solo da un file sql/NN; gli oggetti del motore valgono
+anche senza riga), annullamenti (registro degli annullamenti e delle
+richieste di correzione aperta → applicata | corretta | rifiutata |
+ritirata; lettura titolare tutti, gli altri i propri e le correzioni al
+loro ruolo responsabile; lo scrivono solo le RPC di sql/72; cancellazione
+bloccata dal trigger del -REGISTRO-CANCELLAZIONI). js/64.
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -680,6 +690,67 @@ ruolo_corrente, ruolo_reale, ruolo_effettivo, agito_come_utente,
 agito_come_intestazione, get_mio_utente_id, registra_azione, motore_applica
 e, con auth.uid() → utente_effettivo(), 121 funzioni e 69 policy (dettagli
 in "Entra come", parte 2, più sotto).
+Dopo sql/72 (F14.19 "Annulla" e richiesta di correzione per tutti, DA ESEGUIRE
+(serve "CONFERMATO DA TOLI: sql/72" e il backup pre72), richiede 07, 47, 62,
+63, 64, 65, 67, 68, 71 (si ferma senza); poi
+72-annulla-richiesta-correzione-tutti-REGISTRO-CANCELLAZIONI.sql dall'editor;
+provato sul backup pre71 + sql/71 il 06/11). Chi ha fatto un'azione la
+ANNULLA da solo finché il passo successivo non è partito e comunque entro
+annulla_entro_ore (regola NUOVA, 24 ore); dopo, "Chiedi correzione" al
+responsabile con motivo (avviso 'correzione_richiesta' al ruolo, scadenza
+correzione_risposta_gg = regola NUOVA, 1 g lav., poi risale al titolare
+con la risalita generale di sql/65). RPC del sito:
+annullamenti_possibili(oggetto, ids[]) (modo annulla con "entro" /
+correzione con il perché / in_attesa, solo sulle azioni di chi chiama),
+annulla_azione(oggetto, id, motivo facoltativo), chiedi_correzione(oggetto,
+id, motivo), rispondi_correzione(id, 'applica'|'corretta'|'rifiutata',
+esito) (ruolo responsabile, non chi ha chiesto, o titolare; l'autore riceve
+'correzione_esito'), ritira_correzione(id, nota). Interne: annullabile_config,
+responsabile_correzione (quello dell'oggetto, se no responsabile_avviso;
+stesso ruolo o nessuno = titolare), annulla_leggi_riga, annullamento_stato,
+adattatori annullabile_avvisi / annulla_azione_avvisi (avviso segnato fatto
+A MANO: torna aperto; passo successivo = scadenza collegata chiusa o avviso
+nuovo uguale aperto; chiusi da soli = nessun pulsante), annullabile_motore /
+annulla_azione_motore (TUTTI gli oggetti del motore di sql/68: l'ultima
+azione, stato di prima con il segno toli.motore_azione, avvisi mandati
+annullati, chiusi riaperti, scadenze invertite, riga "↩️ Annulla «...»" in
+motore_azioni_storico; la nascita non si annulla, passo successivo =
+un'altra azione), annullabile_esito_presidio (schede_presidi,
+schede_manichette) e annullabile_giornale (commesse_giornale): SOLO
+correzione al capo tecnico (annullarli sarebbe una cancellazione).
+SCELTE DA CONFERMARE: il titolare annulla le sue azioni anche dopo 24 h
+(mai col passo partito) e non chiede correzioni; le RPC e gli
+annullamenti di prima (pagamento, RIBA, sollecito, ordine, richieste,
+lavori extra, documento team) e i loro stati NON si toccano; le domande
+hanno già "Ritira la domanda". Persona = utente_effettivo() (con "Entra
+come" la persona impersonata, utente_reale = il titolare). Ogni task
+successivo che crea un'azione: oggetto del motore = niente da fare; se no
+una riga in annullabili con annullabile_* e annulla_azione_* (e
+passo_successivo_* se il passo dopo è altrove) nel suo sql/NN. Nel sito
+(js/64-annulla-correzione.js): segnapostoAnnulla(oggetto, id) +
+riempiPulsantiAnnulla(contenitore) (una RPC per oggetto), finestra
+m-annulla (anl-: motivo facoltativo per Annulla, obbligatorio per la
+correzione, a chi va), m-correzione (crz-: ↩️ Annulla l'azione per lui,
+✓ Corretta a mano, ✖ Non serve, Ritira), registraDopoAnnulla; tipi di
+avviso ✏️ correzione_richiesta (senza "✓ Fatto": si chiude dalla
+richiesta) e ↩️ correzione_esito con azioni rapide (anche sui chiusi:
+anche_chiuso). Pulsanti in: finestra 🔔 Avvisi con "Anche i chiusi" (js/58),
+finestra dell'oggetto del motore e oggetti di prova (js/61), scheda comune
+per gli oggetti del motore (js/63), scheda del presidio "Ultimo esito
+registrato da te" (js/07, msp-annulla). REGOLE_PREDEFINITE di js/01 con le
+2 regole nuove. Guide: info-tit-22, seg-23, con-14, ct-25, tec-21, com-19,
+rap-24, ing-17. Prove: sql/72-annulla-richiesta-correzione-tutti-PROVA.sql
+(solo database di prova, rollback: tecnico annulla entro 24 h, altro
+tecnico no, dopo 25 h correzione al capo tecnico con scadenza 1 g lav.,
+applica, ritira, passo partito, chiusi da soli, motore con avvisi e
+storico, Entra come, esito presidio corretto a mano, niente scritture né
+cancellazioni dirette); test/annulla-correzione.spec.js (Chrome headless,
+tecnico a 390 px: Annulla → Chiedi correzione → il capo tecnico annulla
+per lui); matrice dei permessi TUTTO OK (anche MATRICE_AGITO_COME=1, 20
+righe nuove); smoke test TUTTO OK con e senza sql/72; rollback provato
+(schema identico; avvisi delle richieste chiusi "annullato"; regole tolte
+solo se mai cambiate). File principale senza parole di cancellazione
+(server MCP). Senza sql/72 nessun pulsante, nessun errore.
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),
