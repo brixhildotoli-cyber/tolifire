@@ -1,6 +1,26 @@
 const SU='https://syjbpxtkcsazpynyvoss.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5amJweHRrY3NhenB5bnl2b3NzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMDA4NTAsImV4cCI6MjA5MDg3Njg1MH0.mzsJpMSNck7lOYJZZM_TdDXRCSGsBB2Zt0-5mcvujmA';
-const db=supabase.createClient(SU,SK,{auth:{persistSession:true,autoRefreshToken:true,storage:window.localStorage}});
+// F14.18: fetch personalizzato. Mentre il titolare lavora "come" un'altra
+// persona (ENTRA_COME, F14.17) ogni richiesta al database porta
+// l'intestazione x-agito-come con l'id della persona: con sql/71 il database
+// risponde con il ruolo e la persona impersonati (stessi limiti) e il
+// registro delle azioni tiene il titolare come autore vero. global.headers
+// non basta: è fisso quando si crea il client. Solo l'id (non "ruolo|id"):
+// sql/67, già in produzione, accetta l'id o il ruolo, così prima di sql/71
+// i salvataggi non si fermano. Il portale (dbPublic) non la manda mai.
+function intestazioneAgitoCome(){
+  try{return (ENTRA_COME&&ROLE_REALE==='titolare'&&ENTRA_COME.id)?String(ENTRA_COME.id):'';}catch(e){return '';}
+}
+function fetchConAgitoCome(risorsa,opzioni){
+  const come=intestazioneAgitoCome();
+  if(!come)return fetch(risorsa,opzioni);
+  const o=Object.assign({},opzioni||{});
+  const h=new Headers(o.headers||(risorsa instanceof Request?risorsa.headers:undefined));
+  h.set('x-agito-come',come);
+  o.headers=h;
+  return fetch(risorsa,o);
+}
+const db=supabase.createClient(SU,SK,{auth:{persistSession:true,autoRefreshToken:true,storage:window.localStorage},global:{fetch:fetchConAgitoCome}});
 // Client pubblico per portale cliente (nessun login richiesto).
 // Il codice segreto del link (?portale=<codice>) viaggia nell'intestazione
 // x-portale-token: le policy dello storage lo usano per riconoscere il
@@ -545,11 +565,11 @@ function registraServiceWorker(){
 // torna sé stessi); "Esci" nel banner la toglie e rifà boot con il titolare.
 // Entrare e uscire RICARICANO la pagina: così nessun dato già letto come
 // titolare (elenchi, cache dei moduli) resta in memoria.
-// LIMITE (parte 2 = F14.18): il database risponde ancora al titolare (le
-// richieste non portano l'intestazione x-agito-come e le policy usano
-// ruolo_corrente): gli elenchi filtrati SOLO dalle regole del database
-// possono mostrare più righe di quelle della persona; campanella e notifiche
-// restano spente mentre si lavora "come".
+// F14.18 (parte 2): le richieste portano x-agito-come (fetchConAgitoCome in
+// cima al file). Con sql/71 eseguito il database risponde come la persona
+// (ruolo e "solo i propri"); senza sql/71 risponde ancora al titolare e il
+// banner lo dice (verificaEntraComeDatabase). Campanella e notifiche restano
+// spente mentre si lavora "come".
 let ME_REALE=null,ROLE_REALE=null,ENTRA_COME=null;
 const CHIAVE_ENTRA_COME='toli_entra_come';
 const RUOLI_ENTRA_COME=['segreteria','contabile','capo_tecnico','tecnico','commerciale','rappresentante','ingegnere'];
@@ -594,8 +614,27 @@ function mostraBannerEntraCome(){
   document.body.classList.toggle('entra-come-on',!!ENTRA_COME);
   if(!ENTRA_COME){if(b)b.style.display='none';return;}
   if(!b){b=document.createElement('div');b.id='entra-come-banner';b.className='entra-come-banner';b.setAttribute('role','status');document.body.appendChild(b);}
-  b.innerHTML=`<span class="ecb-testo">👁️ Stai lavorando come <b>${esc(((ENTRA_COME.nome||'')+' '+(ENTRA_COME.cognome||'')).trim())}</b> · ${esc(etichettaRuolo(ENTRA_COME.ruolo))}<span class="ecb-reale"> (sei ${esc(ME_REALE.nome||'')})</span></span><button type="button" class="btn sm" onclick="esciDaEntraCome()">↩️ Esci</button>`;
+  b.innerHTML=`<span class="ecb-testo">👁️ Stai lavorando come <b>${esc(((ENTRA_COME.nome||'')+' '+(ENTRA_COME.cognome||'')).trim())}</b> · ${esc(etichettaRuolo(ENTRA_COME.ruolo))}<span class="ecb-reale"> (sei ${esc(ME_REALE.nome||'')})</span><span class="ecb-db" id="ecb-db"></span></span><button type="button" class="btn sm" onclick="esciDaEntraCome()">↩️ Esci</button>`;
   b.style.display='flex';
+  verificaEntraComeDatabase().then(function(attivo){
+    const n=ge('ecb-db');
+    if(!n)return;
+    n.textContent=attivo?' · il database applica i limiti del ruolo':' · solo il sito: il database risponde ancora a te (titolare)';
+    n.title=attivo?'Quello che questa persona non può fare, il database lo rifiuta anche a te. Nel registro risulti tu "come" questa persona.':'Manca l\'aggiornamento del database (sql/71): menu e pagine sono della persona, i dati e i permessi ancora del titolare.';
+  });
+}
+// F14.18: il database applica "Entra come"? Con l'intestazione si chiede a
+// ruolo_corrente() (sql/07, c'è sempre): con sql/71 risponde il ruolo della
+// persona, senza risponde 'titolare'. Nessuna funzione nuova da cercare.
+let ENTRA_COME_DB=null;
+async function verificaEntraComeDatabase(){
+  if(ENTRA_COME_DB!==null)return ENTRA_COME_DB;
+  if(!ENTRA_COME)return false;
+  try{
+    const {data,error}=await db.rpc('ruolo_corrente');
+    ENTRA_COME_DB=!error&&data===ruoloDelSito(ENTRA_COME.ruolo);
+  }catch(e){ENTRA_COME_DB=false;}
+  return ENTRA_COME_DB;
 }
 // Riquadro di Impostazioni > Team (lo chiama loadTeam con l'elenco utenti).
 let UTENTI_ENTRA_COME=[];

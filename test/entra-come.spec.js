@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 // F14.17 - "Entra come" (parte 1: interfaccia), Chrome headless, puppeteer-core.
+// F14.18 - parte 2: le richieste "come" portano x-agito-come (id della
+// persona, mai nel login diretto); con sql/71 nel database locale il banner
+// dice "il database applica i limiti del ruolo" e le pagine devono essere
+// UGUALI a quelle della persona (SMOKE_DIFFERENZE_OK=1 per solo segnalarle).
 //
 // Per ogni ruolo (predefinito: commerciale; SMOKE_SOLO_RUOLI=a,b per altri):
 //  1. login DIRETTO come l'utente di prova del ruolo: menu, pagine permesse
@@ -115,7 +119,9 @@ async function rispostaLocale(req, url, stato) {
   if (p.startsWith('/rest/v1')) {
     const auth = (h.authorization || '').replace(/^Bearer\s+/i, '');
     const intest = {};
-    ['accept', 'content-type', 'prefer', 'range', 'range-unit', 'accept-profile', 'content-profile'].forEach(k => { if (h[k]) intest[k] = h[k]; });
+    // F14.18: anche x-agito-come (fetch personalizzato di js/01)
+    ['accept', 'content-type', 'prefer', 'range', 'range-unit', 'accept-profile', 'content-profile', 'x-agito-come'].forEach(k => { if (h[k]) intest[k] = h[k]; });
+    if (h['x-agito-come']) { stato.agitoCome++; stato.agitoComeValori.add(h['x-agito-come']); }
     intest.authorization = 'Bearer ' + (verifica(auth) ? auth : tokenAnon());
     const corpo = ['GET', 'HEAD'].includes(metodo) ? undefined : req.postData();
     const r = await fetch(BACK.rest + p.slice('/rest/v1'.length) + url.search, { method: metodo, headers: intest, body: corpo });
@@ -226,7 +232,7 @@ const diProva = u => /(^|[^a-z])(prova|test|smoke)/i.test([u.nome, u.cognome, u.
 
 async function apriSito(browser, url) {
   const contesto = browser.createBrowserContext ? await browser.createBrowserContext() : await browser.createIncognitoBrowserContext();
-  const stato = { inCorso: 0, deviate: new Set(), ultima: 0, erroriJs: [], console: [], rete: [], bloccate: [], caricamenti: [] };
+  const stato = { inCorso: 0, deviate: new Set(), ultima: 0, erroriJs: [], console: [], rete: [], bloccate: [], caricamenti: [], agitoCome: 0, agitoComeValori: new Set() };
   const page = await preparaPagina(contesto, stato);
   await page.goto(url, { waitUntil: 'load', timeout: 120000 });
   await page.waitForFunction(() => getComputedStyle(document.getElementById('lp')).display !== 'none', { timeout: 20000 });
@@ -303,7 +309,17 @@ async function provaRuolo(browser, url, ruolo, persona, titolare) {
     if (come.meReale !== titolare.id || come.roleReale !== 'titolare') KO('ME_REALE/ROLE_REALE non sono il titolare');
     if (!/Stai lavorando come/.test(come.banner)) KO('banner "Stai lavorando come" assente');
     else esito.righe.push('banner: ' + come.banner);
+    // F14.18: richieste con x-agito-come = id della persona (mai nel login diretto)
+    if (a.stato.agitoCome) KO('login diretto: ' + a.stato.agitoCome + ' richieste con x-agito-come');
+    if (!b.stato.agitoCome) KO('entra come: nessuna richiesta con x-agito-come');
+    else if ([...b.stato.agitoComeValori].some(x => x !== persona.id)) KO('x-agito-come diverso dall\'id della persona: ' + [...b.stato.agitoComeValori].join(', '));
+    else esito.righe.push('x-agito-come = id della persona su ' + b.stato.agitoCome + ' richieste');
+    const dbAttivo = /il database applica i limiti del ruolo/.test(come.banner);
+    esito.righe.push('database: ' + (dbAttivo ? 'applica "Entra come" (sql/71)' : 'sql/71 non eseguito, risponde al titolare'));
+    const righePrima = esito.righe.length;
     confronta(diretto, come, KO, esito.righe);
+    // Con sql/71 il database risponde come la persona: le pagine sono uguali
+    if (dbAttivo && process.env.SMOKE_DIFFERENZE_OK !== '1') esito.righe.slice(righePrima).filter(r => /^DIFFERENZA/.test(r)).forEach(r => KO('con sql/71 ' + r));
     // 4. Ricaricando si resta "come"
     await b.page.reload({ waitUntil: 'load' });
     await b.page.waitForFunction(() => typeof ROLE !== 'undefined' && ROLE && ME && document.querySelector('.page.on'), { timeout: 25000 });

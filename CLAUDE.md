@@ -475,7 +475,7 @@ di cancellazione; il rollback contiene drop.
 Dopo sql/67 (F14.11 funzioni ruolo e registro azioni, ESEGUITO il 05/11, backup pre67, richiede
 07 e 58; provato sul backup pre66 + sql/66): nessuna RPC chiamata dal sito.
 Funzioni nuove (execute per authenticated, pronte per "Entra come" di
-F14.17-18): ruolo_reale() (= ruolo_corrente(), nessuna copia della regola),
+F14.17-18; con sql/71 ridefinite, vedi "Entra come" parte 2): ruolo_reale() (= ruolo_corrente(), nessuna copia della regola),
 agito_come_intestazione() (intestazione HTTP x-agito-come da
 current_setting('request.headers')), ruolo_effettivo() (senza intestazione =
 ruolo reale; con l'intestazione, SOLO se il ruolo reale è titolare, il
@@ -673,6 +673,13 @@ bucket se vuoto; avvisi delle domande chiusi "annullato", non tolti;
 scadenze e righe nuove del motore tolte; le due righe di sql/64 tornano a
 1 giorno) provato: schema identico a prima. Senza sql/70 nessun riquadro,
 nessuna riga, nessun errore (smoke test TUTTO OK con e senza sql/70).
+Dopo sql/71 (F14.18 "Entra come" parte 2, DA ESEGUIRE, richiede 07, 47,
+67): nessuna tabella nuova; nessuna RPC nuova (il banner chiama ruolo_corrente);
+funzioni nuove utente_effettivo, agito_come_risolto; ridefinite
+ruolo_corrente, ruolo_reale, ruolo_effettivo, agito_come_utente,
+agito_come_intestazione, get_mio_utente_id, registra_azione, motore_applica
+e, con auth.uid() → utente_effettivo(), 121 funzioni e 69 policy (dettagli
+in "Entra come", parte 2, più sotto).
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),
@@ -740,6 +747,59 @@ menu uguale per commerciale, capo tecnico, ingegnere, contabile; differenze
 solo dove filtra il database (rappresentante: trattative, progetti, impegni
 del team; segreteria: conteggi dei presidi; tecnico: un nome nel
 calendario). Guida titolare info-tit-21.
+"Entra come", parte 2 (F14.18, js/01 + style.css + index.html;
+sql/71-entra-come DA ESEGUIRE, serve "CONFERMATO DA TOLI: sql/71", richiede
+07, 47, 67; 68 facoltativo; provato sul backup pre70 + sql/70 e il suo
+-REGISTRO-CANCELLAZIONI il 06/11). Sito: il client db di js/01 ha
+global.fetch = fetchConAgitoCome: mentre si è "come" OGNI richiesta
+(PostgREST, RPC, storage, funzioni) porta x-agito-come = id della persona
+(solo l'id, non "ruolo|id": sql/67 in produzione accetta id o ruolo, così
+prima di sql/71 nulla si ferma); dbPublic mai. Banner: "il database applica
+i limiti del ruolo" o "solo il sito: il database risponde ancora a te"
+(verificaEntraComeDatabase: rpc ruolo_corrente con l'intestazione = ruolo
+della persona). Campanella e notifiche
+restano spente mentre si è "come". Database (sql/71): ruolo_corrente() (UN
+punto per tutte le policy, get_user_role, is_titolare, verifica_ruolo)
+restituisce il ruolo impersonato; ruolo_reale() legge ora utenti (regola di
+sql/07); agito_come_risolto() interna (formati "<id>", "<ruolo>|<id>",
+"<ruolo>"; solo se il ruolo VERO è titolare, utente attivo, ruolo
+coerente; altrimenti 42501 "Solo il titolare può agire come un altro
+ruolo", anche per anon); ruolo_effettivo e agito_come_utente di sql/67 la
+usano; agito_come_intestazione con lettura veloce (niente JSON senza
+intestazione); funzione NUOVA utente_effettivo() (persona impersonata,
+altrimenti auth.uid()) messa al posto di auth.uid() in TUTTE le policy di
+public (69 nel backup pre70) e in tutte le funzioni di public che leggono
+auth.uid() (121: RPC, trigger, cliente_visibile...; riscritte da
+pg_get_functiondef, stessa firma, permessi e commenti), TRANNE: registra_azione
+(autore vero: utente_reale, nome e ruolo_reale = titolare; agito_come_ruolo
+e agito_come_utente = la persona; registra_azione legge ora ruolo_reale),
+utenti_blocca_escalation, nome_utente_corrente, appuntamento_nome_utente,
+utente_corrente_nome_ruolo (i NOMI negli storici restano di chi agisce:
+"Brixhildo Toli" con il ruolo commerciale), registra_/togli_/
+stato_dispositivo_push, motore_applica (solo ruolo_reale nello storico del
+motore). get_mio_utente_id() = persona impersonata. Campi proprietà: quelli scritti dal sito (ME.id) e dal database
+(creato_da, chiuso_da, da_id...) sono della persona. LIMITE: le policy di
+storage.objects non si toccano (ruolo della persona se lo storage passa le
+intestazioni, persona = titolare). REGOLA: policy e funzioni NUOVE usano
+public.utente_effettivo() al posto di auth.uid(); una funzione ridefinita
+copiando un file vecchio torna ad auth.uid() (vale il titolare: più
+stretto, mai più largo). Report del venerdì (F24.2): le azioni "come" sono
+le righe di registro_azioni con agito_come_ruolo non vuoto. Prove:
+sql/71-entra-come-PROVA.sql (solo database di prova, rollback: senza
+intestazione tutto uguale, 700 letture tabella x ruolo uguali tra persona e
+titolare "come", come commerciale salva_regola del margine minimo rifiutata
+42501, invio di un preventivo "come" con registro "Brixhildo Toli come
+commerciale", tecnico, segreteria e anon con l'intestazione rifiutati,
+formati); matrice dei permessi TUTTO OK senza intestazione e con
+MATRICE_AGITO_COME=1 (sql/matrice-permessi.sh: ogni ruolo provato come
+titolare + x-agito-come; senza sql/71 la stessa prova dà 1.112 caselle
+DIVERSO); PostgREST con curl (tecnico 403 42501, salva_regola 403);
+test/entra-come.spec.js per 7 ruoli con sql/71: x-agito-come su ogni
+richiesta, pagine UGUALI a quelle della persona (prima di sql/71 restano le
+differenze di F14.17); smoke test TUTTO OK con e senza sql/71. Rollback
+(drop function: editor SQL) riporta policy e funzioni al testo di prima
+(confrontato: identico) e si può rieseguire il 71 dopo. Guida titolare
+info-tit-21.
 Dopo sql/61 (telefoni italiani per Google Ads, ESEGUITO il 03/11, backup pre61, nessun
 prerequisito oltre le funzioni Ads): nessuna RPC del sito. Funzione nuova
 ads_crm_normalizza_telefono (immutable: +39 ai numeri italiani senza
