@@ -3157,6 +3157,30 @@
       </div>
 
 
+      <h4 id="info-rap-28">28. 📜 Da dove vengono le misure e i dati di legge: la fonte</h4>
+
+      <p>
+        Prima di inviare un progetto devi dire da dove vengono le misure (la <b>fonte del rilievo</b>) e, per ogni dato di legge che hai scritto (classe REI/EI, classe R, minuti, reazione al fuoco, ATEX...), da dove viene quel dato (la <b>fonte del dato</b>). Il gestionale non decide quale classe serve: registra chi l'ha detta e con quale prova. Senza fonte il dato non vale e il progetto non si invia.
+      </p>
+
+      <ul>
+        <li><b>Fonte del rilievo</b>: in <b>Modifica</b> del progetto o in cima alla scheda di rilievo. <b>Sopralluogo TOLI</b> (hai misurato tu), <b>Documenti del cliente</b> (planimetrie, progetto), <b>Misure dichiarate dal cliente</b> (non sei andato a misurare: foto e video non obbligatori, e nel preventivo per il cliente comparirà da sola la frase "Misure fornite dal committente, da verificare prima dell'ordine").</li>
+        <li><b>📜 Fonte del dato</b>: sotto ogni dato di legge della scheda. <b>Documento del cliente o del progettista</b> → carica il documento con <b>📎 Carica</b> (o sceglilo tra i file del progetto); <b>Come l'esistente</b> → con <b>📎 Foto</b> scatta la foto della targhetta della porta o del prodotto esistente; <b>Dichiarato dal cliente per iscritto</b> → <b>📄 Modulo da far firmare</b> scarica il modulo con i dati, il cliente lo firma (o risponde per email "confermo") e tu lo carichi con <b>📎 Carica</b>.</li>
+        <li><b>Definito dall'ingegnere TOLI</b> lo sceglie solo l'ingegnere, quando il lavoro comprende la progettazione.</li>
+        <li>Se cambi il dato dopo aver dato la fonte (per esempio da REI 60 a REI 120) la fonte non vale più: compare "Il dato è cambiato dopo la fonte" con <b>✓ Vale per il dato nuovo</b>, oppure scegli un'altra fonte.</li>
+        <li>Un dato vuoto o <b>❓ Non noto</b> non chiede la fonte. Ricordati di premere <b>💾 Salva scheda</b>: la fonte si salva con la scheda.</li>
+        <li><b>🔧 Invia a ufficio tecnico</b> e <b>📤 Invia ad Acquisti</b> ti elencano cosa manca, scheda per scheda.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Il cliente vuole una porta uguale a quella che c'è, REI 60. Nella scheda Porte e portoni REI scegli Resistenza "REI 60", sotto in <b>📜 Fonte del dato</b> scegli <b>Come l'esistente (foto della targhetta)</b>, premi <b>📎 Foto</b> e fotografa la targhetta sul battente, poi <b>💾 Salva scheda</b>. Senza la foto, all'invio compare "Resistenza al fuoco richiesta: manca la foto della targhetta" e il progetto resta in bozza.
+      </div>
+
+      <div class="al2 w">
+        Il blocco lo applica anche il database (aggiornamento sql/79): non si aggira. Finché il database non è aggiornato le fonti non compaiono e il progetto si invia come prima.
+      </div>
+
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -6777,6 +6801,29 @@
       </div>
 
 
+      <h4 id="info-ing-22">22. 📜 Fonte del rilievo e fonte dei dati normativi</h4>
+
+      <p>
+        Ogni dato di legge di una scheda (i campi segnati <b>📜 normativo</b> nel <b>📚 Catalogo lavorazioni</b>: classe REI/EI, classe R, minuti, reazione al fuoco, ATEX...) ha la sua fonte, e il progetto ha la sua <b>fonte del rilievo</b>. Il gestionale non calcola i requisiti: registra da dove viene il dato. Senza fonte il rappresentante non invia il progetto.
+      </p>
+
+      <ul>
+        <li><b>Fonte del rilievo</b> (sopralluogo TOLI, documenti del cliente, misure dichiarate dal cliente): la vedi nella scheda del progetto; la cambi in cima alla scheda di rilievo finché il progetto è da te in verifica. Con le misure dichiarate il PDF per il cliente stampa "Misure fornite dal committente, da verificare prima dell'ordine".</li>
+        <li><b>📜 Fonte del dato</b>, sotto il dato nella scheda (<b>📝 Rilievi tecnici</b> → <b>📝 Compila la scheda</b>): documento del cliente o del progettista, come l'esistente (foto della targhetta), dichiarato dal cliente per iscritto: con il file, che deve essere tra i file del progetto.</li>
+        <li><b>Definito dall'ingegnere TOLI</b>: solo tu (e il titolare), quando il lavoro comprende la progettazione. Nome e data li scrive il gestionale al salvataggio ("Definito da ... il ...").</li>
+        <li>Nella scheda del progetto, sotto ogni dato, leggi la fonte con il file e chi l'ha indicata; in rosso "⚠️ senza fonte" o "il dato è cambiato dopo la fonte".</li>
+        <li>Le 7 schede che compili tu (Porte REI, Estintori...) non hanno ancora il campo della fonte: per dare la fonte usa la scheda del motore (<b>📝 Compila la scheda</b>), che salva sugli stessi dati.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Il cliente ha un progetto antincendio che non indica la classe della porta del locale caldaia e ti chiede di definirla: nella scheda scegli Resistenza "REI 120" e in <b>📜 Fonte del dato</b> <b>Definito dall'ingegnere TOLI (solo con progettazione)</b>, poi <b>💾 Salva scheda</b>: sotto il dato compare "Definito da &lt;tuo nome&gt; il &lt;data&gt;".
+      </div>
+
+      <div class="al2 i">
+        Il blocco dell'invio vale per l'invio del rappresentante (da bozza o da integrare); quando chiudi la tua verifica il progetto non si ferma, nemmeno dopo, verso Acquisti. Con l'aggiornamento del database sql/79 le regole valgono anche nel database; senza, le fonti non compaiono.
+      </div>
+
+
       <h4>Checklist veloce prima di chiudere la giornata</h4>
 
       <ul>
@@ -9426,6 +9473,16 @@
       <input type="number" id="mp-importo" min="0" step="100"
         placeholder="Es. 8000 (solo cifre, senza punti)" oninput="aggiornaAvvisoImportoProgetto()">
       <div id="mp-importo-nota" style="font-size:12px;color:var(--m);margin-top:5px"></div>
+    </div>
+    <div class="f" id="mp-fonte-rilievo-box" style="display:none">
+      <label for="mp-fonte-rilievo">Fonte del rilievo *</label>
+      <select id="mp-fonte-rilievo" onchange="aggiornaNotaFonteRilievoProgetto()">
+        <option value="">Da indicare (senza, il progetto non si invia)</option>
+        <option value="sopralluogo_toli">Sopralluogo TOLI</option>
+        <option value="documenti_cliente">Documenti del cliente (planimetrie, progetto)</option>
+        <option value="misure_dichiarate">Misure dichiarate dal cliente</option>
+      </select>
+      <div id="mp-fonte-rilievo-nota" style="font-size:12px;color:var(--m);margin-top:5px"></div>
     </div>
   <div class="f">
   <label for="mp-file">Allegati tecnici obbligatori *</label>

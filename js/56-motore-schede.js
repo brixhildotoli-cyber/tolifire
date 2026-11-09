@@ -2,6 +2,9 @@
 // (stesso numero 56 di js/56-festivita-giorni-lavorativi.js: nome deciso
 // dalla task; si carica dopo js/55 e js/66, prima di js/19-init)
 //
+// F15.5 (sql/79, in fondo al file): fonte del rilievo del progetto e fonte di
+// ogni dato normativo, con il blocco dell'invio.
+//
 // Disegna la scheda di rilievo di una lavorazione dal catalogo
 // (lavorazioni_campi di sql/75, letto da js/55) invece che dal codice scritto
 // a mano, pensata per il telefono (390 px):
@@ -165,6 +168,7 @@ if (typeof renderSchedeProgettoCommerciale === 'function') {
   const renderSchedeProgettoSenzaMotore = renderSchedeProgettoCommerciale;
   // eslint-disable-next-line no-global-assign
   renderSchedeProgettoCommerciale = async function(progettoId) {
+    try { await verificaFontiDatiDisponibili(); } catch (e) { /* F15.5 facoltativo */ }
     const esito = await renderSchedeProgettoSenzaMotore.apply(this, arguments);
     try { await disegnaApriMotoreProgetto(progettoId); } catch (e) { /* il motore è facoltativo */ }
     return esito;
@@ -179,8 +183,10 @@ async function apriSchedaMotore(progettoId, famiglia, numero) {
   const lav = typeof lavorazioneCatalogo === 'function' ? lavorazioneCatalogo(famiglia) : null;
   if (!lav || !campiSchedaMotore(lav).length) { toast('Lavorazione non trovata nel catalogo', 'err'); return; }
 
+  const fonti = await verificaFontiDatiDisponibili(); // F15.5 (sql/79)
   const { data: progetto, error } = await db.from('progetti_tecnici')
-    .select('id,titolo,stato,rappresentante_id,cliente_id,clienti(ragione_sociale,indirizzo,cap,citta,provincia,referente_nome,referente_telefono)')
+    .select('id,titolo,stato,rappresentante_id,cliente_id,' + (fonti ? 'fonte_rilievo,' : '') +
+      'clienti(ragione_sociale,indirizzo,cap,citta,provincia,referente_nome,referente_telefono)')
     .eq('id', progettoId).maybeSingle();
   if (error || !progetto) { toast('Progetto non trovato' + (error ? ': ' + error.message : ''), 'err'); return; }
   if (!puoCompilareMotore(progetto)) {
@@ -197,6 +203,7 @@ async function apriSchedaMotore(progettoId, famiglia, numero) {
   MOTORE_SCHEDE.cliente = progetto.clienti || {};
   MOTORE_SCHEDE.sedi = sedi || [];
   MOTORE_SCHEDE.famiglia = famiglia;
+  if (fonti) await caricaAllegatiFontiMotore(progettoId);
 
   if (typeof ricordaPosizionePagina === 'function') ricordaPosizionePagina();
   currentRilievoProgettoId = progettoId;
@@ -217,6 +224,7 @@ async function disegnaSchedaMotore(numero) {
   MOTORE_SCHEDE.datiBase = Object.assign({}, lettura.dati || {});
   MOTORE_SCHEDE.numero = schedaRilievoAperta ? schedaRilievoAperta.numero : 1;
   precompilaDaSedeCliente(MOTORE_SCHEDE.datiBase);
+  iniziaFontiMotore(MOTORE_SCHEDE.datiBase);
 
   box.innerHTML = htmlBarraSchedeRilievo() + `
     <div id="msm-motore" data-famiglia="${esc(famiglia)}">
@@ -229,7 +237,7 @@ async function disegnaSchedaMotore(numero) {
         </div>
         <button type="button" class="btn sm" onclick="chiudiSchedaMotore()">← Indietro</button>
       </div>
-      <div id="msm-campi">${htmlCampiMotore(lav, MOTORE_SCHEDE.datiBase)}</div>
+      <div id="msm-campi" oninput="aggiornaFontiDopoModificaMotore(event)" onchange="aggiornaFontiDopoModificaMotore(event)">${htmlCampiMotore(lav, MOTORE_SCHEDE.datiBase)}</div>
       <div class="ma" style="margin:18px 0 40px">
         <button type="button" class="btn" onclick="chiudiSchedaMotore()">Annulla</button>
         <button type="button" class="btn p" id="msm-salva" onclick="salvaSchedaMotore()">💾 Salva scheda</button>
@@ -291,6 +299,7 @@ function htmlCampiMotore(lav, d) {
           ? 'Nella richiesta indicativa puoi segnare <b>❓ Non noto</b> i dati che il cliente non sa: andranno chiesti prima del preventivo definitivo.'
           : 'Nella richiesta definitiva ogni dato si compila (niente "non noto").'}
       </div>
+      ${htmlFonteRilievoMotore()}
     </div>`;
 
   const luogo = `
@@ -375,6 +384,7 @@ function htmlCampoMotore(c, valore, indicativa, ingegnere) {
     ${controllo}
     ${casella}
     ${nota}
+    ${htmlFonteCampoMotore(c, valore)}
   </div>`;
 }
 
@@ -435,6 +445,7 @@ function datiFormSchedaMotore() {
       dati[c.codice] = testo;
     }
   });
+  scriviFontiNeiDatiMotore(dati);
   return dati;
 }
 
@@ -647,10 +658,13 @@ async function salvaSchedaMotore() {
       return;
     }
     const mancanti = obbligatoriMancantiMotore(dati, lav);
+    const senzaFonte = fontiMancantiDatiMotore(dati, lav);
     await dopoSalvataggioSchedaRilievo('Scheda ' + lav.nome + ' salvata', salvate);
-    if (mancanti.length) {
+    if (mancanti.length || senzaFonte.length) {
       setTimeout(function() {
-        toast('Salvata. Per il preventivo mancano: ' + mancanti.map(function(c) { return c.etichetta; }).join(', '), 'warn');
+        toast('Salvata.' +
+          (mancanti.length ? ' Per il preventivo mancano: ' + mancanti.map(function(c) { return c.etichetta; }).join(', ') + '.' : '') +
+          (senzaFonte.length ? ' Senza fonte (il progetto non si invia): ' + senzaFonte.map(function(c) { return c.etichetta; }).join(', ') + '.' : ''), 'warn');
       }, 1500);
     }
     if (typeof currentProgettoTecnicoId !== 'undefined' && currentProgettoTecnicoId === riga.progetto_tecnico_id && ge('pd-schede-content')) {
@@ -669,4 +683,444 @@ function chiudiSchedaMotore() {
   if (progettoId && typeof currentProgettoTecnicoId !== 'undefined' && currentProgettoTecnicoId === progettoId && ge('pd-schede-content')) {
     renderSchedeProgettoCommerciale(progettoId).catch(function() {});
   }
+}
+
+// ── F15.5 — FONTE DEL RILIEVO E FONTE DEI DATI NORMATIVI (sql/79) ──────
+// Fonte del RILIEVO (progetti_tecnici.fonte_rilievo): sopralluogo TOLI,
+// documenti del cliente, misure dichiarate dal cliente (foto e video non
+// obbligatori; il PDF del preventivo per il cliente stampa "Misure fornite
+// dal committente, da verificare prima dell'ordine", js/18). Si sceglie nella
+// finestra del progetto (js/17) e in cima alla scheda del motore.
+// Fonte di ogni DATO NORMATIVO (campi del catalogo con "normativo": classe
+// REI/EI, classe R, minuti, reazione al fuoco, ATEX...): sotto il campo,
+// "📜 Fonte del dato" con documento del cliente o del progettista (file
+// obbligatorio), come l'esistente (foto della targhetta obbligatoria),
+// dichiarato dal cliente per iscritto (modulo generato qui, da far firmare o
+// accettare per email, poi caricato), definito dall'ingegnere TOLI (solo
+// ingegnere e titolare, nome e data li scrive il database). Si salva in
+// dati.fonti_normative.<codice> = { valore, fonte, allegato_id, ... } con la
+// scheda. Il gestionale NON calcola requisiti normativi: registra da dove
+// viene il dato. Senza fonte il dato non vale e l'invio del progetto si
+// ferma (js/17 controllaFontiPrimaDellInvio + trigger di sql/79, anche da
+// console). Senza sql/79 (RPC fonti_dati_attive) nulla di questo compare.
+const FONTI_DATI = { disponibile: null, allegati: [], progettoId: null };
+
+const FONTI_RILIEVO = [
+  { valore: 'sopralluogo_toli', etichetta: 'Sopralluogo TOLI' },
+  { valore: 'documenti_cliente', etichetta: 'Documenti del cliente (planimetrie, progetto)' },
+  { valore: 'misure_dichiarate', etichetta: 'Misure dichiarate dal cliente' }
+];
+
+const FONTI_DATO = [
+  { valore: 'documento_cliente', etichetta: 'Documento del cliente o del progettista', file: 'il documento' },
+  { valore: 'come_esistente', etichetta: 'Come l’esistente (foto della targhetta)', file: 'la foto della targhetta' },
+  { valore: 'dichiarato_cliente', etichetta: 'Dichiarato dal cliente per iscritto (modulo firmato o mail)', file: 'il modulo firmato o la mail del cliente' },
+  { valore: 'ingegnere_toli', etichetta: 'Definito dall’ingegnere TOLI (solo con progettazione)', file: '' }
+];
+
+const TESTO_MISURE_DICHIARATE = 'Misure fornite dal committente, da verificare prima dell’ordine.';
+
+async function verificaFontiDatiDisponibili() {
+  if (FONTI_DATI.disponibile !== null) return FONTI_DATI.disponibile;
+  if (typeof db === 'undefined' || !db) return false;
+  const { data, error } = await db.rpc('fonti_dati_attive');
+  if (!error) {
+    FONTI_DATI.disponibile = data === true;
+  } else if (error.code === 'PGRST202' || error.code === '42883' || /Could not find|does not exist/i.test(error.message || '')) {
+    FONTI_DATI.disponibile = false;
+  } else {
+    return false; // errore passeggero: si riprova la prossima volta
+  }
+  return FONTI_DATI.disponibile;
+}
+
+function fontiDatiAttive() { return FONTI_DATI.disponibile === true; }
+
+function etichettaFonteRilievo(valore) {
+  const f = FONTI_RILIEVO.find(function(x) { return x.valore === valore; });
+  return f ? f.etichetta : '';
+}
+
+function etichettaFonteDato(valore) {
+  const f = FONTI_DATO.find(function(x) { return x.valore === valore; });
+  return f ? f.etichetta : '';
+}
+
+function fonteConFile(fonte) { return ['documento_cliente', 'come_esistente', 'dichiarato_cliente'].includes(fonte); }
+
+// Con le misure dichiarate dal cliente foto e video non sono obbligatori
+// (per i controlli delle foto di F15.9)
+function fotoObbligatorieProgetto(progetto) {
+  return !(progetto && progetto.fonte_rilievo === 'misure_dichiarate');
+}
+
+function campiNormativiMotore(lav) {
+  return campiSchedaMotore(lav).filter(function(c) { return !!c.normativo; });
+}
+
+function valoreSenzaFonteNecessaria(x) {
+  return vuotoMotore(x) || x === VALORE_NON_NOTO;
+}
+
+// Una fonte vale per il dato di oggi? (stesse regole di fonti_mancanti_progetto)
+function problemaFonteDato(voce, valore, toccata) {
+  if (valoreSenzaFonteNecessaria(valore)) return '';
+  if (!voce || !voce.fonte) return 'senza fonte';
+  if (!FONTI_DATO.some(function(f) { return f.valore === voce.fonte; })) return 'fonte non valida';
+  if (!toccata && !ugualeMotore(voce.valore, valore)) return 'il dato è cambiato dopo la fonte';
+  if (fonteConFile(voce.fonte)) {
+    if (!voce.allegato_id) return 'manca ' + FONTI_DATO.find(function(f) { return f.valore === voce.fonte; }).file;
+    if (FONTI_DATI.progettoId && FONTI_DATI.allegati.length &&
+        !FONTI_DATI.allegati.some(function(a) { return a.id === voce.allegato_id; })) return 'il file non è più tra i file del progetto';
+  }
+  return '';
+}
+
+// Campi normativi compilati senza una fonte valida (avviso dopo il salvataggio)
+function fontiMancantiDatiMotore(dati, lav) {
+  if (!fontiDatiAttive()) return [];
+  const fonti = (dati && dati.fonti_normative) || {};
+  return campiNormativiMotore(lav).filter(function(c) {
+    return !!problemaFonteDato(fonti[c.codice], dati[c.codice], true);
+  });
+}
+
+async function caricaAllegatiFontiMotore(progettoId) {
+  FONTI_DATI.progettoId = progettoId;
+  FONTI_DATI.allegati = [];
+  const { data } = await db.from('progetti_tecnici_allegati')
+    .select('id,nome_file,storage_path,mime_type,caricato_il')
+    .eq('progetto_id', progettoId).order('caricato_il', { ascending: false });
+  FONTI_DATI.allegati = data || [];
+}
+
+function iniziaFontiMotore(dati) {
+  const f = dati && dati.fonti_normative && typeof dati.fonti_normative === 'object' && !Array.isArray(dati.fonti_normative)
+    ? dati.fonti_normative : {};
+  MOTORE_SCHEDE.fonti = JSON.parse(JSON.stringify(f));
+  MOTORE_SCHEDE.fontiToccate = {};
+}
+
+// Nei dati che si salvano: le voci non toccate tornano uguali (il database non
+// le ricontrolla), quelle toccate valgono per il dato di adesso
+function scriviFontiNeiDatiMotore(dati) {
+  if (!fontiDatiAttive() || !MOTORE_SCHEDE.fonti) return;
+  const fonti = {};
+  Object.keys(MOTORE_SCHEDE.fonti).forEach(function(k) {
+    const voce = MOTORE_SCHEDE.fonti[k];
+    if (!voce || !voce.fonte) return;
+    fonti[k] = (MOTORE_SCHEDE.fontiToccate || {})[k]
+      ? Object.assign({}, voce, { valore: dati[k] === undefined ? null : dati[k] })
+      : voce;
+  });
+  if (Object.keys(fonti).length || (MOTORE_SCHEDE.datiBase && MOTORE_SCHEDE.datiBase.fonti_normative)) {
+    dati.fonti_normative = fonti;
+  }
+}
+
+function valoreAttualeCampoMotore(codice) {
+  const lav = lavorazioneCatalogo(MOTORE_SCHEDE.famiglia);
+  const c = campiSchedaMotore(lav).find(function(x) { return x.codice === codice; });
+  if (!c) return undefined;
+  const casella = ge('msm-nn-' + codice);
+  if (casella && casella.checked) return VALORE_NON_NOTO;
+  const el = ge('msm-c-' + codice);
+  if (!el) return (MOTORE_SCHEDE.datiBase || {})[codice];
+  const testo = String(el.value || '').trim();
+  if (c.tipo === 'numero') { const n = numeroMotore(testo); return n === null ? '' : (isNaN(n) ? testo : n); }
+  return testo;
+}
+
+// Fonte del rilievo in cima alla scheda: si salva subito sul progetto
+function htmlFonteRilievoMotore() {
+  if (!fontiDatiAttive() || !MOTORE_SCHEDE.progetto) return '';
+  const p = MOTORE_SCHEDE.progetto;
+  const puo = ['rappresentante', 'ingegnere', 'titolare'].includes(ROLE);
+  return `
+    <div class="f" style="margin:10px 0 4px">
+      <label for="msm-fonte-rilievo">📐 Fonte del rilievo del progetto</label>
+      <select id="msm-fonte-rilievo" onchange="salvaFonteRilievoMotore()"${puo ? '' : ' disabled'}>
+        <option value="">Da indicare (senza, il progetto non si invia)</option>
+        ${FONTI_RILIEVO.map(function(f) { return '<option value="' + f.valore + '"' + (p.fonte_rilievo === f.valore ? ' selected' : '') + '>' + esc(f.etichetta) + '</option>'; }).join('')}
+      </select>
+    </div>
+    <div id="msm-fonte-rilievo-nota" style="font-size:12px;color:var(--m)">${esc(notaFonteRilievo(p.fonte_rilievo))}</div>`;
+}
+
+function notaFonteRilievo(valore) {
+  if (valore === 'misure_dichiarate') return 'Foto e video non obbligatori. Nel preventivo per il cliente: «' + TESTO_MISURE_DICHIARATE + '»';
+  return 'Vale per tutto il progetto: si salva subito.';
+}
+
+async function salvaFonteRilievoMotore() {
+  const sel = ge('msm-fonte-rilievo');
+  const p = MOTORE_SCHEDE.progetto;
+  if (!sel || !p) return;
+  const prima = p.fonte_rilievo || '';
+  const { data, error } = await db.from('progetti_tecnici').update({ fonte_rilievo: sel.value || null })
+    .eq('id', p.id).select('id');
+  if (error || !data || !data.length) {
+    sel.value = prima;
+    toast('Fonte del rilievo non salvata: ' + (error ? error.message : 'il progetto non si può modificare in questo stato'), 'err');
+    return;
+  }
+  p.fonte_rilievo = sel.value || null;
+  const nota = ge('msm-fonte-rilievo-nota');
+  if (nota) nota.textContent = notaFonteRilievo(p.fonte_rilievo);
+  toast('Fonte del rilievo salvata', 'ok');
+}
+
+// Riquadro "📜 Fonte del dato" sotto un campo normativo
+function htmlFonteCampoMotore(c, valore) {
+  if (!fontiDatiAttive() || !c.normativo) return '';
+  return `<div id="msm-fonte-${esc(c.codice)}" class="msm-fonte" style="margin-top:6px;padding:8px;border:1px dashed var(--bo);border-radius:var(--rs);background:var(--bg)">
+    ${htmlInternoFonteMotore(c.codice, valore)}
+  </div>`;
+}
+
+// valoreDisegno: il dato mentre si disegna la scheda (il modulo non c'è ancora);
+// senza, il dato scritto adesso nel modulo
+function htmlInternoFonteMotore(codice, valoreDisegno) {
+  const voce = (MOTORE_SCHEDE.fonti || {})[codice] || null;
+  const toccata = !!(MOTORE_SCHEDE.fontiToccate || {})[codice];
+  const valore = arguments.length > 1 ? valoreDisegno : valoreAttualeCampoMotore(codice);
+  const ingegnere = scriveLivelloIngegnere();
+  const fonte = voce ? voce.fonte : '';
+  const opzioni = FONTI_DATO.filter(function(f) { return f.valore !== 'ingegnere_toli' || ingegnere || fonte === 'ingegnere_toli'; });
+  const problema = problemaFonteDato(voce, valore, toccata);
+  let dettaglio = '';
+
+  if (fonteConFile(fonte)) {
+    const immagini = fonte === 'come_esistente';
+    dettaglio += `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">
+      <select id="msm-fa-${esc(codice)}" style="flex:1 1 180px;min-width:0" onchange="scegliFileFonteMotore('${esc(codice)}')">
+        <option value="">Scegli un file del progetto…</option>
+        ${FONTI_DATI.allegati.map(function(a) {
+          return '<option value="' + esc(a.id) + '"' + (voce && voce.allegato_id === a.id ? ' selected' : '') + '>' + esc(a.nome_file) + '</option>';
+        }).join('')}
+        ${voce && voce.allegato_id && !FONTI_DATI.allegati.some(function(a) { return a.id === voce.allegato_id; })
+          ? '<option value="' + esc(voce.allegato_id) + '" selected>' + esc(voce.allegato_nome || 'file') + ' (non più tra i file)</option>' : ''}
+      </select>
+      <label class="btn sm" style="margin:0;cursor:pointer">📎 ${immagini ? 'Foto' : 'Carica'}
+        <input type="file" style="display:none" accept="${immagini ? 'image/*' : '.pdf,.jpg,.jpeg,.png,.eml,.msg,application/pdf,image/*'}"${immagini ? ' capture="environment"' : ''}
+          onchange="caricaFileFonteMotore('${esc(codice)}', this)">
+      </label>
+      ${voce && voce.allegato_id ? `<button type="button" class="btn sm" onclick="apriFileFonteMotore('${esc(codice)}')">👁 Apri</button>` : ''}
+      ${fonte === 'dichiarato_cliente' ? `<button type="button" class="btn sm" onclick="generaModuloDichiarazioneMotore()">📄 Modulo da far firmare</button>` : ''}
+    </div>`;
+  } else if (fonte === 'ingegnere_toli') {
+    dettaglio += '<div style="font-size:12px;color:var(--m);margin-top:4px">' +
+      (voce && voce.da_nome && !toccata
+        ? 'Definito da ' + esc(voce.da_nome) + (voce.il ? ' il ' + esc(new Date(voce.il).toLocaleDateString('it-IT')) : '')
+        : 'Nome e data li scrive il gestionale quando salvi.') + '</div>';
+  }
+  if (voce && voce.fonte && voce.da_nome && !toccata && fonte !== 'ingegnere_toli') {
+    dettaglio += '<div style="font-size:11px;color:var(--m);margin-top:4px">Indicata da ' + esc(voce.da_nome) +
+      (voce.il ? ' il ' + esc(new Date(voce.il).toLocaleDateString('it-IT')) : '') + '</div>';
+  }
+  let stato = '';
+  if (valoreSenzaFonteNecessaria(valore)) {
+    stato = '<div style="font-size:11px;color:var(--m);margin-top:4px">Dato vuoto o non noto: la fonte non serve.</div>';
+  } else if (problema === 'il dato è cambiato dopo la fonte') {
+    stato = `<div style="font-size:12px;color:#854F0B;margin-top:4px">⚠️ Il dato è cambiato dopo la fonte (era «${esc(valoreSchedaTecnica(voce.valore))}»).
+      <button type="button" class="btn sm" onclick="confermaFonteMotore('${esc(codice)}')">✓ Vale per il dato nuovo</button></div>`;
+  } else if (problema) {
+    stato = '<div style="font-size:12px;color:var(--r);margin-top:4px">⚠️ ' + esc(problema.charAt(0).toUpperCase() + problema.slice(1)) + ': il progetto non si invia.</div>';
+  } else {
+    stato = '<div style="font-size:12px;color:var(--g);margin-top:4px">✓ Fonte indicata' + (toccata ? ' (si salva con la scheda)' : '') + '</div>';
+  }
+
+  return `<label for="msm-f-${esc(codice)}" style="font-size:12px">📜 Fonte del dato</label>
+    <select id="msm-f-${esc(codice)}" onchange="cambiaFonteMotore('${esc(codice)}')">
+      <option value="">Senza fonte</option>
+      ${opzioni.map(function(f) {
+        return '<option value="' + f.valore + '"' + (fonte === f.valore ? ' selected' : '') +
+          (f.valore === 'ingegnere_toli' && !ingegnere ? ' disabled' : '') + '>' + esc(f.etichetta) + '</option>';
+      }).join('')}
+    </select>
+    ${dettaglio}
+    ${stato}`;
+}
+
+function ridisegnaFonteMotore(codice) {
+  const box = ge('msm-fonte-' + codice);
+  if (box) box.innerHTML = htmlInternoFonteMotore(codice);
+}
+
+function toccaFonteMotore(codice, voce) {
+  if (!MOTORE_SCHEDE.fonti) MOTORE_SCHEDE.fonti = {};
+  if (!MOTORE_SCHEDE.fontiToccate) MOTORE_SCHEDE.fontiToccate = {};
+  if (voce) MOTORE_SCHEDE.fonti[codice] = voce; else delete MOTORE_SCHEDE.fonti[codice];
+  MOTORE_SCHEDE.fontiToccate[codice] = true;
+  if (typeof segnaSchedaRilievoModificata === 'function') segnaSchedaRilievoModificata();
+  ridisegnaFonteMotore(codice);
+}
+
+function cambiaFonteMotore(codice) {
+  const fonte = v('msm-f-' + codice);
+  if (!fonte) { toccaFonteMotore(codice, null); return; }
+  const prima = (MOTORE_SCHEDE.fonti || {})[codice] || {};
+  const voce = { fonte: fonte, valore: valoreAttualeCampoMotore(codice) };
+  if (fonteConFile(fonte) && prima.allegato_id && fonteConFile(prima.fonte)) voce.allegato_id = prima.allegato_id;
+  toccaFonteMotore(codice, voce);
+}
+
+function scegliFileFonteMotore(codice) {
+  const voce = Object.assign({}, (MOTORE_SCHEDE.fonti || {})[codice] || {});
+  const id = v('msm-fa-' + codice);
+  ['allegato_nome', 'allegato_percorso', 'da', 'da_nome', 'da_ruolo', 'il'].forEach(function(k) { delete voce[k]; });
+  if (id) voce.allegato_id = id; else delete voce.allegato_id;
+  voce.valore = valoreAttualeCampoMotore(codice);
+  toccaFonteMotore(codice, voce);
+}
+
+function confermaFonteMotore(codice) {
+  const voce = Object.assign({}, (MOTORE_SCHEDE.fonti || {})[codice] || {});
+  ['da', 'da_nome', 'da_ruolo', 'il'].forEach(function(k) { delete voce[k]; });
+  voce.valore = valoreAttualeCampoMotore(codice);
+  toccaFonteMotore(codice, voce);
+}
+
+// Cambiando un dato normativo il suo riquadro della fonte si aggiorna
+function aggiornaFontiDopoModificaMotore(ev) {
+  if (!fontiDatiAttive() || !ev || !ev.target || !ev.target.id) return;
+  const m = /^msm-(?:c|nn)-(.+)$/.exec(ev.target.id);
+  if (m && ge('msm-fonte-' + m[1])) ridisegnaFonteMotore(m[1]);
+}
+
+async function caricaFileFonteMotore(codice, input) {
+  const originale = input && input.files && input.files[0];
+  if (input) input.value = '';
+  const progettoId = currentRilievoProgettoId;
+  if (!originale || !progettoId) return;
+  const { data: auth } = await db.auth.getUser();
+  const uid = auth && auth.user && auth.user.id;
+  if (!uid) { toast('Sessione scaduta: rientra e riprova', 'err'); return; }
+  const file = /^image\//.test(originale.type || '') && typeof ridimensionaFotoGiornale === 'function'
+    ? await ridimensionaFotoGiornale(originale) : originale;
+  if (file.size > 10 * 1024 * 1024) { toast(originale.name + ': oltre 10 MB', 'err'); return; }
+  const nome = 'fonte_' + codice + '_' + String(file.name || originale.name || 'file');
+  const path = uid + '/' + progettoId + '/fonti/' + Date.now() + '_' + nome.replace(/[^a-zA-Z0-9._-]/g, '_');
+  toast('Caricamento…', 'info');
+  const up = await db.storage.from('progetti-tecnici').upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false });
+  if (up.error) { toast('Caricamento non riuscito: ' + up.error.message, 'err'); return; }
+  const { data: alleg, error } = await db.from('progetti_tecnici_allegati').insert({
+    progetto_id: progettoId, nome_file: nome, storage_path: path,
+    mime_type: file.type || 'application/octet-stream', dimensione: file.size, caricato_da: uid
+  }).select('id,nome_file,storage_path,mime_type,caricato_il').single();
+  if (error || !alleg) {
+    await db.storage.from('progetti-tecnici').remove([path]);
+    toast('File non salvato tra i file del progetto: ' + (error ? error.message : ''), 'err');
+    return;
+  }
+  FONTI_DATI.allegati.unshift(alleg);
+  const voce = Object.assign({}, (MOTORE_SCHEDE.fonti || {})[codice] || {});
+  ['allegato_nome', 'allegato_percorso', 'da', 'da_nome', 'da_ruolo', 'il'].forEach(function(k) { delete voce[k]; });
+  voce.allegato_id = alleg.id;
+  voce.valore = valoreAttualeCampoMotore(codice);
+  toccaFonteMotore(codice, voce);
+  toast('File caricato: ricordati di salvare la scheda', 'ok');
+}
+
+async function apriFileFonteMotore(codice) {
+  const voce = (MOTORE_SCHEDE.fonti || {})[codice];
+  if (!voce || !voce.allegato_id) return;
+  const a = FONTI_DATI.allegati.find(function(x) { return x.id === voce.allegato_id; });
+  const percorso = (a && a.storage_path) || voce.allegato_percorso;
+  if (!percorso) { toast('File non trovato', 'err'); return; }
+  const { data, error } = await db.storage.from('progetti-tecnici').createSignedUrl(percorso, 600);
+  if (error || !data || !data.signedUrl) { toast('File non disponibile' + (error ? ': ' + error.message : ''), 'err'); return; }
+  window.open(data.signedUrl, '_blank', 'noopener');
+}
+
+// Modulo di dichiarazione dei dati da far firmare (o accettare per email)
+async function generaModuloDichiarazioneMotore() {
+  if (typeof preparaPDF === 'function' && !(await preparaPDF())) return;
+  if (!window.jspdf) { toast('Libreria PDF non disponibile', 'err'); return; }
+  const lav = lavorazioneCatalogo(MOTORE_SCHEDE.famiglia);
+  const dati = datiFormSchedaMotore();
+  const fonti = dati.fonti_normative || {};
+  let campi = campiNormativiMotore(lav).filter(function(c) {
+    return !valoreSenzaFonteNecessaria(dati[c.codice]) && fonti[c.codice] && fonti[c.codice].fonte === 'dichiarato_cliente';
+  });
+  if (!campi.length) campi = campiNormativiMotore(lav).filter(function(c) { return !valoreSenzaFonteNecessaria(dati[c.codice]); });
+  if (!campi.length) { toast('Compila prima i dati da far dichiarare al cliente', 'err'); return; }
+  const testoValore = function(c, x) {
+    const o = opzioniMenuMotore(c).find(function(y) { return y.valore === String(x); });
+    return (o ? o.etichetta : valoreSchedaTecnica(x)) + (c.unita && c.tipo === 'numero' ? ' ' + c.unita : '');
+  };
+  const cliente = MOTORE_SCHEDE.cliente || {};
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const m = 16;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(8, 80, 65);
+  doc.text('TOLI FIRE', m, 18);
+  doc.setFontSize(12); doc.setTextColor(40, 40, 40);
+  doc.text('Dichiarazione del committente sui dati per il preventivo', m, 28);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  let y = 38;
+  [['Committente', cliente.ragione_sociale || ''],
+   ['Progetto', (MOTORE_SCHEDE.progetto && MOTORE_SCHEDE.progetto.titolo) || ''],
+   ['Luogo dei lavori', dati.indirizzo_lavori || ''],
+   ['Lavorazione', (lav ? lav.nome : '') + (MOTORE_SCHEDE.numero > 1 ? ' – scheda ' + MOTORE_SCHEDE.numero : '') + (dati.nome_scheda ? ' (' + dati.nome_scheda + ')' : '')]
+  ].forEach(function(r) {
+    const righe = doc.splitTextToSize(r[0] + ': ' + r[1], 178);
+    doc.text(righe, m, y); y += righe.length * 5 + 1;
+  });
+  doc.autoTable({
+    startY: y + 3, margin: { left: m, right: m },
+    head: [['Dato', 'Valore dichiarato dal committente']],
+    body: campi.map(function(c) { return [c.etichetta, testoValore(c, dati[c.codice])]; }),
+    styles: { fontSize: 10 }, headStyles: { fillColor: [8, 80, 65] }
+  });
+  y = doc.lastAutoTable.finalY + 10;
+  const testo = 'Il sottoscritto, in qualità di committente o suo incaricato, dichiara sotto la propria responsabilità che i dati ' +
+    'sopra riportati sono quelli richiesti per l’intervento (o corrispondono a quanto già installato). TOLI FIRE li utilizza ' +
+    'per formulare il preventivo così come dichiarati: non li ha verificati e non ha determinato i requisiti normativi. ' +
+    'In alternativa alla firma il committente può rispondere per email confermando i dati.';
+  const righe = doc.splitTextToSize(testo, 178);
+  doc.text(righe, m, y); y += righe.length * 5 + 14;
+  doc.text('Data ____________________', m, y);
+  doc.text('Nome e cognome ______________________________', m, y + 10);
+  doc.text('Firma ______________________________', m, y + 20);
+  const nomeFile = 'Dichiarazione_dati_' + String(cliente.ragione_sociale || 'cliente').replace(/[^a-zA-Z0-9]+/g, '_').slice(0, 40) + '.pdf';
+  doc.save(nomeFile);
+  toast('Modulo scaricato: fallo firmare (o confermare per email) e caricalo qui con 📎 Carica', 'ok');
+}
+
+// Riga della fonte sotto un dato nelle schede salvate (scheda progetto, js/17;
+// preventivo, js/18). '' se non c'è niente da dire.
+function htmlFonteDatoScheda(scheda, chiave) {
+  if (FONTI_DATI.disponibile === false || !scheda || !scheda.dati) return '';
+  const valore = scheda.dati[chiave];
+  if (valoreSenzaFonteNecessaria(valore)) return '';
+  const voce = (scheda.dati.fonti_normative || {})[chiave];
+  const lav = typeof lavorazioneCatalogo === 'function' && typeof CATALOGO_LAV !== 'undefined' && CATALOGO_LAV.disponibili
+    ? lavorazioneCatalogo(scheda.famiglia) : null;
+  const normativo = fontiDatiAttive() && lav && campiNormativiMotore(lav).some(function(c) { return c.codice === chiave; });
+  if (!voce && !normativo) return '';
+  const problema = problemaFonteDato(voce, valore, false);
+  const testo = voce && voce.fonte
+    ? '📜 ' + etichettaFonteDato(voce.fonte) + (voce.allegato_nome ? ' · ' + voce.allegato_nome : '') +
+      (voce.da_nome ? ' · ' + voce.da_nome : '') + (voce.il ? ' ' + new Date(voce.il).toLocaleDateString('it-IT') : '')
+    : '';
+  return '<div style="font-size:11px;margin-top:4px;color:' + (problema ? 'var(--r)' : 'var(--m)') + '">' +
+    esc(testo) + (problema ? (testo ? ' · ' : '') + '⚠️ ' + esc(problema) : '') + '</div>';
+}
+
+// Prima di inviare il progetto (js/17): fonte del rilievo e fonti dei dati
+// normativi (RPC fonti_mancanti_progetto di sql/79). true = si può inviare.
+async function controllaFontiPrimaDellInvio(progettoId) {
+  if (!(await verificaFontiDatiDisponibili())) return true;
+  const { data, error } = await db.rpc('fonti_mancanti_progetto', { p_progetto: progettoId });
+  if (error) return true; // il database lo ricontrolla comunque all'invio
+  if (!data || !data.length) return true;
+  const righe = data.slice(0, 8).map(function(r) {
+    return '- ' + (r.scheda ? r.scheda + ' – ' : '') + r.etichetta + ': ' + r.motivo;
+  });
+  alert('Il progetto non si può ancora inviare:\n\n' + righe.join('\n') +
+    (data.length > 8 ? '\n- … e altri ' + (data.length - 8) : '') +
+    '\n\nLa fonte del rilievo si indica in "Modifica" del progetto o in cima alla scheda di rilievo; ' +
+    'la fonte dei dati normativi sotto il dato, nella scheda (📝 Rilievi tecnici → 📝 Compila la scheda).');
+  return false;
 }

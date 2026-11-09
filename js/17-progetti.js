@@ -321,7 +321,7 @@ if (
 // riaprendo lo stesso progetto (o "Nuovo progetto" sullo stesso cliente)
 // il testo torna. Si cancella quando il progetto viene salvato. I file
 // allegati non si possono conservare: vanno riselezionati.
-const CAMPI_BOZZA_PROGETTO = ['mp-titolo', 'mp-tipologia', 'mp-descrizione', 'mp-materiali', 'mp-importo'];
+const CAMPI_BOZZA_PROGETTO = ['mp-titolo', 'mp-tipologia', 'mp-descrizione', 'mp-materiali', 'mp-importo', 'mp-fonte-rilievo'];
 let chiaveBozzaProgettoAperta = null;
 let timerBozzaProgetto = null;
 
@@ -443,6 +443,7 @@ async function apriNuovoProgetto() {
   anteprimaFileProgetto();
 
   await mostraImportoProgetto(null);
+  await mostraFonteRilievoProgetto(null);
   await caricaAllegatiProgetto(null);
   preparaBozzaProgetto(null);
 
@@ -470,6 +471,7 @@ async function modificaProgetto(id) {
   anteprimaFileProgetto();
 
   await mostraImportoProgetto(progetto);
+  await mostraFonteRilievoProgetto(progetto);
   await caricaAllegatiProgetto(id);
   preparaBozzaProgetto(id);
 
@@ -576,6 +578,13 @@ const authUserId = authData.user.id;
 
         payload.importo_stimato = Math.round(importo * 100) / 100;
       }
+    }
+
+    // F15.5: fonte del rilievo (solo con sql/79 e se il campo era attivo)
+    const selFonte = ge('mp-fonte-rilievo');
+    const boxFonte = ge('mp-fonte-rilievo-box');
+    if (boxFonte && boxFonte.style.display !== 'none' && selFonte && !selFonte.disabled) {
+      payload.fonte_rilievo = selFonte.value || null;
     }
 
     let progettoId = id;
@@ -772,6 +781,11 @@ async function eliminaProgetto(progettoId) {
 }
 
 async function inviaProgettoAUfficioTecnico(progettoId) {
+  // F15.5: fonte del rilievo e fonti dei dati normativi (js/56, sql/79)
+  if (typeof controllaFontiPrimaDellInvio === 'function' && !(await controllaFontiPrimaDellInvio(progettoId))) {
+    return;
+  }
+
   if (!confirm(
     'Inviare il progetto a ingegnere e titolare per la verifica tecnica? Dopo l’invio non sarà più una bozza.'
   )) {
@@ -924,7 +938,41 @@ async function mostraImportoProgetto(progetto) {
   aggiornaAvvisoImportoProgetto();
 }
 
+// F15.5: campo "Fonte del rilievo" nel modal del progetto, solo con sql/79
+// (js/56 verificaFontiDatiDisponibili). Lo scrivono rappresentante,
+// ingegnere e titolare; gli altri ruoli lo vedono in sola lettura.
+async function mostraFonteRilievoProgetto(progetto) {
+  const box = ge('mp-fonte-rilievo-box');
+  const campo = ge('mp-fonte-rilievo');
+  if (!box || !campo) return;
+  const attive = typeof verificaFontiDatiDisponibili === 'function' && await verificaFontiDatiDisponibili();
+  box.style.display = attive ? 'block' : 'none';
+  campo.value = attive && progetto && progetto.fonte_rilievo ? progetto.fonte_rilievo : '';
+  campo.disabled = !['rappresentante', 'ingegnere', 'titolare'].includes(ROLE);
+  aggiornaNotaFonteRilievoProgetto();
+}
+
+function aggiornaNotaFonteRilievoProgetto() {
+  const nota = ge('mp-fonte-rilievo-nota');
+  if (!nota) return;
+  const valore = v('mp-fonte-rilievo');
+  nota.textContent = valore === 'misure_dichiarate'
+    ? 'Foto e video non obbligatori. Nel preventivo per il cliente comparirà: «' +
+      (typeof TESTO_MISURE_DICHIARATE !== 'undefined' ? TESTO_MISURE_DICHIARATE : 'Misure fornite dal committente, da verificare prima dell’ordine.') + '»'
+    : (valore ? '' : 'Da dove vengono le misure: senza, il progetto non si invia.');
+}
+
 async function inviaProgettoAlCommerciale(progettoId) {
+  // F15.5: fonte del rilievo e fonti dei dati normativi (js/56, sql/79)
+  // (solo l'invio da bozza o da integrare: dopo la verifica dell'ingegnere no)
+  if (typeof controllaFontiPrimaDellInvio === 'function') {
+    const { data: attuale } = await db.from('progetti_tecnici').select('stato').eq('id', progettoId).maybeSingle();
+    if ((!attuale || ['bozza', 'da_integrare'].includes(attuale.stato)) &&
+        !(await controllaFontiPrimaDellInvio(progettoId))) {
+      return;
+    }
+  }
+
   if (!confirm('Inviare il progetto ad Acquisti per il preventivo?')) {
     return;
   }
@@ -2788,6 +2836,13 @@ if (btnModifica) {
           ? formatoEuroSoglia(progetto.importo_stimato)
           : null
       ) : ''}
+      ${'fonte_rilievo' in progetto && typeof etichettaFonteRilievo === 'function' ? ir(
+        'Fonte del rilievo',
+        progetto.fonte_rilievo
+          ? etichettaFonteRilievo(progetto.fonte_rilievo) +
+            (progetto.fonte_rilievo === 'misure_dichiarate' ? ' (da verificare prima dell’ordine)' : '')
+          : 'Da indicare'
+      ) : ''}
     </div>
 
     ${['bozza', 'da_integrare', 'pronto_per_preventivo']
@@ -3197,6 +3252,7 @@ async function renderSchedeProgettoCommerciale(progettoId) {
                       <div style="font-size:13px;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere">
                         ${esc(valoreSchedaTecnica(entry[1]))}
                       </div>
+                      ${typeof htmlFonteDatoScheda === 'function' ? htmlFonteDatoScheda(scheda, entry[0]) : ''}
                     </div>
                   `;
                 }).join('')}
@@ -3403,6 +3459,7 @@ async function apriProgettoDaElenco(id) {
   ge('mp-file-extra').value = '';
 
   await mostraImportoProgetto(progetto);
+  await mostraFonteRilievoProgetto(progetto);
   await caricaAllegatiProgetto(progetto.id);
 
   openM('m-progetto');

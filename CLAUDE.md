@@ -271,6 +271,15 @@ uguali). Trigger NUOVI trg_progetti_tecnici_schede_motore e
 trg_progetti_tecnici_posizioni_motore (solo per il ruolo rappresentante, anche
 "Entra come"): campi di livello ingegnere, copia del commerciale,
 progetto/tipo/numero fissi, plausibilità.
+Dopo sql/79 (F15.5 motore delle schede, parte 2: fonti, DA ESEGUIRE, richiede
+07, 71, 75, 77, 78; provato il 09/11 sul backup pre77 + 77 + 78): nessuna
+tabella nuova. progetti_tecnici: colonna NUOVA fonte_rilievo (vuota,
+sopralluogo_toli, documenti_cliente, misure_dichiarate; vincolo
+progetti_tecnici_fonte_rilievo_check; la scrivono rappresentante, ingegnere,
+titolare) e trigger NUOVO trg_progetti_tecnici_fonti (chi scrive la fonte;
+blocco dell'invio da bozza/da integrare). progetti_tecnici_schede: trigger
+NUOVO trg_progetti_tecnici_schede_fonti (voci di dati.fonti_normative).
+Registro delle azioni: quello di sql/67, già sulle due tabelle.
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -1165,6 +1174,88 @@ del rappresentante); smoke test TUTTO OK con e senza sql/78; rollback
 provato (schema identico al backup pre76 + 76 + 77; le righe del registro
 del catalogo restano). Senza sql/78: sito come con il 77 (controlli solo
 nel sito), nessun errore.
+Dopo sql/79 (F15.5 motore delle schede, parte 2: fonte del rilievo e fonte
+dei dati normativi, DA ESEGUIRE: backup, anteprima in fondo al file,
+79-motore-schede.sql (senza parole di cancellazione, server MCP), poi il
+controllo in fondo; nessun file -REGISTRO-CANCELLAZIONI (nessuna tabella
+nuova); richiede 07, 71, 75, 77, 78, tutti in produzione, si ferma senza).
+RPC del sito: fonti_dati_attive() (true: il sito sa che il 79 c'è),
+fonti_mancanti_progetto(p_progetto) (SECURITY INVOKER: cosa manca per inviare,
+righe scheda_id, scheda, campo, etichetta, motivo; vuota = si invia).
+Funzioni nuove: campi_normativi_lavorazione(famiglia) (catalogo: normativo,
+attivo, non per posizione, non foto; oggi 7: rei, atex, classe, minuti,
+classe_r, classe_resistenza, reazione_fuoco), etichetta_fonte_dato, trigger
+trg_progetti_tecnici_schede_fonti e trg_progetti_tecnici_fonti. DATI: colonna
+progetti_tecnici.fonte_rilievo (sopralluogo_toli, documenti_cliente,
+misure_dichiarate); nella scheda dati.fonti_normative.<codice> = { valore,
+fonte (documento_cliente | come_esistente | dichiarato_cliente |
+ingegnere_toli), allegato_id (riga di progetti_tecnici_allegati DELLO STESSO
+progetto), allegato_nome, allegato_percorso, da, da_nome, da_ruolo, il }:
+valore, nome e percorso del file, chi e quando li scrive il trigger (da =
+utente_effettivo(), da_nome = nome_utente_corrente(), chi agisce davvero).
+REGOLE (utenti del sito; editor SQL senza limiti): fonte del rilievo e voci
+delle fonti le cambiano solo rappresentante, ingegnere, titolare (42501;
+Acquisti dalla policy "commerciale aggiorna rilievi tecnici" rifiutato);
+voce solo per un campo normativo della lavorazione, fonte valida, file
+obbligatorio per documento/come esistente/dichiarato (22023);
+ingegnere_toli solo ingegnere e titolare (42501, anche titolare "come"
+rappresentante); le voci non cambiate non si ricontrollano; upsert del sito
+controllato nel ramo update. BLOCCO DELL'INVIO: da bozza o da integrare
+verso in_verifica_tecnica, inviato_a_commerciale o pronto_per_preventivo
+(e un progetto creato già "inviato" dal rappresentante) senza fonte del
+rilievo o con un dato normativo compilato (non vuoto, non "non_noto") senza
+fonte valida (senza fonte, fonte data per un valore diverso, file tolto) =
+22023 "Invio bloccato...", per ogni utente del sito. I passaggi dopo
+(ingegnere → pronto, Acquisti, Rimanda indietro, preventivi) non si fermano.
+Nel sito: js/56 (in fondo, F15.5): "📐 Fonte del rilievo del progetto" in cima
+alla scheda del motore (si salva subito), "📜 Fonte del dato" sotto ogni
+campo normativo (id msm-fonte-<codice>, msm-f-, msm-fa-: scelta della fonte,
+file del progetto o "📎 Carica"/"📎 Foto" (bucket progetti-tecnici
+<utente>/<progetto>/fonti/, riga in progetti_tecnici_allegati), "👁 Apri",
+"📄 Modulo da far firmare" (PDF jsPDF con i dati dichiarati,
+generaModuloDichiarazioneMotore), stato ✓ / ⚠️ "il dato è cambiato dopo la
+fonte" con "✓ Vale per il dato nuovo"); salvataggio con "Senza fonte (il
+progetto non si invia): ..."; htmlFonteDatoScheda (fonte sotto il dato nella
+scheda progetto di js/17 e nel preventivo di js/18); controllaFontiPrimaDellInvio
+(RPC, alert con l'elenco) chiamata da inviaProgettoAUfficioTecnico e
+inviaProgettoAlCommerciale (solo da bozza/da integrare) di js/17;
+fotoObbligatorieProgetto(progetto) (false con misure dichiarate, per F15.9).
+js/17: campo "Fonte del rilievo *" nella finestra del progetto
+(mp-fonte-rilievo-box, mostraFonteRilievoProgetto, anche in
+apriProgettoDaElenco; disattivato per gli altri ruoli), riga "Fonte del
+rilievo" in progetto-detail. js/18: campoSchedaDaElencare esclude
+fonti_normative (preventivo, copia di Acquisti, PDF fornitore, scheda
+cantiere: i dati si leggono come prima); generaPreventivoClientePDF legge
+progetti_tecnici.fonte_rilievo del progetto del preventivo e con
+misure_dichiarate stampa la sezione "Misure: Misure fornite dal committente,
+da verificare prima dell'ordine." (senza sql/79 la lettura fallisce in
+silenzio). Guide info-rap-28, info-ing-22. SCELTE DA CONFERMARE DA TOLI:
+blocco solo all'invio del rappresentante (le 7 schede di js/18 non hanno
+ancora la fonte: F15.6-F15.7); progetti aperti non migrati (al prossimo
+invio chiedono le fonti); "ingegnere TOLI" solo per ruolo, la progettazione
+non è verificata; testo del modulo di dichiarazione; file obbligatorio anche
+per "dichiarato" (modulo firmato o mail); dati normativi per posizione non
+controllati (F15.8); passo "verifica misure" della commessa NON fatto.
+Prove: sql/79-motore-schede-PROVA.sql (solo database di prova, rollback, 50
+controlli: invio senza fonte del rilievo e senza fonte del dato rifiutato
+anche al titolare "come" rappresentante; Acquisti, segreteria, titolare "come"
+Acquisti non scrivono la fonte del rilievo; file di un altro progetto, campo
+non normativo, fonte inventata, "ingegnere TOLI" del rappresentante e
+Acquisti sulle schede rifiutati; come esistente con foto → valore/chi/file dal
+database, si invia; dato cambiato dopo e file tolto → bloccato; non noto
+passa; ingegnere TOLI con nome e data; passaggio dell'ingegnere non bloccato;
+editor libero); test/motore-schede-fonti.spec.js (Chrome headless,
+rappresentante a 390 px: porta REI 60 senza fonte salvata ma non inviata,
+console rifiutata, fonte del rilievo e foto della targhetta → inviata;
+console di rappresentante "ingegnere TOLI", Acquisti e tecnico rifiutati;
+ingegnere TOLI con nome; PDF con e senza la frase; FONTI_SENZA_SQL=1 dopo il
+rollback); smoke test TUTTO OK con e senza sql/79 (smoke.spec.js sceglie la
+fonte del rilievo se il campo c'è); motore-schede, motore-schede-protezioni,
+posizioni TUTTO OK con sql/79; matrice dei permessi TUTTO OK (anche
+MATRICE_AGITO_COME=1; corrette 7 caselle di lettura di commesse e
+commesse_storico, che dal backup pre77 hanno una riga vera); rollback
+provato (schema identico). Senza sql/79: nessuna fonte, nessun blocco,
+nessun errore (una chiamata RPC 404).
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),

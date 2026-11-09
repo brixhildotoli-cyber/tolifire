@@ -709,7 +709,8 @@ function titoloSchedaRilievo(scheda, schede, quanteStesse) {
 // Il nome della scheda va nel titolo, non tra i campi.
 function campoSchedaDaElencare(chiave) {
   // F15.3: sede_id (motore delle schede) serve solo a riproporre la sede
-  return chiave !== 'nome_scheda' && chiave !== 'sede_id';
+  // F15.5: le fonti dei dati normativi (sql/79) si leggono sotto il loro dato
+  return chiave !== 'nome_scheda' && chiave !== 'sede_id' && chiave !== 'fonti_normative';
 }
 
 // F15.3: salvando, i dati della scheda che il modulo aperto non ha (scritti
@@ -1430,6 +1431,7 @@ async function renderSchedePreventivo() {
                         <div style="font-size:13px;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere">
                           ${esc(valoreSchedaTecnica(entry[1]))}
                         </div>
+                        ${typeof htmlFonteDatoScheda === 'function' ? htmlFonteDatoScheda(scheda, entry[0]) : ''}
                       </div>
                     `;
                   }).join('')}
@@ -6314,6 +6316,7 @@ async function generaPreventivoClientePDF(datiEsterni) {
         totale_imponibile,
         note,
         condizioni_pagamento,
+        progetto_tecnico_id,
         clienti(
           ragione_sociale,
           indirizzo,
@@ -6358,6 +6361,18 @@ async function generaPreventivoClientePDF(datiEsterni) {
   const totaleIva = totaleImponibile * (ivaPerc / 100);
   const totaleDocumento = totaleImponibile + totaleIva;
   const cliente = preventivo.clienti || {};
+
+  // F15.5 (sql/79): con le misure dichiarate dal cliente la frase fissa nel PDF
+  let misureDichiarate = false;
+  if (preventivo.progetto_tecnico_id) {
+    const { data: progettoFonte, error: erroreFonte } = await db
+      .from('progetti_tecnici')
+      .select('fonte_rilievo')
+      .eq('id', preventivo.progetto_tecnico_id)
+      .maybeSingle();
+    // senza sql/79 la colonna non c'è: nessuna frase, come prima
+    misureDichiarate = !erroreFonte && !!progettoFonte && progettoFonte.fonte_rilievo === 'misure_dichiarate';
+  }
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({
@@ -6550,6 +6565,13 @@ margin: {
 
     doc.text(righe, margine, y);
     y += righe.length * 5 + 10;
+  }
+
+  if (misureDichiarate) {
+    sezione(
+      'Misure',
+      'Misure fornite dal committente, da verificare prima dell’ordine.'
+    );
   }
 
   sezione(

@@ -496,6 +496,9 @@ const SALVATAGGI = {
         ge('mp-titolo').value = t;
         const sel = ge('mp-tipologia'); sel.value = [...sel.options].find(o => o.value).value;
         ge('mp-descrizione').value = 'Progetto creato dallo smoke test automatico (F14.9).';
+        // F15.5 (sql/79): senza la fonte del rilievo il progetto non si invia
+        const fonte = ge('mp-fonte-rilievo');
+        if (fonte && ge('mp-fonte-rilievo-box') && ge('mp-fonte-rilievo-box').style.display !== 'none') fonte.value = 'sopralluogo_toli';
       }, titolo);
       const pdf = path.join(CARTELLA_OUT, 'allegato-prova.pdf');
       fs.writeFileSync(pdf, '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
