@@ -2540,6 +2540,19 @@
       <div class="st" id="info-titolo">Informazioni</div>
       <div class="sub">Guida pratica all’uso del gestionale.</div>
     </div>
+    <div id="info-scegli-guida-box" style="display:none">
+      <label for="info-scegli-guida" class="sub">Guida da leggere</label>
+      <select id="info-scegli-guida" onchange="loadInfo(this.value)">
+        <option value="titolare">Titolare</option>
+        <option value="segreteria">Segreteria</option>
+        <option value="contabile">Contabile</option>
+        <option value="capo_tecnico">Capo tecnico</option>
+        <option value="tecnico">Tecnico</option>
+        <option value="commerciale">Commerciale</option>
+        <option value="rappresentante">Rappresentante</option>
+        <option value="ingegnere">Ingegnere</option>
+      </select>
+    </div>
   </div>
 
   <div id="info-contenuto">

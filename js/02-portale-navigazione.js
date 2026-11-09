@@ -462,12 +462,21 @@ function canAccessPage(id) {
 // Pagina Info: mostra la guida del ruolo (id "guida-<ROLE>"; l'informatico
 // ha ROLE 'titolare' e vede quella del titolare). L'indice in cima alla guida
 // (.guida-indice) si costruisce dai suoi <h4 id="info-...">.
-function loadInfo() {
+// Il titolare (e l'informatico) sceglie anche la guida degli altri ruoli,
+// per esempio per leggerla o stamparla per la segreteria.
+function loadInfo(ruoloGuida) {
   document.querySelectorAll('.guida-ruolo').forEach(function(guida) {
     guida.style.display = 'none';
   });
 
-  const guidaAttiva = ge('guida-' + ROLE);
+  const scelta = ge('info-scegli-guida');
+  const boxScelta = ge('info-scegli-guida-box');
+  const puoScegliere = ROLE === 'titolare';
+  if (boxScelta) boxScelta.style.display = puoScegliere ? '' : 'none';
+  const ruolo = (puoScegliere && typeof ruoloGuida === 'string' && ruoloGuida) ? ruoloGuida : ROLE;
+  if (scelta && puoScegliere) scelta.value = ruolo;
+
+  const guidaAttiva = ge('guida-' + ruolo);
   let avviso = ge('info-nessuna-guida');
 
   if (guidaAttiva) {
