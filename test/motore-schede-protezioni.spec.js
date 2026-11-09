@@ -353,7 +353,8 @@ const toastTesto = s => s.page.evaluate(() => (document.getElementById('toast') 
     await r.page.evaluate(() => { if (schedaRilievoAperta) { schedaRilievoAperta.modificata = false; schedaRilievoAperta.bozze = {}; } closeM('m-rilievo-tecnico'); });
 
     // l'ingegnere scrive le sue note (dal database: è lui, ruolo vero)
-    psql("update public.progetti_tecnici_schede set dati = dati || '{\"note_tecniche\":\"Controtelaio da verificare\"}' where progetto_tecnico_id = " + q(progettoId) + " and famiglia = 'porte_rei' and numero = 1");
+    // ... e una larghezza da portone salvata come TESTO (come la scheda di js/18: "350")
+    psql("update public.progetti_tecnici_schede set dati = dati || '{\"note_tecniche\":\"Controtelaio da verificare\",\"larghezza\":\"350\"}' where progetto_tecnico_id = " + q(progettoId) + " and famiglia = 'porte_rei' and numero = 1");
 
     // il rappresentante riapre e salva un altro dato: le note dell'ingegnere restano
     await apriMotore(r);
@@ -361,9 +362,10 @@ const toastTesto = s => s.page.evaluate(() => (document.getElementById('toast') 
     await scrivi(r, 'msm-c-colore', 'RAL 9010');
     await r.page.click('#msm-salva');
     await attendiQuiete(r.stato, 1500);
-    const dopoColore = psql("select coalesce(dati->>'colore', '') || '|' || coalesce(dati->>'note_tecniche', '') from public.progetti_tecnici_schede where progetto_tecnico_id = " + q(progettoId) + " and famiglia = 'porte_rei' and numero = 1");
-    if (!roNote[0] || dopoColore !== 'RAL 9010|Controtelaio da verificare') KO('1: con le note dell\'ingegnere: sola lettura ' + roNote[0] + ', salvato ' + dopoColore);
-    else righe.push('   le note 🎓 dell\'ingegnere in sola lettura; salvando il colore restano: ' + dopoColore);
+    const dopoColore = psql("select coalesce(dati->>'colore', '') || '|' || coalesce(dati->>'note_tecniche', '') || '|' || (dati->>'larghezza') from public.progetti_tecnici_schede where progetto_tecnico_id = " + q(progettoId) + " and famiglia = 'porte_rei' and numero = 1");
+    if (!roNote[0] || dopoColore !== 'RAL 9010|Controtelaio da verificare|350') KO('1: con le note dell\'ingegnere e larghezza "350" in testo: sola lettura ' + roNote[0] + ', salvato ' + dopoColore + ' ' + await toastTesto(r));
+    else righe.push('   note 🎓 dell\'ingegnere in sola lettura e larghezza "350" salvata come testo dall\'ingegnere: salvando il colore restano: ' + dopoColore);
+    psql("update public.progetti_tecnici_schede set dati = dati || '{\"larghezza\":100}' where progetto_tecnico_id = " + q(progettoId) + " and famiglia = 'porte_rei' and numero = 1");
     await r.page.evaluate(() => { if (schedaRilievoAperta) { schedaRilievoAperta.modificata = false; schedaRilievoAperta.bozze = {}; } closeM('m-rilievo-tecnico'); });
 
     // 2. Console del rappresentante ---------------------------------------------

@@ -1108,7 +1108,7 @@ MCP), poi il controllo in fondo al 78; nessun file -REGISTRO-CANCELLAZIONI
 RPC del sito. Funzioni nuove: campi_ingegnere_lavorazione(famiglia) (campi
 livello ingegnere del catalogo, anche tolti, + note_tecniche e note_calcolo di
 tutte le schede), motore_valore_vuoto, motore_numero (numero JSON o testo con
-la virgola), motore_testo_numero, motore_in_metri (mm, cm, m; senza unità cm),
+la virgola), motore_stesso_valore, motore_testo_numero, motore_in_metri (mm, cm, m; senza unità cm),
 interna motore_controlla_dati_rappresentante(famiglia, nuovi, vecchi,
 quantità, quantità di prima), trigger trg_progetti_tecnici_schede_motore e
 trg_progetti_tecnici_posizioni_motore, trg_lavorazioni_campi_prezzo. REGOLE
@@ -1119,7 +1119,11 @@ dati_commerciali e ultima_modifica_commerciale_* mai, progetto, famiglia e
 numero fissi, scheda nuova solo di una lavorazione ATTIVA, nasce bozza e
 compilata da lui, lo stato resta quello dell'ingegnere; l'upsert del sito
 (insert on conflict) si controlla nel ramo update con i dati di prima;
-(c) PLAUSIBILITÀ solo sui valori CAMBIATI (22023 con campo e motivo): numeri
+(c) PLAUSIBILITÀ solo sui valori CAMBIATI (22023 con campo e motivo;
+"cambiato" con motore_stesso_valore: vuoti uguali, "350" testo della scheda
+di js/18 = 350 numero del motore, così un portone salvato dall'ingegnere non
+blocca il rappresentante che cambia altro; js/56 rimanda il valore salvato
+com'era se è lo stesso numero): numeri
 veri (anche "92,5") dentro min/max del catalogo (porte REI larghezza e
 altezza 60-300 cm, quantità 1-500 pz), menu chiusi, Sì/No, "non_noto"
 sempre ammesso; m² = un campo numerico del catalogo in m²/m2/mq deve tornare

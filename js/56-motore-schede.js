@@ -427,7 +427,10 @@ function datiFormSchedaMotore() {
     const testo = String(el.value || '').trim();
     if (c.tipo === 'numero') {
       const n = numeroMotore(testo);
-      dati[c.codice] = n === null ? '' : (isNaN(n) ? testo : n); // il testo non valido lo ferma il salvataggio
+      const prima = (MOTORE_SCHEDE.datiBase || {})[c.codice];
+      // F15.4: stesso numero già salvato (anche come testo "350" dalla scheda di js/18) = si rimanda com'era
+      if (n !== null && !isNaN(n) && prima !== undefined && prima !== null && prima !== '' && numeroMotore(prima) === n) dati[c.codice] = prima;
+      else dati[c.codice] = n === null ? '' : (isNaN(n) ? testo : n); // il testo non valido lo ferma il salvataggio
     } else {
       dati[c.codice] = testo;
     }
@@ -457,7 +460,7 @@ if (typeof apriFamigliaSchedaRilievo === 'function') {
 function numeriNonValidiMotore(dati, lav) {
   return campiSchedaMotore(lav).filter(function(c) {
     const x = dati[c.codice];
-    return c.tipo === 'numero' && typeof x === 'string' && x !== '' && x !== VALORE_NON_NOTO;
+    return c.tipo === 'numero' && typeof x === 'string' && x !== '' && x !== VALORE_NON_NOTO && isNaN(numeroMotore(x)); // "350" salvato come testo va bene
   });
 }
 
