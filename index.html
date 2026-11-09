@@ -1523,7 +1523,7 @@
   <div class="ph">
     <div>
       <h2>📜 Certificati ricevuti</h2>
-      <p>Certificati PDF inviati dal commerciale o dal titolare.</p>
+      <p>Certificati PDF inviati da Acquisti o dal titolare.</p>
     </div>
   </div>
 
@@ -1536,7 +1536,7 @@
 <!-- SOPRALLUOGO -->
 <div class="page" id="pg-sopralluogo">
   <div style="max-width:600px;margin:0 auto">
-    <div class="thdr"><div style="font-size:15px;font-weight:700">Nuova scheda sopralluogo</div><div style="font-size:12px;opacity:.75;margin-top:2px">Compila e invia al commerciale</div></div>
+    <div class="thdr"><div style="font-size:15px;font-weight:700">Nuova scheda sopralluogo</div><div style="font-size:12px;opacity:.75;margin-top:2px">Compila e invia ad Acquisti</div></div>
     <div class="card" style="margin-bottom:14px">
       <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--g);margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--gl)">A - Cliente</div>
       <div class="f"><label>Ragione sociale *</label><input type="text" id="sl-rag"></div>
@@ -1571,11 +1571,11 @@
       <div class="f"><label>Note commerciali</label><textarea id="sl-note-comm" style="min-height:55px"></textarea></div>
       <div class="f"><label>Indirizzo sopralluogo</label><input type="text" id="sl-indirizzo"></div>
     </div>
-    <div class="al2 i">La scheda sara inviata al commerciale per il preventivo.</div>
+    <div class="al2 i">La scheda sara inviata ad Acquisti per il preventivo.</div>
     <div id="sl-err"></div>
     <div style="display:flex;gap:8px;margin-bottom:40px">
       <button class="btn" onclick="gotoPage('dashboard-rapp')">Annulla</button>
-      <button class="btn p" style="flex:1;justify-content:center;padding:13px" id="sl-btn" onclick="salvaSchopralluogo()">Invia al commerciale</button>
+      <button class="btn p" style="flex:1;justify-content:center;padding:13px" id="sl-btn" onclick="salvaSchopralluogo()">Invia ad Acquisti</button>
     </div>
   </div>
 </div>
@@ -1837,7 +1837,7 @@
       </div>
 
       <div style="font-size:12px;color:var(--m);margin-top:2px">
-        Studi tecnici e richieste da inviare al commerciale
+        Studi tecnici e richieste da inviare ad Acquisti
       </div>
     </div>
 
@@ -2548,7 +2548,7 @@
         <option value="contabile">Contabile</option>
         <option value="capo_tecnico">Capo tecnico</option>
         <option value="tecnico">Tecnico</option>
-        <option value="commerciale">Commerciale</option>
+        <option value="commerciale">Acquisti</option>
         <option value="rappresentante">Rappresentante</option>
         <option value="ingegnere">Ingegnere</option>
       </select>
@@ -2720,7 +2720,7 @@
 
 <p>
   Non inviare il progetto se non hai caricato almeno un allegato utile:
-  senza documentazione il reparto tecnico o commerciale non può valutare
+  senza documentazione né il reparto tecnico né Acquisti possono valutare
   correttamente la richiesta.
 </p>
 
@@ -2737,7 +2737,7 @@
   <li>spiega cosa deve essere studiato o preventivato;</li>
   <li>raccoglie documenti, foto, planimetrie e allegati obbligatori;</li>
   <li>riduce chiamate e passaggi di informazioni incompleti;</li>
-  <li>permette a commerciale e acquisti di capire materiali e lavorazioni necessari.</li>
+  <li>permette ad Acquisti di capire materiali e lavorazioni necessari.</li>
 </ul>
 
 <p>
@@ -2780,7 +2780,7 @@
         Scrivi anche l’<b>Importo stimato</b> (imponibile). Se supera la soglia
         del “lavoro grande” compare un avviso giallo: valuta
         <b>🔧 Richiedi verifica tecnica</b> (all’ingegnere). Decidi tu:
-        <b>📤 Invia al commerciale</b> resta sempre possibile.
+        <b>📤 Invia ad Acquisti</b> resta sempre possibile.
       </p>
 
       <hr class="sep">
@@ -2788,7 +2788,7 @@
       <h4 id="info-rap-10">10. Il progetto torna indietro: “Integrazione richiesta”</h4>
 
       <p>
-        Se il commerciale o l’ingegnere ti chiedono altri dati, in dashboard
+        Se Acquisti o l’ingegnere ti chiedono altri dati, in dashboard
         compare il riquadro arancione <b>🔧 Progetto da integrare: …</b> e il
         progetto ha lo stato <b>Integrazione richiesta</b>. Aprilo, leggi la
         nota, completa i dati o gli allegati e invialo di nuovo.
@@ -2800,9 +2800,9 @@
 
       <p>
         In <b>🧾 Preventivi</b> (<b>🧾 I miei preventivi</b>) trovi i preventivi
-        che il commerciale ha preparato per i tuoi clienti. Premi
+        che Acquisti ha preparato per i tuoi clienti. Premi
         <b>📄 Apri / scarica PDF</b> e invialo al cliente. Se c’è un errore usa
-        <b>↩ Rinvio al commerciale</b>. Prezzi interni e margini non li vedi.
+        <b>↩ Rinvio ad Acquisti</b>. Prezzi interni e margini non li vedi.
       </p>
 
       <hr class="sep">
@@ -2850,7 +2850,7 @@
       </p>
 
       <ul>
-        <li>Nel box <b>🛒 Ordini ai fornitori</b> premi <b>🛒 Crea ordine</b> sull’offerta scelta dal commerciale: controlla le voci, scrivi <b>Arrivo previsto</b> e luogo di consegna, poi <b>🛒 Crea ordine e PDF</b>. Il PDF si scarica e si salva nella cartella della commessa.</li>
+        <li>Nel box <b>🛒 Ordini ai fornitori</b> premi <b>🛒 Crea ordine</b> sull’offerta scelta da Acquisti: controlla le voci, scrivi <b>Arrivo previsto</b> e luogo di consegna, poi <b>🛒 Crea ordine e PDF</b>. Il PDF si scarica e si salva nella cartella della commessa.</li>
         <li>Quando il fornitore conferma premi <b>✔️ Confermato dal fornitore</b>; all’arrivo <b>📦 Arrivato</b>.</li>
         <li>Con tutti gli ordini fatti premi <b>Segna Materiali ordinati</b>, scegli <b>→ Materiali ordinati</b> e <b>Salva stato</b>: la commessa passa al capo tecnico.</li>
       </ul>
@@ -2873,7 +2873,7 @@
       <p>
         Se in cantiere il cliente chiede un lavoro in più, il capo tecnico lo
         registra e compare in <b>➕ Lavori extra dei tuoi clienti</b>. Il
-        preventivo integrativo lo prepara il commerciale, oppure tu se resta
+        preventivo integrativo lo prepara Acquisti, oppure tu se resta
         entro <b>3.000 €</b>: premi <b>🧾 Prepara io il preventivo (fino a
         3.000 €)</b>, scrivi le voci con il prezzo per il cliente (quantità,
         unità, prezzo; niente costi interni), scegli l’IVA, poi
@@ -2887,7 +2887,7 @@
         <b>Esempio</b><br>
         3 estintori a 45,50 € + 2 h di posa a 60 € = <b>256,50 €</b>
         imponibile: lo prepari tu. Se il totale supera 3.000 € il gestionale
-        si ferma: premi <b>↩️ Lascia al commerciale</b>.
+        si ferma: premi <b>↩️ Lascia ad Acquisti</b>.
       </div>
 
       <hr class="sep">
@@ -2953,7 +2953,7 @@
       </ul>
 
       <div class="info-esempio">
-        Esempio: il commerciale ti manda per mail il link del preventivo n. 42 pronto per il cliente. Lo apri: si apre <b>I miei preventivi</b> con la ricerca su "42" e trovi subito la scheda con il PDF.
+        Esempio: Acquisti ti manda per mail il link del preventivo n. 42 pronto per il cliente. Lo apri: si apre <b>I miei preventivi</b> con la ricerca su "42" e trovi subito la scheda con il PDF.
       </div>
 
       <div class="al2 w">
@@ -2987,7 +2987,7 @@
       </div>
 
       <div class="al2 w">
-        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, commerciale per acquisti, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
+        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, Acquisti per ordini ai fornitori, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
       </div>
 
       <h4 id="info-rap-20">20. Notifiche sul telefono: gli avvisi urgenti arrivano subito</h4>
@@ -3075,7 +3075,7 @@
         <li>Puoi annullare da solo per <b>24 ore</b> e solo finché il passo successivo non è partito (per esempio è arrivato un avviso nuovo uguale, o un collega ha già fatto il passaggio dopo). Dopo, al posto di <b>↩️ Annulla</b> trovi <b>✏️ Chiedi correzione</b>: scrivi cosa va corretto e la richiesta va al responsabile, che ha 1 giorno lavorativo per rispondere; poi la vede il titolare.</li>
         <li>Mentre aspetti vedi <b>⏳ Correzione chiesta a …</b> (con <b>Ritira</b> se non serve più). La risposta ti arriva nella campanella con <b>📄 Vedi la richiesta</b>.</li>
         <li>Niente si cancella: chi ha annullato, quando e perché resta scritto nel registro.</li>
-        <li>La correzione va al responsabile dell'area: per commesse e cantieri il <b>Capo tecnico</b>, per preventivi e progetti il <b>Commerciale</b>, altrimenti il titolare.</li>
+        <li>La correzione va al responsabile dell'area: per commesse e cantieri il <b>Capo tecnico</b>, per preventivi e progetti <b>Acquisti</b>, altrimenti il titolare.</li>
       </ul>
 
       <div class="info-esempio">
@@ -3098,7 +3098,7 @@
         <li>Con il progetto <b>in bozza</b> o <b>da integrare</b> puoi scriverle tu: <b>+ Aggiungi posizione</b>, compili <b>Ubicazione</b>, <b>Quantità</b>, <b>Larghezza</b> e <b>Altezza</b> (cm), <b>💾 Salva posizione</b>.</li>
         <li><b>⧉ Duplica</b> crea le copie uguali (da 1 a 50): poi apri con <b>✏️ Modifica</b> solo quella diversa.</li>
         <li><b>📷 Aggiungi foto</b> (dopo il primo salvataggio): foto con il metro, finiscono anche tra i file del progetto.</li>
-        <li>Quando il progetto è passato all'ingegnere o al commerciale le vedi con <b>👁 Apri</b>, senza modificarle.</li>
+        <li>Quando il progetto è passato all'ingegnere o ad Acquisti le vedi con <b>👁 Apri</b>, senza modificarle.</li>
       </ul>
 
       <div class="info-esempio">
@@ -3137,7 +3137,7 @@
       <h4 id="info-rap-27">27. 📏 Misure che non tornano e campi dell'ingegnere: cosa ti ferma</h4>
 
       <p>
-        Quando salvi una scheda di rilievo o una posizione, il gestionale controlla le misure che hai scritto e ti ferma se qualcosa non è plausibile, così l'ingegnere e il commerciale non lavorano su un dato sbagliato.
+        Quando salvi una scheda di rilievo o una posizione, il gestionale controlla le misure che hai scritto e ti ferma se qualcosa non è plausibile, così l'ingegnere e Acquisti non lavorano su un dato sbagliato.
       </p>
 
       <ul>
@@ -3174,10 +3174,10 @@
 <div
   class="card guida-ruolo"
   id="guida-commerciale"
-  data-titolo="Guida pratica — Commerciale"
+  data-titolo="Guida pratica — Acquisti"
   style="display:none"
 >
-  <h3>🧾 Come usare il gestionale — Commerciale</h3>
+  <h3>🧾 Come usare il gestionale — Acquisti</h3>
 
   <p>
     Il tuo ruolo è trasformare il progetto tecnico ricevuto in una richiesta
@@ -3294,7 +3294,7 @@
   <div class="al2 i">
     I PDF che carichi con <b>📎 Carica PDF ricevuto</b> li vedi tu e il
     titolare (dopo l'aggiornamento del database sql/240): il titolare può
-    aprirli per controllare le offerte. Gli altri commerciali non li vedono.
+    aprirli per controllare le offerte. Le altre persone di Acquisti non li vedono.
   </div>
 
   <hr class="sep">
@@ -3403,7 +3403,7 @@
 
   <p>
     Per cambiare i dati che vanno al fornitore senza toccare il rilievo
-    originale usa <b>✏️ Modifica copia</b> e <b>Salva copia commerciale</b>:
+    originale usa <b>✏️ Modifica copia</b> e <b>Salva copia di Acquisti</b>:
     il PDF anonimo per il fornitore usa la copia. Le “note interne per il
     calcolo” dell’ingegnere non vanno mai nel PDF.
   </p>
@@ -3508,7 +3508,7 @@
         <b>🔔</b> con il numero degli avvisi aperti per te: il numero è
         <b>rosso</b> se un avviso è già scaduto. Gli avvisi li crea il
         gestionale da solo (non si scrivono a mano) e restano finché qualcuno
-        non li chiude. Al commerciale arrivano, come <b>responsabile</b> di acquisti, preventivi e progetti, gli avvisi scaduti degli altri (⬆️ "Risalito a te come responsabile", es. un preventivo che il rappresentante non ha seguito in tempo).
+        non li chiude. Ad Acquisti arrivano, come <b>responsabile</b> di acquisti, preventivi e progetti, gli avvisi scaduti degli altri (⬆️ "Risalito a te come responsabile", es. un preventivo che il rappresentante non ha seguito in tempo).
       </p>
 
       <ul>
@@ -3523,7 +3523,7 @@
       </div>
 
       <div class="al2 w">
-        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, commerciale per acquisti, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
+        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, Acquisti per ordini ai fornitori, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
       </div>
 
   <h4 id="info-com-15">15. Notifiche sul telefono: gli avvisi urgenti arrivano subito</h4>
@@ -4005,7 +4005,7 @@
       </div>
 
       <div class="al2 w">
-        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, commerciale per acquisti, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
+        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, Acquisti per ordini ai fornitori, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
       </div>
 
       <h4 id="info-tec-17">17. Notifiche sul telefono: gli avvisi urgenti arrivano subito</h4>
@@ -4421,7 +4421,7 @@
       <p>
         Nella scheda Cantiere, box <b>➕ Lavori extra</b>, premi
         <b>➕ Il cliente chiede un lavoro extra</b> e descrivi cosa, dove e chi
-        lo chiede. Il commerciale (o il rappresentante, fino a 3.000 €)
+        lo chiede. Acquisti (o il rappresentante, fino a 3.000 €)
         prepara il preventivo integrativo e il rappresentante lo fa approvare.
         Accettato, l’importo della commessa diventa “Preventivo + lavori extra
         accettati = Totale”.
@@ -4556,7 +4556,7 @@
       </div>
 
       <div class="al2 w">
-        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, commerciale per acquisti, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
+        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, Acquisti per ordini ai fornitori, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
       </div>
 
       <h4 id="info-ct-20">20. Notifiche sul telefono: gli avvisi urgenti arrivano subito</h4>
@@ -4729,8 +4729,8 @@
 
       <p>
         In cima alla <b>📊 Dashboard</b> il riquadro <b>📌 Cosa tocca a me</b>
-        raccoglie le cose che chiedono un tuo sguardo: <b>Preventivi del
-        commerciale da controllare</b>, <b>Nuove lead dal sito</b>,
+        raccoglie le cose che chiedono un tuo sguardo: <b>Preventivi di
+        Acquisti da controllare</b>, <b>Nuove lead dal sito</b>,
         <b>Anticipi non ancora accreditati</b>, <b>Interventi in ritardo</b>,
         <b>Materiali in ritardo</b>, <b>Contratti di manutenzione da
         rinnovare</b>, audit, appuntamenti da fissare, schede da approvare,
@@ -4897,7 +4897,7 @@
         <li><b>🏭 Fornitori</b>: l'elenco dei fornitori, con <b>+ Nuovo fornitore</b>.</li>
         <li><b>📐 Progetti</b>: tutti i progetti tecnici, come li vede il rappresentante.</li>
         <li><b>🔧 Verifiche</b>: i progetti in verifica tecnica, come li vede l'ingegnere; con <b>🔧 Gestisci verifica</b> compili le schede di rilievo.</li>
-        <li><b>🧾 I miei preventivi</b>: i preventivi che hai avviato tu da <b>📐 Da preventivare</b> (bozze, inviati, chiusi), come la pagina del commerciale. Tutti i preventivi restano in <b>🧾 Preventivi</b> del tuo menu.</li>
+        <li><b>🧾 I miei preventivi</b>: i preventivi che hai avviato tu da <b>📐 Da preventivare</b> (bozze, inviati, chiusi), come la pagina di Acquisti. Tutti i preventivi restano in <b>🧾 Preventivi</b> del tuo menu.</li>
       </ul>
 
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0">
@@ -4930,10 +4930,10 @@
 
       <p>
         Nello stesso tab, sotto ogni offerta, in <b>📩 Preventivo ricevuto dal
-        fornitore</b> vedi i PDF caricati dal commerciale e li apri con
+        fornitore</b> vedi i PDF caricati da Acquisti e li apri con
         <b>Apri</b>, anche per i preventivi che non hai fatto tu (dopo
-        l'aggiornamento del database sql/240; prima li vedeva solo il
-        commerciale che ha fatto il preventivo). Gli altri commerciali e gli
+        l'aggiornamento del database sql/240; prima li vedeva solo la persona di
+        Acquisti che ha fatto il preventivo). Le altre persone di Acquisti e gli
         altri ruoli non li vedono.
       </p>
 
@@ -4963,7 +4963,7 @@
       </ul>
 
       <div class="info-esempio">
-        Esempio: vuoi che il commerciale controlli il preventivo n. 42. Apri il preventivo, copi l'indirizzo dalla barra e glielo mandi per mail: lui lo apre e si trova sul preventivo n. 42, anche se era uscito dal gestionale.
+        Esempio: vuoi che Acquisti controlli il preventivo n. 42. Apri il preventivo, copi l'indirizzo dalla barra e glielo mandi per mail: lui lo apre e si trova sul preventivo n. 42, anche se era uscito dal gestionale.
       </div>
 
       <div class="al2 w">
@@ -4997,7 +4997,7 @@
         <b>Esempio: spese fuori budget</b><br>
         Porti “Spesa fuori budget: fino a questo importo decide Acquisti” da
         50 a <b>60</b> €. Una spesa fuori budget di 55 € ora la decide
-        Acquisti (il commerciale); una da 65 € arriva a te.
+        Acquisti; una da 65 € arriva a te.
       </div>
 
       <div class="al2 i">
@@ -5131,11 +5131,11 @@
       </ul>
 
       <div class="info-esempio">
-        <b>Esempio: prova dal telefono del rappresentante</b><br>Nella finestra <b>🔔 Avvisi</b> premi <b>🧪 Avviso di prova</b>: a Giulio (rappresentante), record <b>Preventivo n.</b> 86, testo "Chiama il cliente", scadenza <b>Scaduto da 2 gg lav.</b>, <b>Crea l'avviso di prova</b>. Giulio vede <b>🔔 1</b> sul telefono; il link <b>#/avviso/…</b> (📋 Copia) apre il preventivo 86. Con <b>▶️ Esegui controllo ora</b> (Impostazioni &gt; Scadenze) l'avviso compare al commerciale e poi a te; Giulio lo chiude con <b>✓ Fatto</b>.
+        <b>Esempio: prova dal telefono del rappresentante</b><br>Nella finestra <b>🔔 Avvisi</b> premi <b>🧪 Avviso di prova</b>: a Giulio (rappresentante), record <b>Preventivo n.</b> 86, testo "Chiama il cliente", scadenza <b>Scaduto da 2 gg lav.</b>, <b>Crea l'avviso di prova</b>. Giulio vede <b>🔔 1</b> sul telefono; il link <b>#/avviso/…</b> (📋 Copia) apre il preventivo 86. Con <b>▶️ Esegui controllo ora</b> (Impostazioni &gt; Scadenze) l'avviso compare ad Acquisti e poi a te; Giulio lo chiude con <b>✓ Fatto</b>.
       </div>
 
       <div class="al2 w">
-        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, commerciale per acquisti, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
+        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, Acquisti per ordini ai fornitori, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
       </div>
 
       <h4 id="info-tit-14">14. Notifiche sul telefono: gli avvisi urgenti arrivano subito</h4>
@@ -5280,11 +5280,11 @@
       </ul>
 
       <div class="info-esempio">
-        <b>Esempio</b><br>Dalla campanella apri l'avviso sul preventivo n. 86: in cima trovi <b>✅ Accettato dal cliente</b>, <b>❌ Rifiutato dal cliente</b> e <b>↩ Rimanda al commerciale</b>, come se l'avessi aperto da Preventivi. In <b>🔗 Collegati</b> tocchi la commessa 2026-012 e poi, dalla commessa, il cliente.
+        <b>Esempio</b><br>Dalla campanella apri l'avviso sul preventivo n. 86: in cima trovi <b>✅ Accettato dal cliente</b>, <b>❌ Rifiutato dal cliente</b> e <b>↩ Rimanda ad Acquisti</b>, come se l'avessi aperto da Preventivi. In <b>🔗 Collegati</b> tocchi la commessa 2026-012 e poi, dalla commessa, il cliente.
       </div>
 
       <div class="al2 w">
-        Le tre liste dei preventivi (la tua, quella del commerciale e "I miei preventivi" del rappresentante) restano separate: unirle in una lista con filtri per ruolo e aprire la scheda del preventivo al rappresentante cambia il lavoro di tre ruoli e aspetta la tua decisione.
+        Le tre liste dei preventivi (la tua, quella di Acquisti e "I miei preventivi" del rappresentante) restano separate: unirle in una lista con filtri per ruolo e aprire la scheda del preventivo al rappresentante cambia il lavoro di tre ruoli e aspetta la tua decisione.
       </div>
 
       <h4 id="info-tit-21">21. Entra come: vedere il gestionale con gli occhi di un altro</h4>
@@ -5301,15 +5301,15 @@
       </ul>
 
       <div class="info-esempio">
-        <b>Esempio</b><br>Laura è in ferie e c'è da evadere una richiesta di consumabili. In <b>Impostazioni</b> scegli Ruolo "Commerciale", Persona "Laura", tocchi <b>👁️ Entra come</b>: vedi la sua dashboard con <b>Consumabili e noli da procurare</b>, evadi la richiesta e tocchi <b>↩️ Esci</b>.
+        <b>Esempio</b><br>Laura è in ferie e c'è da evadere una richiesta di consumabili. In <b>Impostazioni</b> scegli Ruolo "Acquisti", Persona "Laura", tocchi <b>👁️ Entra come</b>: vedi la sua dashboard con <b>Consumabili e noli da procurare</b>, evadi la richiesta e tocchi <b>↩️ Esci</b>.
       </div>
 
       <div class="al2 i">
-        <b>Il database ti tratta come la persona.</b> Se nel banner leggi "<b>il database applica i limiti del ruolo</b>", vedi esattamente i suoi dati (per esempio solo i clienti di quel rappresentante) e quello che la persona non può fare viene rifiutato anche a te: entrato come Acquisti non puoi cambiare il margine minimo o le altre soglie delle <b>Regole</b> (le cambia solo il titolare), il database risponde "Operazione non consentita per il ruolo commerciale". Quello che salvi va a nome della persona (per esempio "inviato da Laura"), ma nel registro delle azioni resti tu: "Brixhildo Toli (Titolare) come Commerciale", visibile nello <b>🕘 Storico</b> della scheda quando torni te stesso.
+        <b>Il database ti tratta come la persona.</b> Se nel banner leggi "<b>il database applica i limiti del ruolo</b>", vedi esattamente i suoi dati (per esempio solo i clienti di quel rappresentante) e quello che la persona non può fare viene rifiutato anche a te: entrato come Acquisti non puoi cambiare il margine minimo o le altre soglie delle <b>Regole</b> (le cambia solo il titolare), il database risponde "Operazione non consentita per il ruolo commerciale". Quello che salvi va a nome della persona (per esempio "inviato da Laura"), ma nel registro delle azioni resti tu: "Brixhildo Toli (Titolare) come Acquisti", visibile nello <b>🕘 Storico</b> della scheda quando torni te stesso.
       </div>
 
       <div class="info-esempio">
-        <b>Esempio</b><br>Entri come Laura (Commerciale) e da <b>Preventivi</b> mandi un preventivo al rappresentante. Esci con <b>↩️ Esci</b>, apri lo stesso preventivo e tocchi <b>🕘 Storico</b>: leggi "Brixhildo Toli (Titolare) come Commerciale" con lo stato cambiato.
+        <b>Esempio</b><br>Entri come Laura (Acquisti) e da <b>Preventivi</b> mandi un preventivo al rappresentante. Esci con <b>↩️ Esci</b>, apri lo stesso preventivo e tocchi <b>🕘 Storico</b>: leggi "Brixhildo Toli (Titolare) come Acquisti" con lo stato cambiato.
       </div>
 
       <div class="al2 w">
@@ -5325,7 +5325,7 @@
 
       <ul>
         <li>Vale per gli avvisi segnati <b>✓ Fatto</b> a mano, per gli oggetti con i pulsanti dei passaggi di stato (<b>⚙️ Stati e azioni</b>) e, solo come <b>✏️ Chiedi correzione</b>, per l'esito di un presidio registrato dal tecnico. Gli annullamenti che c'erano già (pagamento, esito RIBA, sollecito, ordine, consumabili, lavori extra, documento team) restano come sono.</li>
-        <li>Il responsabile è quello dell'area: cantiere, Service e tecnici = <b>Capo tecnico</b>; preventivi, progetti e acquisti = <b>Commerciale</b>; negli altri casi, o se a chiedere è il responsabile stesso, arriva direttamente a te.</li>
+        <li>Il responsabile è quello dell'area: cantiere, Service e tecnici = <b>Capo tecnico</b>; preventivi, progetti e acquisti = <b>Acquisti</b>; negli altri casi, o se a chiedere è il responsabile stesso, arriva direttamente a te.</li>
         <li>Le tue azioni le annulli anche dopo 24 ore, ma mai se il passo successivo è partito: lì correggi a mano.</li>
         <li>La richiesta arriva come avviso <b>✏️ Richiesta di correzione</b>: tocca <b>✏️ Gestisci la correzione</b> e scegli <b>↩️ Annulla l'azione per lui</b> (torna com'era), <b>✓ Corretta a mano</b> (dopo averla sistemata tu) o <b>✖ Non serve</b> (scrivi il perché). Chi l'ha chiesta riceve la risposta.</li>
         <li>Le 24 ore e il giorno lavorativo li cambi in <b>Impostazioni › 📏 Regole</b> (<b>annulla_entro_ore</b>, <b>correzione_risposta_gg</b>).</li>
@@ -5356,7 +5356,7 @@
       </ul>
 
       <div class="info-esempio">
-        <b>Esempio</b><br>Dai a Laura (Commerciale, acquisti) <b>Ratifica di una spesa fuori budget</b> fino a 150 € fino al 31/12. Una corsa al negozio da 120 € fuori budget arriva a Laura, non a te; una da 260 € arriva a te. Ad agosto segni le ferie dal 10 al 24 e hai Luca (Capo tecnico) come delegato generale fino a 5.000 €: lo sblocco del margine di un preventivo da 3.000 € fermo da un giorno passa a Luca, quello da 8.000 € resta a te come urgente.
+        <b>Esempio</b><br>Dai a Laura (Acquisti) <b>Ratifica di una spesa fuori budget</b> fino a 150 € fino al 31/12. Una corsa al negozio da 120 € fuori budget arriva a Laura, non a te; una da 260 € arriva a te. Ad agosto segni le ferie dal 10 al 24 e hai Luca (Capo tecnico) come delegato generale fino a 5.000 €: lo sblocco del margine di un preventivo da 3.000 € fermo da un giorno passa a Luca, quello da 8.000 € resta a te come urgente.
       </div>
 
       <div class="al2 w">
@@ -5373,7 +5373,7 @@
       <ul>
         <li>Vai in <b>Impostazioni › Team</b>. Sotto lo stato di ogni persona vedi quante <b>pratiche aperte</b> ha a suo nome: clienti, trattative aperte, progetti tecnici aperti, preventivi aperti, commesse aperte.</li>
         <li>Premi <b>🔀 Riassegna</b>: scegli <b>Quali pratiche</b> (tutte già spuntate), <b>A chi</b> e il <b>Motivo</b>, poi <b>🔀 Sposta le pratiche</b>. Prima di confermare leggi cosa si sposta e cosa resta.</li>
-        <li>Clienti, trattative, progetti, preventivi e commesse del venditore vanno a un <b>Rappresentante</b> (o a te); i preventivi seguiti dagli acquisti vanno a un <b>Commerciale</b> (o a te). Quello che la persona scelta non può ricevere resta dov'è e te lo dice: lo sposti con un'altra riassegnazione.</li>
+        <li>Clienti, trattative, progetti, preventivi e commesse del venditore vanno a un <b>Rappresentante</b> (o a te); i preventivi seguiti dagli acquisti vanno a una persona di <b>Acquisti</b> (o a te). Quello che la persona scelta non può ricevere resta dov'è e te lo dice: lo sposti con un'altra riassegnazione.</li>
         <li>Si spostano solo le pratiche <b>aperte</b>: i preventivi accettati o rifiutati, i progetti archiviati, le commesse chiuse e le trattative vinte o perse restano a chi le ha seguite, così lo storico non cambia.</li>
         <li><b>Uscita di una persona</b>: <b>⏸️ Disattiva</b> toglie subito l'accesso. Se ha ancora pratiche aperte il gestionale te lo dice, apre la riassegnazione e nell'elenco la persona risulta <b>Uscita da completare</b>; diventa <b>✓ Uscita completata</b> solo quando non ha più pratiche a suo nome.</li>
         <li>In fondo alla finestra il <b>📒 Ultime riassegnazioni</b>: chi le ha spostate, quando, il motivo e, con <b>▸ Cosa è stato spostato</b>, l'elenco di ogni cliente, preventivo, progetto e commessa.</li>
@@ -5419,7 +5419,7 @@
       </p>
 
       <ul>
-        <li>Scrivono titolare, ingegnere e il rappresentante del progetto (solo con il progetto <b>in bozza</b> o <b>da integrare</b>); il commerciale le legge; gli altri ruoli non le vedono. Lo impone il database, anche dalla console.</li>
+        <li>Scrivono titolare, ingegnere e il rappresentante del progetto (solo con il progetto <b>in bozza</b> o <b>da integrare</b>); Acquisti le legge; gli altri ruoli non le vedono. Lo impone il database, anche dalla console.</li>
         <li><b>⧉ Duplica</b> crea fino a 50 copie in un colpo; <b>🗑️ Togli la posizione</b> la nasconde, niente cancellazioni (il codice non si riusa).</li>
         <li>Ogni inserimento e modifica finisce nel registro delle azioni (chi, quando, cosa).</li>
       </ul>
@@ -5877,7 +5877,7 @@
       </div>
 
       <div class="al2 w">
-        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, commerciale per acquisti, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
+        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, Acquisti per ordini ai fornitori, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
       </div>
 
       <h4 id="info-seg-18">18. Notifiche sul telefono: gli avvisi urgenti arrivano subito</h4>
@@ -6207,7 +6207,7 @@
       </div>
 
       <div class="al2 w">
-        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, commerciale per acquisti, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
+        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, Acquisti per ordini ai fornitori, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
       </div>
 
       <h4 id="info-con-10">10. Notifiche sul telefono: gli avvisi urgenti arrivano subito</h4>
@@ -6483,7 +6483,7 @@
         Poi scrivi <b>Esito / note tecniche</b>, aggiungi eventuali allegati e
         scegli: <b>💾 Salva appunti verifica</b> (per continuare dopo),
         <b>↩ Rimanda al rappresentante per integrazione</b> oppure
-        <b>✅ Approva e invia al commerciale</b>.
+        <b>✅ Approva e invia ad Acquisti</b>.
       </p>
 
       <hr class="sep">
@@ -6531,7 +6531,7 @@
       <h4 id="info-ing-10">10. Certificati ricevuti</h4>
 
       <p>
-        In <b>📜 Certificati</b> trovi i certificati PDF inviati dal commerciale
+        In <b>📜 Certificati</b> trovi i certificati PDF inviati da Acquisti
         o dal titolare per un preventivo. Quelli non ancora aperti hanno
         l’etichetta <b>Nuovo</b>: premi <b>👁 Visualizza / scarica PDF</b> e il
         certificato risulta aperto da te.
@@ -6557,7 +6557,7 @@
       </ul>
 
       <div class="info-esempio">
-        Esempio: il commerciale ti manda il link del progetto da verificare: lo apri ed entri direttamente nella scheda del progetto.
+        Esempio: Acquisti ti manda il link del progetto da verificare: lo apri ed entri direttamente nella scheda del progetto.
       </div>
 
       <div class="al2 w">
@@ -6591,7 +6591,7 @@
       </div>
 
       <div class="al2 w">
-        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, commerciale per acquisti, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
+        Se un avviso con una scadenza resta aperto, <b>dopo 1 giorno lavorativo</b> lo vede anche il responsabile (capo tecnico per cantiere e Service, Acquisti per ordini ai fornitori, preventivi e progetti) e <b>dopo un altro giorno lavorativo</b> il titolare. Gli avvisi che hanno una loro regola in Impostazioni &gt; Scadenze seguono solo quella.
       </div>
 
       <h4 id="info-ing-13">13. Notifiche sul telefono: gli avvisi urgenti arrivano subito</h4>
@@ -6628,7 +6628,7 @@
       <h4 id="info-ing-15">15. Domande nel gestionale: Acquisti ti chiede, rispondi entro 1 giorno</h4>
 
       <p>
-        Acquisti (commerciale) ti fa le domande sul progetto dal gestionale: hai 1 giorno lavorativo per rispondere (Regole), poi la domanda sale al titolare.
+        Acquisti ti fa le domande sul progetto dal gestionale: hai 1 giorno lavorativo per rispondere (Regole), poi la domanda sale al titolare.
       </p>
 
       <ul>
@@ -6659,7 +6659,7 @@
       </ul>
 
       <div class="info-esempio">
-        <b>Esempio</b><br>Apri il progetto "Compartimentazione magazzino": in <b>🔗 Collegati</b> vedi il cliente e i preventivi fatti dal commerciale su quel progetto, con lo stato.
+        <b>Esempio</b><br>Apri il progetto "Compartimentazione magazzino": in <b>🔗 Collegati</b> vedi il cliente e i preventivi fatti da Acquisti su quel progetto, con lo stato.
       </div>
 
 
@@ -6723,7 +6723,7 @@
       </ul>
 
       <div class="info-esempio">
-        <b>Esempio</b><br>Porte e portoni REI, scheda "Piano 1": P-01 da 90 × 210 cm, <b>⧉ Duplica</b> 9 copie, poi <b>✏️ Modifica</b> sulla P-07 e larghezza 120. Il commerciale e il rappresentante vedono le dieci righe con la P-07 diversa.
+        <b>Esempio</b><br>Porte e portoni REI, scheda "Piano 1": P-01 da 90 × 210 cm, <b>⧉ Duplica</b> 9 copie, poi <b>✏️ Modifica</b> sulla P-07 e larghezza 120. Acquisti e il rappresentante vedono le dieci righe con la P-07 diversa.
       </div>
 
       <div class="al2 w">
@@ -6924,7 +6924,7 @@
     class="btn p"
     onclick="salvaEsitoVerifica('in_preventivazione')"
   >
-    ✅ Approva e invia al commerciale
+    ✅ Approva e invia ad Acquisti
   </button>
 </div>
   </div>
@@ -8412,7 +8412,7 @@
 
     <div class="al2 i">
       Scrivi le voci con il <b>prezzo per il cliente</b> (IVA esclusa). Sopra
-      <b>3.000 €</b> il preventivo lo prepara il commerciale.
+      <b>3.000 €</b> il preventivo lo prepara Acquisti.
       Il lavoro extra si esegue solo dopo che il cliente lo ha accettato.
     </div>
 
@@ -8447,7 +8447,7 @@
     </div>
 
     <div class="ma" style="flex-wrap:wrap;gap:8px">
-      <button class="btn" style="color:var(--r)" id="per-lascia" onclick="lasciaPreventivoExtraRapp()">↩️ Lascia al commerciale</button>
+      <button class="btn" style="color:var(--r)" id="per-lascia" onclick="lasciaPreventivoExtraRapp()">↩️ Lascia ad Acquisti</button>
       <button class="btn" onclick="chiudiPreventivoExtraRapp()">Chiudi</button>
       <button class="btn" id="per-salva" onclick="salvaPreventivoExtraRapp(false)">💾 Salva bozza</button>
       <button class="btn p" id="per-invia" onclick="salvaPreventivoExtraRapp(true)">📄 Salva, crea il PDF e mettilo tra i miei preventivi</button>
@@ -8463,7 +8463,7 @@
     <div id="mle-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
 
     <div class="al2 w">
-      Va al commerciale per il <b>preventivo integrativo</b> (e al rappresentante del cliente).
+      Va ad Acquisti per il <b>preventivo integrativo</b> (e al rappresentante del cliente).
       <b>Non eseguirlo</b> finché il cliente non accetta il preventivo integrativo.
     </div>
 
@@ -8482,7 +8482,7 @@
 
     <div class="ma">
       <button class="btn" onclick="closeM('m-lavoro-extra')">Annulla</button>
-      <button class="btn p" id="mle-conferma" onclick="salvaNuovoLavoroExtra()">Invia al commerciale</button>
+      <button class="btn p" id="mle-conferma" onclick="salvaNuovoLavoroExtra()">Invia ad Acquisti</button>
     </div>
   </div>
 </div>
@@ -9287,7 +9287,7 @@
   <div class="fr"><div class="f"><label>Nome *</label><input type="text" id="mu1"></div><div class="f"><label>Cognome *</label><input type="text" id="mu2"></div></div>
   <div class="f"><label>Email *</label><input type="email" id="mu3"></div>
   <div class="f"><label>Password *</label><input type="password" id="mu4" placeholder="Min 6 caratteri"></div>
-  <div class="f"><label>Ruolo *</label><select id="mu6"><option value="tecnico">Tecnico</option><option value="capo_tecnico">Capo tecnico</option><option value="segreteria">Segreteria</option><option value="commerciale">Commerciale</option><option value="ingegnere">Ingegnere</option><option value="rappresentante">Rappresentante</option><option value="contabile">Contabile</option><option value="informatico">Informatico</option></select></div>
+  <div class="f"><label>Ruolo *</label><select id="mu6"><option value="tecnico">Tecnico</option><option value="capo_tecnico">Capo tecnico</option><option value="segreteria">Segreteria</option><option value="commerciale">Acquisti</option><option value="ingegnere">Ingegnere</option><option value="rappresentante">Rappresentante</option><option value="contabile">Contabile</option><option value="informatico">Informatico</option></select></div>
   <div style="display:flex;gap:8px;margin-top:16px"><button class="btn" onclick="closeM('m-user')">Annulla</button><button class="btn p" onclick="saveUser()">Crea utente</button></div>
 </div></div>
 
@@ -9559,7 +9559,7 @@
     <div class="f">
       <label>A chi *</label>
       <select id="rpr-a" onchange="anteprimaRiassegnaPratiche()"></select>
-      <div style="font-size:11px;color:var(--m);margin-top:4px">Clienti, trattative, progetti, preventivi e commesse del venditore vanno a un Rappresentante (o a te); i preventivi seguiti dagli acquisti a un Commerciale (o a te).</div>
+      <div style="font-size:11px;color:var(--m);margin-top:4px">Clienti, trattative, progetti, preventivi e commesse del venditore vanno a un Rappresentante (o a te); i preventivi seguiti dagli acquisti a una persona di Acquisti (o a te).</div>
     </div>
 
     <div class="f">

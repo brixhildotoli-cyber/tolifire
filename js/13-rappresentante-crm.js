@@ -655,7 +655,7 @@ pdf_esterno_titolare_nome,
             </div>
 
             <div style="font-size:12px;color:var(--m);margin-top:4px">
-              ${preventivo.origine === 'lavoro_extra_rappresentante' ? 'Preventivo integrativo preparato da te il' : 'Inviato dal commerciale il'} ${esc(dataInvio)}
+              ${preventivo.origine === 'lavoro_extra_rappresentante' ? 'Preventivo integrativo preparato da te il' : 'Inviato da Acquisti il'} ${esc(dataInvio)}
             </div>
           </div>
 
@@ -672,7 +672,7 @@ pdf_esterno_titolare_nome,
           ${preventivo.origine === 'lavoro_extra_rappresentante' && typeof apriPreventivoExtraRappDaProgetto === 'function'
             ? `<button class="btn sm" onclick="apriPreventivoExtraRappDaProgetto('${preventivo.progetto_tecnico_id}')">✏️ Correggi il preventivo</button>`
             : `<button class="btn sm" onclick="rinviaPreventivoAlCommercialeDalRappresentante('${preventivo.id}')">
-  ↩ Rinvio al commerciale
+  ↩ Rinvio ad Acquisti
 </button>`}
           ${esitoDisponibile ? bottoniEsitoPreventivo(preventivo) : ''}
         </div>
@@ -763,7 +763,7 @@ async function rinviaPreventivoAlCommercialeDalRappresentante(preventivoId) {
   // Con sql/57 il preventivo torna in bozza al commerciale (prima la
   // funzione usava uno stato non permesso e dava sempre errore) e si può
   // scrivere cosa va cambiato; senza sql/57 si prova come prima.
-  const nota = prompt('Rinviare il preventivo al commerciale per le modifiche?\n\nScrivi cosa va cambiato (facoltativo):', '');
+  const nota = prompt('Rinviare il preventivo ad Acquisti per le modifiche?\n\nScrivi cosa va cambiato (facoltativo):', '');
   if (nota === null) return;
 
   let { error } = await db.rpc(
@@ -782,7 +782,7 @@ async function rinviaPreventivoAlCommercialeDalRappresentante(preventivoId) {
     return;
   }
 
-  toast('Preventivo rinviato al commerciale: torna in bozza da modificare', 'ok');
+  toast('Preventivo rinviato ad Acquisti: torna in bozza da modificare', 'ok');
   await loadPreventiviRappresentante();
 }
 
@@ -832,7 +832,7 @@ async function caricaAvvisiPreventiviRappresentante() {
       <span class="body">
         <span class="title">${testo}</span>
         <span class="sub">
-          Il commerciale ha preparato il PDF per il tuo cliente.
+          Acquisti ha preparato il PDF per il tuo cliente.
         </span>
       </span>
       <span class="chev">›</span>
@@ -1047,7 +1047,7 @@ async function caricaAvvisiPreventiviTitolare() {
       <span class="body">
         <span class="title">${testo}</span>
         <span class="sub">
-          Preventivi inviati dal commerciale: puoi controllarli e modificarli.
+          Preventivi inviati da Acquisti: puoi controllarli e modificarli.
         </span>
       </span>
       <span class="chev">›</span>
@@ -1769,14 +1769,14 @@ async function salvaSchopralluogo() {
     };
     var insRes = await db.from('sopralluoghi').insert(payload);
     if(insRes.error) throw insRes.error;
-    toast('Scheda inviata al commerciale!', 'ok');
+    toast('Scheda inviata ad Acquisti!', 'ok');
     var campi = ['sl-rag','sl-ref','sl-tel','sl-fornitore','sl-scadenze','sl-struttura-note','sl-ext-n','sl-ext-tipo','sl-idr-n','sl-rei-n','sl-luce-n','sl-richiesta','sl-anomalie','sl-budget','sl-decisore','sl-concorrenti','sl-note-comm','sl-indirizzo'];
     campi.forEach(function(id) { var el = ge(id); if(el) el.value = ''; });
     gotoPage('dashboard-rapp');
   } catch(e) {
     errEl.innerHTML = '<div class="al2 e">Errore: ' + e.message + '</div>';
   } finally {
-    btn.disabled = false; btn.textContent = 'Invia al commerciale';
+    btn.disabled = false; btn.textContent = 'Invia ad Acquisti';
   }
 }
 

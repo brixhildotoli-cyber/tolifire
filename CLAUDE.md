@@ -1336,10 +1336,13 @@ si crea (decisione del 26/10, confermata da Toli il 03/11, T1).
 Esiste anche `informatico` (Erika Pistolesi): accesso completo come il
 titolare (decisione di Erika del 23/10, da confermare da Toli in F1.4).
 Cambiano solo le etichette in interfaccia (Fase 3), mai il codice.
-Nomi visibili nel gestionale (decisione 26/10): "Rappresentante" e
-"Commerciale" restano così (NON "Commerciale"/"Acquisti" del flusso
-appeso in ufficio); le etichette servono solo a non mostrare codici grezzi
-(es. "Capo tecnico"). Soglia 3.000 € del rappresentante: resta fissa nel
+Nomi visibili nel gestionale (decisione di Erika del 09/11, supera
+quella del 26/10): il ruolo commerciale nel gestionale si chiama
+"Acquisti" ovunque si veda (etichetta dei ruoli, select, guide, testi);
+solo l'etichetta: il codice resta commerciale (utenti.ruolo, ROLE,
+PAGINE_RUOLO, id guida-commerciale e info-com-N, valori nel database).
+"Rappresentante" resta così; le etichette servono solo a non mostrare
+codici grezzi (es. "Capo tecnico"). Soglia 3.000 € del rappresentante: resta fissa nel
 DB (trigger e policy di sql/10), non configurabile (confermato da Toli il
 03/11, D14). Vale per CREARE o
 ALZARE l'importo: l'esito del cliente (accettato/rifiutato) lo registra

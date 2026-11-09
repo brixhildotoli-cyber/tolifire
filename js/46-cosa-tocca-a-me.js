@@ -429,7 +429,7 @@ function boxCommesseTAM() {
 // ── Titolare ────────────────────────────────────────────────────────
 registraFonteToccaAMe({
   id: 'preventivi-da-controllare', ruoli: ['titolare'], icona: '🧾',
-  titolo: 'Preventivi del commerciale da controllare', livello: 'urgente',
+  titolo: 'Preventivi di Acquisti da controllare', livello: 'urgente',
   vai: { box: 'tit-avviso-preventivi', pagina: 'preventivi-titolare' },
   conta: function() {
     return numeroTAM(contaTAM('preventivi').not('inviato_a_titolare_il', 'is', null)
@@ -1029,7 +1029,7 @@ registraFonteToccaAMe({
   }
 });
 
-// ── Acquisti (commerciale) ──────────────────────────────────────────
+// ── Acquisti ──────────────────────────────────────────
 registraFonteToccaAMe({
   id: 'progetti-da-preventivare', ruoli: ['commerciale'], priorita: 10, icona: '📐',
   titolo: 'Progetti da preventivare',

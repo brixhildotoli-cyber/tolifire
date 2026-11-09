@@ -132,8 +132,8 @@ function rappresentantePuoPreparareExtra(commessa, r) {
         return testo.replace('preventivo integrativo n. ' + r.preventivo_numero,
           'preventivo integrativo n. ' + r.preventivo_numero + ' (preparato dal rappresentante)');
       }
-      if (r && r.stato === 'richiesto' && !r.preventivo_numero && testo.indexOf('(commerciale)') >= 0 && lavoriExtraRappDisponibili === true) {
-        return testo.replace('(commerciale)', '(commerciale, oppure il rappresentante fino a 3.000 €)');
+      if (r && r.stato === 'richiesto' && !r.preventivo_numero && testo.indexOf('(Acquisti)') >= 0 && lavoriExtraRappDisponibili === true) {
+        return testo.replace('(Acquisti)', '(Acquisti, oppure il rappresentante fino a 3.000 €)');
       }
       return testo;
     };
@@ -229,7 +229,7 @@ function aggiornaTotalePreventivoExtraRapp() {
   const avviso = ge('per-avviso');
   if (avviso) {
     avviso.innerHTML = oltre
-      ? '<div class="al2 e">Il totale supera 3.000 €: questo preventivo integrativo lo prepara il commerciale. Premi <b>↩️ Lascia al commerciale</b> oppure riduci le voci.</div>'
+      ? '<div class="al2 e">Il totale supera 3.000 €: questo preventivo integrativo lo prepara Acquisti. Premi <b>↩️ Lascia ad Acquisti</b> oppure riduci le voci.</div>'
       : '';
   }
   ['per-salva', 'per-invia'].forEach(function(id) { if (ge(id)) ge(id).disabled = oltre; });
@@ -312,7 +312,7 @@ async function salvaPreventivoExtraRapp(conPdf) {
     if (voci[i].prezzo_unitario === null || voci[i].prezzo_unitario < 0) { toast('Voce ' + (i + 1) + ': scrivi il prezzo per il cliente', 'err'); return; }
   }
   const totale = aggiornaTotalePreventivoExtraRapp();
-  if (totale > 3000) { toast('Sopra 3.000 € il preventivo integrativo lo prepara il commerciale', 'err'); return; }
+  if (totale > 3000) { toast('Sopra 3.000 € il preventivo integrativo lo prepara Acquisti', 'err'); return; }
   if (totale <= 0) { toast('Il totale deve essere maggiore di zero', 'err'); return; }
 
   salvataggioPreventivoExtraRapp = true;
@@ -384,11 +384,11 @@ async function salvaPreventivoExtraRapp(conPdf) {
 async function lasciaPreventivoExtraRapp() {
   const s = preventivoExtraRappAperto;
   if (!s) return;
-  if (!confirm('Lasciare questo preventivo integrativo al commerciale?' +
+  if (!confirm('Lasciare questo preventivo integrativo ad Acquisti?' +
       (s.preventivo ? '\nLa tua bozza (preventivo n. ' + s.preventivo.numero + ') verrà cancellata.' : ''))) return;
   const { error } = await db.rpc('lascia_preventivo_extra_al_commerciale', { p_lavoro_extra_id: s.lavoroId });
   if (error) { toast('Errore: ' + error.message, 'err'); return; }
-  toast('Il preventivo integrativo lo prepara il commerciale', 'ok');
+  toast('Il preventivo integrativo lo prepara Acquisti', 'ok');
   chiudiPreventivoExtraRapp();
   await aggiornaDopoPreventivoExtraRapp();
 }

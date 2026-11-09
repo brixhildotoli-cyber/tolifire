@@ -260,7 +260,7 @@ function preparaFinestreAvvisi() {
           '<button type="button" class="btn sm" onclick="ge(\'avp-scadenza\').value=\'\'">Senza</button></div></div>' +
       '<div class="f"><label>Se scade risale a</label><select id="avp-resp">' +
         '<option value="">Responsabile proposto (dal record)</option><option value="nessuno">Direttamente al titolare</option>' +
-        '<option value="capo_tecnico">Capo tecnico</option><option value="commerciale">Commerciale</option>' +
+        '<option value="capo_tecnico">Capo tecnico</option><option value="commerciale">Acquisti</option>' +
         '<option value="segreteria">Segreteria</option><option value="rappresentante">Rappresentante</option></select></div>' +
       '<label style="display:flex;gap:8px;align-items:center;font-size:13px;font-weight:400;margin:4px 0 8px"><input type="checkbox" id="avp-esito"> Esito obbligatorio per chiuderlo</label>' +
       '<div id="avp-esito-creato"></div>' +

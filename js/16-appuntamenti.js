@@ -365,11 +365,11 @@ async function loadVerificheTecniche() {
         classe: 'bwarn'
       },
       in_preventivazione: {
-        testo: 'Inviato al commerciale · in preventivazione',
+        testo: 'Inviato ad Acquisti · in preventivazione',
         classe: 'bok'
       },
       inviato_a_commerciale: {
-        testo: 'Inviato al commerciale',
+        testo: 'Inviato ad Acquisti',
         classe: 'bok'
       },
       pronto_per_preventivo: {

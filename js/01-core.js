@@ -100,12 +100,13 @@ const PERIO_OPT=['mensile','bimestrale','trimestrale','quadrimestrale','semestra
 const PERIO_MESI={mensile:1,bimestrale:2,trimestrale:3,quadrimestrale:4,semestrale:6,annuale:12,biennale:24};
 // Etichette dei ruoli in interfaccia (F3.2): servono solo a non mostrare i
 // codici grezzi di utenti.ruolo, che NON cambiano (decisione D1). Decisione
-// 26/10: "Rappresentante" e "Commerciale" restano i nomi visibili.
+// di Erika del 09/11: il ruolo commerciale si chiama "Acquisti" (solo
+// l'etichetta, il codice resta 'commerciale'); "Rappresentante" resta.
 const ETICHETTE_RUOLO={
   titolare:'Titolare',
   informatico:'Informatico',
   rappresentante:'Rappresentante',
-  commerciale:'Commerciale',
+  commerciale:'Acquisti',
   ingegnere:'Ingegnere',
   capo_tecnico:'Capo tecnico',
   tecnico:'Tecnico',
@@ -148,7 +149,7 @@ const REGOLE_PREDEFINITE=[
   {chiave:"integrazione_venditore_gg",gruppo:"tempi",ordine:20,valore:2,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Integrazione chiesta al venditore (rappresentante): tempo per rispondere"},
   {chiave:"integrazione_promemoria_ore",gruppo:"tempi",ordine:30,valore:48,unita:"ore",verso:"sopra",min:0,max:720,intero:false,vuota:false,colonna:null,descrizione:"Integrazione al venditore: promemoria dopo queste ore"},
   {chiave:"integrazione_avviso_titolare_gg",gruppo:"tempi",ordine:40,valore:7,unita:"giorni",verso:"sopra",min:0,max:365,intero:true,vuota:false,colonna:null,descrizione:"Integrazione al venditore ancora aperta: avviso al titolare dopo questi giorni"},
-  {chiave:"risposta_ingegnere_acquisti_gg",gruppo:"tempi",ordine:50,valore:1,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Risposta dell'ingegnere ad Acquisti (commerciale)"},
+  {chiave:"risposta_ingegnere_acquisti_gg",gruppo:"tempi",ordine:50,valore:1,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Risposta dell'ingegnere ad Acquisti"},
   {chiave:"domande_capo_tecnico_gg",gruppo:"tempi",ordine:60,valore:1,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Risposta alle domande del capo tecnico (Capo Operativo)"},
   {chiave:"scadenza_fornitore_gg",gruppo:"tempi",ordine:70,valore:3,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Tempo dato al fornitore per mandare l'offerta"},
   {chiave:"preventivo_verde_gg",gruppo:"tempi",ordine:80,valore:2,unita:"giorni_lav",verso:"sopra",min:0,max:60,intero:false,vuota:false,colonna:null,descrizione:"Preventivo verde pronto entro questi giorni da \"pronto per preventivo\" (o dall'ultima offerta)"},
@@ -161,7 +162,7 @@ const REGOLE_PREDEFINITE=[
   {chiave:"risposta_gestionale_fermo_ore",gruppo:"tempi",ordine:150,valore:4,unita:"ore_lav",verso:"sopra",min:0,max:80,intero:false,vuota:false,colonna:null,descrizione:"Risposta della programmatrice quando il gestionale è fermo"},
   {chiave:"annulla_entro_ore",gruppo:"tempi",ordine:200,valore:24,unita:"ore",verso:"sopra",min:0,max:168,intero:false,vuota:false,colonna:null,descrizione:"Annulla: per quante ore chi ha fatto un'azione la può annullare da solo (se il passo successivo non è partito); dopo, \"Chiedi correzione\" al responsabile"},
   {chiave:"correzione_risposta_gg",gruppo:"tempi",ordine:210,valore:1,unita:"giorni_lav",verso:"sopra",min:0,max:10,intero:false,vuota:false,colonna:null,descrizione:"Richiesta di correzione: tempo del responsabile per rispondere, poi risale al titolare"},
-  {chiave:"spese_fuori_budget_acquisti",gruppo:"spese",ordine:10,valore:50,unita:"euro",verso:"sopra",min:0,max:null,intero:false,vuota:false,colonna:null,descrizione:"Spesa fuori budget: fino a questo importo decide Acquisti (commerciale), oltre il titolare"},
+  {chiave:"spese_fuori_budget_acquisti",gruppo:"spese",ordine:10,valore:50,unita:"euro",verso:"sopra",min:0,max:null,intero:false,vuota:false,colonna:null,descrizione:"Spesa fuori budget: fino a questo importo decide Acquisti, oltre il titolare"},
   {chiave:"spese_titolare_irraggiungibile",gruppo:"spese",ordine:20,valore:200,unita:"euro",verso:"sopra",min:0,max:null,intero:false,vuota:false,colonna:null,descrizione:"Cantiere fermo e titolare irraggiungibile: Acquisti autorizza fino a questo importo, il titolare ratifica"},
   {chiave:"soglia_km_trasferta",gruppo:"spese",ordine:30,valore:50,unita:"km",verso:"sopra",min:0,max:2000,intero:false,vuota:false,colonna:null,descrizione:"Oltre questi km dalla sede il lavoro è in trasferta (valore iniziale da confermare)"},
   {chiave:"controllo_km_oltre",gruppo:"spese",ordine:40,valore:150,unita:"km",verso:"sopra",min:0,max:2000,intero:false,vuota:false,colonna:null,descrizione:"Oltre questi km la trasferta va controllata"},

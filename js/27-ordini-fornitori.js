@@ -231,7 +231,7 @@ function htmlOfferteDaOrdinare(commessa, erroreOfferte) {
     return `
       <div class="al2 i">
         Nel preventivo non ci sono offerte di fornitori selezionate: gli ordini nascono
-        dalle offerte scelte dal commerciale nella scheda del preventivo (tab Fornitori).
+        dalle offerte scelte da Acquisti nella scheda del preventivo (tab Fornitori).
       </div>
     `;
   }

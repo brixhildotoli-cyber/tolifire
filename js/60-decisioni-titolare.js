@@ -61,7 +61,7 @@ function registraTipoDecisione(tipo, opzioni) {
 
 // Nomi delle decisioni di prova (testo "Prova: Decisione: <nome> – ...").
 const PROVE_DECISIONE = [
-  { tipo: 'sblocco_margine', esempio: 'preventivo con margine del 26% dopo la provvigione, sotto il 29%: sblocco richiesto dal commerciale' },
+  { tipo: 'sblocco_margine', esempio: 'preventivo con margine del 26% dopo la provvigione, sotto il 29%: sblocco richiesto da Acquisti' },
   { tipo: 'anticipo_parziale', esempio: 'il cliente ha versato il 50% dell\'anticipo, chiede di partire lo stesso' },
   { tipo: 'ratifica_spesa', esempio: 'corsa al negozio di 260 € senza autorizzazione, da ratificare' },
   { tipo: 'voce_fuori_modello', esempio: 'voce non prevista dal modello di preventivo, da approvare' },

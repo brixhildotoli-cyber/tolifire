@@ -49,7 +49,7 @@ const NOMI_STATO_SCHEDA = {
   },
   progetto: {
     bozza: 'Bozza', in_verifica_tecnica: 'In verifica tecnica', da_integrare: 'Integrazione richiesta',
-    inviato_a_commerciale: 'Inviato al commerciale', pronto_per_preventivo: 'Pronto per il preventivo',
+    inviato_a_commerciale: 'Inviato ad Acquisti', pronto_per_preventivo: 'Pronto per il preventivo',
     in_preventivazione: 'In preventivazione', in_valutazione: 'In valutazione', archiviato: 'Archiviato'
   },
   cliente: { attivo: 'Attivo', prospect: 'Prospect', lead: 'Lead', sospeso: 'Sospeso', cessato: 'Cessato' }
@@ -184,7 +184,7 @@ registraAzioneScheda('preventivo', {
   esegui: function() { return apriRimandaPreventivoAvviato(); }
 });
 registraAzioneScheda('preventivo', {
-  codice: 'rimanda_commerciale', etichetta: '↩ Rimanda al commerciale',
+  codice: 'rimanda_commerciale', etichetta: '↩ Rimanda ad Acquisti',
   ruoli: ['titolare'], stati: ['inviato_a_rappresentante'],
   esegui: function() { vaiRiquadroScheda('pvd-nota-rinvio-titolare', '#pg-preventivo-detail .tabs .tab'); }
 });

@@ -186,11 +186,11 @@ ${ROLE === 'titolare' ? `
     ${ROLE === 'titolare' && preventivo.stato === 'inviato_a_rappresentante' ? `
       <div class="card" style="margin-top:16px;border-left:4px solid #d97706">
         <div style="font-size:14px;font-weight:700">
-          ↩ Rimanda al commerciale
+          ↩ Rimanda ad Acquisti
         </div>
 
         <div style="font-size:12px;color:var(--m);margin:6px 0 10px">
-          La nota è facoltativa. Il commerciale potrà modificare il preventivo e rigenerare il PDF.
+          La nota è facoltativa. Acquisti potrà modificare il preventivo e rigenerare il PDF.
         </div>
 
         <textarea
@@ -204,7 +204,7 @@ ${ROLE === 'titolare' ? `
           style="margin-top:10px"
           onclick="rimandaPreventivoAlCommerciale()"
         >
-          ↩ Rimanda al commerciale
+          ↩ Rimanda ad Acquisti
         </button>
       </div>
     ` : ''}
@@ -437,7 +437,7 @@ async function rimandaPreventivoAlCommerciale() {
   ).trim();
 
   if (!confirm(
-    'Rimandare questo preventivo al commerciale per la revisione?'
+    'Rimandare questo preventivo ad Acquisti per la revisione?'
   )) {
     return;
   }
@@ -455,7 +455,7 @@ async function rimandaPreventivoAlCommerciale() {
     return;
   }
 
-  toast('Preventivo rimandato al commerciale', 'ok');
+  toast('Preventivo rimandato ad Acquisti', 'ok');
   gotoPage('preventivi-titolare');
 }
 
@@ -1354,7 +1354,7 @@ async function renderSchedePreventivo() {
   box.innerHTML = `
     <div class="al2 i" style="margin-bottom:14px">
       📝 I rilievi originali dell’ingegnere restano invariati.
-      Il commerciale può modificare la copia destinata ai fornitori.
+      Acquisti può modificare la copia destinata ai fornitori.
     </div>
 
     ${ordinaSchedeRilievo(data).map(function(scheda, indice, schede) {
@@ -1391,7 +1391,7 @@ async function renderSchedePreventivo() {
                 modificataCommerciale
                   ? `
                     <div style="font-size:12px;color:var(--o);margin-top:4px">
-                      ✏️ Copia commerciale attiva
+                      ✏️ Copia di Acquisti attiva
                     </div>
                   `
                   : ''
@@ -5163,7 +5163,7 @@ function cardCertificatoPreventivo(certificato, origine) {
     (ROLE === 'commerciale' && origine === 'commerciale');
 
   const titolo = origine === 'commerciale'
-    ? '📄 Certificato del commerciale'
+    ? '📄 Certificato di Acquisti'
     : '📄 Certificato del titolare';
 
   const statoInvio = certificato.inviato_il
@@ -5325,12 +5325,12 @@ async function renderCertificatiPreventivo() {
   if (ROLE === 'titolare') {
     box.innerHTML = `
       <div class="info">
-        Puoi vedere e correggere i certificati del commerciale.
+        Puoi vedere e correggere i certificati di Acquisti.
         I certificati del titolare restano riservati al titolare e all’ingegnere.
       </div>
 
       <h3 style="margin:16px 0 10px">
-        Certificati del commerciale
+        Certificati di Acquisti
       </h3>
 
       ${bottoneEliminaTuttiCertificati('commerciale', certificatiCommerciale.length)}
@@ -5340,7 +5340,7 @@ async function renderCertificatiPreventivo() {
           ? certificatiCommerciale.map(function(certificato) {
               return cardCertificatoPreventivo(certificato, 'commerciale');
             }).join('')
-          : '<div class="empty">Il commerciale non ha ancora caricato certificati.</div>'
+          : '<div class="empty">Acquisti non ha ancora caricato certificati.</div>'
       }
 
       <h3 style="margin:20px 0 10px">
@@ -5421,7 +5421,7 @@ async function salvaCertificatoPreventivo(origine, file, certificatoId) {
   if (ROLE === 'titolare' && origine === 'commerciale' && !esistente) {
     return {
       ok: false,
-      messaggio: 'Il certificato commerciale può essere creato solo dal commerciale'
+      messaggio: 'Il certificato di Acquisti può essere creato solo da Acquisti'
     };
   }
 
@@ -5709,7 +5709,7 @@ async function eliminaTuttiCertificatiPreventivo(origine) {
   }
 
   const sezione = origine === 'commerciale'
-    ? 'del commerciale'
+    ? 'di Acquisti'
     : 'riservati del titolare';
 
   if (!confirm(
@@ -5969,7 +5969,7 @@ async function loadCertificatiIngegnere() {
         <div class="card">
           <h3>Preventivo n. ${certificato.preventivo_numero || '—'}</h3>
           <p><b>Cliente:</b> ${esc(certificato.cliente_nome || '—')}</p>
-          <p><b>Origine:</b> ${certificato.origine === 'commerciale' ? 'Commerciale' : 'Titolare'}</p>
+          <p><b>Origine:</b> ${certificato.origine === 'commerciale' ? 'Acquisti' : 'Titolare'}</p>
           <p><b>File:</b> ${esc(certificato.nome_file)}</p>
           <p class="muted">Inviato il ${formatoDataOraCertificato(certificato.inviato_il)}</p>
           ${certificato.letto_ingegnere_il
@@ -7245,7 +7245,7 @@ async function inviaPdfClienteATitolareERappresentante() {
   ricordaPosizionePagina();
 
   if (!['commerciale', 'titolare'].includes(ROLE)) {
-  toast('Solo commerciale o titolare possono inviare il preventivo', 'err');
+  toast('Solo Acquisti o il titolare possono inviare il preventivo', 'err');
   return;
 }
 
@@ -10385,7 +10385,7 @@ const NOMI_RUOLO_PASSO_COMMESSA = {
   capo_tecnico: 'Capo tecnico',
   segreteria: 'Segreteria',
   titolare: 'Titolare',
-  commerciale: 'Commerciale'
+  commerciale: 'Acquisti'
 };
 
 // Cosa significa il passaggio, in parole semplici (passi del flusso).

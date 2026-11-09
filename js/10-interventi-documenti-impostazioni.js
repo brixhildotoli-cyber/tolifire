@@ -209,7 +209,7 @@ function anteprimaRiassegnaPratiche() {
       : '<div class="al2 e" style="margin:0 0 8px">Nessuna di queste pratiche può andare a ' + esc(nomeA) + ' (' + esc(etichettaRuolo(a.ruolo)) + ').</div>') +
     (resta
       ? '<div class="al2 w" style="margin:0 0 8px">Restano <b>' + resta + '</b> pratiche (' + esc(Object.keys(restano).map(function(t) { return restano[t] + ' ' + nomeTipoPratica(t); }).join(', ')) +
-        '): sono di un altro ruolo (venditore → Rappresentante; acquisti → Commerciale). Spostale con un\'altra riassegnazione.</div>'
+        '): sono di un altro ruolo (venditore → Rappresentante; acquisti → Acquisti). Spostale con un\'altra riassegnazione.</div>'
       : '');
   ge('rpr-sposta').disabled = !sposta;
 }

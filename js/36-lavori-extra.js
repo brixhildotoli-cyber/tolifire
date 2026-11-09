@@ -40,7 +40,7 @@ const ETICHETTE_STATO_LAVORO_EXTRA = {
 };
 
 const ETICHETTE_STATO_PREVENTIVO_LAVORO_EXTRA = {
-  bozza: 'in preparazione dal commerciale',
+  bozza: 'in preparazione da Acquisti',
   in_attesa_approvazione: 'in preparazione',
   approvato: 'pronto per il cliente',
   inviato: 'inviato al cliente',
@@ -164,7 +164,7 @@ function testoPreventivoLavoroExtra(r) {
   const rimando = testoRimandoLavoroExtra(r);
   if (!r.preventivo_numero) {
     if (r.stato !== 'richiesto') return '';
-    return rimando ? 'preventivo integrativo: progetto ' + rimando : 'preventivo integrativo da preparare (commerciale)';
+    return rimando ? 'preventivo integrativo: progetto ' + rimando : 'preventivo integrativo da preparare (Acquisti)';
   }
   const stato = rimando || ETICHETTE_STATO_PREVENTIVO_LAVORO_EXTRA[r.preventivo_stato] || r.preventivo_stato || '';
   return 'preventivo integrativo n. ' + r.preventivo_numero + (stato ? ' · ' + stato : '');
@@ -301,7 +301,7 @@ function disegnaLavoriExtraCommessa(erroreVoci) {
     <div class="card lex-card">
       <div class="cant-titolo">➕ Lavori extra (${visibili.length})</div>
       <div style="font-size:12px;color:var(--m);margin-bottom:8px">
-        Lavori chiesti dal cliente in cantiere, fuori dal preventivo: vanno al commerciale per il preventivo integrativo.
+        Lavori chiesti dal cliente in cantiere, fuori dal preventivo: vanno ad Acquisti per il preventivo integrativo.
         <b>Si eseguono solo dopo che il cliente lo ha accettato.</b>
       </div>
       ${bottone}
@@ -433,7 +433,7 @@ function htmlDettaglioLavoroExtra(r) {
   righe.push('Registrato il ' + dataOraEsitoPreventivo(r.richiesto_il) +
     (r.richiesto_da_nome ? ' da ' + r.richiesto_da_nome + (r.richiesto_da_ruolo ? ' (' + etichettaRuolo(r.richiesto_da_ruolo) + ')' : '') : ''));
   if (r.chiesto_da_cliente) righe.push('Lo ha chiesto per il cliente: ' + r.chiesto_da_cliente);
-  righe.push('Arriva al commerciale nella lista "Da preventivare" e al rappresentante tra i suoi progetti.');
+  righe.push('Arriva ad Acquisti nella lista "Da preventivare" e al rappresentante tra i suoi progetti.');
   if (r.preventivo_numero) righe.push('Preventivo integrativo n. ' + r.preventivo_numero + ': ' + (ETICHETTE_STATO_PREVENTIVO_LAVORO_EXTRA[r.preventivo_stato] || r.preventivo_stato || ''));
   if (r.esito_il && r.stato !== 'annullato') righe.push('Esito del cliente il ' + dataOraEsitoPreventivo(r.esito_il));
   if (r.annullato_il) {
@@ -491,7 +491,7 @@ async function salvaNuovoLavoroExtra() {
   }
 
   closeM('m-lavoro-extra');
-  toast('Lavoro extra inviato al commerciale per il preventivo integrativo. Non eseguirlo prima dell\'accettazione.', 'ok');
+  toast('Lavoro extra inviato ad Acquisti per il preventivo integrativo. Non eseguirlo prima dell\'accettazione.', 'ok');
   await aggiornaDopoLavoroExtra();
 }
 
@@ -765,7 +765,7 @@ async function caricaLavoriExtraDashboard() {
   };
   const aiuti = {
     commerciale: 'Chiesti dal cliente in cantiere: prepara il preventivo integrativo (lo trovi anche in Da preventivare). Accettato, resta nella stessa commessa.',
-    rappresentante: 'Chiesti dal cliente in cantiere: il preventivo integrativo lo prepara il commerciale, oppure tu se resta entro 3.000 € ("Prepara io il preventivo"); poi lo fai approvare. Finché non è accettato non si eseguono.',
+    rappresentante: 'Chiesti dal cliente in cantiere: il preventivo integrativo lo prepara Acquisti, oppure tu se resta entro 3.000 € ("Prepara io il preventivo"); poi lo fai approvare. Finché non è accettato non si eseguono.',
     capo_tecnico: 'Si eseguono solo quelli accettati dal cliente; gli altri aspettano il preventivo integrativo.'
   };
 

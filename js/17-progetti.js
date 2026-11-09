@@ -249,7 +249,7 @@ if (
   lista.innerHTML = progettiClienteDati.map(function(p) {
     const stato = {
       bozza: 'Bozza',
-      inviato_a_commerciale: 'Inviato al commerciale',
+      inviato_a_commerciale: 'Inviato ad Acquisti',
       in_verifica_tecnica: 'In verifica tecnica',
       in_valutazione: 'In valutazione',
       pronto_per_preventivo: 'Pronto per preventivo',
@@ -303,7 +303,7 @@ if (
 
 (inviaCommerciale
   ? '<button class="btn sm info" onclick="inviaProgettoAlCommerciale(\'' + p.id + '\')">' +
-      '📤 Invia al commerciale' +
+      '📤 Invia ad Acquisti' +
     '</button>'
   : '') +
 
@@ -925,7 +925,7 @@ async function mostraImportoProgetto(progetto) {
 }
 
 async function inviaProgettoAlCommerciale(progettoId) {
-  if (!confirm('Inviare il progetto al commerciale per il preventivo?')) {
+  if (!confirm('Inviare il progetto ad Acquisti per il preventivo?')) {
     return;
   }
 
@@ -952,7 +952,7 @@ aggiornato_il: new Date().toISOString()
     return;
   }
 
-  toast('Progetto inviato al commerciale', 'ok');
+  toast('Progetto inviato ad Acquisti', 'ok');
   await loadProgettiCliente(currentCliId);
   await loadPaginaProgetti();
 }
@@ -1019,8 +1019,8 @@ async function loadPaginaProgetti() {
   },
 
   inviato_a_commerciale: {
-    titolo: 'Inviati al commerciale',
-    etichetta: 'Inviato al commerciale',
+    titolo: 'Inviati ad Acquisti',
+    etichetta: 'Inviato ad Acquisti',
     classe: 'bok'
   }
 };
@@ -1056,7 +1056,7 @@ async function loadPaginaProgetti() {
 
     const autoreNota =
       p.integrazione_richiesta_da === 'commerciale'
-        ? 'Nota del commerciale'
+        ? 'Nota di Acquisti'
         : p.integrazione_richiesta_da === 'titolare'
           ? 'Nota del titolare'
           : 'Nota dell’ingegnere';
@@ -1125,7 +1125,7 @@ async function loadPaginaProgetti() {
               class="btn sm info"
               onclick="inviaProgettoAlCommerciale('${p.id}')"
             >
-              📤 Invia al commerciale
+              📤 Invia ad Acquisti
             </button>
           ` : ''}
 
@@ -1437,10 +1437,10 @@ async function apriSceltaCommercialePreventivo(progettoId, commerciali) {
   finestra.innerHTML = `
     <div class="modal" style="max-width:420px">
       <button class="x" onclick="closeM('m-scegli-commerciale')">×</button>
-      <h3>A quale commerciale assegnare il preventivo?</h3>
+      <h3>A chi di Acquisti assegnare il preventivo?</h3>
       <input type="hidden" id="msc-progetto-id" value="${esc(progettoId)}">
       <div class="f">
-        <label>Commerciale *</label>
+        <label>Persona di Acquisti *</label>
         <select id="msc-commerciale">
           ${commerciali.map(function(c) {
             const nome = ((c.nome || '') + ' ' + (c.cognome || '')).trim() || 'Senza nome';
@@ -1465,7 +1465,7 @@ async function confermaCommercialePreventivo() {
   const commercialeId = v('msc-commerciale');
 
   if (!progettoId || !commercialeId) {
-    toast('Scegli un commerciale', 'err');
+    toast('Scegli una persona di Acquisti', 'err');
     return;
   }
 
@@ -1578,7 +1578,7 @@ async function _avviaPreventivo(progettoId, commercialeScelto) {
 
       if (erroreCommerciali) {
         toast(
-          'Errore lettura commerciali: ' + erroreCommerciali.message,
+          'Errore lettura utenti di Acquisti: ' + erroreCommerciali.message,
           'err'
         );
         return;
@@ -1586,7 +1586,7 @@ async function _avviaPreventivo(progettoId, commercialeScelto) {
 
       if (!commerciali || !commerciali.length) {
         toast(
-          'Nessun commerciale attivo: serve almeno un utente attivo con ruolo Commerciale per avviare il preventivo.',
+          'Nessuna persona di Acquisti attiva: serve almeno un utente attivo con ruolo Acquisti per avviare il preventivo.',
           'err'
         );
         return;
@@ -2747,7 +2747,7 @@ async function openProgettoDetail(progettoId) {
     bozza: 'Bozza',
     in_verifica_tecnica: 'In verifica tecnica',
     da_integrare: 'Integrazione richiesta',
-    inviato_a_commerciale: 'Inviato al commerciale',
+    inviato_a_commerciale: 'Inviato ad Acquisti',
     in_preventivazione: 'In preventivazione'
   }[progetto.stato] || progetto.stato || '—';
 
@@ -2973,7 +2973,7 @@ if (btnModifica) {
 
   const nota = progetto.nota_integrazione || progetto.nota_verifica_tecnica;
   const autore = progetto.integrazione_richiesta_da === 'commerciale'
-    ? 'Nota del commerciale'
+    ? 'Nota di Acquisti'
     : progetto.nota_verifica_tecnica
       ? 'Nota dell’ingegnere'
       : 'Note';
@@ -3158,7 +3158,7 @@ async function renderSchedeProgettoCommerciale(progettoId) {
               modificataCommerciale
                 ? `
                   <div style="font-size:12px;color:var(--o);margin-top:4px">
-                    ✏️ Copia commerciale utilizzata per la richiesta fornitori
+                    ✏️ Copia di Acquisti utilizzata per la richiesta fornitori
                   </div>
                 `
                 : ''
@@ -3221,7 +3221,7 @@ async function renderSchedeProgettoCommerciale(progettoId) {
 async function apriModificaSchedaCommerciale(progettoId, famiglia, schedaId) {
   ricordaPosizionePagina();
  if (!['commerciale', 'titolare'].includes(ROLE)) {
-  toast('Solo commerciale o titolare possono modificare la copia', 'err');
+  toast('Solo Acquisti o il titolare possono modificare la copia', 'err');
   return;
 }
 
@@ -3270,7 +3270,7 @@ async function apriModificaSchedaCommerciale(progettoId, famiglia, schedaId) {
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:16px">
       <div>
         <div style="font-size:16px;font-weight:700">
-          ✏️ Copia commerciale — ${esc(titoloSchedaRilievo(scheda, null, quanteStesse))}
+          ✏️ Copia di Acquisti — ${esc(titoloSchedaRilievo(scheda, null, quanteStesse))}
         </div>
 
         <div style="font-size:12px;color:var(--m);margin-top:3px">
@@ -3317,7 +3317,7 @@ async function apriModificaSchedaCommerciale(progettoId, famiglia, schedaId) {
           '${scheda.id}'
         )"
       >
-        Salva copia commerciale
+        Salva copia di Acquisti
       </button>
     </div>
   `;
@@ -3354,7 +3354,7 @@ async function salvaCopiaSchedaCommerciale(progettoId, schedaId) {
   }
 
   closeM('m-rilievo-tecnico');
-  toast('Copia commerciale salvata', 'ok');
+  toast('Copia di Acquisti salvata', 'ok');
 
   if (
   currentPreventivoProgettoId === progettoId &&
@@ -3489,7 +3489,7 @@ async function salvaEsitoVerifica(nuovoStato) {
   toast(
     nuovoStato === 'da_integrare'
       ? 'Integrazione richiesta al rappresentante'
-      : 'Progetto inviato al commerciale',
+      : 'Progetto inviato ad Acquisti',
     'ok'
   );
 
