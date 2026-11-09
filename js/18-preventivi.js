@@ -543,7 +543,14 @@ function etichettaFamigliaTecnica(famiglia) {
       });
 }
 
-function etichettaCampoTecnico(campo) {
+// F15.6: con la famiglia della scheda (facoltativa) le lavorazioni migrate nel
+// catalogo (sql/80, js/56) usano l'etichetta del campo, anche rinominato dal
+// titolare: il codice (la chiave del dato) non cambia.
+function etichettaCampoTecnico(campo, famiglia) {
+  const daMigrazione = famiglia && typeof etichettaCampoFamigliaMigrata === 'function'
+    ? etichettaCampoFamigliaMigrata(famiglia, campo) : '';
+  if (daMigrazione) return daMigrazione;
+
   const etichette = {
     tipo_intervento: 'Tipo di intervento',
     pareti_cartongesso: 'Pareti in cartongesso',
@@ -616,10 +623,16 @@ function etichettaCampoTecnico(campo) {
       });
 }
 
-function valoreSchedaTecnica(valore) {
+// F15.6: con chiave e famiglia (facoltative) i valori dei menu delle lavorazioni
+// migrate si leggono con l'etichetta del catalogo (js/56).
+function valoreSchedaTecnica(valore, campo, famiglia) {
   if (valore === null || valore === undefined || valore === '') {
     return '—';
   }
+
+  const daMigrazione = campo && famiglia && typeof valoreCampoFamigliaMigrata === 'function'
+    ? valoreCampoFamigliaMigrata(famiglia, campo, valore) : '';
+  if (daMigrazione) return daMigrazione;
 
   if (valore === 'si') return 'Sì';
   if (valore === 'no') return 'No';
@@ -1425,11 +1438,11 @@ async function renderSchedePreventivo() {
                     return `
                       <div style="padding:9px;background:var(--bg);border-radius:var(--rs)">
                         <div style="font-size:11px;color:var(--m);margin-bottom:3px">
-                          ${esc(etichettaCampoTecnico(entry[0]))}
+                          ${esc(etichettaCampoTecnico(entry[0], scheda.famiglia))}
                         </div>
 
                         <div style="font-size:13px;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere">
-                          ${esc(valoreSchedaTecnica(entry[1]))}
+                          ${esc(valoreSchedaTecnica(entry[1], entry[0], scheda.famiglia))}
                         </div>
                         ${typeof htmlFonteDatoScheda === 'function' ? htmlFonteDatoScheda(scheda, entry[0]) : ''}
                       </div>
@@ -1664,6 +1677,8 @@ async function apriSchedaPorteRei(numero) {
       </button>
     </div>
   `;
+  // F15.6 (sql/80): la scheda si compila nel motore, questa resta in sola lettura
+  if (typeof schedaVecchiaInSolaLettura === 'function') schedaVecchiaInSolaLettura('porte_rei');
    renderSchedePreventivo();
 }
 
@@ -1696,6 +1711,8 @@ async function salvaSchedaPorteRei() {
     toast('Progetto tecnico non selezionato', 'err');
     return;
   }
+
+  if (typeof salvataggioSchedaVecchiaBloccato === 'function' && salvataggioSchedaVecchiaBloccato('porte_rei')) return;
 
   const dati = datiFormSchedaPorteRei();
 
@@ -1912,6 +1929,8 @@ async function apriSchedaEstintori(numero) {
       </button>
     </div>
   `;
+  // F15.6 (sql/80): la scheda si compila nel motore, questa resta in sola lettura
+  if (typeof schedaVecchiaInSolaLettura === 'function') schedaVecchiaInSolaLettura('estintori');
    renderSchedePreventivo();
 }
 
@@ -1942,6 +1961,8 @@ async function salvaSchedaEstintori() {
     toast('Progetto tecnico non selezionato', 'err');
     return;
   }
+
+  if (typeof salvataggioSchedaVecchiaBloccato === 'function' && salvataggioSchedaVecchiaBloccato('estintori')) return;
 
   const dati = datiFormSchedaEstintori();
 
@@ -2234,6 +2255,8 @@ async function apriSchedaRilevazioneIncendi(numero) {
       </button>
     </div>
   `;
+  // F15.6 (sql/80): dal progetto la scheda si compila nel motore, questa resta in sola lettura
+  if (usaProgetto && typeof schedaVecchiaInSolaLettura === 'function') schedaVecchiaInSolaLettura('rilevazione_incendi');
    renderSchedePreventivo();
 }
 
@@ -2299,6 +2322,8 @@ async function salvaSchedaRilevazioneIncendi() {
     );
     return;
   }
+
+  if (usaProgetto && typeof salvataggioSchedaVecchiaBloccato === 'function' && salvataggioSchedaVecchiaBloccato('rilevazione_incendi')) return;
 
   const dati = datiFormSchedaRilevazioneIncendi();
 
@@ -7915,9 +7940,9 @@ if (progetto.materiali_note) {
 
       campi.forEach(function(entry) {
         testo(
-          etichettaCampoTecnico(entry[0]) +
+          etichettaCampoTecnico(entry[0], scheda.famiglia) +
           ': ' +
-          valoreSchedaTecnica(entry[1]),
+          valoreSchedaTecnica(entry[1], entry[0], scheda.famiglia),
           9
         );
       });

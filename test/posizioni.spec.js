@@ -337,8 +337,13 @@ const testoPosizioni = (s, id) => s.page.evaluate(id => { const b = document.get
       if (!porte) {
         const avviso = await testoPosizioni(g, 'rsm-posizioni');
         if (!/Salva la scheda/.test(avviso || '')) KO('1: scheda nuova senza l\'avviso "Salva la scheda": ' + avviso);
-        await g.page.evaluate(() => { document.getElementById('pr-tipologia').value = 'battente_singolo'; document.getElementById('pr-rei').value = 'rei_60'; document.getElementById('rsm-nome').value = 'Piano 1'; });
-        await g.page.evaluate(() => salvaSchedaPorteRei());
+        // F15.6 (sql/80): con la porte REI migrata il bottone apre il motore
+        await g.page.evaluate(async () => {
+          const motore = !!document.getElementById('msm-motore');
+          const p = motore ? 'msm-c-' : 'pr-';
+          document.getElementById(p + 'tipologia').value = 'battente_singolo'; document.getElementById(p + 'rei').value = 'rei_60'; document.getElementById('rsm-nome').value = 'Piano 1';
+          if (motore) await salvaSchedaMotore(); else await salvaSchedaPorteRei();
+        });
         await attendiQuiete(g.stato, 1200);
         porte = psql("select id from public.progetti_tecnici_schede where progetto_tecnico_id = " + q(progettoId) + " and famiglia = 'porte_rei' order by numero limit 1");
         if (!porte) throw new Error('scheda Porte REI non salvata');
@@ -456,7 +461,7 @@ const testoPosizioni = (s, id) => s.page.evaluate(id => { const b = document.get
     for (const s of sessioni) {
       if (s.stato.erroriJs.length) KO('errori JavaScript: ' + s.stato.erroriJs.join(' | '));
       // i rifiuti provati dalla console (4xx) sono voluti: contano solo 5xx e colonne/funzioni mancanti
-      const rete = s.stato.rete.filter(r => r.status >= 500 || /does not exist|Could not find/i.test(r.msg) && !(SENZA && /progetti_tecnici_posizioni/.test(r.dove + r.msg)));
+      const rete = s.stato.rete.filter(r => r.status >= 500 || /does not exist|Could not find/i.test(r.msg) && !/schede_migrate_motore/.test(r.msg) /* F15.6: 404 voluto senza sql/80 */ && !(SENZA && /progetti_tecnici_posizioni/.test(r.dove + r.msg)));
       if (rete.length) KO('errori del database: ' + rete.map(r => r.metodo + ' ' + r.dove + ' ' + r.status + ' ' + r.msg).join(' | '));
     }
   } catch (e) {

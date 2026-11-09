@@ -280,6 +280,15 @@ titolare) e trigger NUOVO trg_progetti_tecnici_fonti (chi scrive la fonte;
 blocco dell'invio da bozza/da integrare). progetti_tecnici_schede: trigger
 NUOVO trg_progetti_tecnici_schede_fonti (voci di dati.fonti_normative).
 Registro delle azioni: quello di sql/67, già sulle due tabelle.
+Dopo sql/80 (F15.6 migrazione schede: porte REI, estintori, rilevazione
+incendi, DA ESEGUIRE, richiede 07, 71, 75, 77, 78; provato il 09/11 sul
+backup pre79 + 79 + 80): nessuna tabella nuova, nessuna policy nuova.
+lavorazioni_campi (dati): 8 campi nuovi degli estintori e 31 della
+rilevazione incendi con codice = chiave di progetti_tecnici_schede.dati
+(porte REI già completa con 75 + 77); ordine dei menu di sql/75 come la
+scheda di js/18; obbligatori (serve_al_prezzo) estintori 4, rilevazione 4.
+RPC NUOVA schede_migrate_motore() (elenco delle lavorazioni migrate; F15.7
+la ridefinisce).
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -1256,6 +1265,76 @@ MATRICE_AGITO_COME=1; corrette 7 caselle di lettura di commesse e
 commesse_storico, che dal backup pre77 hanno una riga vera); rollback
 provato (schema identico). Senza sql/79: nessuna fonte, nessun blocco,
 nessun errore (una chiamata RPC 404).
+Dopo sql/80 (F15.6 migrazione nel catalogo delle schede scritte a mano di
+porte REI, estintori e rilevazione incendi, DA ESEGUIRE: backup, anteprima in
+fondo al file (chiavi_senza_campo atteso vuoto), 80-migrazione-schede.sql
+(senza parole di cancellazione, server MCP), poi il controllo in fondo;
+nessun file -REGISTRO-CANCELLAZIONI (nessuna tabella nuova); richiede 07, 71,
+75, 77, 78, tutti in produzione, si ferma senza; 79 facoltativo). Le altre 4
+schede (compartimentazione, vernice, spegnimento, coppelle): F15.7. RPC del
+sito: schede_migrate_motore() (text[]: porte_rei, estintori,
+rilevazione_incendi; execute solo authenticated). DATI (lavorazioni_campi,
+solo righe che mancano, registrate da lavorazioni_registro e registro_azioni):
+un campo per ogni chiave che le schede di js/18 salvano, CODICE = CHIAVE di
+dati (i progetti esistenti si leggono senza trasformarli, nessuna riga delle
+schede si tocca): estintori numero_esistenti, numero_installare (pz 0-5000),
+classe_spegnimento, posizionamento, supporti, registro, foto_postazioni,
+note_tecniche (livello ingegnere); rilevazione marca, loop (0-99), indirizzi_loop,
+margine_espansione (%), accessori_centrale, comandi_terzi, interfacce, 12
+quantità di dispositivi (pz/ml/m, minimi 0), altezza (testo), superficie (m²),
+locali, struttura, ambienti_gravosi, cavo_schermato, cavo_resistente,
+sigillature, note_posa, collaudo, manutenzione, note_calcolo (livello
+ingegnere); ordine come la scheda di js/18 (i menu di sql/75 cambiano solo
+l'ordine, se mai cambiato); obbligatori (D2) estintori tipo_intervento,
+tipologia, capacita, numero_installare, rilevazione tipo_intervento,
+sorveglianza, centrale_tipo, superficie. Il codice non si cambia (trigger di
+sql/75, anche il titolare); rinominare solo titolare e ingegnere (Acquisti,
+rappresentante, segreteria, tecnico, titolare "come" Acquisti: zero righe o
+rifiuto). Nel sito (js/56, in fondo, F15.6): verificaMigrazioneSchedeDisponibile
+(RPC, dopo verificaMotoreSchedeDisponibile), famigliaMigrataMotore(famiglia);
+apriSchedaPorteReiIngegnere, apriSchedaEstintoriIngegnere,
+apriSchedaRilevazioneIngegnere (bottoni della Verifica tecnica) avvolte:
+aprono apriSchedaMotore; le schede di js/18 di queste 3 lavorazioni restano IN
+SOLA LETTURA (schedaVecchiaInSolaLettura chiamata da apriSchedaPorteRei,
+apriSchedaEstintori, apriSchedaRilevazioneIncendi dal progetto: campi spenti,
+niente Salva/+ Nuova/Elimina, avviso msm-sola-lettura con "📝 Compila nel
+motore"; salvataggioSchedaVecchiaBloccato in salvaScheda*); nel motore
+"👁 Modulo di prima (sola lettura)" (msm-modulo-prima, vediModuloDiPrimaMotore)
+e l'avviso "Da ricompilare" (msm-da-ricompilare) sulle schede salvate dal
+modulo di prima (senza tipo_richiesta e con dati); CAMPI_TESTO_LUNGO_MOTORE
+(aree di testo come in js/18); numeri salvati come testo ("12.5") mostrati con
+la virgola e rimandati com'erano se uguali. js/18: etichettaCampoTecnico(campo,
+famiglia) e valoreSchedaTecnica(valore, campo, famiglia): con la famiglia di
+una lavorazione migrata etichetta (con l'unità) e valori dei menu dal catalogo
+(anche rinominati: "Estintori da posare (pz): 9" nel PDF per il fornitore);
+la famiglia la passano renderSchedePreventivo e generaRichiestaQuotazionePDF
+(js/18), la scheda progetto e la copia di Acquisti (js/17), la scheda
+cantiere (js/32); preparaSchedeMigrate (catalogo e verifiche pronti) avvolge
+renderSchedePreventivo, generaRichiestaQuotazionePDF, caricaSchedaCantiere,
+renderSchedeProgettoCommerciale, leggiSchedaRilievo. Guide info-ing-23,
+info-tit-27 (e info-ing-22 aggiornata). SCELTE DA CONFERMARE DA TOLI:
+obbligatori proposti; livello ingegnere solo le note interne; minimi e
+massimi larghi; "classe di spegnimento" non normativa (sql/79 non chiede la
+fonte); le posizioni P-xx restano modificabili anche nel modulo di prima.
+Prove: sql/80-migrazione-schede-PROVA.sql (solo database di prova, rollback:
+chiavi delle schede esistenti tutte con un campo, rinomina del titolare e
+dell'ingegnere con codice fisso e dato letto con il codice, cambio del codice
+rifiutato, Acquisti/rappresentante/segreteria/tecnico/titolare "come"
+Acquisti zero righe o rifiuto, rappresentante: -3 estintori, 1000 loop, note
+dell'ingegnere rifiutati); test/migrazione-schede.spec.js (Chrome headless:
+le 3 schede esistenti del backup e 3 schede "di prima" con tutte le chiavi si
+aprono nel motore con gli stessi valori, modulo di prima in sola lettura,
+salvataggio dal motore senza perdite, rinomina del titolare letta da scheda
+progetto e PDF per il fornitore, console di Acquisti, rappresentante, tecnico;
+MIGRAZIONE_SENZA_SQL=1 dopo il rollback); motore-schede.spec.js e
+posizioni.spec.js aggiornati (con sql/80 il bottone apre il motore);
+motore-schede, -protezioni, -fonti, posizioni, catalogo-lavorazioni, smoke
+TUTTO OK con e senza sql/80 (i 5 test ignorano il 404 voluto di
+schede_migrate_motore); matrice dei permessi TUTTO OK con sql/80 (nessuna
+tabella nuova); rollback provato (schema identico; i 39 campi
+diventano "tolti", obbligatori e ordine tornano come prima; rieseguito il
+file: catalogo identico). Senza sql/80: schede di js/18 come prima, nessun
+errore (una chiamata RPC 404).
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),

@@ -123,6 +123,8 @@ function numeroMotore(testo) {
 function testoNumeroMotore(x) {
   if (x === null || x === undefined || x === '') return '';
   if (typeof x === 'number') return x.toLocaleString('it-IT', { maximumFractionDigits: 3, useGrouping: false });
+  // F15.6: numeri salvati come testo dalle schede di js/18 ("12.5") con la virgola
+  if (typeof x === 'string' && /^-?\d+\.\d+$/.test(x.trim())) return x.trim().replace('.', ',');
   return String(x);
 }
 
@@ -169,6 +171,7 @@ if (typeof renderSchedeProgettoCommerciale === 'function') {
   // eslint-disable-next-line no-global-assign
   renderSchedeProgettoCommerciale = async function(progettoId) {
     try { await verificaFontiDatiDisponibili(); } catch (e) { /* F15.5 facoltativo */ }
+    try { await preparaSchedeMigrate(); } catch (e) { /* F15.6 facoltativo */ }
     const esito = await renderSchedeProgettoSenzaMotore.apply(this, arguments);
     try { await disegnaApriMotoreProgetto(progettoId); } catch (e) { /* il motore è facoltativo */ }
     return esito;
@@ -348,7 +351,7 @@ function htmlCampoMotore(c, valore, indicativa, ingegnere) {
     ? '<div style="font-size:11px;color:var(--m)">Lo compila l’ingegnere: per te è in sola lettura.</div>'
     : (eraNonNoto ? '<div style="font-size:11px;color:#854F0B">Era "non noto": nella richiesta definitiva va compilato.</div>' : '');
   // "Non noto" per i numeri e i testi brevi (non per le note)
-  const lungo = c.tipo === 'testo' && (/note|logistica|descrizione|indicazioni/i.test(c.codice) || String(c.etichetta || '').length > 45);
+  const lungo = c.tipo === 'testo' && (CAMPI_TESTO_LUNGO_MOTORE.includes(c.codice) || /note|logistica|descrizione|indicazioni/i.test(c.codice) || String(c.etichetta || '').length > 45);
   const casella = indicativa && !solaLettura && (c.tipo === 'numero' || (c.tipo === 'testo' && !lungo))
     ? `<label style="display:flex;gap:6px;align-items:center;font-size:12px;font-weight:400;margin-top:4px;white-space:nowrap">
          <input type="checkbox" id="msm-nn-${esc(c.codice)}" style="width:auto"${nonNoto ? ' checked' : ''} onchange="cambiaNonNotoMotore('${esc(c.codice)}')"> ❓ Non noto
@@ -1123,4 +1126,218 @@ async function controllaFontiPrimaDellInvio(progettoId) {
     '\n\nLa fonte del rilievo si indica in "Modifica" del progetto o in cima alla scheda di rilievo; ' +
     'la fonte dei dati normativi sotto il dato, nella scheda (📝 Rilievi tecnici → 📝 Compila la scheda).');
   return false;
+}
+
+// ── F15.6 — MIGRAZIONE DELLE SCHEDE SCRITTE A MANO (sql/80) ─────────────
+// Porte REI, estintori e rilevazione incendi (le altre 4 con F15.7): nel
+// catalogo c'è un campo per ogni dato che la scheda di js/18 salvava, con
+// CODICE = CHIAVE di progetti_tecnici_schede.dati. I progetti esistenti si
+// aprono nel motore con tutti i dati, senza trasformarli; il codice non si
+// cambia (sql/75), il titolare cambia etichette e menu e preventivo, copia di
+// Acquisti, PDF per il fornitore e scheda cantiere leggono il dato con lo
+// stesso codice e l'etichetta nuova (etichettaCampoTecnico/valoreSchedaTecnica
+// di js/18 con la famiglia).
+// Con sql/80 (RPC schede_migrate_motore = elenco delle lavorazioni migrate) e
+// il motore attivo (sql/77, verificaMotoreSchedeDisponibile):
+// - i bottoni "Compila ..." della verifica tecnica aprono il motore;
+// - la scheda scritta a mano resta IN SOLA LETTURA ("👁 Modulo di prima" nella
+//   scheda del motore; da lì "📝 Compila nel motore"), e non salva più;
+// - una scheda salvata con il modulo di prima si apre nel motore con l'avviso
+//   "da ricompilare": i dati ci sono, si controllano e si salva.
+// Senza sql/80 (o senza sql/77) tutto come prima, nessun errore.
+const MIGRAZIONE_SCHEDE = { disponibile: null, famiglie: [] };
+
+// Chiave → funzione della scheda di js/18 (sola lettura) per le famiglie migrate
+const SCHEDE_VECCHIE_MOTORE = {
+  porte_rei: function(n) { return apriSchedaPorteRei(n); },
+  estintori: function(n) { return apriSchedaEstintori(n); },
+  rilevazione_incendi: function(n) { contestoSchedaRilevazione = 'progetto'; return apriSchedaRilevazioneIncendi(n); }
+};
+
+// Testi lunghi delle schede di js/18 (area di testo, non una riga)
+const CAMPI_TESTO_LUNGO_MOTORE = [
+  'note_vano', 'logistica', 'note_tecniche', 'posizionamento', 'supporti', 'registro', 'foto_postazioni',
+  'accessori_centrale', 'comandi_terzi', 'interfacce', 'struttura', 'ambienti_gravosi', 'note_posa',
+  'collaudo', 'manutenzione', 'note_calcolo'
+];
+
+async function verificaMigrazioneSchedeDisponibile() {
+  if (MIGRAZIONE_SCHEDE.disponibile !== null) return MIGRAZIONE_SCHEDE.disponibile;
+  if (typeof db === 'undefined' || !db) return false;
+  if (!(await verificaMotoreSchedeDisponibile())) return false;
+  const { data, error } = await db.rpc('schede_migrate_motore');
+  if (!error) {
+    MIGRAZIONE_SCHEDE.famiglie = Array.isArray(data) ? data.map(String) : [];
+    MIGRAZIONE_SCHEDE.disponibile = MIGRAZIONE_SCHEDE.famiglie.length > 0;
+  } else if (error.code === 'PGRST202' || error.code === '42883' || /Could not find|does not exist/i.test(error.message || '')) {
+    MIGRAZIONE_SCHEDE.disponibile = false;
+  } else {
+    return false; // errore passeggero: si riprova la prossima volta
+  }
+  return MIGRAZIONE_SCHEDE.disponibile;
+}
+
+// true = la scheda di questa lavorazione si compila nel motore (dopo le verifiche)
+function famigliaMigrataMotore(famiglia) {
+  if (MIGRAZIONE_SCHEDE.disponibile !== true || MOTORE_SCHEDE.disponibile !== true) return false;
+  if (!MIGRAZIONE_SCHEDE.famiglie.includes(famiglia)) return false;
+  const lav = typeof lavorazioneCatalogo === 'function' ? lavorazioneCatalogo(famiglia) : null;
+  return !!(lav && campiSchedaMotore(lav).length);
+}
+
+// Catalogo e verifiche pronti (per etichette e valori delle schede salvate)
+async function preparaSchedeMigrate() {
+  try {
+    if (!(await verificaMigrazioneSchedeDisponibile())) return false;
+    if (typeof caricaCatalogoLavorazioni === 'function') await caricaCatalogoLavorazioni();
+    return true;
+  } catch (e) { return false; }
+}
+
+function campoCatalogoMigrato(famiglia, codice) {
+  if (!famiglia || !codice || !famigliaMigrataMotore(famiglia)) return null;
+  const lav = lavorazioneCatalogo(famiglia);
+  return ((lav && lav.lavorazioni_campi) || []).find(function(c) { return c.codice === codice; }) || null;
+}
+
+// Etichetta del campo dal catalogo (anche rinominato dal titolare), '' = non c'è
+function etichettaCampoFamigliaMigrata(famiglia, codice) {
+  const c = campoCatalogoMigrato(famiglia, codice);
+  if (!c || !c.etichetta) return '';
+  return c.etichetta + (c.unita && c.tipo === 'numero' ? ' (' + c.unita + ')' : '');
+}
+
+// Valore di un menu con l'etichetta del catalogo, '' = come prima
+function valoreCampoFamigliaMigrata(famiglia, codice, valore) {
+  const c = campoCatalogoMigrato(famiglia, codice);
+  if (!c || valore === null || valore === undefined || valore === '' || typeof valore === 'object') return '';
+  if (c.tipo === 'menu') {
+    const o = opzioniMenuMotore(c).find(function(x) { return x.valore === String(valore); });
+    return o ? o.etichetta : '';
+  }
+  if (c.tipo === 'numero' && typeof valore === 'string' && /^-?\d+\.\d+$/.test(valore.trim())) return valore.trim().replace('.', ',');
+  return '';
+}
+
+// I bottoni della verifica tecnica aprono il motore per le lavorazioni migrate
+[
+  ['apriSchedaPorteReiIngegnere', 'porte_rei'],
+  ['apriSchedaEstintoriIngegnere', 'estintori'],
+  ['apriSchedaRilevazioneIngegnere', 'rilevazione_incendi']
+].forEach(function(x) {
+  const originale = window[x[0]];
+  if (typeof originale !== 'function') return;
+  window[x[0]] = async function() {
+    const progettoId = v('mvt-id');
+    if (progettoId && (await preparaSchedeMigrate()) && famigliaMigrataMotore(x[1])) {
+      return apriSchedaMotore(progettoId, x[1]);
+    }
+    return originale.apply(this, arguments);
+  };
+});
+
+// Prima di aprire una scheda: verifiche fatte (la scheda di js/18 sa se è in sola lettura)
+if (typeof leggiSchedaRilievo === 'function') {
+  const leggiSchedaRilievoSenzaMigrazione = leggiSchedaRilievo;
+  // eslint-disable-next-line no-global-assign
+  leggiSchedaRilievo = async function() {
+    await preparaSchedeMigrate();
+    return leggiSchedaRilievoSenzaMigrazione.apply(this, arguments);
+  };
+}
+
+// Schede salvate: etichette e menu del catalogo pronti prima di disegnare
+[
+  'renderSchedePreventivo', 'generaRichiestaQuotazionePDF', 'caricaSchedaCantiere'
+].forEach(function(nome) {
+  const originale = window[nome];
+  if (typeof originale !== 'function') return;
+  window[nome] = async function() {
+    await preparaSchedeMigrate();
+    return originale.apply(this, arguments);
+  };
+});
+
+// Scheda di js/18 di una lavorazione migrata: sola lettura. Chiamata dalle
+// funzioni apriScheda... di js/18 dopo aver disegnato il modulo. true = bloccata.
+function schedaVecchiaInSolaLettura(famiglia) {
+  if (!famigliaMigrataMotore(famiglia)) return false;
+  const box = ge('mrt-content');
+  if (!box) return false;
+  box.querySelectorAll('input, select, textarea').forEach(function(el) { el.disabled = true; });
+  box.querySelectorAll('button').forEach(function(b) {
+    const azione = b.getAttribute('onclick') || '';
+    if (/salvaScheda|nuovaSchedaRilievo|eliminaSchedaRilievo/.test(azione)) b.style.display = 'none';
+  });
+  if (schedaRilievoAperta) schedaRilievoAperta.modificata = false;
+  if (!ge('msm-sola-lettura')) {
+    box.insertAdjacentHTML('afterbegin', `
+      <div class="al2 w" id="msm-sola-lettura" style="margin-bottom:12px">
+        🔒 <b>Modulo di prima, in sola lettura.</b> Questa scheda ora si compila con il motore delle schede:
+        stessi dati e stessi codici, menu e unità del <b>📚 Catalogo lavorazioni</b>. Da ricompilare lì.
+        <div style="margin-top:8px"><button type="button" class="btn sm p" id="msm-torna-motore" onclick="tornaAlMotoreDaSchedaVecchia()">📝 Compila nel motore</button></div>
+      </div>`);
+  }
+  return true;
+}
+
+// Salvataggio della scheda di js/18 di una lavorazione migrata: fermo
+function salvataggioSchedaVecchiaBloccato(famiglia) {
+  if (!famigliaMigrataMotore(famiglia)) return false;
+  toast('Questa scheda ora si compila nel motore: premi "📝 Compila nel motore"', 'err');
+  return true;
+}
+
+async function tornaAlMotoreDaSchedaVecchia() {
+  const s = schedaRilievoAperta;
+  const progettoId = currentRilievoProgettoId;
+  if (!s || !progettoId) return;
+  if (MOTORE_SCHEDE.progetto && MOTORE_SCHEDE.progetto.id === progettoId && MOTORE_SCHEDE.famiglia === s.famiglia &&
+      puoCompilareMotore(MOTORE_SCHEDE.progetto)) {
+    return disegnaSchedaMotore(s.numero);
+  }
+  return apriSchedaMotore(progettoId, s.famiglia, s.numero);
+}
+
+// Dal motore: la scheda scritta a mano dello stesso tab, in sola lettura
+async function vediModuloDiPrimaMotore() {
+  const famiglia = MOTORE_SCHEDE.famiglia;
+  const apri = SCHEDE_VECCHIE_MOTORE[famiglia];
+  if (!apri || !schedaRilievoAperta) return;
+  const numero = schedaRilievoAperta.numero;
+  memorizzaTabSchedaRilievo(); // quello che è scritto nel motore resta in memoria
+  await apri(numero);
+}
+
+function htmlLinkModuloDiPrimaMotore(famiglia, datiSalvati) {
+  if (!famigliaMigrataMotore(famiglia) || !SCHEDE_VECCHIE_MOTORE[famiglia]) return '';
+  const d = datiSalvati || {};
+  const daModuloDiPrima = d.tipo_richiesta === undefined &&
+    Object.keys(d).some(function(k) { return k !== 'nome_scheda' && d[k] !== '' && d[k] !== null && d[k] !== undefined; });
+  return `
+    ${daModuloDiPrima ? `<div class="al2 i" id="msm-da-ricompilare" style="margin-bottom:10px">
+      📝 <b>Da ricompilare:</b> questa scheda è stata salvata con il modulo di prima. I dati ci sono tutti (stessi codici):
+      controlla tipo di richiesta, luogo dei lavori e referente (proposti dalla scheda del cliente) e premi <b>💾 Salva scheda</b>.
+    </div>` : ''}
+    <div style="text-align:right;margin:-4px 0 10px">
+      <button type="button" class="btn sm" id="msm-modulo-prima" onclick="vediModuloDiPrimaMotore()">👁 Modulo di prima (sola lettura)</button>
+    </div>`;
+}
+
+// Il motore disegna la scheda: avviso "da ricompilare" e link al modulo di prima
+if (typeof disegnaSchedaMotore === 'function') {
+  const disegnaSchedaMotoreSenzaMigrazione = disegnaSchedaMotore;
+  // eslint-disable-next-line no-global-assign
+  disegnaSchedaMotore = async function(numero) {
+    await preparaSchedeMigrate();
+    const esito = await disegnaSchedaMotoreSenzaMigrazione.apply(this, arguments);
+    const campi = ge('msm-campi');
+    if (campi && ge('msm-motore') && !ge('msm-modulo-prima')) {
+      const s = schedaRilievoAperta;
+      const salvata = s && typeof rigaSalvataSchedaRilievo === 'function' ? rigaSalvataSchedaRilievo(s.numero) : null;
+      const datiSalvati = salvata ? salvata.dati : (s && s.datiOriginali);
+      campi.insertAdjacentHTML('beforebegin', htmlLinkModuloDiPrimaMotore(MOTORE_SCHEDE.famiglia, datiSalvati));
+    }
+    return esito;
+  };
 }

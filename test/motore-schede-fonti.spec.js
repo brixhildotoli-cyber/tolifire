@@ -513,7 +513,7 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
 
     for (const s of sessioni) {
       if (s.stato.erroriJs.length) KO('errori JavaScript: ' + s.stato.erroriJs.join(' | '));
-      const rete = s.stato.rete.filter(x => (x.status >= 500 || /does not exist|Could not find/i.test(x.msg)) &&
+      const rete = s.stato.rete.filter(x => (x.status >= 500 || /does not exist|Could not find/i.test(x.msg) && !/schede_migrate_motore/.test(x.msg) /* F15.6: 404 voluto senza sql/80 */) &&
         !(SENZA && (/fonti_dati_attive/.test(x.dove) || /fonte_rilievo/.test(x.msg))));
       if (rete.length) KO('errori del database: ' + rete.map(x => x.metodo + ' ' + x.dove + ' ' + x.status + ' ' + x.msg).join(' | '));
     }

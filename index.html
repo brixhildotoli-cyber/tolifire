@@ -5457,6 +5457,28 @@
       </div>
 
 
+      <h4 id="info-tit-27">27. 🔁 Schede di porte REI, estintori e rilevazione incendi nel catalogo</h4>
+
+      <p>
+        Le tre schede (porte REI, estintori, rilevazione incendi) ora si compilano con il motore delle schede: ogni dato che salvavano è un campo del <b>📚 Catalogo lavorazioni</b> con lo stesso codice, quindi i progetti già compilati si aprono con tutti i dati.
+      </p>
+
+      <ul>
+        <li>Dal catalogo (<b>Impostazioni › 📚 Catalogo lavorazioni</b>) puoi rinominare un campo o cambiare i valori di un menu: il <b>codice</b> resta quello (non si cambia, nemmeno da te) e preventivo, copia di Acquisti, PDF per il fornitore e scheda cantiere leggono il dato con il nome nuovo.</li>
+        <li>Rinominare e correggere il catalogo: solo tu e l'ingegnere. Acquisti, rappresentante, segreteria, tecnico non possono, nemmeno dalla console (lo impone il database).</li>
+        <li>Nella Verifica tecnica i bottoni <b>Compila ...</b> aprono il motore; la scheda di prima resta in sola lettura (<b>👁 Modulo di prima</b>), con <b>Da ricompilare</b> sulle schede salvate prima.</li>
+        <li>Obbligatori proposti (servono al prezzo, decisione D2): estintori tipo di intervento, tipologia, peso o capacità, numero da installare; rilevazione tipo di intervento, sorveglianza, tipo di centrale, superficie. Da confermare: si cambiano dal catalogo.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Vuoi che si legga "Estintori da posare" invece di "Numero estintori da installare": nel catalogo scegli <b>Estintori</b>, <b>✏️ Modifica</b> sul campo, cambia l'etichetta e <b>💾 Salva campo</b>. Nel PDF per il fornitore compare "Estintori da posare (pz): 9" anche per le schede già salvate.
+      </div>
+
+      <div class="al2 w">
+        Le altre quattro schede (compartimentazione, vernice intumescente, impianti di spegnimento, coppelle) passeranno al catalogo in un secondo momento. Finché il database non è aggiornato (sql/80) le tre schede restano quelle di sempre.
+      </div>
+
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -6812,7 +6834,7 @@
         <li><b>📜 Fonte del dato</b>, sotto il dato nella scheda (<b>📝 Rilievi tecnici</b> → <b>📝 Compila la scheda</b>): documento del cliente o del progettista, come l'esistente (foto della targhetta), dichiarato dal cliente per iscritto: con il file, che deve essere tra i file del progetto.</li>
         <li><b>Definito dall'ingegnere TOLI</b>: solo tu (e il titolare), quando il lavoro comprende la progettazione. Nome e data li scrive il gestionale al salvataggio ("Definito da ... il ...").</li>
         <li>Nella scheda del progetto, sotto ogni dato, leggi la fonte con il file e chi l'ha indicata; in rosso "⚠️ senza fonte" o "il dato è cambiato dopo la fonte".</li>
-        <li>Le 7 schede che compili tu (Porte REI, Estintori...) non hanno ancora il campo della fonte: per dare la fonte usa la scheda del motore (<b>📝 Compila la scheda</b>), che salva sugli stessi dati.</li>
+        <li>Porte REI, Estintori e Rilevazione incendi si aprono già nel motore (con sql/80, punto 23); le altre schede che compili tu non hanno ancora il campo della fonte: per dare la fonte usa la scheda del motore (<b>📝 Compila la scheda</b>), che salva sugli stessi dati.</li>
       </ul>
 
       <div class="info-esempio">
@@ -6821,6 +6843,30 @@
 
       <div class="al2 i">
         Il blocco dell'invio vale per l'invio del rappresentante (da bozza o da integrare); quando chiudi la tua verifica il progetto non si ferma, nemmeno dopo, verso Acquisti. Con l'aggiornamento del database sql/79 le regole valgono anche nel database; senza, le fonti non compaiono.
+      </div>
+
+
+
+      <h4 id="info-ing-23">23. 🔁 Porte REI, estintori e rilevazione incendi: ora si compilano nel motore</h4>
+
+      <p>
+        Le schede di <b>Porte REI</b>, <b>Estintori</b> e <b>Rilevazione incendi</b> non sono più scritte solo nel programma: ogni dato che salvavano ha il suo campo nel <b>📚 Catalogo lavorazioni</b>, con lo stesso codice. I progetti già compilati si aprono con tutti i loro dati, niente da ricopiare.
+      </p>
+
+      <ul>
+        <li>Nella <b>Verifica tecnica</b> i bottoni <b>🚪 Compila porte REI</b>, <b>🧯 Compila estintori</b> e <b>🚨 Compila rilevazione incendi</b> aprono la scheda del motore: menu e unità del catalogo, numeri con la virgola, campi 🎓 tuoi, <b>📜 Fonte del dato</b> sotto i dati normativi.</li>
+        <li>Una scheda salvata con il modulo di prima mostra in blu <b>Da ricompilare</b>: i dati ci sono tutti; controlla tipo di richiesta, luogo dei lavori e referente (proposti dalla scheda del cliente) e premi <b>💾 Salva scheda</b>.</li>
+        <li><b>👁 Modulo di prima (sola lettura)</b> mostra la stessa scheda com'era: campi spenti, senza Salva. Per tornare premi <b>📝 Compila nel motore</b>.</li>
+        <li>Se cambi un'etichetta o un menu dal catalogo, il dato salvato resta (il codice non si cambia): preventivo, copia di Acquisti, PDF per il fornitore e scheda cantiere lo leggono con il nome nuovo.</li>
+        <li>Obbligatori (<b>*</b>, servono al prezzo): estintori tipo di intervento, tipologia, peso o capacità, numero da installare; rilevazione tipo di intervento, livello di sorveglianza, tipo di centrale, superficie. Si cambiano dal catalogo.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Apri la verifica di un progetto con due schede estintori di ottobre (Piano terra e Piano primo) e premi <b>🧯 Compila estintori</b>: la scheda 1 ha "Fornitura", 9 esistenti e 9 da installare, carrellati "Sì" come prima. Scrivi il posizionamento e premi <b>💾 Salva scheda</b>: gli altri dati restano identici.
+      </div>
+
+      <div class="al2 i">
+        Compartimentazione, vernice intumescente, impianti di spegnimento e coppelle restano per ora le schede di sempre. Finché il database non è aggiornato (sql/80) anche le tre schede qui sopra si compilano come prima.
       </div>
 
 

@@ -444,11 +444,21 @@ async function scrivi(s, id, testo) {
       const g = await apriSito(browser, url); sessioni.push(g);
       await login(g, ing);
       await apriSchedaPorteMano(g, progettoId);
+      // F15.6 (sql/80): la porte REI è migrata, il bottone della verifica apre il motore
+      const migrata = psql("select to_regprocedure('public.schede_migrate_motore()') is not null") === 't';
+      if (migrata) {
+        const mot = await valori(g, ['msm-c-quantita', 'msm-c-larghezza', 'msm-c-rei', 'msm-c-tipologia', 'rsm-nome']);
+        if (mot.join('|') !== '2|92,5|rei_60|battente_singolo|Piano terra') KO('4: con sql/80 il bottone non apre il motore con i dati: ' + mot);
+        else righe.push('4. con sql/80 "🚪 Compila porte REI" dell\'ingegnere apre il motore: ' + mot.join(', '));
+        await scrivi(g, 'msm-c-note_tecniche', 'Controtelaio da verificare');
+        await g.page.evaluate(() => salvaSchedaMotore());
+      } else {
       const mano = await valori(g, ['pr-quantita', 'pr-larghezza', 'pr-rei', 'pr-tipologia', 'rsm-nome']);
       if (mano.join('|') !== '2|92.5|rei_60|battente_singolo|Piano terra') KO('4: la scheda di js/18 non legge i dati del motore: ' + mano);
       else righe.push('4. l\'ingegnere apre la scheda Porte REI scritta a mano: ' + mano.join(', '));
       await scrivi(g, 'pr-note-tecniche', 'Controtelaio da verificare');
       await g.page.evaluate(() => salvaSchedaPorteRei());
+      }
       await attendiQuiete(g.stato, 1200);
       const dopo = psql("select (dati->>'note_tecniche') || '|' || (dati->>'indirizzo_lavori') || '|' || (dati->>'tipo_richiesta') || '|' || (dati->>'referente_lavori') || '|' || (dati ? 'sede_id') from public.progetti_tecnici_schede where progetto_tecnico_id = " + q(progettoId) + " and famiglia = 'porte_rei' and numero = 1");
       if (!/^Controtelaio da verificare\|Sede PROVA F15\.3 – Via Roma 1, 56100 Pisa \(PI\)\|indicativa\|.+\|true$/.test(dopo)) KO('4: dopo il salvataggio della scheda a mano: ' + dopo);
@@ -467,7 +477,7 @@ async function scrivi(s, id, testo) {
     for (const s of sessioni.filter(x => !x.chiuso)) await chiudi(s);
     for (const s of sessioni) {
       if (s.stato.erroriJs.length) KO('errori JavaScript: ' + s.stato.erroriJs.join(' | '));
-      const rete = s.stato.rete.filter(r => r.status >= 500 || /does not exist|Could not find/i.test(r.msg) && !(SENZA && /motore_schede_attivo/.test(r.dove + r.msg)));
+      const rete = s.stato.rete.filter(r => r.status >= 500 || /does not exist|Could not find/i.test(r.msg) && !/schede_migrate_motore/.test(r.msg) /* F15.6: 404 voluto senza sql/80 */ && !(SENZA && /motore_schede_attivo/.test(r.dove + r.msg)));
       if (rete.length) KO('errori del database: ' + rete.map(r => r.metodo + ' ' + r.dove + ' ' + r.status + ' ' + r.msg).join(' | '));
     }
   } catch (e) {

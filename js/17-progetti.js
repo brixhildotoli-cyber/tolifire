@@ -3246,11 +3246,11 @@ async function renderSchedeProgettoCommerciale(progettoId) {
                   return `
                     <div style="padding:9px;background:var(--bg);border-radius:var(--rs)">
                       <div style="font-size:11px;color:var(--m);margin-bottom:3px">
-                        ${esc(etichettaCampoTecnico(entry[0]))}
+                        ${esc(etichettaCampoTecnico(entry[0], scheda.famiglia))}
                       </div>
 
                       <div style="font-size:13px;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere">
-                        ${esc(valoreSchedaTecnica(entry[1]))}
+                        ${esc(valoreSchedaTecnica(entry[1], entry[0], scheda.famiglia))}
                       </div>
                       ${typeof htmlFonteDatoScheda === 'function' ? htmlFonteDatoScheda(scheda, entry[0]) : ''}
                     </div>
@@ -3351,7 +3351,7 @@ async function apriModificaSchedaCommerciale(progettoId, famiglia, schedaId) {
 
         return `
           <div class="f">
-            <label>${esc(etichettaCampoTecnico(chiave))}</label>
+            <label>${esc(etichettaCampoTecnico(chiave, scheda.famiglia))}</label>
             <textarea
               id="msc-campo-${indice}"
               rows="2"

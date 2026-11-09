@@ -393,7 +393,7 @@ async function opzioniScheda(s, progettoId, apri, idSelect) {
     for (const s of sessioni.filter(x => !x.chiuso)) await chiudi(s);
     for (const s of sessioni) {
       if (s.stato.erroriJs.length) KO('errori JavaScript: ' + s.stato.erroriJs.join(' | '));
-      const rete = s.stato.rete.filter(r => r.status >= 500 || /does not exist|Could not find/i.test(r.msg));
+      const rete = s.stato.rete.filter(r => r.status >= 500 || /does not exist|Could not find/i.test(r.msg) && !/schede_migrate_motore/.test(r.msg) /* F15.6: 404 voluto senza sql/80 */);
       if (rete.length) KO('errori del database: ' + rete.map(r => r.metodo + ' ' + r.dove + ' ' + r.status + ' ' + r.msg).join(' | '));
     }
   } catch (e) {

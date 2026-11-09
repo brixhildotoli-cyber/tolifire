@@ -418,7 +418,7 @@ function htmlAllegatiCantiere(x) {
         <summary style="font-size:13px;cursor:pointer">📝 <b>Rilievo: ${esc(titoloSchedaRilievo(sc, schede))}</b>${sc.stato === 'bozza' ? ' <span class="bx bwarn">bozza</span>' : ''}</summary>
         ${campi.length
           ? campi.map(function(e) {
-              return `<div style="padding:4px 0;border-bottom:1px solid var(--bo)"><div style="font-size:11px;color:var(--m)">${esc(etichettaCampoTecnico(e[0]))}</div><div style="font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(valoreSchedaTecnica(e[1]))}</div></div>`;
+              return `<div style="padding:4px 0;border-bottom:1px solid var(--bo)"><div style="font-size:11px;color:var(--m)">${esc(etichettaCampoTecnico(e[0], sc.famiglia))}</div><div style="font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(valoreSchedaTecnica(e[1], e[0], sc.famiglia))}</div></div>`;
             }).join('')
           : '<div style="font-size:12px;color:var(--m)">La scheda non contiene dati.</div>'}
       </details>
