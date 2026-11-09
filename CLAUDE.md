@@ -299,7 +299,7 @@ ripetibili), ammesso SOLO per il codice pareti_cartongesso (che è sempre
 elenco, mai per posizione); dati: 49 campi nuovi (compartimentazione 11,
 vernice 13, coppelle 10, spegnimento 15) con codice = chiave di dati,
 obbligatori 3/3/4/4. schede_migrate_motore() RIDEFINITA: le 7 lavorazioni.
-Dopo sql/82 (F15.8 blocco comune e controlli di invio, DA ESEGUIRE: backup,
+Dopo sql/82 (F15.8 blocco comune e controlli di invio, ESEGUITO il 09/11 (backup pre82, dal server MCP, controllo in regola): backup,
 anteprima, file (senza parole di cancellazione, server MCP), controllo; nessun
 -REGISTRO-CANCELLAZIONI; richiede 07, 26, 34, 71, 75-79, tutti in produzione):
 nessuna tabella nuova, nessuna policy nuova. lavorazioni (dati): 'comune'
@@ -1426,7 +1426,7 @@ lavorazioni; matrice dei permessi TUTTO OK; rollback provato (schema identico
 al backup pre80 + 80; i 49 campi "tolti", le pareti testo "tolto";
 rieseguito il file: catalogo identico). Senza sql/81: le 4 schede di js/18
 come prima, nessun errore.
-Dopo sql/82 (F15.8 blocco comune e controlli di invio, DA ESEGUIRE: backup,
+Dopo sql/82 (F15.8 blocco comune e controlli di invio, ESEGUITO il 09/11 (backup pre82, dal server MCP, controllo in regola): backup,
 anteprima in fondo al file, 82-blocco-comune-controlli-invio.sql (senza parole
 di cancellazione, server MCP), controllo in fondo; nessun file
 -REGISTRO-CANCELLAZIONI (nessuna tabella nuova); richiede 07, 26, 34, 71, 75,
