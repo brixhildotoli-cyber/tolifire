@@ -5475,7 +5475,28 @@
       </div>
 
       <div class="al2 w">
-        Le altre quattro schede (compartimentazione, vernice intumescente, impianti di spegnimento, coppelle) passeranno al catalogo in un secondo momento. Finché il database non è aggiornato (sql/80) le tre schede restano quelle di sempre.
+        Le altre quattro schede passano al catalogo con sql/81 (punto 28). Finché il database non è aggiornato (sql/80) le tre schede restano quelle di sempre.
+      </div>
+
+      <h4 id="info-tit-28">28. 🧱 Compartimentazione, vernice, coppelle e spegnimento nel catalogo</h4>
+
+      <p>
+        Con sql/81 tutte e sette le schede di rilievo si compilano con il motore: anche compartimentazione (pareti in cartongesso comprese), vernice intumescente, coppelle e impianti di spegnimento hanno un campo del catalogo per ogni dato, con lo stesso codice. Le schede già salvate (nel database ci sono 11 coppelle e 2 vernici) si aprono con tutti i dati.
+      </p>
+
+      <ul>
+        <li>Rinominare un campo o cambiare un menu: come per le altre schede (punto 27), da <b>Impostazioni › 📚 Catalogo lavorazioni</b>, solo tu e l'ingegnere. Il codice non si cambia.</li>
+        <li><b>Pareti in cartongesso</b>: nel catalogo il campo è di tipo "Righe ripetibili (pareti)". Puoi cambiare etichetta, ordine e uso a valle, non il tipo (lo impone il database, perché le righe si leggono nel PDF per il fornitore come "Parete 1: 4,5 × 2,7 m (m²)").</li>
+        <li>Obbligatori proposti (servono al prezzo, D2): compartimentazione intervento, classe, minuti; vernice elemento, classe R, superficie; coppelle tipo di intervento, classe di resistenza, diametro, lunghezza; spegnimento tipo impianto, tipo intervento, area, componenti. Da confermare: si cambiano dal catalogo.</li>
+        <li>Nella Verifica tecnica la scheda di prima resta in sola lettura (<b>👁 Modulo di prima</b>).</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Vuoi che nelle coppelle si legga "Metri di tubazione" invece di "Lunghezza da rivestire": nel catalogo scegli <b>Coppelle</b>, <b>✏️ Modifica</b> sul campo, cambia l'etichetta e <b>💾 Salva campo</b>. Le 11 schede già salvate mostrano il dato con il nome nuovo.
+      </div>
+
+      <div class="al2 w">
+        Prima si pubblica il sito, poi si esegue sql/81 (il sito di prima mostrerebbe le pareti come un testo). Finché sql/81 non è eseguito le quattro schede restano quelle di sempre.
       </div>
 
 
@@ -6866,7 +6887,29 @@
       </div>
 
       <div class="al2 i">
-        Compartimentazione, vernice intumescente, impianti di spegnimento e coppelle restano per ora le schede di sempre. Finché il database non è aggiornato (sql/80) anche le tre schede qui sopra si compilano come prima.
+        Con sql/81 passano al motore anche compartimentazione, vernice intumescente, impianti di spegnimento e coppelle: vedi il punto 24. Finché il database non è aggiornato (sql/80) anche le tre schede qui sopra si compilano come prima.
+      </div>
+
+      <h4 id="info-ing-24">24. 🧱 Compartimentazione, vernice, coppelle e spegnimento nel motore</h4>
+
+      <p>
+        Anche le altre quattro schede ora si compilano con il motore: ogni dato che salvavano ha il suo campo nel <b>📚 Catalogo lavorazioni</b> con lo stesso codice. Le coppelle e le vernici già compilate si aprono con tutti i dati, niente da ricopiare.
+      </p>
+
+      <ul>
+        <li>Nella <b>Verifica tecnica</b> i bottoni <b>🧱 Compila compartimentazione</b>, <b>🎨 Compila vernice intumescente</b>, <b>💧 Compila impianti di spegnimento</b> e <b>🔥 Compila coppelle</b> aprono la scheda del motore, come per porte REI ed estintori (punto 23): <b>Da ricompilare</b> sulle schede di prima, <b>👁 Modulo di prima (sola lettura)</b>, <b>📝 Compila nel motore</b>.</li>
+        <li><b>Pareti in cartongesso</b> (compartimentazione): le stesse righe di prima. <b>+ Aggiungi parete</b> per ogni parete: unità (m², ml, pz), larghezza e altezza in metri con la virgola, angolo (interno, esterno, interno ed esterno), misura e numero degli angoli; <b>🗑️ Togli</b> per toglierla. Nel PDF per il fornitore si legge come prima.</li>
+        <li>Diametro e spessore delle coppelle, pressione, portata e riserva dello spegnimento restano testi: puoi scrivere "2 pollici", "più diametri", "4 bar".</li>
+        <li>Obbligatori proposti (<b>*</b>, servono al prezzo): compartimentazione intervento, classe, minuti; vernice elemento, classe R, superficie da trattare; coppelle tipo di intervento, classe di resistenza, diametro, lunghezza; spegnimento tipo impianto, tipo intervento, area da proteggere, componenti. Non bloccano il salvataggio; si cambiano dal catalogo.</li>
+        <li>Le <b>Note tecniche per il preventivo</b> sono 🎓: le scrivi solo tu (e il titolare).</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Una compartimentazione con due pareti in cartongesso: premi <b>🧱 Compila compartimentazione</b>, scegli "Parete" come intervento, EI e 120 minuti, poi <b>+ Aggiungi parete</b>: m², 4,5 × 2,7, angolo interno ed esterno, 2,7 m, 2 angoli. Premi <b>💾 Salva scheda</b>: nel PDF per il fornitore c'è "Parete 1: 4,5 × 2,7 m (m²) · angolo interno ed esterno: 2,7 m, n. 2".
+      </div>
+
+      <div class="al2 w">
+        Finché il database non è aggiornato (sql/81) queste quattro schede restano quelle di sempre e si compilano come prima.
       </div>
 
 

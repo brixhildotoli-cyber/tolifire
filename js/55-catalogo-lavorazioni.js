@@ -57,6 +57,10 @@ const TIPI_CAMPO_LAV = [
   { value: 'testo', label: 'Testo breve' },
   { value: 'foto', label: 'Foto' }
 ];
+// F15.7 (sql/81): righe ripetibili, solo per le pareti in cartongesso della
+// compartimentazione (il database non lo ammette per altri campi): il tipo non
+// si sceglie e non si cambia dalla pagina.
+const TIPO_CAMPO_ELENCO_LAV = { value: 'elenco', label: 'Righe ripetibili (pareti)' };
 
 const AZIONI_REGISTRO_LAV = {
   creata: 'Creata', modificata: 'Modificata', attivata: '✅ Attivata', disattivata: '⏸ Disattivata', tolta: '🗑️ Tolta', rimessa: '↩️ Rimessa'
@@ -334,7 +338,7 @@ function disegnaCatalogoLavorazioni() {
 }
 
 function htmlRigaCampoLav(c) {
-  const tipo = (TIPI_CAMPO_LAV.find(function(t) { return t.value === c.tipo; }) || {}).label || c.tipo;
+  const tipo = (TIPI_CAMPO_LAV.concat([TIPO_CAMPO_ELENCO_LAV]).find(function(t) { return t.value === c.tipo; }) || {}).label || c.tipo;
   const segni = [];
   if (c.livello === 'ingegnere') segni.push('🎓 ingegnere');
   if (c.normativo) segni.push('📜 normativo');
@@ -516,7 +520,10 @@ function apriCampoLavorazione(id) {
   ge('clc-codice').value = c ? c.codice : '';
   ge('clc-codice').disabled = !!c;
   ge('clc-codice').dataset.toccato = c ? '1' : '';
-  ge('clc-tipo').innerHTML = opzioniHtmlLav(TIPI_CAMPO_LAV, c ? c.tipo : 'menu');
+  const elenco = !!(c && c.tipo === 'elenco');
+  ge('clc-tipo').innerHTML = opzioniHtmlLav(elenco ? [TIPO_CAMPO_ELENCO_LAV] : TIPI_CAMPO_LAV, c ? c.tipo : 'menu');
+  ge('clc-tipo').disabled = elenco;
+  ge('clc-posizione').disabled = elenco;
   ge('clc-unita').value = c && c.unita ? c.unita : '';
   ge('clc-min').value = c && c.min_plausibile !== null && c.min_plausibile !== undefined ? String(c.min_plausibile).replace('.', ',') : '';
   ge('clc-max').value = c && c.max_plausibile !== null && c.max_plausibile !== undefined ? String(c.max_plausibile).replace('.', ',') : '';

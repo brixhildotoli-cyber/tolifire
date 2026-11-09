@@ -359,7 +359,14 @@ function htmlCampoMotore(c, valore, indicativa, ingegnere) {
     : '';
   let controllo;
 
-  if (c.tipo === 'menu' || c.tipo === 'si_no') {
+  if (c.tipo === 'elenco') {
+    // F15.7 (sql/81): righe ripetibili (pareti in cartongesso), niente "non noto"
+    return `<div class="f" data-campo-motore="${esc(c.codice)}">
+      <label>${etichetta}</label>
+      ${htmlElencoMotore(c, valore, solaLettura)}
+      ${nota}
+    </div>`;
+  } else if (c.tipo === 'menu' || c.tipo === 'si_no') {
     const opz = opzioniMenuMotore(c);
     const scelto = val === null || val === undefined ? '' : String(val);
     const fuori = scelto && scelto !== VALORE_NON_NOTO && !opz.some(function(o) { return o.valore === scelto; });
@@ -432,6 +439,12 @@ function datiFormSchedaMotore() {
   dati.telefono_referente = String(v('msm-telefono-referente') || '').trim();
   const ingegnere = scriveLivelloIngegnere();
   campiSchedaMotore(lav).forEach(function(c) {
+    if (c.tipo === 'elenco') { // F15.7: pareti in cartongesso
+      if (c.livello === 'ingegnere' && !ingegnere) return;
+      const righe = leggiElencoMotore(c);
+      if (righe !== undefined) dati[c.codice] = righe;
+      return;
+    }
     const el = ge('msm-c-' + c.codice);
     if (!el) return;
     if (c.livello === 'ingegnere' && !ingegnere) return; // resta il valore di prima
@@ -1151,14 +1164,22 @@ const MIGRAZIONE_SCHEDE = { disponibile: null, famiglie: [] };
 const SCHEDE_VECCHIE_MOTORE = {
   porte_rei: function(n) { return apriSchedaPorteRei(n); },
   estintori: function(n) { return apriSchedaEstintori(n); },
-  rilevazione_incendi: function(n) { contestoSchedaRilevazione = 'progetto'; return apriSchedaRilevazioneIncendi(n); }
+  rilevazione_incendi: function(n) { contestoSchedaRilevazione = 'progetto'; return apriSchedaRilevazioneIncendi(n); },
+  // F15.7 (sql/81)
+  compartimentazione: function(n) { return apriSchedaCompartimentazione(n); },
+  vernice_intumescente: function(n) { return apriSchedaVerniceIntumescente(n); },
+  coppelle: function(n) { return apriSchedaCoppelle(n); },
+  impianti_spegnimento: function(n) { return apriSchedaImpiantiSpegnimento(n); }
 };
 
 // Testi lunghi delle schede di js/18 (area di testo, non una riga)
 const CAMPI_TESTO_LUNGO_MOTORE = [
   'note_vano', 'logistica', 'note_tecniche', 'posizionamento', 'supporti', 'registro', 'foto_postazioni',
   'accessori_centrale', 'comandi_terzi', 'interfacce', 'struttura', 'ambienti_gravosi', 'note_posa',
-  'collaudo', 'manutenzione', 'note_calcolo'
+  'collaudo', 'manutenzione', 'note_calcolo',
+  // F15.7: compartimentazione, vernice, coppelle, spegnimento
+  'sistemi_presenti', 'certificazione_sistema', 'foto', 'note_supporto', 'accessibilita', 'ciclo', 'certificazione',
+  'ostacoli', 'impianto_esistente', 'componenti', 'compartimentazione', 'collegamenti', 'collaudi'
 ];
 
 async function verificaMigrazioneSchedeDisponibile() {
@@ -1223,7 +1244,12 @@ function valoreCampoFamigliaMigrata(famiglia, codice, valore) {
 [
   ['apriSchedaPorteReiIngegnere', 'porte_rei'],
   ['apriSchedaEstintoriIngegnere', 'estintori'],
-  ['apriSchedaRilevazioneIngegnere', 'rilevazione_incendi']
+  ['apriSchedaRilevazioneIngegnere', 'rilevazione_incendi'],
+  // F15.7 (sql/81)
+  ['apriSchedaCompartimentazioneIngegnere', 'compartimentazione'],
+  ['apriSchedaVerniceIntumescenteIngegnere', 'vernice_intumescente'],
+  ['apriSchedaCoppelleIngegnere', 'coppelle'],
+  ['apriSchedaImpiantiSpegnimentoIngegnere', 'impianti_spegnimento']
 ].forEach(function(x) {
   const originale = window[x[0]];
   if (typeof originale !== 'function') return;
@@ -1267,7 +1293,7 @@ function schedaVecchiaInSolaLettura(famiglia) {
   box.querySelectorAll('input, select, textarea').forEach(function(el) { el.disabled = true; });
   box.querySelectorAll('button').forEach(function(b) {
     const azione = b.getAttribute('onclick') || '';
-    if (/salvaScheda|nuovaSchedaRilievo|eliminaSchedaRilievo/.test(azione)) b.style.display = 'none';
+    if (/salvaScheda|nuovaSchedaRilievo|eliminaSchedaRilievo|aggiungiPareteCartongesso|togliPareteCartongesso/.test(azione)) b.style.display = 'none';
   });
   if (schedaRilievoAperta) schedaRilievoAperta.modificata = false;
   if (!ge('msm-sola-lettura')) {
@@ -1340,4 +1366,44 @@ if (typeof disegnaSchedaMotore === 'function') {
     }
     return esito;
   };
+}
+
+// ── F15.7 — COMPARTIMENTAZIONE, VERNICE, COPPELLE, SPEGNIMENTO (sql/81) ──
+// Come F15.6 per le altre 4 schede di js/18 (stesse funzioni qui sopra:
+// SCHEDE_VECCHIE_MOTORE, bottoni della verifica tecnica, sola lettura). In più
+// il tipo di campo 'elenco' (righe ripetibili), che sql/81 ammette SOLO per le
+// PARETI IN CARTONGESSO della compartimentazione (dati.pareti_cartongesso, come
+// js/18 dal 02/11): il motore disegna le stesse righe della scheda di prima
+// (htmlRighePareteCartongesso di js/18: unità, larghezza e altezza in m,
+// angolo, misura e numero degli angoli, "+ Aggiungi parete", "🗑️ Togli") e le
+// salva nella stessa forma, così preventivo, copia di Acquisti, scheda cantiere
+// e PDF per il fornitore leggono ancora "Parete 1: 4,5 × 2,7 m (m²) ...".
+// Un elenco senza modulo noto (o un valore salvato che non è un elenco) resta
+// com'è, in sola lettura.
+function elencoPareteMotore(c) {
+  return c && c.codice === 'pareti_cartongesso' && typeof htmlRighePareteCartongesso === 'function' &&
+    typeof leggiPareteCartongesso === 'function';
+}
+
+function htmlElencoMotore(c, valore, solaLettura) {
+  const lista = Array.isArray(valore) ? valore : [];
+  const altro = !Array.isArray(valore) && !vuotoMotore(valore) && valore !== VALORE_NON_NOTO;
+  const testo = function(x) { return typeof valoreSchedaTecnica === 'function' ? valoreSchedaTecnica(x, c.codice, MOTORE_SCHEDE.famiglia) : String(x); };
+  if (!elencoPareteMotore(c) || solaLettura) {
+    return `<div id="msm-c-${esc(c.codice)}" style="font-size:13px;white-space:pre-wrap;padding:6px 0">${esc(lista.length || altro ? testo(valore) : '—')}</div>`;
+  }
+  return `
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Una riga per parete: misure, angoli (interni, esterni o entrambi) con la loro misura e il numero.</div>
+    ${altro ? `<div class="al2 w" style="margin-bottom:8px">Salvato prima come testo: <b>${esc(String(valore))}</b>. Resta così finché non aggiungi le righe.</div>` : ''}
+    <div id="cp-pareti-righe">${htmlRighePareteCartongesso(lista)}</div>
+    <button type="button" class="btn sm" id="msm-aggiungi-parete" style="margin-top:8px" onclick="aggiungiPareteCartongesso()">+ Aggiungi parete</button>`;
+}
+
+// undefined = resta il valore di prima
+function leggiElencoMotore(c) {
+  if (!elencoPareteMotore(c) || !ge('cp-pareti-righe') || !ge('msm-aggiungi-parete')) return undefined;
+  const righe = leggiPareteCartongesso();
+  const prima = (MOTORE_SCHEDE.datiBase || {})[c.codice];
+  if (righe === null && !Array.isArray(prima) && !vuotoMotore(prima)) return undefined; // testo di prima, nessuna riga
+  return righe;
 }

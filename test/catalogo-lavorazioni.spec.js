@@ -281,7 +281,12 @@ async function opzioniScheda(s, progettoId, apri, idSelect) {
     await window[apri]();
   }, progettoId, apri);
   await attendiQuiete(s.stato, 800);
-  const opz = await s.page.evaluate(id => [...document.querySelectorAll('#' + id + ' option')].map(o => o.textContent.trim()), idSelect);
+  // F15.7 (sql/81): compartimentazione e coppelle si aprono nel motore (msm-c-<codice>), stesse voci
+  const opz = await s.page.evaluate(id => {
+    const motore = { 'cp-tipo-intervento': 'msm-c-tipo_intervento', 'co-classe-resistenza': 'msm-c-classe_resistenza' }[id];
+    const sel = document.getElementById(id) || (document.getElementById('msm-motore') && motore ? document.getElementById(motore) : null);
+    return sel ? [...sel.querySelectorAll('option')].map(o => o.textContent.trim()) : [];
+  }, idSelect);
   await s.page.evaluate(() => { if (typeof schedaRilievoAperta !== 'undefined' && schedaRilievoAperta) schedaRilievoAperta.modificata = false; closeM('m-rilievo-tecnico'); });
   return opz;
 }

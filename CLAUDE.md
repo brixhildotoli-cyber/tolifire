@@ -289,6 +289,16 @@ rilevazione incendi con codice = chiave di progetti_tecnici_schede.dati
 scheda di js/18; obbligatori (serve_al_prezzo) estintori 4, rilevazione 4.
 RPC NUOVA schede_migrate_motore() (elenco delle lavorazioni migrate; F15.7
 la ridefinisce).
+Dopo sql/81 (F15.7 migrazione schede: compartimentazione con le pareti in
+cartongesso, vernice intumescente, coppelle, impianti di spegnimento, DA
+ESEGUIRE dall'EDITOR SQL DOPO aver pubblicato il sito, richiede 07, 71, 75,
+77, 78, 80; provato il 09/11 sul backup pre80 + 80 + 81): nessuna tabella
+nuova, nessuna policy nuova. lavorazioni_campi: vincolo
+lavorazioni_campi_tipo_check rifatto con il tipo NUOVO 'elenco' (righe
+ripetibili), ammesso SOLO per il codice pareti_cartongesso (che è sempre
+elenco, mai per posizione); dati: 49 campi nuovi (compartimentazione 11,
+vernice 13, coppelle 10, spegnimento 15) con codice = chiave di dati,
+obbligatori 3/3/4/4. schede_migrate_motore() RIDEFINITA: le 7 lavorazioni.
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -1335,6 +1345,78 @@ tabella nuova); rollback provato (schema identico; i 39 campi
 diventano "tolti", obbligatori e ordine tornano come prima; rieseguito il
 file: catalogo identico). Senza sql/80: schede di js/18 come prima, nessun
 errore (una chiamata RPC 404).
+Dopo sql/81 (F15.7 migrazione nel catalogo delle altre 4 schede scritte a
+mano: compartimentazione con le pareti in cartongesso del 02/11, vernice
+intumescente, coppelle, impianti di spegnimento; DA ESEGUIRE. ORDINE: PRIMA si
+pubblica il sito (il sito di prima non conosce il tipo 'elenco' e nel motore
+mostrerebbe le pareti come testo, salvando sopra l'elenco), poi backup,
+anteprima in fondo al file (atteso: campi 7/6/9/3, pareti_a_mano 0, schede
+coppelle 11 e vernice 2 nel backup pre80, chiavi_senza_campo vuoto),
+81-migrazione-schede.sql dall'EDITOR SQL (contiene "drop constraint" del
+vincolo del tipo: il server MCP non lo esegue), poi il controllo in fondo
+(Claude); nessun file -REGISTRO-CANCELLAZIONI; richiede 07, 71, 75, 77, 78,
+80, tutti in produzione, si ferma senza; 79 facoltativo). Nessuna RPC nuova:
+schede_migrate_motore() ridefinita con le 7 lavorazioni (rollback = versione
+di sql/80). VINCOLO lavorazioni_campi_tipo_check: tipi numero, menu, si_no,
+testo, foto + 'elenco'; (tipo = 'elenco') = (codice = 'pareti_cartongesso') e
+mai per posizione (anche il titolare: le pareti non diventano testo, nessun
+altro elenco). DATI (solo righe che mancano): compartimentazione
+numero_attraversamenti (n. 0-10000), dimensioni_foro, spessore_supporto (mm
+0-3000), posizione, sistemi_presenti, riempimento_cavi,
+certificazione_sistema, pareti_cartongesso (elenco: unita, larghezza,
+altezza, angolo, misura_angolo, quantita_angoli come js/18), accessibilita,
+foto, note_tecniche; vernice profilo, numero_elementi (pz), sviluppo_lineare
+(m), superficie (m²), fattore_sezione, note_supporto, accessibilita, ciclo,
+colore, requisito_estetico, foto, certificazione, note_tecniche; coppelle
+diametro e spessore (TESTO: nel backup "2\"", "CANALINA MM 50X50"),
+lunghezza (m), numero_tratti, numero_attraversamenti_coppelle, ostacoli,
+accessibilita, foto, certificazione, note_tecniche; spegnimento area_protetta,
+normativa, impianto_esistente, pressione, portata, riserva (testi),
+componenti, rete_esistente, percorsi_tubazioni, compartimentazione,
+collegamenti, accessibilita, collaudi, foto, note_tecniche. note_tecniche
+livello ingegnere; ordine come js/18 (i menu di sql/75 cambiano ordine se mai
+cambiato); obbligatori (D2) compartimentazione tipo_intervento, classe,
+minuti; vernice elemento, classe_r, superficie; coppelle tipo_intervento,
+classe_resistenza, diametro, lunghezza; spegnimento tipo_impianto,
+tipo_intervento, area_protetta, componenti. Nel sito: js/56 (in fondo, F15.7)
+SCHEDE_VECCHIE_MOTORE, bottoni della verifica tecnica
+(apriSchedaCompartimentazioneIngegnere, apriSchedaVerniceIntumescenteIngegnere,
+apriSchedaCoppelleIngegnere, apriSchedaImpiantiSpegnimentoIngegnere) e
+CAMPI_TESTO_LUNGO_MOTORE con le 4 lavorazioni; tipo 'elenco' in
+htmlCampoMotore/datiFormSchedaMotore (htmlElencoMotore, leggiElencoMotore,
+elencoPareteMotore: righe di js/18 htmlRighePareteCartongesso con
+"+ Aggiungi parete" msm-aggiungi-parete; un valore che non è un elenco resta
+com'è); schedaVecchiaInSolaLettura nasconde anche "+ Aggiungi parete" e
+"🗑️ Togli". js/18: schedaVecchiaInSolaLettura e salvataggioSchedaVecchiaBloccato
+nelle 4 schede; aggiungiPareteCartongesso/togliPareteCartongesso segnano il
+tab modificato (pallino). js/55: tipo "Righe ripetibili (pareti)" mostrato,
+non scelto né cambiato (select e "per posizione" spenti). Preventivo, copia di
+Acquisti, scheda cantiere e PDF per il fornitore: come prima ("Parete 1: 4,5 ×
+2,7 m (m²) · angolo interno ed esterno: 2,7 m, n. 2"). Guide info-ing-24,
+info-tit-28 (info-ing-23 e info-tit-27 aggiornate). SCELTE DA CONFERMARE DA
+TOLI: obbligatori proposti; nessun campo nuovo normativo (normativa dello
+spegnimento compresa); nessuna plausibilità sulle righe delle pareti; tipo
+'elenco' solo per le pareti; testi lunghi e minimi/massimi larghi. Prove:
+sql/81-migrazione-schede-PROVA.sql (solo database di prova, rollback: catalogo
+18/19/19/18, chiavi delle 13 schede del backup tutte con un campo, RPC con le
+7, rinomina del titolare e dell'ingegnere con codice fisso, pareti che non
+diventano testo né per posizione né un altro elenco, ruoli non ammessi zero
+righe, rappresentante: -5 m, 99999 mm e note dell'ingegnere rifiutati, due
+pareti salvate); test/migrazione-schede-2.spec.js (Chrome headless, anche a
+390 px: le 11 coppelle e 2 vernici del backup e 4 schede "di prima" con tutte
+le chiavi nel motore, pareti nelle righe, modulo di prima in sola lettura,
+parete aggiunta e salvata senza perdite, scheda progetto e PDF per il
+fornitore con le pareti e l'etichetta rinominata, tipo delle pareti fisso,
+console di Acquisti, rappresentante, tecnico; MIGRAZIONE_SENZA_SQL=1 dopo il
+rollback: scheda di js/18 modificabile, stessa riga nel PDF);
+catalogo-lavorazioni.spec.js aggiornato (con sql/81 i menu si leggono nel
+motore); migrazione-schede, catalogo-lavorazioni, motore-schede, -protezioni,
+-fonti, posizioni, smoke TUTTO OK con sql/81 (e migrazione-schede-2,
+migrazione-schede, catalogo-lavorazioni, smoke senza); 80 -PROVA accetta le 7
+lavorazioni; matrice dei permessi TUTTO OK; rollback provato (schema identico
+al backup pre80 + 80; i 49 campi "tolti", le pareti testo "tolto";
+rieseguito il file: catalogo identico). Senza sql/81: le 4 schede di js/18
+come prima, nessun errore.
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),

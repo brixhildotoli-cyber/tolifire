@@ -2589,6 +2589,8 @@ async function apriSchedaCompartimentazione(numero) {
       </button>
     </div>
   `;
+  // F15.7 (sql/81): la scheda si compila nel motore, questa resta in sola lettura
+  if (typeof schedaVecchiaInSolaLettura === 'function') schedaVecchiaInSolaLettura('compartimentazione');
    renderSchedePreventivo();
 }
 
@@ -2703,6 +2705,8 @@ function aggiungiPareteCartongesso() {
   righe.push({ unita: 'm²', larghezza: null, altezza: null, angolo: '', misura_angolo: null, quantita_angoli: null });
   const box = ge('cp-pareti-righe');
   if (box) box.innerHTML = htmlRighePareteCartongesso(righe);
+  // F15.7: anche nel motore delle schede (js/56) il tab risulta modificato
+  if (typeof segnaSchedaRilievoModificata === 'function') segnaSchedaRilievoModificata();
 }
 
 function togliPareteCartongesso(indice) {
@@ -2710,6 +2714,7 @@ function togliPareteCartongesso(indice) {
   righe.splice(indice, 1);
   const box = ge('cp-pareti-righe');
   if (box) box.innerHTML = htmlRighePareteCartongesso(righe);
+  if (typeof segnaSchedaRilievoModificata === 'function') segnaSchedaRilievoModificata();
 }
 
 // Testo leggibile di una parete (preventivo, copia commerciale, PDF).
@@ -2728,6 +2733,8 @@ async function salvaSchedaCompartimentazione() {
     toast('Progetto tecnico non selezionato', 'err');
     return;
   }
+
+  if (typeof salvataggioSchedaVecchiaBloccato === 'function' && salvataggioSchedaVecchiaBloccato('compartimentazione')) return;
 
   const dati = datiFormSchedaCompartimentazione();
 
@@ -2980,6 +2987,8 @@ async function apriSchedaVerniceIntumescente(numero) {
       </button>
     </div>
   `;
+  // F15.7 (sql/81): la scheda si compila nel motore, questa resta in sola lettura
+  if (typeof schedaVecchiaInSolaLettura === 'function') schedaVecchiaInSolaLettura('vernice_intumescente');
    renderSchedePreventivo();
 
 }
@@ -3015,6 +3024,8 @@ async function salvaSchedaVerniceIntumescente() {
     toast('Progetto tecnico non selezionato', 'err');
     return;
   }
+
+  if (typeof salvataggioSchedaVecchiaBloccato === 'function' && salvataggioSchedaVecchiaBloccato('vernice_intumescente')) return;
 
   const dati = datiFormSchedaVerniceIntumescente();
 
@@ -3253,6 +3264,8 @@ async function apriSchedaCoppelle(numero) {
       </button>
     </div>
   `;
+  // F15.7 (sql/81): la scheda si compila nel motore, questa resta in sola lettura
+  if (typeof schedaVecchiaInSolaLettura === 'function') schedaVecchiaInSolaLettura('coppelle');
   renderSchedePreventivo();
 }
 
@@ -3287,6 +3300,8 @@ async function salvaSchedaCoppelle() {
     toast('Progetto tecnico non selezionato', 'err');
     return;
   }
+
+  if (typeof salvataggioSchedaVecchiaBloccato === 'function' && salvataggioSchedaVecchiaBloccato('coppelle')) return;
 
   const dati = datiFormSchedaCoppelle();
 
@@ -3534,6 +3549,8 @@ async function apriSchedaImpiantiSpegnimento(numero) {
       </button>
     </div>
   `;
+  // F15.7 (sql/81): la scheda si compila nel motore, questa resta in sola lettura
+  if (typeof schedaVecchiaInSolaLettura === 'function') schedaVecchiaInSolaLettura('impianti_spegnimento');
    renderSchedePreventivo();
 
 }
@@ -3568,6 +3585,8 @@ async function salvaSchedaImpiantiSpegnimento() {
     toast('Progetto tecnico non selezionato', 'err');
     return;
   }
+
+  if (typeof salvataggioSchedaVecchiaBloccato === 'function' && salvataggioSchedaVecchiaBloccato('impianti_spegnimento')) return;
 
   const dati = datiFormSchedaImpiantiSpegnimento();
 
