@@ -58,6 +58,12 @@ const CHIAVI_PROPRIE_MOTORE = ['tipo_richiesta', 'sede_id', 'indirizzo_lavori', 
 
 const VALORE_NON_NOTO = 'non_noto';
 
+// F15.8 (sql/82): blocco comune del progetto = scheda della lavorazione 'comune'
+// (una sola, numero 1), con le 6 domande del primo contatto; campi data
+// (testo AAAA-MM-GG con il calendario del telefono)
+const FAMIGLIA_COMUNE = 'comune';
+const CAMPI_DATA_MOTORE = ['entro_il'];
+
 async function verificaMotoreSchedeDisponibile() {
   if (MOTORE_SCHEDE.disponibile !== null) return MOTORE_SCHEDE.disponibile;
   if (typeof db === 'undefined' || !db) return false;
@@ -91,8 +97,15 @@ function campiSchedaMotore(lav) {
 function lavorazioniMotore() {
   if (typeof CATALOGO_LAV === 'undefined' || !CATALOGO_LAV.disponibili) return [];
   return (CATALOGO_LAV.lavorazioni || []).filter(function(l) {
-    return l.attiva && campiSchedaMotore(l).length;
+    return l.attiva && l.codice !== FAMIGLIA_COMUNE && campiSchedaMotore(l).length; // F15.8: il blocco comune ha il suo riquadro
   });
+}
+
+// F15.8: blocco comune attivo (catalogo con la lavorazione 'comune' accesa e con campi: sql/82)
+function bloccoComuneAttivo() {
+  if (MOTORE_SCHEDE.disponibile !== true || typeof CATALOGO_LAV === 'undefined' || !CATALOGO_LAV.disponibili) return false;
+  const l = (CATALOGO_LAV.lavorazioni || []).find(function(x) { return x.codice === FAMIGLIA_COMUNE; });
+  return !!(l && l.attiva && campiSchedaMotore(l).length);
 }
 
 // Etichetta dal catalogo per una chiave dei dati (js/18 etichettaCampoTecnico):
@@ -142,9 +155,18 @@ async function disegnaApriMotoreProgetto(progettoId) {
   if (!lav.length) return;
   const { data: progetto } = await db.from('progetti_tecnici').select('id,stato,rappresentante_id').eq('id', progettoId).maybeSingle();
   if (!progetto || !puoCompilareMotore(progetto)) return;
+  // F15.8: il blocco comune c'è già?
+  let comune = null;
+  if (bloccoComuneAttivo()) {
+    const { data: righe } = await db.from('progetti_tecnici_schede').select('id,dati')
+      .eq('progetto_tecnico_id', progettoId).eq('famiglia', FAMIGLIA_COMUNE).order('numero').limit(1);
+    comune = { scheda: (righe && righe[0]) || null };
+  }
   if (ge('msm-apri')) return; // disegnato nel frattempo da un'altra chiamata
   const preferita = lav.some(function(l) { return l.codice === 'porte_rei'; }) ? 'porte_rei' : lav[0].codice;
-  box.insertAdjacentHTML('afterbegin', `
+  if (comune) box.insertAdjacentHTML('afterbegin', htmlRiquadroBloccoComune(progettoId, comune.scheda));
+  const dopoComune = ge('msm-comune');
+  (dopoComune ? function(html) { dopoComune.insertAdjacentHTML('afterend', html); } : function(html) { box.insertAdjacentHTML('afterbegin', html); })(`
     <div class="card" id="msm-apri" style="margin-bottom:12px">
       <div style="font-size:15px;font-weight:700">📝 Compila una scheda di rilievo</div>
       <div style="font-size:12px;color:var(--m);margin:3px 0 10px">
@@ -166,6 +188,38 @@ async function disegnaApriMotoreProgetto(progettoId) {
   `);
 }
 
+// F15.8: riquadro "📋 Blocco comune" in cima al tab Rilievi tecnici
+function htmlRiquadroBloccoComune(progettoId, scheda) {
+  const lav = lavorazioneCatalogo(FAMIGLIA_COMUNE);
+  const d = (scheda && scheda.dati) || {};
+  const domande = [
+    ['Referente in cantiere', !vuotoMotore(d.referente_lavori) || !vuotoMotore(d.telefono_referente)],
+    ['Chi decide', !vuotoMotore(d.chi_decide)],
+    ['Perché', !vuotoMotore(d.motivo_lavoro)],
+    ['Entro quando', !vuotoMotore(d.entro_il) || !vuotoMotore(d.entro_motivo)],
+    ['Accessi', !vuotoMotore(d.accessi)],
+    ['Orari', !vuotoMotore(d.orari)]
+  ];
+  const fatte = domande.filter(function(x) { return x[1]; }).length;
+  const prezzo = campiSchedaMotore(lav).filter(serveAlPrezzoMotore);
+  return `
+    <div class="card" id="msm-comune" style="margin-bottom:12px">
+      <div style="font-size:15px;font-weight:700">📋 Blocco comune: le 6 domande del primo contatto</div>
+      <div style="font-size:12px;color:var(--m);margin:3px 0 8px">
+        Una volta per progetto: referente in cantiere e telefono, chi decide, perché si fa il lavoro, entro quando, accessi, orari.
+        ${prezzo.length ? 'Servono al preventivo: ' + esc(prezzo.map(function(c) { return c.etichetta; }).join(', ')) + '.' : 'Sono facoltative: non fermano l’invio. Referente, accessi e orari andranno da soli nella scheda del cantiere.'}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+        ${domande.map(function(x) {
+          return '<span class="bx ' + (x[1] ? 'bok' : 'bgray') + '" style="font-size:11px">' + (x[1] ? '✓ ' : '') + esc(x[0]) + '</span>';
+        }).join('')}
+      </div>
+      <button type="button" class="btn ${scheda ? '' : 'p'}" id="msm-comune-btn" onclick="apriSchedaMotore('${esc(progettoId)}', '${FAMIGLIA_COMUNE}', 1)">
+        ${scheda ? '✏️ Modifica il blocco comune (' + fatte + ' su 6)' : '📋 Compila il blocco comune'}
+      </button>
+    </div>`;
+}
+
 if (typeof renderSchedeProgettoCommerciale === 'function') {
   const renderSchedeProgettoSenzaMotore = renderSchedeProgettoCommerciale;
   // eslint-disable-next-line no-global-assign
@@ -185,6 +239,7 @@ async function apriSchedaMotore(progettoId, famiglia, numero) {
   if (typeof caricaCatalogoLavorazioni === 'function') await caricaCatalogoLavorazioni();
   const lav = typeof lavorazioneCatalogo === 'function' ? lavorazioneCatalogo(famiglia) : null;
   if (!lav || !campiSchedaMotore(lav).length) { toast('Lavorazione non trovata nel catalogo', 'err'); return; }
+  if (famiglia === FAMIGLIA_COMUNE) numero = 1; // F15.8: un solo blocco comune per progetto
 
   const fonti = await verificaFontiDatiDisponibili(); // F15.5 (sql/79)
   const { data: progetto, error } = await db.from('progetti_tecnici')
@@ -229,11 +284,12 @@ async function disegnaSchedaMotore(numero) {
   precompilaDaSedeCliente(MOTORE_SCHEDE.datiBase);
   iniziaFontiMotore(MOTORE_SCHEDE.datiBase);
 
-  box.innerHTML = htmlBarraSchedeRilievo() + `
+  const comune = famiglia === FAMIGLIA_COMUNE; // F15.8: niente tab "Scheda 1 | + Nuova scheda"
+  box.innerHTML = (comune ? '' : htmlBarraSchedeRilievo()) + `
     <div id="msm-motore" data-famiglia="${esc(famiglia)}">
       <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:12px">
         <div style="min-width:0">
-          <div style="font-size:16px;font-weight:700">${ICONE_LAVORAZIONI_MOTORE[famiglia] || '📝'} ${esc(lav.nome)}</div>
+          <div style="font-size:16px;font-weight:700">${comune ? '📋' : (ICONE_LAVORAZIONI_MOTORE[famiglia] || '📝')} ${esc(lav.nome)}</div>
           <div style="font-size:12px;color:var(--m);margin-top:3px;overflow-wrap:anywhere">
             ${esc(MOTORE_SCHEDE.cliente.ragione_sociale || '')}${MOTORE_SCHEDE.progetto.titolo ? ' · ' + esc(MOTORE_SCHEDE.progetto.titolo) : ''}
           </div>
@@ -287,8 +343,9 @@ function htmlCampiMotore(lav, d) {
   const campi = campiSchedaMotore(lav);
   const obbligatori = campi.filter(serveAlPrezzoMotore).length;
   const sedi = MOTORE_SCHEDE.sedi || [];
+  const comune = lav && lav.codice === FAMIGLIA_COMUNE; // F15.8
 
-  const richiesta = `
+  const richiesta = comune ? (htmlFonteRilievoMotore() ? '<div class="card" style="margin-bottom:12px">' + htmlFonteRilievoMotore() + '</div>' : '') : `
     <div class="card" style="margin-bottom:12px">
       <div class="f" style="margin-bottom:4px">
         <label for="msm-tipo-richiesta">Tipo di richiesta</label>
@@ -306,7 +363,7 @@ function htmlCampiMotore(lav, d) {
     </div>`;
 
   const luogo = `
-    <div class="rap-section">Luogo dei lavori e referente</div>
+    <div class="rap-section">${comune ? 'Luogo dei lavori e referente in cantiere' : 'Luogo dei lavori e referente'}</div>
     <div class="card" style="margin-bottom:12px">
       ${sedi.length ? `
         <div class="f">
@@ -331,7 +388,8 @@ function htmlCampiMotore(lav, d) {
   const righe = campi.map(function(c) { return htmlCampoMotore(c, d[c.codice], indicativa, ingegnere); }).join('');
 
   return richiesta + luogo + `
-    <div class="rap-section">Dati della lavorazione</div>
+    <div class="rap-section">${comune ? 'Chi decide, perché, entro quando, accessi e orari' : 'Dati della lavorazione'}</div>
+    ${comune && !obbligatori ? '<div style="font-size:12px;color:var(--m);margin-bottom:6px">Tutto facoltativo: compila quello che sai. Il perché e il motivo della data si scelgono dalla lista.</div>' : ''}
     ${obbligatori ? '<div style="font-size:12px;color:var(--m);margin-bottom:6px"><b>*</b> = serve per calcolare il preventivo. Gli altri dati sono facoltativi.' +
       (ingegnere ? '' : ' I campi 🎓 li compila l’ingegnere.') + '</div>' : ''}
     <div class="card">${righe}</div>
@@ -384,6 +442,10 @@ function htmlCampoMotore(c, valore, indicativa, ingegnere) {
     </div>`;
   } else {
     const testo = val === null || val === undefined ? '' : String(val);
+    if (CAMPI_DATA_MOTORE.includes(c.codice) && (!testo || /^\d{4}-\d{2}-\d{2}$/.test(testo))) {
+      // F15.8: data (entro quando), salvata AAAA-MM-GG
+      controllo = `<input id="${id}" type="date" value="${esc(testo)}"${dis}>`;
+    } else
     controllo = lungo
       ? `<textarea id="${id}" rows="3" maxlength="2000"${dis}>${esc(testo)}</textarea>`
       : `<div style="display:flex;gap:6px;align-items:center"><input id="${id}" maxlength="300" value="${esc(testo)}"${dis} style="flex:1 1 auto;min-width:0">${c.unita ? '<span style="font-size:13px;color:var(--m)">' + esc(c.unita) + '</span>' : ''}</div>`;
@@ -492,9 +554,10 @@ function numeriNonValidiMotore(dati, lav) {
 }
 
 function obbligatoriMancantiMotore(dati, lav) {
+  // F15.8: anche "non noto" nella definitiva e "da verificare", "da definire", "?", "xx"
+  const indicativa = dati && dati.tipo_richiesta === 'indicativa';
   return campiSchedaMotore(lav).filter(function(c) {
-    const x = dati[c.codice];
-    return serveAlPrezzoMotore(c) && (x === null || x === undefined || x === '');
+    return serveAlPrezzoMotore(c) && !!problemaValoreInvio(dati[c.codice], c, indicativa);
   });
 }
 
@@ -679,7 +742,7 @@ async function salvaSchedaMotore() {
     if (mancanti.length || senzaFonte.length) {
       setTimeout(function() {
         toast('Salvata.' +
-          (mancanti.length ? ' Per il preventivo mancano: ' + mancanti.map(function(c) { return c.etichetta; }).join(', ') + '.' : '') +
+          (mancanti.length ? ' Per il preventivo mancano o sono da precisare: ' + mancanti.map(function(c) { return c.etichetta; }).join(', ') + '.' : '') +
           (senzaFonte.length ? ' Senza fonte (il progetto non si invia): ' + senzaFonte.map(function(c) { return c.etichetta; }).join(', ') + '.' : ''), 'warn');
       }, 1500);
     }
@@ -1179,7 +1242,9 @@ const CAMPI_TESTO_LUNGO_MOTORE = [
   'collaudo', 'manutenzione', 'note_calcolo',
   // F15.7: compartimentazione, vernice, coppelle, spegnimento
   'sistemi_presenti', 'certificazione_sistema', 'foto', 'note_supporto', 'accessibilita', 'ciclo', 'certificazione',
-  'ostacoli', 'impianto_esistente', 'componenti', 'compartimentazione', 'collegamenti', 'collaudi'
+  'ostacoli', 'impianto_esistente', 'componenti', 'compartimentazione', 'collegamenti', 'collaudi',
+  // F15.8: blocco comune
+  'accessi'
 ];
 
 async function verificaMigrazioneSchedeDisponibile() {
@@ -1216,7 +1281,8 @@ async function preparaSchedeMigrate() {
 }
 
 function campoCatalogoMigrato(famiglia, codice) {
-  if (!famiglia || !codice || !famigliaMigrataMotore(famiglia)) return null;
+  if (!famiglia || !codice) return null;
+  if (!famigliaMigrataMotore(famiglia) && !(famiglia === FAMIGLIA_COMUNE && bloccoComuneAttivo())) return null; // F15.8
   const lav = lavorazioneCatalogo(famiglia);
   return ((lav && lav.lavorazioni_campi) || []).find(function(c) { return c.codice === codice; }) || null;
 }
@@ -1237,6 +1303,10 @@ function valoreCampoFamigliaMigrata(famiglia, codice, valore) {
     return o ? o.etichetta : '';
   }
   if (c.tipo === 'numero' && typeof valore === 'string' && /^-?\d+\.\d+$/.test(valore.trim())) return valore.trim().replace('.', ',');
+  // F15.8: date del blocco comune (AAAA-MM-GG) in italiano
+  if (CAMPI_DATA_MOTORE.includes(codice) && typeof valore === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valore)) {
+    return new Date(valore + 'T12:00:00').toLocaleDateString('it-IT');
+  }
   return '';
 }
 
@@ -1406,4 +1476,136 @@ function leggiElencoMotore(c) {
   const prima = (MOTORE_SCHEDE.datiBase || {})[c.codice];
   if (righe === null && !Array.isArray(prima) && !vuotoMotore(prima)) return undefined; // testo di prima, nessuna riga
   return righe;
+}
+
+// ── F15.8 — BLOCCO COMUNE E CONTROLLI DI INVIO (sql/82) ─────────────────
+// Blocco comune: scheda della lavorazione 'comune' (riquadro "📋 Blocco
+// comune" in cima al tab Rilievi tecnici, htmlRiquadroBloccoComune): le 6
+// domande del primo contatto, tutte facoltative (D2). Alla nascita della
+// commessa referente, telefono, accessi e orari vanno nella scheda cantiere
+// (trigger di sql/82).
+// Controlli di invio (D2: SOLO i campi "serve al prezzo" del catalogo, anche
+// nelle posizioni P-xx): vuoto, "non noto" nella richiesta definitiva, oppure
+// "da verificare", "da definire", "?", "xx" (nei menu anche il valore scelto)
+// = il progetto non si invia. Con sql/82 l'elenco lo dà la RPC
+// controlli_invio_progetto (e il database ferma l'invio anche da console);
+// senza, lo calcola il sito con le stesse regole.
+
+// Testo che non basta per il preventivo: restituisce quello trovato, '' = va bene
+// (gemella di testo_vietato_rilievo di sql/82)
+function testoVietatoRilievo(testo) {
+  if (testo === null || testo === undefined) return '';
+  const t = String(testo).replace(/_/g, ' ').toLowerCase();
+  if (/(^|[^a-z0-9])da\s+verificare([^a-z0-9]|$)/.test(t)) return 'da verificare';
+  if (/(^|[^a-z0-9])da\s+definire([^a-z0-9]|$)/.test(t)) return 'da definire';
+  if (String(testo).indexOf('?') >= 0) return '?';
+  if (/(^|[^a-z0-9])xx+([^a-z0-9]|$)/.test(t)) return 'xx';
+  return '';
+}
+
+// Problema di un valore di un campo "serve al prezzo", '' = va bene
+// (gemella di problema_valore_invio di sql/82)
+function problemaValoreInvio(valore, c, indicativa) {
+  if (vuotoMotore(valore) || (Array.isArray(valore) && !valore.length)) return 'manca (serve per calcolare il preventivo)';
+  if (valore === VALORE_NON_NOTO) {
+    return indicativa ? '' : 'è «non noto»: nella richiesta definitiva va compilato (o la richiesta diventa indicativa)';
+  }
+  if (typeof valore !== 'string' && typeof valore !== 'number') return '';
+  const testo = String(valore);
+  if (c && c.tipo === 'menu') {
+    const o = (c.valori_ammessi || []).find(function(x) { return String(x.valore) === testo; });
+    const etichetta = o ? String(o.etichetta || o.valore) : '';
+    if (testoVietatoRilievo(testo) || testoVietatoRilievo(etichetta)) {
+      return '«' + (etichetta || testo) + '» non basta per il preventivo: scegli il valore preciso';
+    }
+    return '';
+  }
+  const vietato = testoVietatoRilievo(testo);
+  return vietato ? 'c’è «' + vietato + '»: scrivi il dato preciso' : '';
+}
+
+const CONTROLLI_INVIO = { rpc: null };
+
+// Elenco calcolato dal sito (senza sql/82): stesse righe della RPC
+async function controlliInvioProgettoSito(progettoId) {
+  if (typeof caricaCatalogoLavorazioni === 'function') {
+    try { await caricaCatalogoLavorazioni(); } catch (e) { return []; }
+  }
+  if (typeof CATALOGO_LAV === 'undefined' || !CATALOGO_LAV.disponibili) return [];
+  const { data: schede, error } = await db.from('progetti_tecnici_schede')
+    .select('id,famiglia,numero,dati').eq('progetto_tecnico_id', progettoId).order('famiglia').order('numero');
+  if (error) return [];
+  let posizioni = [];
+  const pos = await db.from('progetti_tecnici_posizioni')
+    .select('scheda_id,codice,numero,quantita,dati,tolta').eq('progetto_tecnico_id', progettoId).order('numero');
+  if (!pos.error) posizioni = (pos.data || []).filter(function(p) { return !p.tolta; });
+
+  const righe = [];
+  const campiPrezzo = function(lav) {
+    return ((lav && lav.lavorazioni_campi) || []).filter(function(c) {
+      return c.attivo !== false && serveAlPrezzoMotore(c) && c.tipo !== 'foto';
+    }).sort(function(a, b) { return (a.ordine || 0) - (b.ordine || 0); });
+  };
+  const comune = lavorazioneCatalogo(FAMIGLIA_COMUNE);
+  if (comune && comune.attiva && !(schede || []).some(function(s) { return s.famiglia === FAMIGLIA_COMUNE; })) {
+    campiPrezzo(comune).forEach(function(c) {
+      righe.push({ scheda_id: null, scheda: 'Blocco comune', campo: c.codice, etichetta: c.etichetta, motivo: 'manca: compila il blocco comune' });
+    });
+  }
+  (schede || []).forEach(function(s) {
+    const lav = lavorazioneCatalogo(s.famiglia);
+    if (!lav) return;
+    const stesse = schede.filter(function(x) { return x.famiglia === s.famiglia; }).length;
+    const nome = (lav.nome || s.famiglia) + (stesse > 1 || Number(s.numero) > 1 ? ' – scheda ' + s.numero : '');
+    const dati = s.dati || {};
+    const indicativa = dati.tipo_richiesta === 'indicativa';
+    const suePos = posizioni.filter(function(p) { return p.scheda_id === s.id; });
+    const valorePos = function(p, codice) { return codice === 'quantita' ? p.quantita : (p.dati || {})[codice]; };
+    campiPrezzo(lav).forEach(function(c) {
+      if (c.per_posizione) {
+        suePos.forEach(function(p) {
+          const m = problemaValoreInvio(valorePos(p, c.codice), c, indicativa);
+          if (m) righe.push({ scheda_id: s.id, scheda: nome + ' – ' + p.codice, campo: c.codice, etichetta: c.etichetta, motivo: m });
+        });
+        return;
+      }
+      const val = dati[c.codice];
+      let m = problemaValoreInvio(val, c, indicativa);
+      // vuoto nella scheda ma compilato in tutte le posizioni attive: va bene
+      if (m && suePos.length && (vuotoMotore(val) || (Array.isArray(val) && !val.length)) &&
+          suePos.every(function(p) { return !problemaValoreInvio(valorePos(p, c.codice), c, indicativa); })) m = '';
+      if (m) righe.push({ scheda_id: s.id, scheda: nome, campo: c.codice, etichetta: c.etichetta, motivo: m });
+    });
+  });
+  return righe;
+}
+
+// Cosa ferma l'invio: RPC di sql/82 se c'è, altrimenti il calcolo del sito
+async function controlliInvioProgetto(progettoId) {
+  if (CONTROLLI_INVIO.rpc !== false) {
+    const { data, error } = await db.rpc('controlli_invio_progetto', { p_progetto: progettoId });
+    if (!error) { CONTROLLI_INVIO.rpc = true; return data || []; }
+    if (error.code === 'PGRST202' || error.code === '42883' || /Could not find|does not exist/i.test(error.message || '')) {
+      CONTROLLI_INVIO.rpc = false;
+    } else {
+      return []; // errore passeggero: il database lo ricontrolla comunque all'invio
+    }
+  }
+  return controlliInvioProgettoSito(progettoId);
+}
+
+// Prima di inviare il progetto (js/17). true = si può inviare.
+async function controllaDatiPrimaDellInvio(progettoId) {
+  let righe = [];
+  try { righe = await controlliInvioProgetto(progettoId); } catch (e) { return true; }
+  if (!righe || !righe.length) return true;
+  const elenco = righe.slice(0, 10).map(function(r) {
+    return '- ' + (r.scheda ? r.scheda + ' – ' : '') + r.etichetta + ': ' + r.motivo;
+  });
+  alert('Il progetto non si può ancora inviare: mancano o sono da precisare dati che servono a calcolare il preventivo.\n\n' +
+    elenco.join('\n') + (righe.length > 10 ? '\n- … e altri ' + (righe.length - 10) : '') +
+    '\n\nCompletali nella scheda (📝 Rilievi tecnici → 📝 Compila la scheda). ' +
+    '"Da verificare", "da definire", "?" e "xx" non bastano: scrivi il dato preciso. ' +
+    'Se il cliente non lo sa, la richiesta diventa Indicativa e il dato ❓ Non noto. I dati facoltativi non fermano l’invio.');
+  return false;
 }

@@ -7751,6 +7751,7 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
     .from('progetti_tecnici_schede')
     .select('*')
     .eq('progetto_tecnico_id', preventivo.progetto_tecnico_id)
+    .neq('famiglia', 'comune') // F15.8: il blocco comune (contatti del cliente) non va al fornitore
     .order('aggiornato_il', { ascending: false });
 
   if (erroreSchede) {

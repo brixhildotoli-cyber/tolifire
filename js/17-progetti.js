@@ -785,6 +785,10 @@ async function inviaProgettoAUfficioTecnico(progettoId) {
   if (typeof controllaFontiPrimaDellInvio === 'function' && !(await controllaFontiPrimaDellInvio(progettoId))) {
     return;
   }
+  // F15.8: dati che servono al prezzo (D2: solo quelli), js/56 e sql/82
+  if (typeof controllaDatiPrimaDellInvio === 'function' && !(await controllaDatiPrimaDellInvio(progettoId))) {
+    return;
+  }
 
   if (!confirm(
     'Inviare il progetto a ingegnere e titolare per la verifica tecnica? Dopo l’invio non sarà più una bozza.'
@@ -969,6 +973,14 @@ async function inviaProgettoAlCommerciale(progettoId) {
     const { data: attuale } = await db.from('progetti_tecnici').select('stato').eq('id', progettoId).maybeSingle();
     if ((!attuale || ['bozza', 'da_integrare'].includes(attuale.stato)) &&
         !(await controllaFontiPrimaDellInvio(progettoId))) {
+      return;
+    }
+  }
+  // F15.8: dati che servono al prezzo (D2: solo quelli; solo da bozza o da integrare), js/56 e sql/82
+  if (typeof controllaDatiPrimaDellInvio === 'function') {
+    const { data: attuale } = await db.from('progetti_tecnici').select('stato').eq('id', progettoId).maybeSingle();
+    if ((!attuale || ['bozza', 'da_integrare'].includes(attuale.stato)) &&
+        !(await controllaDatiPrimaDellInvio(progettoId))) {
       return;
     }
   }

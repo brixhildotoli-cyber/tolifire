@@ -299,6 +299,15 @@ ripetibili), ammesso SOLO per il codice pareti_cartongesso (che è sempre
 elenco, mai per posizione); dati: 49 campi nuovi (compartimentazione 11,
 vernice 13, coppelle 10, spegnimento 15) con codice = chiave di dati,
 obbligatori 3/3/4/4. schede_migrate_motore() RIDEFINITA: le 7 lavorazioni.
+Dopo sql/82 (F15.8 blocco comune e controlli di invio, DA ESEGUIRE: backup,
+anteprima, file (senza parole di cancellazione, server MCP), controllo; nessun
+-REGISTRO-CANCELLAZIONI; richiede 07, 26, 34, 71, 75-79, tutti in produzione):
+nessuna tabella nuova, nessuna policy nuova. lavorazioni (dati): 'comune'
+ACCESA con 7 campi facoltativi (chi_decide, motivo_lavoro menu, motivo_documento,
+entro_il data AAAA-MM-GG, entro_motivo menu, accessi, orari); la scheda comune
+è una riga di progetti_tecnici_schede famiglia 'comune' numero 1. Trigger NUOVI
+trg_progetti_tecnici_invio_completo (progetti_tecnici) e
+trg_commesse_rilievo_comune (commesse, BEFORE INSERT).
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -1417,6 +1426,67 @@ lavorazioni; matrice dei permessi TUTTO OK; rollback provato (schema identico
 al backup pre80 + 80; i 49 campi "tolti", le pareti testo "tolto";
 rieseguito il file: catalogo identico). Senza sql/81: le 4 schede di js/18
 come prima, nessun errore.
+Dopo sql/82 (F15.8 blocco comune e controlli di invio, DA ESEGUIRE: backup,
+anteprima in fondo al file, 82-blocco-comune-controlli-invio.sql (senza parole
+di cancellazione, server MCP), controllo in fondo; nessun file
+-REGISTRO-CANCELLAZIONI (nessuna tabella nuova); richiede 07, 26, 34, 71, 75,
+76, 77, 78, 79, tutti in produzione, si ferma senza; il sito si pubblica prima o
+dopo; provato il 09/11 sul backup pre81 + 81 + 82). D2: CONTROLLI DI INVIO SOLO
+sui campi "serve al prezzo" del catalogo. RPC del sito:
+controlli_invio_progetto(p_progetto) (SECURITY INVOKER: righe scheda_id,
+scheda, campo, etichetta, motivo; vuota = si invia). Funzioni nuove
+testo_vietato_rilievo(testo) ("da verificare", "da definire", "?", "xx"; null =
+va bene), problema_valore_invio(valore, tipo, valori, indicativa); trigger
+trg_progetti_tecnici_invio_completo (security definer, BEFORE UPDATE OF stato:
+da bozza o da integrare verso in_verifica_tecnica, inviato_a_commerciale o
+pronto_per_preventivo, per ogni utente del sito anche "Entra come", 22023
+"Invio bloccato, dati per il preventivo da completare: ..."; editor libero; i
+passaggi dopo non si fermano) e trg_commesse_rilievo_comune (alla nascita della
+commessa referente_lavori, telefono_referente (solo se valido per il vincolo di
+sql/34), accessi e orari della scheda comune nelle colonne cantiere_* vuote,
+"chi" = "Blocco comune del rilievo"; un errore resta WARNING). REGOLE: un campo
+serve al prezzo (anche per posizione) ferma l'invio se vuoto, "non_noto" in una
+richiesta definitiva (nella indicativa è ammesso), o con un testo vietato (nei
+menu anche il valore scelto o la sua etichetta: "Classe superiore / da
+definire" delle porte REI, "Altro / da definire" della vernice e delle
+coppelle); vuoto nella scheda ma compilato in TUTTE le posizioni attive = va
+bene; facoltativi mai; schede di lavorazioni non nel catalogo non controllate;
+blocco comune con campi "serve al prezzo" (oggi nessuno) e senza scheda comune
+= fermo. Nel sito: js/56 (in fondo, F15.8) testoVietatoRilievo e
+problemaValoreInvio (gemelle delle funzioni SQL), controlliInvioProgetto (RPC,
+senza sql/82 controlliInvioProgettoSito con le stesse regole: il blocco nel
+sito vale da subito), controllaDatiPrimaDellInvio (alert con l'elenco),
+chiamata da inviaProgettoAUfficioTecnico e inviaProgettoAlCommerciale (solo da
+bozza/da integrare) di js/17 dopo le fonti; "Per il preventivo mancano o sono
+da precisare" dopo il salvataggio della scheda (obbligatoriMancantiMotore con
+le stesse regole). Blocco comune (con sql/82, bloccoComuneAttivo): riquadro
+"📋 Blocco comune: le 6 domande del primo contatto" (msm-comune,
+htmlRiquadroBloccoComune: domande compilate con ✓, "📋 Compila il blocco
+comune" / "✏️ Modifica il blocco comune (N su 6)") in cima al tab Rilievi
+tecnici; apre il motore con famiglia 'comune' numero 1 (niente tab "+ Nuova
+scheda", niente tipo di richiesta, luogo dei lavori e referente in cantiere,
+fonte del rilievo, poi i 7 campi; "Entro quando" con input date,
+CAMPI_DATA_MOTORE); 'comune' non è tra le lavorazioni del menu
+(lavorazioniMotore); etichette, menu e data in italiano nelle schede salvate
+(campoCatalogoMigrato vale anche per 'comune'). js/18: il PDF della richiesta
+al fornitore (generaRichiestaQuotazionePDF) NON legge la scheda comune
+(contatti del cliente). SCELTE DA CONFERMARE DA TOLI: le "6 domande" = referente
+e telefono, chi decide, perché, entro quando, accessi, orari; tutti facoltativi;
+"non noto" ammesso nell'indicativa; voci dei menu "perché" ed "entro quando";
+menu "da definire" bloccanti solo se il campo serve al prezzo. Guida
+info-rap-29. Prove: sql/82-blocco-comune-controlli-invio-PROVA.sql (solo
+database di prova, rollback: testi vietati, quantità vuota rifiutata anche al
+titolare "come" rappresentante, "xx", "non noto" definitiva e indicativa,
+"Classe superiore / da definire", facoltativi "da verificare", posizioni,
+ingegnere non bloccato, editor libero, blocco comune del rappresentante,
+commessa con referente/telefono/accessi/orari, campo comune "serve al prezzo"
+senza scheda); 79 -PROVA aggiornato (il rei "non noto" nella richiesta
+indicativa); test/blocco-comune.spec.js (Chrome headless, rappresentante a 390
+px; BLOCCO_COMUNE_SENZA_SQL=1 dopo il rollback); smoke TUTTO OK con e senza
+sql/82; rollback provato (schema identico; campi comune "tolti", lavorazione
+spenta; rieseguito il file: campi di nuovo attivi). Senza sql/82: nessun
+riquadro, controlli di invio solo nel sito, nessun errore (una chiamata RPC
+404).
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),
