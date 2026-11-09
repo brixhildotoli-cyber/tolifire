@@ -290,8 +290,8 @@ scheda di js/18; obbligatori (serve_al_prezzo) estintori 4, rilevazione 4.
 RPC NUOVA schede_migrate_motore() (elenco delle lavorazioni migrate; F15.7
 la ridefinisce).
 Dopo sql/81 (F15.7 migrazione schede: compartimentazione con le pareti in
-cartongesso, vernice intumescente, coppelle, impianti di spegnimento, DA
-ESEGUIRE dall'EDITOR SQL DOPO aver pubblicato il sito, richiede 07, 71, 75,
+cartongesso, vernice intumescente, coppelle, impianti di spegnimento, ESEGUITO
+il 09/11 dall'editor SQL dopo la pubblicazione del sito (backup pre81), richiede 07, 71, 75,
 77, 78, 80; provato il 09/11 sul backup pre80 + 80 + 81): nessuna tabella
 nuova, nessuna policy nuova. lavorazioni_campi: vincolo
 lavorazioni_campi_tipo_check rifatto con il tipo NUOVO 'elenco' (righe
@@ -1347,7 +1347,7 @@ file: catalogo identico). Senza sql/80: schede di js/18 come prima, nessun
 errore (una chiamata RPC 404).
 Dopo sql/81 (F15.7 migrazione nel catalogo delle altre 4 schede scritte a
 mano: compartimentazione con le pareti in cartongesso del 02/11, vernice
-intumescente, coppelle, impianti di spegnimento; DA ESEGUIRE. ORDINE: PRIMA si
+intumescente, coppelle, impianti di spegnimento; ESEGUITO il 09/11 (backup pre81, controllo in regola). ORDINE: PRIMA si
 pubblica il sito (il sito di prima non conosce il tipo 'elenco' e nel motore
 mostrerebbe le pareti come testo, salvando sopra l'elenco), poi backup,
 anteprima in fondo al file (atteso: campi 7/6/9/3, pareti_a_mano 0, schede
