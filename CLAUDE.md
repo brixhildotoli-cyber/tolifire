@@ -271,7 +271,7 @@ uguali). Trigger NUOVI trg_progetti_tecnici_schede_motore e
 trg_progetti_tecnici_posizioni_motore (solo per il ruolo rappresentante, anche
 "Entra come"): campi di livello ingegnere, copia del commerciale,
 progetto/tipo/numero fissi, plausibilità.
-Dopo sql/79 (F15.5 motore delle schede, parte 2: fonti, DA ESEGUIRE, richiede
+Dopo sql/79 (F15.5 motore delle schede, parte 2: fonti, ESEGUITO il 09/11 (backup pre79, dal server MCP), richiede
 07, 71, 75, 77, 78; provato il 09/11 sul backup pre77 + 77 + 78): nessuna
 tabella nuova. progetti_tecnici: colonna NUOVA fonte_rilievo (vuota,
 sopralluogo_toli, documenti_cliente, misure_dichiarate; vincolo
@@ -1175,7 +1175,7 @@ provato (schema identico al backup pre76 + 76 + 77; le righe del registro
 del catalogo restano). Senza sql/78: sito come con il 77 (controlli solo
 nel sito), nessun errore.
 Dopo sql/79 (F15.5 motore delle schede, parte 2: fonte del rilievo e fonte
-dei dati normativi, DA ESEGUIRE: backup, anteprima in fondo al file,
+dei dati normativi, ESEGUITO il 09/11 (backup pre79, dal server MCP, controllo in regola): backup, anteprima in fondo al file,
 79-motore-schede.sql (senza parole di cancellazione, server MCP), poi il
 controllo in fondo; nessun file -REGISTRO-CANCELLAZIONI (nessuna tabella
 nuova); richiede 07, 71, 75, 77, 78, tutti in produzione, si ferma senza).
