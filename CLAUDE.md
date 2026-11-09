@@ -254,7 +254,7 @@ inserimento e modifica DIRETTI titolare, ingegnere e rappresentante sui
 suoi progetti in bozza o da integrare; nessuna cancellazione (Togli =
 tolta true); con il -REGISTRO-CANCELLAZIONI le posizioni seguono a cascata
 la scheda (elimina_scheda_rilievo) e il progetto. js/66-posizioni.js.
-Dopo sql/77 (F15.3 motore delle schede, 1a, DA ESEGUIRE, richiede 07, 48,
+Dopo sql/77 (F15.3 motore delle schede, 1a, ESEGUITO il 09/11 insieme al 78, backup pre77, richiede 07, 48,
 71, 75; preparato e provato il 06/11 sul backup pre76 + sql/76): nessuna
 tabella nuova. progetti_tecnici_schede: due policy NUOVE
 progetti_tecnici_schede_inserimento_rappresentante e _modifica_rappresentante
@@ -262,7 +262,7 @@ progetti_tecnici_schede_inserimento_rappresentante e _modifica_rappresentante
 o da integrare; le policy di prima non cambiano; nessuna cancellazione).
 lavorazioni_campi: 9 campi della porte REI (stessi codici della scheda di
 js/18) e obbligatori i 6 dati del prezzo (D2). js/56-motore-schede.js.
-Dopo sql/78 (F15.4 motore delle schede, 1b, DA ESEGUIRE subito dopo il 77,
+Dopo sql/78 (F15.4 motore delle schede, 1b, ESEGUITO il 09/11 subito dopo il 77, backup pre77,
 richiede 07, 71, 75, 76, 77; provato il 09/11 sul backup pre76 + 76 + 77):
 nessuna tabella nuova. lavorazioni_campi: colonna NUOVA serve_al_prezzo
 (D2: solo questi obbligatori; vincolo lavorazioni_campi_prezzo_check
@@ -1044,7 +1044,7 @@ anche con MATRICE_AGITO_COME=1 (10 righe nuove); smoke test TUTTO OK con e
 senza sql/76; rollback provato (schema identico). Senza sql/76: nessun
 riquadro, nessun errore (una lettura 404 della tabella).
 Dopo sql/77 (F15.3 motore delle schede, parte 1a: disegno e salvataggio,
-DA ESEGUIRE: backup, poi 77-motore-schede.sql (senza parole di
+ESEGUITO il 09/11 (backup pre77, controllo in regola): backup, poi 77-motore-schede.sql (senza parole di
 cancellazione, server MCP), poi il controllo in fondo; nessun file
 -REGISTRO-CANCELLAZIONI (nessuna tabella nuova); richiede 07, 48, 71, 75,
 tutti in produzione; non richiede 76). RPC motore_schede_attivo() (true:
@@ -1101,7 +1101,7 @@ test TUTTO OK con e senza sql/77; rollback provato (schema identico; i 9
 campi diventano "tolti", gli obbligatori tornano come prima). Senza sql/77:
 nessun riquadro, nessun errore (una chiamata RPC 404).
 Dopo sql/78 (F15.4 motore delle schede, parte 1b: protezioni, plausibilità
-e campi del prezzo, DA ESEGUIRE: backup, 77-motore-schede.sql e il suo
+e campi del prezzo, ESEGUITO il 09/11 (backup pre77, controllo in regola): backup, 77-motore-schede.sql e il suo
 controllo, poi 78-motore-schede.sql (senza parole di cancellazione, server
 MCP), poi il controllo in fondo al 78; nessun file -REGISTRO-CANCELLAZIONI
 (nessuna tabella nuova); richiede 07, 71, 75, 76, 77, si ferma senza). Nessuna
