@@ -137,3 +137,17 @@ rifiutate; l'ingegnere apre e salva la scheda scritta a mano di js/18 e i
 dati del motore restano. Dopo il ROLLBACK di sql/77:
 `MOTORE_SENZA_SQL=1 node motore-schede.spec.js` (nessun riquadro, scheda a
 mano come prima). Alla fine toglie schede e sede di prova (solo locale).
+
+## Motore delle schede: protezioni e plausibilità (F15.4)
+
+`node motore-schede-protezioni.spec.js` (database locale con sql/77 e 78):
+il rappresentante, a 390 px, scrive "larghezza 1000" nel motore e "💾 Salva
+scheda" non salva (avviso con il campo e il plausibile 60-300 cm), con 100
+salva; le note 🎓 dell'ingegnere restano; dalla console il database gli
+rifiuta larghezza 1000, note tecniche, copia del commerciale, numero della
+scheda, note interne in una scheda nuova e una posizione da 1000 cm;
+l'ingegnere salva 400 cm dopo la conferma; console del tecnico rifiutata; il
+commerciale scrive ancora la sua copia. Dopo il ROLLBACK di sql/78:
+`MOTORE_PROTEZIONI_SENZA_SQL=1 node motore-schede-protezioni.spec.js` (il
+sito funziona come con il 77, la console del rappresentante passa: la
+protezione è del 78). Alla fine toglie schede e posizioni di prova.

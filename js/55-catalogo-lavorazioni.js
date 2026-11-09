@@ -338,7 +338,7 @@ function htmlRigaCampoLav(c) {
   const segni = [];
   if (c.livello === 'ingegnere') segni.push('🎓 ingegnere');
   if (c.normativo) segni.push('📜 normativo');
-  if (c.obbligatorio) segni.push('obbligatorio');
+  if (c.obbligatorio) segni.push('* serve al prezzo'); // F15.4 (D2): obbligatorio = serve al prezzo
   if (c.per_posizione) segni.push('per posizione');
   if (c.unita) segni.push(esc(c.unita));
   if (c.tipo === 'numero' && (c.min_plausibile !== null || c.max_plausibile !== null)) segni.push('plausibile ' + esc(c.min_plausibile ?? '…') + '–' + esc(c.max_plausibile ?? '…'));

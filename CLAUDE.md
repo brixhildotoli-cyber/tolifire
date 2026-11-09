@@ -262,6 +262,15 @@ progetti_tecnici_schede_inserimento_rappresentante e _modifica_rappresentante
 o da integrare; le policy di prima non cambiano; nessuna cancellazione).
 lavorazioni_campi: 9 campi della porte REI (stessi codici della scheda di
 js/18) e obbligatori i 6 dati del prezzo (D2). js/56-motore-schede.js.
+Dopo sql/78 (F15.4 motore delle schede, 1b, DA ESEGUIRE subito dopo il 77,
+richiede 07, 71, 75, 76, 77; provato il 09/11 sul backup pre76 + 76 + 77):
+nessuna tabella nuova. lavorazioni_campi: colonna NUOVA serve_al_prezzo
+(D2: solo questi obbligatori; vincolo lavorazioni_campi_prezzo_check
+obbligatorio = serve_al_prezzo, trigger trg_lavorazioni_campi_prezzo li tiene
+uguali). Trigger NUOVI trg_progetti_tecnici_schede_motore e
+trg_progetti_tecnici_posizioni_motore (solo per il ruolo rappresentante, anche
+"Entra come"): campi di livello ingegnere, copia del commerciale,
+progetto/tipo/numero fissi, plausibilità.
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -1091,6 +1100,67 @@ matrice dei permessi TUTTO OK (nota nella riga del rappresentante); smoke
 test TUTTO OK con e senza sql/77; rollback provato (schema identico; i 9
 campi diventano "tolti", gli obbligatori tornano come prima). Senza sql/77:
 nessun riquadro, nessun errore (una chiamata RPC 404).
+Dopo sql/78 (F15.4 motore delle schede, parte 1b: protezioni, plausibilità
+e campi del prezzo, DA ESEGUIRE: backup, 77-motore-schede.sql e il suo
+controllo, poi 78-motore-schede.sql (senza parole di cancellazione, server
+MCP), poi il controllo in fondo al 78; nessun file -REGISTRO-CANCELLAZIONI
+(nessuna tabella nuova); richiede 07, 71, 75, 76, 77, si ferma senza). Nessuna
+RPC del sito. Funzioni nuove: campi_ingegnere_lavorazione(famiglia) (campi
+livello ingegnere del catalogo, anche tolti, + note_tecniche e note_calcolo di
+tutte le schede), motore_valore_vuoto, motore_numero (numero JSON o testo con
+la virgola), motore_testo_numero, motore_in_metri (mm, cm, m; senza unità cm),
+interna motore_controlla_dati_rappresentante(famiglia, nuovi, vecchi,
+quantità, quantità di prima), trigger trg_progetti_tecnici_schede_motore e
+trg_progetti_tecnici_posizioni_motore, trg_lavorazioni_campi_prezzo. REGOLE
+(solo ruolo_corrente() = rappresentante con utente_effettivo(); editor SQL,
+titolare, ingegnere, commerciale come prima): (a) i campi dell'ingegnere non
+si scrivono né cambiano (42501 "«...» lo compila l'ingegnere"); (b) schede:
+dati_commerciali e ultima_modifica_commerciale_* mai, progetto, famiglia e
+numero fissi, scheda nuova solo di una lavorazione ATTIVA, nasce bozza e
+compilata da lui, lo stato resta quello dell'ingegnere; l'upsert del sito
+(insert on conflict) si controlla nel ramo update con i dati di prima;
+(c) PLAUSIBILITÀ solo sui valori CAMBIATI (22023 con campo e motivo): numeri
+veri (anche "92,5") dentro min/max del catalogo (porte REI larghezza e
+altezza 60-300 cm, quantità 1-500 pz), menu chiusi, Sì/No, "non_noto"
+sempre ammesso; m² = un campo numerico del catalogo in m²/m2/mq deve tornare
+con larghezza × altezza (unità del catalogo, se no cm) di un pezzo o della
+quantità (della scheda o della colonna quantita della posizione), 10% di
+tolleranza, minimo 0,05 m². Posizioni copiate (duplicata_da, "⧉ Duplica"):
+confronto con l'originale. Nel sito (js/56): serveAlPrezzoMotore (* e "Per il
+preventivo mancano" dai serve_al_prezzo, senza sql/78 da obbligatorio),
+problemiPlausibilitaDati (gemella della funzione SQL),
+controlloSchedeRilievoPrimaDelSalvataggio chiamata da salvaRigaSchedaRilievo
+di js/18 per TUTTE le schede (motore e le 7 di js/18, tutte le tab
+modificate): rappresentante bloccato con il motivo, ingegnere e titolare
+conferma "Controlla questi dati... Sono giusti?"; testoErroreSchedaMotore
+(i testi del database si mostrano così come sono). js/66: campi 🎓 per
+posizione in sola lettura per il rappresentante (non si mandano), stesso
+controllo prima di salvare una posizione, errori di sql/78 col loro testo.
+js/55 e index.html: "Serve a calcolare il preventivo (obbligatorio)". Guide
+info-rap-27, info-ing-21. SCELTE DA CONFERMARE DA TOLI: blocco solo per il
+rappresentante (ingegnere e titolare con conferma, portoni oltre 3 m);
+note_tecniche e note_calcolo dell'ingegnere in tutte le lavorazioni;
+tolleranza dei m² 10%; "non_noto" non controllato contro il tipo di
+richiesta (F15.8); il commerciale (policy "commerciale aggiorna rilievi
+tecnici" di prima di ottobre) da console può ancora cambiare anche i dati
+dell'ingegnere: non toccato. Prove: sql/78-motore-schede-PROVA.sql (solo
+database di prova, rollback: 1000 cm, testo, 40 cm, quantità 0, menu fuori
+elenco, titolare "come" rappresentante, note dell'ingegnere e note interne,
+copia del commerciale, lavorazione spenta o inventata, upsert, stato, numero,
+tipo, posizioni e Duplica, m² su scheda e posizione, campi del prezzo e
+vincolo; ingegnere, titolare e commerciale come prima);
+test/motore-schede-protezioni.spec.js (Chrome headless: rappresentante a
+390 px, 1000 cm fermato dal sito e dalla console, note 🎓 intatte, posizione
+1000 cm rifiutata; ingegnere salva 400 cm dopo la conferma; tecnico
+rifiutato; commerciale scrive la sua copia; MOTORE_PROTEZIONI_SENZA_SQL=1
+dopo il rollback); test/motore-schede.spec.js, posizioni.spec.js,
+catalogo-lavorazioni.spec.js TUTTO OK con sql/78; sql/77 e 76 -PROVA OK
+con sql/78 (75 -PROVA conta i dati di partenza: valida solo prima del 77);
+matrice dei permessi TUTTO OK (anche MATRICE_AGITO_COME=1; note nelle righe
+del rappresentante); smoke test TUTTO OK con e senza sql/78; rollback
+provato (schema identico al backup pre76 + 76 + 77; le righe del registro
+del catalogo restano). Senza sql/78: sito come con il 77 (controlli solo
+nel sito), nessun errore.
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),

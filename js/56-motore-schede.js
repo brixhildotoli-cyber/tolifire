@@ -10,13 +10,20 @@
 //   l'UNITÀ accanto (cm, mm, pz...), Sì / No, testi;
 // - "❓ Non noto" esplicito SOLO se la scheda è una RICHIESTA INDICATIVA (il
 //   cliente non conosce tutti i dati); nella richiesta definitiva no;
-// - campi di LIVELLO INGEGNERE in sola lettura per il rappresentante (qui
-//   solo nel sito; la protezione nel database è la parte 1b, F15.4);
+// - campi di LIVELLO INGEGNERE in sola lettura per il rappresentante (con
+//   sql/78, F15.4, anche nel database: trigger su schede e posizioni);
+// - PLAUSIBILITÀ (F15.4): numeri dentro minimo e massimo del catalogo (porte
+//   REI 60-300 cm), menu chiusi, m² coerenti con larghezza × altezza; per il
+//   rappresentante bloccano il salvataggio (con sql/78 anche il database),
+//   per ingegnere e titolare chiedono conferma (problemiPlausibilitaDati,
+//   gemella di motore_controlla_dati_rappresentante di sql/78; la usano
+//   anche js/18 salvaRigaSchedaRilievo per tutte le schede e js/66);
 // - dati PRECOMPILATI da sede e cliente: luogo dei lavori (sede principale o
 //   unica del cliente, se no l'indirizzo del cliente), referente e telefono
 //   dall'anagrafica, modificabili;
 // - obbligatori (*) SOLO i dati che servono a calcolare il preventivo
-//   (decisione di Toli D2): si segnalano, non bloccano il salvataggio (il
+//   (decisione di Toli D2; con sql/78 colonna lavorazioni_campi.
+//   serve_al_prezzo, senza si legge "obbligatorio"): si segnalano, non bloccano il salvataggio (il
 //   controllo all'invio è di F15.8); i campi "per posizione" si compilano
 //   nelle posizioni P-xx (js/66), le foto con le posizioni.
 // SALVA nella stessa riga di progetti_tecnici_schede delle 7 schede di js/18
@@ -267,7 +274,7 @@ function htmlCampiMotore(lav, d) {
   const indicativa = d.tipo_richiesta === 'indicativa';
   const ingegnere = scriveLivelloIngegnere();
   const campi = campiSchedaMotore(lav);
-  const obbligatori = campi.filter(function(c) { return c.obbligatorio; }).length;
+  const obbligatori = campi.filter(serveAlPrezzoMotore).length;
   const sedi = MOTORE_SCHEDE.sedi || [];
 
   const richiesta = `
@@ -325,7 +332,7 @@ function htmlCampoMotore(c, valore, indicativa, ingegnere) {
   const nonNoto = indicativa && !solaLettura && valore === VALORE_NON_NOTO;
   const eraNonNoto = !indicativa && valore === VALORE_NON_NOTO;
   const val = (valore === VALORE_NON_NOTO && !solaLettura) ? '' : valore;
-  const etichetta = esc(c.etichetta) + (c.obbligatorio ? ' <b style="color:var(--r)">*</b>' : '') +
+  const etichetta = esc(c.etichetta) + (serveAlPrezzoMotore(c) ? ' <b style="color:var(--r)">*</b>' : '') +
     (c.livello === 'ingegnere' ? ' <span title="Campo dell’ingegnere">🎓</span>' : '');
   const dis = solaLettura || nonNoto ? ' disabled' : '';
   const nota = solaLettura
@@ -457,8 +464,144 @@ function numeriNonValidiMotore(dati, lav) {
 function obbligatoriMancantiMotore(dati, lav) {
   return campiSchedaMotore(lav).filter(function(c) {
     const x = dati[c.codice];
-    return c.obbligatorio && (x === null || x === undefined || x === '');
+    return serveAlPrezzoMotore(c) && (x === null || x === undefined || x === '');
   });
+}
+
+// ── F15.4: campi del prezzo, campi dell'ingegnere, plausibilità ─────────
+// D2: obbligatori solo i campi che servono al prezzo (sql/78; prima "obbligatorio")
+function serveAlPrezzoMotore(c) {
+  if (!c) return false;
+  return c.serve_al_prezzo !== undefined && c.serve_al_prezzo !== null ? !!c.serve_al_prezzo : !!c.obbligatorio;
+}
+
+// Le note interne di tutte le schede di js/18 sono dell'ingegnere (come sql/78)
+const CAMPI_INGEGNERE_SEMPRE = [
+  { codice: 'note_tecniche', etichetta: 'Indicazioni per preventivo e posa' },
+  { codice: 'note_calcolo', etichetta: 'Note interne per il calcolo' }
+];
+
+function campiIngegnereLavorazione(famiglia) {
+  const lav = typeof lavorazioneCatalogo === 'function' ? lavorazioneCatalogo(famiglia) : null;
+  const campi = ((lav && lav.lavorazioni_campi) || []).filter(function(c) { return c.livello === 'ingegnere'; })
+    .map(function(c) { return { codice: c.codice, etichetta: c.etichetta }; });
+  CAMPI_INGEGNERE_SEMPRE.forEach(function(c) {
+    if (!campi.some(function(x) { return x.codice === c.codice; })) campi.push(c);
+  });
+  return campi;
+}
+
+function vuotoMotore(x) {
+  return x === null || x === undefined || (typeof x === 'string' && x.trim() === '');
+}
+
+function ugualeMotore(a, b) {
+  if (vuotoMotore(a) && vuotoMotore(b)) return true;
+  if (typeof a === 'number' || typeof b === 'number') {
+    const na = numeroMotore(a), nb = numeroMotore(b);
+    if (na !== null && nb !== null && !isNaN(na) && !isNaN(nb)) return na === nb;
+  }
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function metriMotore(n, unita) {
+  const u = String(unita || 'cm').trim().toLowerCase();
+  if (u === 'mm') return n / 1000;
+  if (u === 'm' || u === 'ml') return n;
+  return n / 100;
+}
+
+// Problemi di plausibilità dei dati CAMBIATI (stesse regole di sql/78).
+// opz: { quantita, quantitaPrima, rappresentante } (rappresentante: anche campi
+// dell'ingegnere, numeri non validi e menu fuori elenco).
+function problemiPlausibilitaDati(famiglia, nuovi, prima, opz) {
+  opz = opz || {};
+  const n = nuovi || {}, o = prima || {};
+  const lav = typeof lavorazioneCatalogo === 'function' ? lavorazioneCatalogo(famiglia) : null;
+  const campi = ((lav && lav.lavorazioni_campi) || []);
+  const problemi = [];
+  const cambiato = function(k) { return !ugualeMotore(n[k], o[k]); };
+
+  if (opz.rappresentante) {
+    campiIngegnereLavorazione(famiglia).forEach(function(c) {
+      if (cambiato(c.codice)) problemi.push('«' + c.etichetta + '» lo compila l’ingegnere');
+    });
+  }
+  campi.filter(function(c) { return c.attivo !== false && ['numero', 'menu', 'si_no'].includes(c.tipo); }).forEach(function(c) {
+    const x = n[c.codice];
+    if (vuotoMotore(x) || !cambiato(c.codice) || x === VALORE_NON_NOTO) return;
+    if (c.tipo === 'numero') {
+      const num = numeroMotore(x);
+      if (num === null || isNaN(num)) {
+        if (opz.rappresentante) problemi.push(c.etichetta + ': «' + x + '» non è un numero');
+        return;
+      }
+      const min = c.min_plausibile === null || c.min_plausibile === undefined ? null : Number(c.min_plausibile);
+      const max = c.max_plausibile === null || c.max_plausibile === undefined ? null : Number(c.max_plausibile);
+      if ((min !== null && num < min) || (max !== null && num > max)) {
+        const u = c.unita ? ' ' + c.unita : '';
+        problemi.push(c.etichetta + ': ' + testoNumeroMotore(num) + u + ' è fuori dal plausibile (' +
+          (min !== null ? testoNumeroMotore(min) : '…') + '-' + (max !== null ? testoNumeroMotore(max) : '…') + u + ')');
+      }
+    } else if (opz.rappresentante) {
+      const ok = c.tipo === 'menu'
+        ? opzioniMenuMotore(c).some(function(v1) { return v1.valore === String(x); })
+        : (x === true || x === false || x === 'si' || x === 'no');
+      if (!ok) problemi.push(c.etichetta + ': «' + x + '» non è tra i valori del menu');
+    }
+  });
+
+  // m² coerenti con larghezza × altezza (una porta o la quantità)
+  const l = numeroMotore(n.larghezza), h = numeroMotore(n.altezza);
+  if (l && h && !isNaN(l) && !isNaN(h) && l > 0 && h > 0) {
+    const unita = function(cod) {
+      const c = campi.find(function(x) { return x.codice === cod && x.tipo === 'numero'; });
+      return c ? c.unita : null;
+    };
+    const area = metriMotore(l, unita('larghezza')) * metriMotore(h, unita('altezza'));
+    let q = opz.quantita !== undefined && opz.quantita !== null ? Number(opz.quantita) : numeroMotore(n.quantita);
+    if (!q || isNaN(q) || q <= 0) q = 1;
+    campi.filter(function(c) {
+      return c.attivo !== false && c.tipo === 'numero' && ['m²', 'm2', 'mq', 'm^2'].includes(String(c.unita || '').trim().toLowerCase());
+    }).forEach(function(c) {
+      const m2 = numeroMotore(n[c.codice]);
+      if (m2 === null || isNaN(m2)) return;
+      const cambiate = cambiato(c.codice) || cambiato('larghezza') || cambiato('altezza') || cambiato('quantita') ||
+        (opz.quantita !== undefined && Number(opz.quantita) !== Number(opz.quantitaPrima));
+      if (!cambiate) return;
+      if (Math.abs(m2 - area) > Math.max(0.05, area * 0.1) && Math.abs(m2 - area * q) > Math.max(0.05, area * q * 0.1)) {
+        problemi.push(c.etichetta + ': ' + testoNumeroMotore(Math.round(m2 * 100) / 100) + ' m² non torna con larghezza × altezza (' +
+          testoNumeroMotore(Math.round(area * 100) / 100) + ' m²' +
+          (q !== 1 ? ', per ' + testoNumeroMotore(q) + ' = ' + testoNumeroMotore(Math.round(area * q * 100) / 100) + ' m²' : '') + ')');
+      }
+    });
+  }
+  return problemi;
+}
+
+// Prima di salvare le schede di rilievo (tutte: motore e le 7 di js/18).
+// elenco = [{ famiglia, numero, dati, prima }]. Rappresentante: blocca;
+// gli altri: conferma. Restituisce null (si salva) o { message } (fermo).
+function controlloSchedeRilievoPrimaDelSalvataggio(elenco) {
+  const rapp = typeof ROLE !== 'undefined' && ROLE === 'rappresentante';
+  const righe = [];
+  (elenco || []).forEach(function(e) {
+    const p = problemiPlausibilitaDati(e.famiglia, e.dati, e.prima, { rappresentante: rapp });
+    p.forEach(function(x) { righe.push(((elenco.length > 1 && e.numero) ? 'Scheda ' + e.numero + ' – ' : '') + x); });
+  });
+  if (!righe.length) return null;
+  if (rapp) return { message: righe.join('; ') + '. Ricontrolla i dati', code: 'plausibilita' };
+  const ok = confirm('Controlla questi dati:\n\n- ' + righe.join('\n- ') + '\n\nSono giusti? OK = salva lo stesso, Annulla = torno a correggere.');
+  return ok ? null : { message: 'salvataggio annullato: ricontrolla ' + righe[0], code: 'plausibilita_annullato' };
+}
+
+// Errore del salvataggio da mostrare (le regole di sql/78 hanno già il testo giusto)
+function testoErroreSchedaMotore(error) {
+  const m = String((error && error.message) || '');
+  if (/row-level security|permission denied/i.test(m)) {
+    return 'il database non lo permette (il rappresentante compila solo i suoi progetti in bozza o da integrare)';
+  }
+  return m || 'errore sconosciuto';
 }
 
 async function salvaSchedaMotore() {
@@ -497,10 +640,7 @@ async function salvaSchedaMotore() {
   try {
     const { error, salvate } = await salvaRigaSchedaRilievo(riga);
     if (error) {
-      const m = String(error.message || '');
-      toast('Scheda non salvata: ' + (/row-level security|permission denied/i.test(m) || error.code === '42501'
-        ? 'il database non lo permette (il rappresentante compila solo i suoi progetti in bozza o da integrare)'
-        : m), 'err');
+      toast('Scheda non salvata: ' + testoErroreSchedaMotore(error), 'err');
       return;
     }
     const mancanti = obbligatoriMancantiMotore(dati, lav);

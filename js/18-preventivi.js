@@ -1106,6 +1106,13 @@ async function salvaRigaSchedaRilievo(riga) {
     if (s && s.famiglia === riga.famiglia && s.datiOriginali) {
       riga.dati = conservaDatiFuoriModulo(riga.dati, s.datiOriginali);
     }
+    // F15.4 (js/56): misure fuori dal plausibile, campi dell'ingegnere
+    if (typeof controlloSchedeRilievoPrimaDelSalvataggio === 'function') {
+      const fermo = controlloSchedeRilievoPrimaDelSalvataggio([{
+        famiglia: riga.famiglia, dati: riga.dati, prima: (s && s.famiglia === riga.famiglia && s.datiOriginali) || {}
+      }]);
+      if (fermo) return { error: fermo, salvate: 0 };
+    }
     return db
       .from('progetti_tecnici_schede')
       .upsert(riga, { onConflict: 'progetto_tecnico_id,famiglia' });
@@ -1121,6 +1128,23 @@ async function salvaRigaSchedaRilievo(riga) {
 
   const numeri = Object.keys(s.bozze).map(Number).sort(function(a, b) { return a - b; });
   let salvate = 0;
+
+  // F15.4 (js/56): prima di salvare, tutte le schede del tipo modificate
+  if (typeof controlloSchedeRilievoPrimaDelSalvataggio === 'function') {
+    const fermo = controlloSchedeRilievoPrimaDelSalvataggio(numeri.map(function(numero) {
+      const salvataPrima = rigaSalvataSchedaRilievo(numero);
+      return {
+        famiglia: riga.famiglia,
+        numero: numero,
+        dati: conservaDatiFuoriModulo(s.bozze[numero].dati, salvataPrima && salvataPrima.dati),
+        prima: (salvataPrima && salvataPrima.dati) || {}
+      };
+    }));
+    if (fermo) {
+      s.modificata = true; // niente salvato: la chiusura chiede ancora conferma
+      return { error: fermo, salvate: 0 };
+    }
+  }
 
   for (const numero of numeri) {
     const bozza = s.bozze[numero];

@@ -3134,6 +3134,29 @@
       </div>
 
 
+      <h4 id="info-rap-27">27. 📏 Misure che non tornano e campi dell'ingegnere: cosa ti ferma</h4>
+
+      <p>
+        Quando salvi una scheda di rilievo o una posizione, il gestionale controlla le misure che hai scritto e ti ferma se qualcosa non è plausibile, così l'ingegnere e il commerciale non lavorano su un dato sbagliato.
+      </p>
+
+      <ul>
+        <li><b>Misure fuori dal plausibile</b>: ogni numero ha un minimo e un massimo nel catalogo (per una porta REI larghezza e altezza da 60 a 300 cm, quantità da 1 a 500 pz). Fuori da lì <b>💾 Salva scheda</b> non salva e ti dice quale dato ricontrollare.</li>
+        <li><b>m² e misure</b>: se una scheda chiede i m², devono tornare con larghezza × altezza (di un pezzo o di tutta la quantità), con un margine del 10%.</li>
+        <li><b>Campi 🎓</b> (per esempio "Indicazioni per preventivo e posa", "Note interne per il calcolo"): li scrive solo l'ingegnere. Tu li vedi; quello che ha scritto lui resta anche quando salvi.</li>
+        <li>Solo i dati con <b>*</b> servono a calcolare il preventivo e vanno compilati; tutti gli altri sono facoltativi.</li>
+        <li>Le misure già salvate prima non ti bloccano: si controlla solo quello che cambi.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Scrivi Larghezza "1000" invece di "100": premendo <b>💾 Salva scheda</b> compare "Larghezza: 1000 cm è fuori dal plausibile (60-300 cm)". Correggi in 100 e salva. Se la porta è davvero più grande (un portone), scrivilo nelle note e chiedi all'ingegnere: lui può salvare anche misure fuori dal plausibile.
+      </div>
+
+      <div class="al2 w">
+        Le stesse regole le applica anche il database (aggiornamento sql/78): non si aggirano. Finché il database non è aggiornato le controlla solo il sito.
+      </div>
+
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -6731,6 +6754,29 @@
       </div>
 
 
+      <h4 id="info-ing-21">21. 📏 Minimo e massimo plausibili, campi 🎓 e campi del prezzo</h4>
+
+      <p>
+        Dal <b>📚 Catalogo lavorazioni</b> decidi tu (con il titolare) quali dati servono al preventivo, quali sono tuoi e quali misure sono plausibili. Il gestionale usa queste regole quando si salva una scheda o una posizione.
+      </p>
+
+      <ul>
+        <li><b>Serve a calcolare il preventivo (obbligatorio)</b>: è la spunta del campo nel catalogo. Solo questi campi hanno <b>*</b> e vanno compilati (decisione di Toli); tutti gli altri sono facoltativi.</li>
+        <li><b>Minimo e massimo plausibili</b> dei numeri (porte REI: 60-300 cm): il rappresentante non salva una misura fuori; tu e il titolare sì, dopo una conferma ("Controlla questi dati... Sono giusti?"). Vale anche per le posizioni P-xx.</li>
+        <li><b>m²</b>: un campo in m² deve tornare con larghezza × altezza (di un pezzo o della quantità), con il 10% di margine.</li>
+        <li><b>Chi lo compila: Ingegnere</b> (🎓): il rappresentante non lo scrive e non lo cambia, nemmeno nelle posizioni. In tutte le schede sono tuoi anche "Indicazioni per preventivo e posa" e "Note interne per il calcolo".</li>
+        <li>Si controlla solo quello che cambia: un dato vecchio fuori misura non blocca chi corregge altro.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Un portone REI 120 da 400 cm: nella tua scheda scrivi Larghezza 400, premi Salva, alla domanda "Larghezza: 400 cm è fuori dal plausibile (60-300 cm). Sono giusti?" rispondi OK. Se i portoni grandi sono frequenti, alza il massimo nel <b>📚 Catalogo lavorazioni</b>.
+      </div>
+
+      <div class="al2 i">
+        Con l'aggiornamento del database sql/78 queste regole valgono anche nel database per il rappresentante (anche da console). Senza, le controlla solo il sito.
+      </div>
+
+
       <h4>Checklist veloce prima di chiudere la giornata</h4>
 
       <ul>
@@ -7743,7 +7789,7 @@
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:12px;margin:4px 0 8px">
       <label style="display:flex;gap:6px;align-items:center;font-size:13px;font-weight:400"><input type="checkbox" id="clc-normativo" style="width:auto"> Dato normativo</label>
-      <label style="display:flex;gap:6px;align-items:center;font-size:13px;font-weight:400"><input type="checkbox" id="clc-obbligatorio" style="width:auto"> Obbligatorio</label>
+      <label style="display:flex;gap:6px;align-items:center;font-size:13px;font-weight:400"><input type="checkbox" id="clc-obbligatorio" style="width:auto"> Serve a calcolare il preventivo (obbligatorio)</label>
       <label style="display:flex;gap:6px;align-items:center;font-size:13px;font-weight:400"><input type="checkbox" id="clc-posizione" style="width:auto"> Per posizione (P-01, P-02...)</label>
     </div>
     <div class="f"><label>Uso a valle * (quale calcolo o documento lo usa)</label><textarea id="clc-uso" rows="2" maxlength="500" placeholder="Es. Quantità per il preventivo; dichiarazione di corretta posa"></textarea></div>

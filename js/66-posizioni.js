@@ -245,7 +245,8 @@ async function ridisegnaPosizioni(contenitore) {
 
 function erroreScritturaPosizione(error) {
   const m = String((error && error.message) || '');
-  if (/row-level security|permission denied|42501/i.test(m) || (error && error.code === '42501')) {
+  // F15.4: le regole di sql/78 (campi dell'ingegnere, misure) hanno già il loro testo
+  if (/row-level security|permission denied/i.test(m) || (error && error.code === '42501' && !/ingegnere|commerciale|plausibile/i.test(m))) {
     return 'Non puoi cambiare le posizioni di questo progetto (il rappresentante solo sui suoi progetti in bozza o da integrare)';
   }
   return m || 'errore sconosciuto';
@@ -285,25 +286,27 @@ async function apriPosizione(id, contenitore) {
   ge('pos-campi').innerHTML = campi.map(function(c) {
     const idc = 'pos-c-' + c.codice;
     const val = d[c.codice];
-    const etich = esc(c.etichetta) + (c.unita ? ' (' + esc(c.unita) + ')' : '');
+    const etich = esc(c.etichetta) + (c.unita ? ' (' + esc(c.unita) + ')' : '') + (c.livello === 'ingegnere' ? ' 🎓' : '');
     if (c.tipo === 'menu' || c.tipo === 'si_no') {
       const opz = c.tipo === 'si_no'
         ? [{ valore: 'si', etichetta: 'Sì' }, { valore: 'no', etichetta: 'No' }]
         : (c.valori_ammessi || []);
       const presente = val === undefined || val === null || val === '' || opz.some(function(o) { return o.valore === val; });
-      return `<div class="f"><label for="${idc}">${etich}</label><select id="${idc}">
+      return `<div class="f"><label for="${idc}">${etich}</label><select id="${idc}" data-livello="${esc(c.livello || 'base')}">
         <option value="">Seleziona</option>
         ${opz.map(function(o) { return '<option value="' + esc(o.valore) + '"' + (o.valore === val ? ' selected' : '') + '>' + esc(o.etichetta) + '</option>'; }).join('')}
         ${presente ? '' : '<option value="' + esc(val) + '" selected>' + esc(val) + ' (non più in elenco)</option>'}
       </select></div>`;
     }
     const valore = c.tipo === 'numero' ? testoNumeroPosizione(val) : (val || '');
-    return `<div class="f"><label for="${idc}">${etich}</label><input id="${idc}" ${c.tipo === 'numero' ? 'inputmode="decimal"' : 'maxlength="200"'} value="${esc(valore)}"></div>`;
+    return `<div class="f"><label for="${idc}">${etich}</label><input id="${idc}" data-livello="${esc(c.livello || 'base')}" ${c.tipo === 'numero' ? 'inputmode="decimal"' : 'maxlength="200"'} value="${esc(valore)}"></div>`;
   }).join('');
 
   disegnaFotoPosizione();
   ['pos-ubicazione', 'pos-quantita', 'pos-larghezza', 'pos-altezza', 'pos-note'].forEach(function(x) { ge(x).disabled = !scrive; });
-  ge('pos-campi').querySelectorAll('input,select').forEach(function(el) { el.disabled = !scrive; });
+  ge('pos-campi').querySelectorAll('input,select').forEach(function(el) {
+    el.disabled = !scrive || (ROLE === 'rappresentante' && el.dataset.livello === 'ingegnere'); // F15.4: campo dell'ingegnere
+  });
   ge('pos-salva').style.display = scrive ? '' : 'none';
   ge('pos-togli').style.display = scrive && p ? '' : 'none';
   ge('pos-foto-riga').style.display = scrive && p ? '' : 'none';
@@ -408,6 +411,7 @@ async function salvaPosizione() {
   for (const c of campiCatalogoPosizione(a.ctx.famiglia)) {
     const el = ge('pos-c-' + c.codice);
     if (!el) continue;
+    if (c.livello === 'ingegnere' && ROLE === 'rappresentante') continue; // resta il valore dell'ingegnere
     let val = String(el.value || '').trim();
     if (c.tipo === 'numero' && val) {
       const n = numeroPosizione(val);
@@ -417,6 +421,17 @@ async function salvaPosizione() {
     if (val === '' || val === null) delete dati[c.codice]; else dati[c.codice] = val;
   }
   const riga = { ubicazione: String(v('pos-ubicazione') || '').trim() || null, quantita: quantita, dati: dati };
+  // F15.4 (js/56): misure fuori dal plausibile e m² = L × H. Rappresentante:
+  // si ferma (con sql/78 anche il database); ingegnere e titolare: conferma.
+  if (typeof problemiPlausibilitaDati === 'function') {
+    const prima = a.riga || {};
+    const problemi = problemiPlausibilitaDati(a.ctx.famiglia, dati, prima.dati || {},
+      { quantita: quantita, quantitaPrima: prima.quantita, rappresentante: ROLE === 'rappresentante' });
+    if (problemi.length) {
+      if (ROLE === 'rappresentante') { toast(problemi.join('; ') + '. Ricontrolla i dati', 'err'); return; }
+      if (!confirm('Controlla questi dati:\n\n- ' + problemi.join('\n- ') + '\n\nSono giusti? OK = salva lo stesso.')) return;
+    }
+  }
   const btn = ge('pos-salva');
   btn.disabled = true;
   try {
