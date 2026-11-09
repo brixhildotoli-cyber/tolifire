@@ -281,7 +281,7 @@ blocco dell'invio da bozza/da integrare). progetti_tecnici_schede: trigger
 NUOVO trg_progetti_tecnici_schede_fonti (voci di dati.fonti_normative).
 Registro delle azioni: quello di sql/67, già sulle due tabelle.
 Dopo sql/80 (F15.6 migrazione schede: porte REI, estintori, rilevazione
-incendi, DA ESEGUIRE, richiede 07, 71, 75, 77, 78; provato il 09/11 sul
+incendi, ESEGUITO il 09/11 (backup pre80, dal server MCP), richiede 07, 71, 75, 77, 78; provato il 09/11 sul
 backup pre79 + 79 + 80): nessuna tabella nuova, nessuna policy nuova.
 lavorazioni_campi (dati): 8 campi nuovi degli estintori e 31 della
 rilevazione incendi con codice = chiave di progetti_tecnici_schede.dati
@@ -1266,7 +1266,7 @@ commesse_storico, che dal backup pre77 hanno una riga vera); rollback
 provato (schema identico). Senza sql/79: nessuna fonte, nessun blocco,
 nessun errore (una chiamata RPC 404).
 Dopo sql/80 (F15.6 migrazione nel catalogo delle schede scritte a mano di
-porte REI, estintori e rilevazione incendi, DA ESEGUIRE: backup, anteprima in
+porte REI, estintori e rilevazione incendi, ESEGUITO il 09/11 (backup pre80, dal server MCP, controllo in regola): backup, anteprima in
 fondo al file (chiavi_senza_campo atteso vuoto), 80-migrazione-schede.sql
 (senza parole di cancellazione, server MCP), poi il controllo in fondo;
 nessun file -REGISTRO-CANCELLAZIONI (nessuna tabella nuova); richiede 07, 71,
