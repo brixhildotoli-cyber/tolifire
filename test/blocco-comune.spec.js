@@ -312,6 +312,8 @@ const chiudiScheda = s => s.page.evaluate(() => { if (schedaRilievoAperta) { sch
   if (!riga) fermati('serve un progetto in bozza di un rappresentante senza schede');
   const [progettoId, statoPartenza, rapId, fontePartenza] = riga.split('|');
   const inizio = psql('select now()');
+  // F15.9: foto e video obbligatori (sql/82-foto-video) li prova foto-video.spec.js: qui spenti, poi riaccesi
+  const docSpenti = psql("update public.lavorazioni_documenti set attivo = false where attivo returning id").split('\n').filter(x => /^\d+$/.test(x));
   // Allegato (regola di js/17), fonte del rilievo e foto della targhetta (sql/79): qui non si prova la fonte
   psql("update public.progetti_tecnici set fonte_rilievo = 'sopralluogo_toli' where id = " + q(progettoId));
   psql("insert into public.progetti_tecnici_allegati (progetto_id, nome_file, storage_path, mime_type, dimensione, caricato_da) values (" +
@@ -441,6 +443,7 @@ const chiudiScheda = s => s.page.evaluate(() => { if (schedaRilievoAperta) { sch
       psql('update public.progetti_tecnici set stato = ' + q(statoPartenza) + ', fonte_rilievo = ' + (fontePartenza ? q(fontePartenza) : 'null') + ' where id = ' + q(progettoId));
       psql("delete from public.progetti_tecnici_schede where progetto_tecnico_id = " + q(progettoId) + " and creato_il >= " + q(inizio));
       psql("delete from public.progetti_tecnici_allegati where progetto_id = " + q(progettoId) + " and caricato_il >= " + q(inizio));
+      if (docSpenti.length) psql('update public.lavorazioni_documenti set attivo = true where id in (' + docSpenti.join(',') + ')');
     } catch (e) { console.error('pulizia: ' + e.message); }
   }
   righe.forEach(x => console.log(x));

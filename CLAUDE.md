@@ -308,6 +308,23 @@ entro_il data AAAA-MM-GG, entro_motivo menu, accessi, orari); la scheda comune
 è una riga di progetti_tecnici_schede famiglia 'comune' numero 1. Trigger NUOVI
 trg_progetti_tecnici_invio_completo (progetti_tecnici) e
 trg_commesse_rilievo_comune (commesse, BEFORE INSERT).
+Dopo sql/82-foto-video (F15.9 foto e video, DA ESEGUIRE: prima si PUBBLICA il
+sito, poi backup, anteprima, 82-foto-video.sql (senza parole di
+cancellazione, server MCP), controllo, 82-foto-video-VINCOLO.sql dall'EDITOR
+(drop e add del vincolo del tipo), di nuovo il controllo; richiede 07, 71,
+75-79; stesso numero 82 di F15.8, dato due volte dal piano: si cita per nome
+intero): nessuna tabella nuova. progetti_tecnici_allegati: colonna NUOVA
+impronta (SHA-256 del file originale, 64 esadecimali, indice UNICO
+progetti_tecnici_allegati_impronta_unica per progetto, obbligatoria sui file
+nuovi del sito, fissa; i file di prima senza) e, con il -VINCOLO,
+progetti_tecnici_allegati_mime_type_check con video/mp4 e video/quicktime.
+Bucket progetti-tecnici: 50 MB (prima 10) e i due tipi video.
+lavorazioni_documenti (dati): 7 righe "Foto d'insieme del luogo dei lavori" (2
+foto) e 5 "Video del luogo dei lavori (720p, massimo 2 minuti)" (porte REI,
+compartimentazione, vernice, rilevazione, spegnimento). Nella scheda
+dati.foto_video.<id riga del catalogo> = { allegati, mancanza }. Trigger NUOVI
+trg_progetti_tecnici_allegati_impronta, trg_progetti_tecnici_schede_foto_video,
+trg_progetti_tecnici_posizioni_foto, trg_progetti_tecnici_invio_foto_video.
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -1487,6 +1504,89 @@ sql/82; rollback provato (schema identico; campi comune "tolti", lavorazione
 spenta; rieseguito il file: campi di nuovo attivi). Senza sql/82: nessun
 riquadro, controlli di invio solo nel sito, nessun errore (una chiamata RPC
 404).
+Dopo sql/82-foto-video (F15.9 foto e video delle schede di rilievo, DA
+ESEGUIRE; numero 82 dato dal piano anche a F15.8: il file si chiama sempre
+"sql/82-foto-video"). ORDINE: 1) PUBBLICARE il sito (dopo il file il database
+vuole l'impronta su ogni file nuovo dei progetti: il sito vecchio non la manda,
+"Manca l'impronta del file: ricarica la pagina"); 2) backup, anteprima in
+fondo, 82-foto-video.sql (senza parole di cancellazione, server MCP),
+controllo in fondo (video_ammessi false); 3) 82-foto-video-VINCOLO.sql
+dall'EDITOR SQL (toglie e rimette progetti_tecnici_allegati_mime_type_check
+con video/mp4 e video/quicktime), controllo (video_ammessi true). Nessun
+-REGISTRO-CANCELLAZIONI (nessuna tabella nuova), matrice invariata; richiede
+07, 71, 75, 76, 77, 78, 79 (si ferma senza), non 80-81 né 82-blocco.
+RPC del sito: foto_video_attivi() (esiste = file eseguito; true = i video si
+caricano, cioè -VINCOLO eseguito), foto_video_mancanti_progetto(p_progetto)
+(SECURITY INVOKER: righe scheda_id, scheda, campo 'documento_<id>', etichetta,
+motivo; vuota = si invia; vuota con fonte del rilievo misure_dichiarate; righe
+"per posizione" = ogni posizione P-xx non tolta; video non contati senza il
+-VINCOLO). Funzioni: mime_adatto_documento(mime, tipo) (foto = image/*, video
+= video/*), motivo_foto_mancante(motivo) (etichetta o null: cliente_non_autorizza,
+area_riservata, non_raggiungibile, opera_da_realizzare, rilievo_da_documenti,
+altro con nota), interne uso_file_progetto (dove è già usato un file: posizione
+non tolta o voce di una scheda) e i 4 trigger (security definer, editor
+libero): trg_progetti_tecnici_allegati_impronta (impronta minuscola,
+obbligatoria per gli utenti del sito sugli insert, fissa, doppione nello stesso
+progetto = 23505 "Questo file è già tra i file del progetto («...»): la stessa
+foto non vale per due posizioni"), trg_progetti_tecnici_schede_foto_video
+(voci di dati.foto_video scritte o cambiate: solo rappresentante, ingegnere,
+titolare, 42501 anche per Acquisti con la policy "commerciale aggiorna rilievi
+tecnici" e titolare "come" Acquisti; riga del catalogo della lavorazione; file
+del progetto, del tipo giusto, non già in un'altra voce, scheda o posizione;
+nome/percorso/mime dal database; mancanza con motivo dalla lista, "altro" con
+nota, chi e quando dal database (restano se motivo e nota non cambiano); voce
+vuota tolta; upsert del sito nel ramo update), trg_progetti_tecnici_posizioni_foto
+(foto nuove di una posizione: file del progetto, immagine o video, non già in
+un'altra posizione non tolta o in una voce di scheda),
+trg_progetti_tecnici_invio_foto_video (BEFORE UPDATE OF stato, da bozza o da
+integrare verso in_verifica_tecnica, inviato_a_commerciale,
+pronto_per_preventivo: 22023 "Invio bloccato, foto e video mancanti: ...";
+scatta dopo trg_progetti_tecnici_invio_completo). Nel sito: js/56 (in fondo,
+F15.9) verificaFotoVideoDisponibile, improntaFileProgetto (crypto.subtle,
+file ORIGINALE), preparaFileProgetto (foto oltre 1,2 MB rimpicciolite con
+ridimensionaFotoGiornale di js/35, video fino a 50 MB, il resto 10 MB),
+caricaFileNelProgetto(progetto, utente, file, {cartella, prefisso}) = UNICA
+strada per caricare un file del progetto (prima controlla l'impronta:
+{doppione}), usata da js/17 salvaProgetto e caricaAllegatiDaVerifica (doppioni
+saltati con l'elenco), js/66 caricaFotoPosizione (doppione = rifiuto) e dalle
+fonti dei dati (doppione = si usa quel file); preparaInputVideoProgetto (accept
+e nota "🎥 Video mp4 o mov fino a 50 MB: registra in 720p, massimo 2 minuti",
+.fv-video-nota in index.html, chiamata all'apertura delle finestre del
+progetto e della verifica); riquadro "📷 Foto e video" in fondo alla scheda del
+motore (msm-foto-video, voci msm-fv-<id>: "x di N", file con 👁 Apri e ✖,
+"📷 Scatta o scegli le foto" / "🎥 Registra o scegli il video" con capture,
+"🚫 Non fotografabile" / "🚫 Video impossibile" msm-fvm-<id> con la nota
+msm-fvn-<id>, "Segnato da ... il ..."; si salva con 💾 Salva scheda,
+scriviFotoVideoNeiDatiMotore; un file già del progetto si può riusare con
+conferma), avviso dopo il salvataggio "Mancano foto o video",
+controllaFotoVideoPrimaDellInvio chiamata dagli invii di js/17 dopo le fonti e
+i dati del prezzo; js/17 fileProgettoValido con mp4/mov solo con il
+-VINCOLO. SCELTE DA CONFERMARE DA TOLI: 2 foto per scheda e 1 video nelle 5
+lavorazioni come valori di partenza (si cambiano dal catalogo); impronta del
+file originale (un altro scatto è un file diverso); "stessa foto" vale per
+tutto il progetto, anche PDF e documenti (le fonti possono riusare un file già
+usato da una foto richiesta); blocco solo all'invio del rappresentante;
+progetti aperti con schede: al prossimo invio chiedono foto e video o il
+motivo; motivi della lista. Guide info-rap-30, info-ing-25. Prove:
+sql/82-foto-video-PROVA.sql (solo database di prova, rollback: file senza
+impronta rifiutato, doppione rifiutato, stessa foto su un altro progetto
+ammessa, impronta fissa, video mp4 40 MB e mov ammessi, webm rifiutato, invio
+senza foto rifiutato anche al titolare "come" rappresentante, immagine come
+video, stesso file due volte, file di un altro progetto, voce inventata,
+Acquisti e titolare "come" Acquisti rifiutati, tecnico zero righe, stessa foto
+su due posizioni e tra posizione e scheda, PDF come foto, invio con foto,
+motivo inventato, "altro" senza nota, chi e quando dal database, misure
+dichiarate, per posizione, editor libero); 79 e 82-blocco -PROVA spengono le
+righe di lavorazioni_documenti nella loro transazione; test/foto-video.spec.js
+(Chrome headless: rappresentante a 390 px senza foto fermato da sito e console,
+2 foto e video mp4 di 40 MB salvati con l'impronta, stessa foto su P-01 e P-02
+rifiutata dal sito e dalla console, inviato; console di Acquisti rifiutata;
+ingegnere a 390 px "Video impossibile: Area riservata" con nota;
+FOTO_VIDEO_SENZA_SQL=1 dopo il rollback); blocco-comune e motore-schede-fonti
+spengono le righe del catalogo durante la prova; rollback provato (schema
+identico; righe del catalogo spente; rieseguito il file: righe di nuovo
+attive). Senza sql/82-foto-video: niente impronta, niente video, niente
+riquadro né blocco, nessun errore (una chiamata RPC 404).
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),

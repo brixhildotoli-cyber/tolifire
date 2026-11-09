@@ -723,7 +723,8 @@ function titoloSchedaRilievo(scheda, schede, quanteStesse) {
 function campoSchedaDaElencare(chiave) {
   // F15.3: sede_id (motore delle schede) serve solo a riproporre la sede
   // F15.5: le fonti dei dati normativi (sql/79) si leggono sotto il loro dato
-  return chiave !== 'nome_scheda' && chiave !== 'sede_id' && chiave !== 'fonti_normative';
+  // F15.9: foto e video della scheda (sql/82-foto-video) sono file, non dati
+  return chiave !== 'nome_scheda' && chiave !== 'sede_id' && chiave !== 'fonti_normative' && chiave !== 'foto_video';
 }
 
 // F15.3: salvando, i dati della scheda che il modulo aperto non ha (scritti

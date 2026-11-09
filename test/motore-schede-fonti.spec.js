@@ -313,6 +313,8 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
   if (!riga) fermati('serve un progetto in bozza di un rappresentante senza schede');
   const [progettoId, statoPartenza, rapId] = riga.split('|');
   const inizio = psql('select now()');
+  // F15.9: foto e video obbligatori (sql/82-foto-video) li prova foto-video.spec.js: qui spenti, poi riaccesi
+  const docSpenti = psql("update public.lavorazioni_documenti set attivo = false where attivo returning id").split('\n').filter(x => /^\d+$/.test(x));
   // un allegato qualunque: senza, "Invia" si ferma prima (regola di js/17)
   psql("insert into public.progetti_tecnici_allegati (progetto_id, nome_file, storage_path, mime_type, dimensione, caricato_da) values (" +
     q(progettoId) + ", 'planimetria_prova.pdf', " + q(rapId + '/' + progettoId + '/planimetria_prova.pdf') + ", 'application/pdf', 1000, " + q(rapId) + ")");
@@ -527,6 +529,7 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
       psql('update public.progetti_tecnici set stato = ' + q(statoPartenza) + (SENZA ? '' : ', fonte_rilievo = null') + ' where id = ' + q(progettoId));
       psql("delete from public.progetti_tecnici_schede where progetto_tecnico_id = " + q(progettoId) + " and creato_il >= " + q(inizio));
       psql("delete from public.progetti_tecnici_allegati where progetto_id = " + q(progettoId) + " and caricato_il >= " + q(inizio));
+      if (docSpenti.length) psql('update public.lavorazioni_documenti set attivo = true where id in (' + docSpenti.join(',') + ')');
     } catch (e) { console.error('pulizia: ' + e.message); }
   }
   righe.forEach(x => console.log(x));

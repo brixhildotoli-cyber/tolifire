@@ -71,10 +71,26 @@ function fileProgettoValido(file) {
 
   const estensioniAmmesse = ['pdf', 'jpg', 'jpeg', 'png', 'dwg'];
 
+  // F15.9: video mp4 e mov (solo con sql/82-foto-video e il suo -VINCOLO, js/56)
+  if (typeof videoProgettoAmmesso === 'function' && videoProgettoAmmesso()) {
+    tipiAmmessi.push('video/mp4', 'video/quicktime');
+    estensioniAmmesse.push('mp4', 'mov');
+  }
+
   const estensione = file.name.split('.').pop().toLowerCase();
 
   return tipiAmmessi.includes(file.type) ||
     estensioniAmmesse.includes(estensione);
+}
+
+// F15.9: limite per file (video 50 MB, il resto 10 MB) e testo del formato
+function limiteFileProgettoSito(file) {
+  return typeof limiteFileProgetto === 'function' ? limiteFileProgetto(file) : 10 * 1024 * 1024;
+}
+
+function testoFormatiProgetto() {
+  return 'PDF, JPG/JPEG, PNG o DWG' +
+    (typeof videoProgettoAmmesso === 'function' && videoProgettoAmmesso() ? ' (video MP4 o MOV fino a 50 MB)' : '');
 }
 
 async function caricaAllegatiProgetto(progettoId) {
@@ -448,6 +464,7 @@ async function apriNuovoProgetto() {
   preparaBozzaProgetto(null);
 
   openM('m-progetto');
+  if (typeof preparaInputVideoProgetto === 'function') preparaInputVideoProgetto(); // F15.9
 }
 
 async function modificaProgetto(id) {
@@ -476,6 +493,7 @@ async function modificaProgetto(id) {
   preparaBozzaProgetto(id);
 
   openM('m-progetto');
+  if (typeof preparaInputVideoProgetto === 'function') preparaInputVideoProgetto(); // F15.9
 }
 
 async function salvaProgetto() {
@@ -519,13 +537,19 @@ async function salvaProgetto() {
       return;
     }
 
+    if (typeof verificaFotoVideoDisponibile === 'function') await verificaFotoVideoDisponibile(); // F15.9
+
     if (files.some(function(file) { return !fileProgettoValido(file); })) {
-      toast('Formato non valido: carica solo PDF, JPG/JPEG, PNG o DWG', 'err');
+      toast('Formato non valido: carica solo ' + testoFormatiProgetto(), 'err');
       return;
     }
 
-    if (files.some(function(file) { return file.size > 10 * 1024 * 1024; })) {
-      toast('Un file supera il limite di 10 MB', 'err');
+    // Le foto oltre 1,2 MB si rimpiccioliscono al caricamento (F15.9): qui
+    // si fermano solo i video oltre 50 MB e gli altri file oltre 10 MB
+    if (files.some(function(file) {
+      return file.size > limiteFileProgettoSito(file) && !/^image\/(jpeg|png)$/i.test(file.type || '');
+    })) {
+      toast('Un file supera il limite (video 50 MB, altri file 10 MB)', 'err');
       return;
     }
 
@@ -635,50 +659,18 @@ const authUserId = authData.user.id;
       cancellaBozzaProgetto(chiaveBozzaProgetto(null, currentCliId));
     }
 
-  const utenteStorageId = authUserId;
-
-    for (const file of files) {
-  const nomeSicuro = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-
-  const path =
-    utenteStorageId + '/' +
-    progettoId + '/' +
-    Date.now() + '_' +
-    nomeSicuro;
-
-  const tipoFile = /\.dwg$/i.test(file.name)
-    ? 'application/acad'
-    : file.type;
-
-  const { error: erroreUpload } = await db.storage
-    .from('progetti-tecnici')
-    .upload(path, file, {
-      contentType: tipoFile,
-      upsert: false
-    });
-
-  if (erroreUpload) {
-    toast('Caricamento file non riuscito: ' + erroreUpload.message, 'err');
-    return;
+  // F15.9 (js/56 caricaFileNelProgetto): foto rimpicciolite, impronta del
+  // file con sql/82-foto-video; la stessa foto già nel progetto si salta
+  const fileSaltati = [];
+  for (const file of files) {
+    const caricato = await caricaFileNelProgetto(progettoId, authUserId, file, {});
+    if (caricato.doppione) { fileSaltati.push(caricato.errore); continue; }
+    if (!caricato.alleg) {
+      toast(caricato.errore, 'err');
+      return;
+    }
   }
-
-  const { error: erroreAllegato } = await db
-    .from('progetti_tecnici_allegati')
-    .insert({
-      progetto_id: progettoId,
-      nome_file: file.name,
-      storage_path: path,
-      mime_type: tipoFile,
-      dimensione: file.size,
-      caricato_da: authUserId
-    });
-
-  if (erroreAllegato) {
-    await db.storage.from('progetti-tecnici').remove([path]);
-    toast('Errore salvataggio allegato: ' + erroreAllegato.message, 'err');
-    return;
-  }
-}
+  if (fileSaltati.length) alert('Non caricati (già tra i file del progetto):\n\n- ' + fileSaltati.join('\n- '));
 
     cancellaBozzaProgetto(chiaveBozzaProgetto(id || null, currentCliId));
     chiaveBozzaProgettoAperta = null;
@@ -787,6 +779,10 @@ async function inviaProgettoAUfficioTecnico(progettoId) {
   }
   // F15.8: dati che servono al prezzo (D2: solo quelli), js/56 e sql/82
   if (typeof controllaDatiPrimaDellInvio === 'function' && !(await controllaDatiPrimaDellInvio(progettoId))) {
+    return;
+  }
+  // F15.9: foto e video richiesti dal catalogo, js/56 e sql/82-foto-video
+  if (typeof controllaFotoVideoPrimaDellInvio === 'function' && !(await controllaFotoVideoPrimaDellInvio(progettoId))) {
     return;
   }
 
@@ -981,6 +977,14 @@ async function inviaProgettoAlCommerciale(progettoId) {
     const { data: attuale } = await db.from('progetti_tecnici').select('stato').eq('id', progettoId).maybeSingle();
     if ((!attuale || ['bozza', 'da_integrare'].includes(attuale.stato)) &&
         !(await controllaDatiPrimaDellInvio(progettoId))) {
+      return;
+    }
+  }
+  // F15.9: foto e video richiesti dal catalogo (solo da bozza o da integrare), js/56 e sql/82-foto-video
+  if (typeof controllaFotoVideoPrimaDellInvio === 'function') {
+    const { data: attuale } = await db.from('progetti_tecnici').select('stato').eq('id', progettoId).maybeSingle();
+    if ((!attuale || ['bozza', 'da_integrare'].includes(attuale.stato)) &&
+        !(await controllaFotoVideoPrimaDellInvio(progettoId))) {
       return;
     }
   }
@@ -3475,6 +3479,7 @@ async function apriProgettoDaElenco(id) {
   await caricaAllegatiProgetto(progetto.id);
 
   openM('m-progetto');
+  if (typeof preparaInputVideoProgetto === 'function') preparaInputVideoProgetto(); // F15.9
 }
 
 async function apriVerificaTecnica(progettoId) {
@@ -3522,6 +3527,7 @@ if (ge('mvt-allegati')) {
   }
 
   openM('m-verifica-tecnica');
+  if (typeof preparaInputVideoProgetto === 'function') preparaInputVideoProgetto(); // F15.9
 }
 
 async function salvaEsitoVerifica(nuovoStato) {
@@ -3639,12 +3645,14 @@ async function caricaAllegatiDaVerifica(progettoId) {
 
   if (!files.length) return;
 
+  if (typeof verificaFotoVideoDisponibile === 'function') await verificaFotoVideoDisponibile(); // F15.9
+
   if (files.some(file => !fileProgettoValido(file))) {
-    throw new Error('Puoi caricare solo PDF, JPG/JPEG o PNG');
+    throw new Error('Puoi caricare solo ' + testoFormatiProgetto());
   }
 
-  if (files.some(file => file.size > 10 * 1024 * 1024)) {
-    throw new Error('Un file supera il limite di 10 MB');
+  if (files.some(file => file.size > limiteFileProgettoSito(file) && !/^image\/(jpeg|png)$/i.test(file.type || ''))) {
+    throw new Error('Un file supera il limite (video 50 MB, altri file 10 MB)');
   }
 
   const { data: authData, error: authError } = await db.auth.getUser();
@@ -3655,42 +3663,9 @@ async function caricaAllegatiDaVerifica(progettoId) {
 
   const utenteId = authData.user.id;
 
+  // F15.9 (js/56 caricaFileNelProgetto): foto rimpicciolite, impronta del file
   for (const file of files) {
-    const nomeSicuro = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-
-    const path =
-      utenteId + '/' +
-      progettoId + '/' +
-      Date.now() + '_' +
-      nomeSicuro;
-
-      const tipoFile = /\.dwg$/i.test(file.name)
-  ? 'application/acad'
-  : file.type;
-
-    const { error: erroreUpload } = await db.storage
-      .from('progetti-tecnici')
-      .upload(path, file, {
-        contentType: tipoFile,
-        upsert: false
-      });
-
-    if (erroreUpload) throw erroreUpload;
-
-    const { error: erroreAllegato } = await db
-      .from('progetti_tecnici_allegati')
-      .insert({
-        progetto_id: progettoId,
-        nome_file: file.name,
-        storage_path: path,
-        mime_type: tipoFile,
-        dimensione: file.size,
-        caricato_da: utenteId
-      });
-
-    if (erroreAllegato) {
-      await db.storage.from('progetti-tecnici').remove([path]);
-      throw erroreAllegato;
-    }
+    const caricato = await caricaFileNelProgetto(progettoId, utenteId, file, {});
+    if (!caricato.alleg) throw new Error(caricato.errore);
   }
 }

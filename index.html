@@ -3218,6 +3218,33 @@
       </div>
 
 
+      <h4 id="info-rap-30">30. 📷 Foto e video della scheda: quante, il video e "non fotografabile"</h4>
+
+      <p>
+        In fondo alla scheda di rilievo (<b>📝 Rilievi tecnici</b> → <b>📝 Compila la scheda</b>) c'è il riquadro <b>📷 Foto e video</b>: sono le foto e i video che il catalogo chiede per quella lavorazione (per partire: <b>2 foto d'insieme</b> del luogo dei lavori in ogni scheda e <b>1 video</b> per porte REI, compartimentazione, vernice intumescente, rilevazione incendi e spegnimento). Accanto a ognuno vedi quanti ne hai (<b>1 di 2</b>) e cosa manca.
+      </p>
+
+      <ul>
+        <li><b>📷 Scatta o scegli le foto</b>: dal telefono si apre la fotocamera. Le foto grandi si rimpiccioliscono da sole, non serve fare niente.</li>
+        <li><b>🎥 Registra o scegli il video</b>: mp4 o mov fino a <b>50 MB</b>. <b>Registra in 720p, massimo 2 minuti</b> (sull'iPhone: Impostazioni → Fotocamera → Registra video → 720p). Un video di 40 MB si carica, oltre 50 MB no.</li>
+        <li>I file vanno subito tra i file del progetto, ma restano legati alla scheda solo quando premi <b>💾 Salva scheda</b>. <b>✖</b> toglie il file dalla voce (resta tra i file del progetto), <b>👁 Apri</b> lo guarda.</li>
+        <li><b>La stessa foto non vale due volte</b>: il gestionale riconosce il file (anche se lo scegli di nuovo dalla galleria) e lo rifiuta se è già nel progetto, in un'altra voce o in un'altra posizione P-xx. Ogni porta, ogni attraversamento ha la sua foto.</li>
+        <li>Se la foto o il video non si possono fare, scegli il motivo in <b>🚫 Non fotografabile</b> / <b>🚫 Video impossibile</b>: il cliente non autorizza, area riservata, punto non raggiungibile in sicurezza, opera ancora da realizzare, nessun sopralluogo (rilievo dai documenti), oppure <b>Altro</b> scrivendo il motivo nella nota.</li>
+        <li>Con la fonte del rilievo <b>Misure dichiarate dal cliente</b> foto e video non sono obbligatori.</li>
+      </ul>
+
+      <p>
+        Quando premi <b>🔧 Invia a ufficio tecnico</b> o <b>📤 Invia ad Acquisti</b>, se manca una foto o il video (e non c'è il motivo) il gestionale ti elenca cosa manca, scheda per scheda, e il progetto non parte.
+      </p>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Sopralluogo per 4 porte REI in un'azienda alimentare: fai le 2 foto d'insieme del corridoio con <b>📷 Scatta o scegli le foto</b>, ma nel reparto produzione non si può filmare. Nel video scegli <b>🚫 Video impossibile: Area riservata</b> e scrivi "reparto produzione, vietato filmare". <b>💾 Salva scheda</b> e <b>📤 Invia ad Acquisti</b>: parte. Se per sbaglio scegli due volte la stessa foto dalla galleria, il gestionale ti dice "è già tra i file del progetto".
+      </div>
+
+      <div class="al2 w">
+        Il riquadro, il controllo delle foto doppie e i video compaiono dopo l'aggiornamento del database sql/82-foto-video. Prima tutto resta come oggi (foto e PDF fino a 10 MB).
+      </div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -6950,6 +6977,28 @@
       </div>
 
 
+      <h4 id="info-ing-25">25. 📷 Foto e video richiesti dalle lavorazioni</h4>
+
+      <p>
+        Le foto e i video che ogni scheda deve avere si decidono nel <b>📚 Catalogo lavorazioni</b>, sezione <b>Foto e documenti</b> della lavorazione: tipo (foto, video, documento), quanti, obbligatorio, <b>per posizione</b> (uno per ogni P-xx). Si parte con 2 foto d'insieme per ogni scheda e 1 video per porte REI, compartimentazione, vernice intumescente, rilevazione incendi e spegnimento: cambiale tu se servono altre foto (per esempio "foto della targhetta" per posizione).
+      </p>
+
+      <ul>
+        <li>Nella scheda del motore il riquadro <b>📷 Foto e video</b> mostra per ogni voce i file caricati e quanti ne mancano; puoi caricarli anche tu (<b>📷 Scatta o scegli le foto</b>, <b>🎥 Registra o scegli il video</b>, mp4 o mov fino a 50 MB, 720p, massimo 2 minuti).</li>
+        <li>"<b>🚫 Non fotografabile</b>" / "<b>🚫 Video impossibile</b>" si scelgono dalla lista dei motivi; sotto vedi chi l'ha segnato e quando (lo scrive il database).</li>
+        <li>Lo stesso file non vale per due voci o due posizioni: il gestionale riconosce la foto dall'impronta del file e la rifiuta anche se arriva da console.</li>
+        <li>Il blocco vale all'invio del rappresentante (da bozza o da integrare); quando il progetto è da te in verifica non ti ferma.</li>
+        <li>Nella verifica tecnica puoi allegare anche video (mp4, mov) tra gli allegati aggiuntivi.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Per le porte REI vuoi una foto di ogni porta: nel catalogo, Porte e portoni REI → Foto e documenti, aggiungi "Foto della porta con il metro", tipo foto, quanti 1, <b>per posizione</b>. Da quel momento ogni posizione P-xx senza foto ferma l'invio del rappresentante.
+      </div>
+
+      <div class="al2 w">
+        Tutto questo compare dopo l'aggiornamento del database sql/82-foto-video (i video dopo il suo secondo file, -VINCOLO).
+      </div>
+
       <h4>Checklist veloce prima di chiudere la giornata</h4>
 
       <ul>
@@ -7060,7 +7109,8 @@
     accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">
 
   <div style="font-size:12px;color:var(--m);margin-top:5px">
-    Puoi aggiungere foto, PDF, planimetrie o relazioni. Massimo 10 MB per file.
+    Puoi aggiungere foto, PDF, planimetrie o relazioni. Massimo 10 MB per file (le foto grandi si rimpiccioliscono da sole).
+    <span class="fv-video-nota" style="display:none"><br>🎥 Video mp4 o mov fino a 50 MB: registra in 720p, massimo 2 minuti.</span>
   </div>
 
   <div id="mvt-allegati" style="margin-top:10px"></div>
@@ -9622,7 +9672,8 @@
 
   <div style="font-size:12px;color:var(--m);margin-top:5px">
     Seleziona almeno un file. Puoi scegliere foto, PDF e planimetrie insieme.
-    Massimo 10 MB per file.
+    Massimo 10 MB per file (le foto grandi si rimpiccioliscono da sole).
+    <span class="fv-video-nota" style="display:none"><br>🎥 Video mp4 o mov fino a 50 MB: registra in 720p, massimo 2 minuti.</span>
   </div>
 
   <div id="mp-file-selezionati" style="margin-top:10px"></div>

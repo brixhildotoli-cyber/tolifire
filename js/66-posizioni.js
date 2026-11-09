@@ -365,22 +365,14 @@ async function caricaFotoPosizione(input) {
   let caricate = 0;
   for (const originale of files) {
     if (a.foto.length >= 30) { toast('Al massimo 30 foto per posizione', 'err'); break; }
-    const file = typeof ridimensionaFotoGiornale === 'function' ? await ridimensionaFotoGiornale(originale) : originale;
-    if (file.size > 10 * 1024 * 1024) { toast(originale.name + ': oltre 10 MB', 'err'); continue; }
+    // F15.9: foto rimpicciolita e con l'impronta (sql/82-foto-video): la stessa
+    // foto già nel progetto (anche in un'altra posizione) è rifiutata
     const codice = (a.riga && a.riga.codice) || 'P';
-    const nome = codice + '_' + String(file.name || 'foto.jpg');
-    const path = uid + '/' + a.ctx.progettoId + '/posizioni/' + Date.now() + '_' + nome.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const up = await db.storage.from('progetti-tecnici').upload(path, file, { contentType: file.type || 'image/jpeg', upsert: false });
-    if (up.error) { toast('Caricamento non riuscito: ' + up.error.message, 'err'); continue; }
-    const { data: alleg, error: errA } = await db.from('progetti_tecnici_allegati').insert({
-      progetto_id: a.ctx.progettoId, nome_file: nome, storage_path: path,
-      mime_type: file.type || 'image/jpeg', dimensione: file.size, caricato_da: uid
-    }).select('id').single();
-    if (errA) {
-      await db.storage.from('progetti-tecnici').remove([path]);
-      toast('Foto non salvata tra i file del progetto: ' + errA.message, 'err');
-      continue;
-    }
+    const r = typeof caricaFileNelProgetto === 'function'
+      ? await caricaFileNelProgetto(a.ctx.progettoId, uid, originale, { cartella: 'posizioni', prefisso: codice + '_' })
+      : { errore: 'Caricamento non disponibile: ricarica la pagina' };
+    if (!r.alleg) { toast(r.errore, 'err'); continue; }
+    const alleg = r.alleg, path = alleg.storage_path, nome = alleg.nome_file;
     a.foto.push({ allegato_id: alleg.id, percorso: path, nome: nome });
     const error = await salvaFotoElencoPosizione();
     if (error) { a.foto.pop(); toast('Errore: ' + erroreScritturaPosizione(error), 'err'); continue; }

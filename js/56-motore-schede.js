@@ -261,7 +261,9 @@ async function apriSchedaMotore(progettoId, famiglia, numero) {
   MOTORE_SCHEDE.cliente = progetto.clienti || {};
   MOTORE_SCHEDE.sedi = sedi || [];
   MOTORE_SCHEDE.famiglia = famiglia;
-  if (fonti) await caricaAllegatiFontiMotore(progettoId);
+  // F15.9: anche foto e video (sql/82-foto-video) usano l'elenco dei file del progetto
+  const fotoVideo = await verificaFotoVideoDisponibile();
+  if (fonti || fotoVideo) await caricaAllegatiFontiMotore(progettoId);
 
   if (typeof ricordaPosizionePagina === 'function') ricordaPosizionePagina();
   currentRilievoProgettoId = progettoId;
@@ -283,6 +285,7 @@ async function disegnaSchedaMotore(numero) {
   MOTORE_SCHEDE.numero = schedaRilievoAperta ? schedaRilievoAperta.numero : 1;
   precompilaDaSedeCliente(MOTORE_SCHEDE.datiBase);
   iniziaFontiMotore(MOTORE_SCHEDE.datiBase);
+  iniziaFotoVideoMotore(MOTORE_SCHEDE.datiBase); // F15.9
 
   const comune = famiglia === FAMIGLIA_COMUNE; // F15.8: niente tab "Scheda 1 | + Nuova scheda"
   box.innerHTML = (comune ? '' : htmlBarraSchedeRilievo()) + `
@@ -297,6 +300,7 @@ async function disegnaSchedaMotore(numero) {
         <button type="button" class="btn sm" onclick="chiudiSchedaMotore()">← Indietro</button>
       </div>
       <div id="msm-campi" oninput="aggiornaFontiDopoModificaMotore(event)" onchange="aggiornaFontiDopoModificaMotore(event)">${htmlCampiMotore(lav, MOTORE_SCHEDE.datiBase)}</div>
+      ${htmlFotoVideoMotore(lav)}
       <div class="ma" style="margin:18px 0 40px">
         <button type="button" class="btn" onclick="chiudiSchedaMotore()">Annulla</button>
         <button type="button" class="btn p" id="msm-salva" onclick="salvaSchedaMotore()">💾 Salva scheda</button>
@@ -524,6 +528,7 @@ function datiFormSchedaMotore() {
     }
   });
   scriviFontiNeiDatiMotore(dati);
+  scriviFotoVideoNeiDatiMotore(dati); // F15.9
   return dati;
 }
 
@@ -710,6 +715,8 @@ async function salvaSchedaMotore() {
     if (el) el.focus();
     return;
   }
+  const problemaFoto = problemaFotoVideoMotore(); // F15.9
+  if (problemaFoto) { toast(problemaFoto, 'err'); return; }
   // Anche le altre schede del tipo in memoria (tab con il pallino)
   const s = schedaRilievoAperta;
   if (s && s.bozze) {
@@ -738,12 +745,14 @@ async function salvaSchedaMotore() {
     }
     const mancanti = obbligatoriMancantiMotore(dati, lav);
     const senzaFonte = fontiMancantiDatiMotore(dati, lav);
+    const senzaFoto = fotoVideoMancantiMotore(lav); // F15.9
     await dopoSalvataggioSchedaRilievo('Scheda ' + lav.nome + ' salvata', salvate);
-    if (mancanti.length || senzaFonte.length) {
+    if (mancanti.length || senzaFonte.length || senzaFoto.length) {
       setTimeout(function() {
         toast('Salvata.' +
           (mancanti.length ? ' Per il preventivo mancano o sono da precisare: ' + mancanti.map(function(c) { return c.etichetta; }).join(', ') + '.' : '') +
-          (senzaFonte.length ? ' Senza fonte (il progetto non si invia): ' + senzaFonte.map(function(c) { return c.etichetta; }).join(', ') + '.' : ''), 'warn');
+          (senzaFonte.length ? ' Senza fonte (il progetto non si invia): ' + senzaFonte.map(function(c) { return c.etichetta; }).join(', ') + '.' : '') +
+          (senzaFoto.length ? ' Mancano foto o video (il progetto non si invia): ' + senzaFoto.map(function(d) { return d.descrizione; }).join(', ') + '.' : ''), 'warn');
       }, 1500);
     }
     if (typeof currentProgettoTecnicoId !== 'undefined' && currentProgettoTecnicoId === riga.progetto_tecnico_id && ge('pd-schede-content')) {
@@ -1075,30 +1084,20 @@ async function caricaFileFonteMotore(codice, input) {
   const { data: auth } = await db.auth.getUser();
   const uid = auth && auth.user && auth.user.id;
   if (!uid) { toast('Sessione scaduta: rientra e riprova', 'err'); return; }
-  const file = /^image\//.test(originale.type || '') && typeof ridimensionaFotoGiornale === 'function'
-    ? await ridimensionaFotoGiornale(originale) : originale;
-  if (file.size > 10 * 1024 * 1024) { toast(originale.name + ': oltre 10 MB', 'err'); return; }
-  const nome = 'fonte_' + codice + '_' + String(file.name || originale.name || 'file');
-  const path = uid + '/' + progettoId + '/fonti/' + Date.now() + '_' + nome.replace(/[^a-zA-Z0-9._-]/g, '_');
   toast('Caricamento…', 'info');
-  const up = await db.storage.from('progetti-tecnici').upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false });
-  if (up.error) { toast('Caricamento non riuscito: ' + up.error.message, 'err'); return; }
-  const { data: alleg, error } = await db.from('progetti_tecnici_allegati').insert({
-    progetto_id: progettoId, nome_file: nome, storage_path: path,
-    mime_type: file.type || 'application/octet-stream', dimensione: file.size, caricato_da: uid
-  }).select('id,nome_file,storage_path,mime_type,caricato_il').single();
-  if (error || !alleg) {
-    await db.storage.from('progetti-tecnici').remove([path]);
-    toast('File non salvato tra i file del progetto: ' + (error ? error.message : ''), 'err');
-    return;
-  }
-  FONTI_DATI.allegati.unshift(alleg);
+  // F15.9: rimpicciolita, con l'impronta (sql/82-foto-video); un file già del
+  // progetto si riusa per la fonte
+  const r = await caricaFileNelProgetto(progettoId, uid, originale, { cartella: 'fonti', prefisso: 'fonte_' + codice + '_' });
+  const alleg = r.alleg || r.doppione;
+  if (!alleg) { toast(r.errore, 'err'); return; }
+  if (r.doppione) toast('File già tra i file del progetto: uso quello («' + alleg.nome_file + '»)', 'info');
+  if (!FONTI_DATI.allegati.some(function(x) { return x.id === alleg.id; })) FONTI_DATI.allegati.unshift(alleg);
   const voce = Object.assign({}, (MOTORE_SCHEDE.fonti || {})[codice] || {});
   ['allegato_nome', 'allegato_percorso', 'da', 'da_nome', 'da_ruolo', 'il'].forEach(function(k) { delete voce[k]; });
   voce.allegato_id = alleg.id;
   voce.valore = valoreAttualeCampoMotore(codice);
   toccaFonteMotore(codice, voce);
-  toast('File caricato: ricordati di salvare la scheda', 'ok');
+  if (r.alleg) toast('File caricato: ricordati di salvare la scheda', 'ok');
 }
 
 async function apriFileFonteMotore(codice) {
@@ -1607,5 +1606,433 @@ async function controllaDatiPrimaDellInvio(progettoId) {
     '\n\nCompletali nella scheda (📝 Rilievi tecnici → 📝 Compila la scheda). ' +
     '"Da verificare", "da definire", "?" e "xx" non bastano: scrivi il dato preciso. ' +
     'Se il cliente non lo sa, la richiesta diventa Indicativa e il dato ❓ Non noto. I dati facoltativi non fermano l’invio.');
+  return false;
+}
+
+// ── F15.9 — FOTO E VIDEO (sql/82-foto-video) ───────────────────────────
+// 1. IMPRONTA: ogni file nuovo del progetto (finestra del progetto e verifica
+//    tecnica di js/17, foto delle posizioni di js/66, fonti dei dati, foto e
+//    video della scheda) porta l'impronta SHA-256 del file ORIGINALE
+//    (crypto.subtle, nel browser) in progetti_tecnici_allegati.impronta: lo
+//    stesso file non entra due volte nello stesso progetto ("la stessa foto non
+//    vale per due posizioni"; il database lo rifiuta anche da console).
+// 2. VIDEO mp4 e mov fino a 50 MB (foto e documenti 10 MB; le foto oltre
+//    1,2 MB si rimpiccioliscono come nel giornale di cantiere, js/35
+//    ridimensionaFotoGiornale), consiglio "registra in 720p, massimo 2 minuti".
+//    I video si caricano solo dopo 82-foto-video-VINCOLO.sql.
+// 3. FOTO E VIDEO RICHIESTI dal catalogo (lavorazioni_documenti) nella scheda
+//    del motore, riquadro "📷 Foto e video": per ogni riga i file caricati
+//    (dati.foto_video.<id riga> = { allegati, mancanza }) oppure "🚫 Non
+//    fotografabile" / "🚫 Video impossibile" con il motivo dalla lista. Si
+//    salvano con la scheda (💾 Salva scheda), i file vanno subito tra i file
+//    del progetto. Con le misure dichiarate dal cliente non sono obbligatori.
+// 4. INVIO: controllaFotoVideoPrimaDellInvio (RPC foto_video_mancanti_progetto)
+//    dagli invii di js/17; il database ferma comunque l'invio.
+// Senza sql/82-foto-video (RPC foto_video_attivi) tutto come prima: niente
+// impronta, niente video, niente riquadro, nessun errore.
+const FOTO_VIDEO = { disponibile: null, video: false };
+const LIMITE_FILE_PROGETTO = 10 * 1024 * 1024;
+const LIMITE_VIDEO_PROGETTO = 50 * 1024 * 1024;
+const TIPI_VIDEO_PROGETTO = ['video/mp4', 'video/quicktime'];
+const ACCEPT_VIDEO_PROGETTO = '.mp4,.mov,video/mp4,video/quicktime';
+const TESTO_CONSIGLIO_VIDEO = 'Registra in 720p, massimo 2 minuti (mp4 o mov, fino a 50 MB).';
+
+// Gemella di motivo_foto_mancante di sql/82-foto-video
+const MOTIVI_FOTO_MANCANTI = [
+  { valore: 'cliente_non_autorizza', etichetta: 'Il cliente non autorizza foto o video' },
+  { valore: 'area_riservata', etichetta: 'Area riservata (privacy, sanitaria, produzione, sicurezza)' },
+  { valore: 'non_raggiungibile', etichetta: 'Punto non raggiungibile in sicurezza' },
+  { valore: 'opera_da_realizzare', etichetta: 'Opera ancora da realizzare (c’è solo il progetto)' },
+  { valore: 'rilievo_da_documenti', etichetta: 'Nessun sopralluogo: rilievo dai documenti del cliente' },
+  { valore: 'altro', etichetta: 'Altro (scritto nella nota)' }
+];
+
+async function verificaFotoVideoDisponibile() {
+  if (FOTO_VIDEO.disponibile !== null) return FOTO_VIDEO.disponibile;
+  if (typeof db === 'undefined' || !db) return false;
+  const { data, error } = await db.rpc('foto_video_attivi');
+  if (!error) {
+    FOTO_VIDEO.disponibile = true;
+    FOTO_VIDEO.video = data === true;
+  } else if (error.code === 'PGRST202' || error.code === '42883' || /Could not find|does not exist/i.test(error.message || '')) {
+    FOTO_VIDEO.disponibile = false;
+  } else {
+    return false; // errore passeggero: si riprova la prossima volta
+  }
+  return FOTO_VIDEO.disponibile;
+}
+
+function fotoVideoAttivi() { return FOTO_VIDEO.disponibile === true; }
+function videoProgettoAmmesso() { return FOTO_VIDEO.disponibile === true && FOTO_VIDEO.video === true; }
+
+function estensioneFile(file) {
+  return String((file && file.name) || '').split('.').pop().toLowerCase();
+}
+
+function fileVideoProgetto(file) {
+  if (!file) return false;
+  return TIPI_VIDEO_PROGETTO.includes(file.type) || ['mp4', 'mov'].includes(estensioneFile(file));
+}
+
+// Tipo da salvare (e da dare allo storage): DWG e video senza tipo dal telefono
+function tipoFileProgetto(file) {
+  const est = estensioneFile(file);
+  if (est === 'dwg') return 'application/acad';
+  if (file.type === 'video/mp4' || (!file.type && est === 'mp4')) return 'video/mp4';
+  if (file.type === 'video/quicktime' || (!file.type && est === 'mov')) return 'video/quicktime';
+  return file.type || 'application/octet-stream';
+}
+
+function limiteFileProgetto(file) {
+  return fileVideoProgetto(file) && videoProgettoAmmesso() ? LIMITE_VIDEO_PROGETTO : LIMITE_FILE_PROGETTO;
+}
+
+// SHA-256 esadecimale del file (null se il browser non lo sa fare)
+async function improntaFileProgetto(file) {
+  try {
+    if (!window.crypto || !window.crypto.subtle || !file || typeof file.arrayBuffer !== 'function') return null;
+    const buf = await window.crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    return Array.from(new Uint8Array(buf)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+  } catch (e) {
+    return null;
+  }
+}
+
+// File pronto da caricare: foto rimpicciolita, tipo, impronta dell'originale
+async function preparaFileProgetto(originale) {
+  if (fileVideoProgetto(originale) && !videoProgettoAmmesso()) {
+    return { errore: originale.name + ': i video si caricano dopo l’aggiornamento del database' };
+  }
+  if (fileVideoProgetto(originale) && originale.size > LIMITE_VIDEO_PROGETTO) {
+    return { errore: originale.name + ': oltre 50 MB. ' + TESTO_CONSIGLIO_VIDEO };
+  }
+  const impronta = fotoVideoAttivi() ? await improntaFileProgetto(originale) : null;
+  if (fotoVideoAttivi() && !impronta) {
+    return { errore: 'Questo browser non calcola l’impronta del file (controllo delle foto doppie): aggiorna il browser o usa Chrome/Safari' };
+  }
+  const file = /^image\//.test(originale.type || '') && typeof ridimensionaFotoGiornale === 'function'
+    ? await ridimensionaFotoGiornale(originale) : originale;
+  if (file.size > limiteFileProgetto(file)) {
+    return { errore: originale.name + ': oltre ' + Math.round(limiteFileProgetto(file) / 1048576) + ' MB' };
+  }
+  return { file: file, impronta: impronta, tipo: tipoFileProgetto(file) };
+}
+
+function campiImprontaAllegato(impronta) {
+  return impronta && fotoVideoAttivi() ? { impronta: impronta } : {};
+}
+
+async function fileGiaNelProgetto(progettoId, impronta) {
+  if (!impronta || !fotoVideoAttivi()) return null;
+  const { data } = await db.from('progetti_tecnici_allegati')
+    .select('id,nome_file,storage_path,mime_type,caricato_il')
+    .eq('progetto_id', progettoId).eq('impronta', impronta).limit(1);
+  return data && data[0] ? data[0] : null;
+}
+
+function testoErroreFileProgetto(error) {
+  if (!error) return '';
+  if (error.code === '23505' && /impronta/i.test(error.message || '')) {
+    return 'questo file è già tra i file del progetto: la stessa foto non vale per due posizioni';
+  }
+  return error.message || String(error);
+}
+
+// Carica un file tra i file del progetto (bucket progetti-tecnici + riga in
+// progetti_tecnici_allegati). opz: { cartella, prefisso }.
+// Restituisce { alleg } oppure { errore, doppione: riga già presente }.
+async function caricaFileNelProgetto(progettoId, uid, originale, opz) {
+  opz = opz || {};
+  await verificaFotoVideoDisponibile();
+  const prep = await preparaFileProgetto(originale);
+  if (prep.errore) return { errore: prep.errore };
+  const gia = await fileGiaNelProgetto(progettoId, prep.impronta);
+  if (gia) {
+    return {
+      doppione: gia,
+      errore: '«' + originale.name + '» è già tra i file del progetto' +
+        (gia.nome_file !== originale.name ? ' (come «' + gia.nome_file + '»)' : '') + ': la stessa foto non vale per due posizioni'
+    };
+  }
+  const nome = (opz.prefisso || '') + String(prep.file.name || originale.name || 'file');
+  const path = uid + '/' + progettoId + '/' + (opz.cartella ? opz.cartella + '/' : '') + Date.now() + '_' +
+    nome.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const up = await db.storage.from('progetti-tecnici').upload(path, prep.file, { contentType: prep.tipo, upsert: false });
+  if (up.error) return { errore: originale.name + ': caricamento non riuscito: ' + up.error.message };
+  const riga = Object.assign({
+    progetto_id: progettoId, nome_file: nome, storage_path: path,
+    mime_type: prep.tipo, dimensione: prep.file.size, caricato_da: uid
+  }, campiImprontaAllegato(prep.impronta));
+  const { data, error } = await db.from('progetti_tecnici_allegati').insert(riga)
+    .select('id,nome_file,storage_path,mime_type,caricato_il').single();
+  if (error || !data) {
+    await db.storage.from('progetti-tecnici').remove([path]);
+    return { errore: originale.name + ': non salvato tra i file del progetto: ' + testoErroreFileProgetto(error) };
+  }
+  return { alleg: data };
+}
+
+// Finestre del progetto e della verifica tecnica (js/17): video ammessi e nota
+function preparaInputVideoProgetto() {
+  verificaFotoVideoDisponibile().then(function() {
+    const video = videoProgettoAmmesso();
+    ['mp-file', 'mp-file-extra', 'mvt-file'].forEach(function(id) {
+      const el = ge(id);
+      if (!el) return;
+      if (!el.dataset.acceptBase) el.dataset.acceptBase = el.getAttribute('accept') || '';
+      el.setAttribute('accept', el.dataset.acceptBase + (video ? ',' + ACCEPT_VIDEO_PROGETTO : ''));
+    });
+    document.querySelectorAll('.fv-video-nota').forEach(function(el) { el.style.display = video ? '' : 'none'; });
+  }).catch(function() {});
+}
+
+// ── Riquadro "📷 Foto e video" nella scheda del motore ──────────────────
+function documentiFotoVideoMotore(lav) {
+  if (!fotoVideoAttivi() || !lav || lav.codice === FAMIGLIA_COMUNE) return [];
+  return (lav.lavorazioni_documenti || []).filter(function(d) {
+    return d.attivo !== false && (d.tipo !== 'video' || videoProgettoAmmesso());
+  }).sort(function(a, b) { return (a.ordine || 0) - (b.ordine || 0) || a.id - b.id; });
+}
+
+function iniziaFotoVideoMotore(dati) {
+  const f = dati && dati.foto_video && typeof dati.foto_video === 'object' && !Array.isArray(dati.foto_video) ? dati.foto_video : {};
+  MOTORE_SCHEDE.fotoVideo = JSON.parse(JSON.stringify(f));
+}
+
+function scriviFotoVideoNeiDatiMotore(dati) {
+  if (!fotoVideoAttivi() || !MOTORE_SCHEDE.fotoVideo) return;
+  const out = {};
+  Object.keys(MOTORE_SCHEDE.fotoVideo).forEach(function(k) {
+    const e = MOTORE_SCHEDE.fotoVideo[k];
+    if (!e) return;
+    const allegati = Array.isArray(e.allegati) ? e.allegati : [];
+    if (!allegati.length && !(e.mancanza && e.mancanza.motivo)) return;
+    out[k] = e;
+  });
+  if (Object.keys(out).length || (MOTORE_SCHEDE.datiBase && MOTORE_SCHEDE.datiBase.foto_video)) dati.foto_video = out;
+}
+
+function voceFotoVideoMotore(id) {
+  if (!MOTORE_SCHEDE.fotoVideo) MOTORE_SCHEDE.fotoVideo = {};
+  const k = String(id);
+  if (!MOTORE_SCHEDE.fotoVideo[k]) MOTORE_SCHEDE.fotoVideo[k] = { allegati: [] };
+  if (!Array.isArray(MOTORE_SCHEDE.fotoVideo[k].allegati)) MOTORE_SCHEDE.fotoVideo[k].allegati = [];
+  return MOTORE_SCHEDE.fotoVideo[k];
+}
+
+function mimeAdattoDocumento(mime, tipo) {
+  if (tipo === 'foto') return /^image\//.test(mime || '');
+  if (tipo === 'video') return /^video\//.test(mime || '');
+  return true;
+}
+
+function mimeFileFotoVideo(a) {
+  if (a && a.mime) return a.mime;
+  const x = (FONTI_DATI.allegati || []).find(function(y) { return a && y.id === a.allegato_id; });
+  return x ? x.mime_type : '';
+}
+
+function quantiFotoVideoMotore(d) {
+  const e = (MOTORE_SCHEDE.fotoVideo || {})[String(d.id)];
+  return ((e && e.allegati) || []).filter(function(a) { return mimeAdattoDocumento(mimeFileFotoVideo(a), d.tipo); }).length;
+}
+
+function parolaDocumento(tipo, n) {
+  if (tipo === 'video') return 'video';
+  if (tipo === 'foto') return 'foto';
+  return n === 1 ? 'documento' : 'documenti';
+}
+
+// Righe obbligatorie (non per posizione) ancora scoperte: per l'avviso dopo il salvataggio
+function fotoVideoMancantiMotore(lav) {
+  if (!fotoVideoAttivi() || !fotoObbligatorieProgetto(MOTORE_SCHEDE.progetto)) return [];
+  return documentiFotoVideoMotore(lav).filter(function(d) {
+    if (!d.obbligatorio || d.per_posizione) return false;
+    const e = (MOTORE_SCHEDE.fotoVideo || {})[String(d.id)];
+    if (e && e.mancanza && e.mancanza.motivo) return false;
+    return quantiFotoVideoMotore(d) < (d.quanti || 1);
+  });
+}
+
+function htmlFotoVideoMotore(lav) {
+  const docs = documentiFotoVideoMotore(lav);
+  if (!docs.length) return '';
+  const dichiarate = !fotoObbligatorieProgetto(MOTORE_SCHEDE.progetto);
+  return `<div class="rap-section">📷 Foto e video</div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:6px">
+      ${dichiarate
+        ? 'Misure dichiarate dal cliente: foto e video non sono obbligatori (caricali se li hai).'
+        : 'Richiesti dal catalogo per questa lavorazione: senza (o senza il motivo) il progetto non si invia. La stessa foto non vale per due voci o due posizioni.'}
+    </div>
+    <div id="msm-foto-video">${docs.map(function(d) {
+      return '<div class="card" id="msm-fv-' + d.id + '" style="margin-bottom:8px">' + htmlVoceFotoVideoMotore(d) + '</div>';
+    }).join('')}</div>`;
+}
+
+function htmlVoceFotoVideoMotore(d) {
+  const e = (MOTORE_SCHEDE.fotoVideo || {})[String(d.id)] || {};
+  const allegati = Array.isArray(e.allegati) ? e.allegati : [];
+  const m = e.mancanza || null;
+  const quanti = quantiFotoVideoMotore(d);
+  const serve = d.quanti || 1;
+  const icona = d.tipo === 'video' ? '🎥' : (d.tipo === 'foto' ? '📷' : '📄');
+  const obbligo = d.obbligatorio && fotoObbligatorieProgetto(MOTORE_SCHEDE.progetto);
+  let stato;
+  if (d.per_posizione) {
+    stato = '<div style="font-size:12px;color:var(--m)">' + serve + ' ' + parolaDocumento(d.tipo, serve) +
+      ' per ogni posizione P-xx: si caricano nella posizione (📍 Posizioni → ✏️ Modifica → 📷 Aggiungi foto).</div>';
+  } else if (m && m.motivo) {
+    stato = '<div style="font-size:12px;color:var(--g)">✓ ' + (d.tipo === 'video' ? 'Video impossibile' : 'Non fotografabile') + ': motivo indicato</div>';
+  } else if (quanti >= serve) {
+    stato = '<div style="font-size:12px;color:var(--g)">✓ ' + quanti + ' di ' + serve + '</div>';
+  } else {
+    stato = '<div style="font-size:12px;color:' + (obbligo ? 'var(--r)' : 'var(--m)') + '">' + (obbligo ? '⚠️ ' : '') +
+      quanti + ' di ' + serve + (obbligo ? ': ne mancano ' + (serve - quanti) + ' (o indica il motivo sotto)' : ' (facoltativo)') + '</div>';
+  }
+  const accept = d.tipo === 'video' ? ACCEPT_VIDEO_PROGETTO : (d.tipo === 'foto' ? 'image/*' : '.pdf,.jpg,.jpeg,.png,application/pdf,image/*');
+  const file = allegati.map(function(a, i) {
+    return `<div style="display:flex;gap:6px;align-items:center;margin-top:4px;font-size:12px">
+      <span style="flex:1 1 auto;min-width:0;overflow-wrap:anywhere">${/^video\//.test(mimeFileFotoVideo(a)) ? '🎥' : (/^image\//.test(mimeFileFotoVideo(a)) ? '🖼️' : '📎')} ${esc(a.nome || 'file')}</span>
+      <button type="button" class="btn sm" onclick="apriFileFotoVideoMotore(${d.id}, ${i})">👁 Apri</button>
+      <button type="button" class="btn sm" onclick="togliFileFotoVideoMotore(${d.id}, ${i})" title="Il file resta tra i file del progetto">✖</button>
+    </div>`;
+  }).join('');
+  const caricamento = d.per_posizione ? '' : `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">
+      <label class="btn sm" style="margin:0;cursor:pointer">${d.tipo === 'video' ? '🎥 Registra o scegli il video' : (d.tipo === 'foto' ? '📷 Scatta o scegli le foto' : '📎 Carica')}
+        <input type="file" style="display:none" accept="${accept}"${d.tipo === 'documento' ? '' : ' capture="environment"'}${d.tipo === 'video' ? '' : ' multiple'}
+          onchange="caricaFotoVideoMotore(${d.id}, this)">
+      </label>
+      ${d.tipo === 'video' ? '<span style="font-size:11px;color:var(--m)">' + esc(TESTO_CONSIGLIO_VIDEO) + '</span>' : ''}
+    </div>`;
+  const chi = m && m.motivo && m.da_nome
+    ? '<div style="font-size:11px;color:var(--m);margin-top:3px">Segnato da ' + esc(m.da_nome) + (m.il ? ' il ' + esc(new Date(m.il).toLocaleDateString('it-IT')) : '') + '</div>'
+    : '';
+  return `<div style="font-weight:600;font-size:13px">${icona} ${esc(d.descrizione)}${d.obbligatorio ? '' : ' <span style="font-weight:400;color:var(--m)">(facoltativo)</span>'}</div>
+    ${stato}
+    ${file}
+    ${caricamento}
+    <div class="f" style="margin:8px 0 0">
+      <label for="msm-fvm-${d.id}" style="font-size:12px">🚫 ${d.tipo === 'video' ? 'Video impossibile' : (d.tipo === 'foto' ? 'Non fotografabile' : 'Documento non disponibile')}: motivo</label>
+      <select id="msm-fvm-${d.id}" onchange="cambiaMancanzaFotoVideoMotore(${d.id}, true)">
+        <option value="">— Nessuno (${d.tipo === 'video' ? 'il video c’è' : (d.tipo === 'foto' ? 'le foto ci sono' : 'il documento c’è')}) —</option>
+        ${MOTIVI_FOTO_MANCANTI.map(function(x) { return '<option value="' + x.valore + '"' + (m && m.motivo === x.valore ? ' selected' : '') + '>' + esc(x.etichetta) + '</option>'; }).join('')}
+      </select>
+      <textarea id="msm-fvn-${d.id}" rows="1" maxlength="500" placeholder="Nota (obbligatoria con «Altro»)" style="margin-top:4px${m && m.motivo ? '' : ';display:none'}"
+        oninput="cambiaMancanzaFotoVideoMotore(${d.id}, false)">${esc((m && m.nota) || '')}</textarea>
+      ${chi}
+    </div>`;
+}
+
+function ridisegnaVoceFotoVideoMotore(id) {
+  const box = ge('msm-fv-' + id);
+  const lav = lavorazioneCatalogo(MOTORE_SCHEDE.famiglia);
+  const d = documentiFotoVideoMotore(lav).find(function(x) { return String(x.id) === String(id); });
+  if (box && d) box.innerHTML = htmlVoceFotoVideoMotore(d);
+}
+
+function cambiaMancanzaFotoVideoMotore(id, ridisegna) {
+  const e = voceFotoVideoMotore(id);
+  const motivo = v('msm-fvm-' + id);
+  const nota = String(v('msm-fvn-' + id) || '').trim();
+  const prima = ((MOTORE_SCHEDE.datiBase || {}).foto_video || {})[String(id)];
+  const mPrima = prima && prima.mancanza;
+  if (!motivo) delete e.mancanza;
+  else if (mPrima && mPrima.motivo === motivo && String(mPrima.nota || '').trim() === nota) e.mancanza = mPrima; // com'era: chi e quando restano
+  else e.mancanza = { motivo: motivo, nota: nota || null };
+  if (typeof segnaSchedaRilievoModificata === 'function') segnaSchedaRilievoModificata();
+  if (ridisegna) {
+    ridisegnaVoceFotoVideoMotore(id);
+    const t = ge('msm-fvn-' + id);
+    if (t && motivo === 'altro') t.focus();
+  }
+}
+
+function fileGiaInSchedaMotore(allegatoId) {
+  const fv = MOTORE_SCHEDE.fotoVideo || {};
+  return Object.keys(fv).some(function(k) {
+    return ((fv[k] && fv[k].allegati) || []).some(function(a) { return a.allegato_id === allegatoId; });
+  });
+}
+
+async function caricaFotoVideoMotore(id, input) {
+  const files = Array.from((input && input.files) || []);
+  if (input) input.value = '';
+  const progettoId = currentRilievoProgettoId;
+  if (!files.length || !progettoId) return;
+  const lav = lavorazioneCatalogo(MOTORE_SCHEDE.famiglia);
+  const d = documentiFotoVideoMotore(lav).find(function(x) { return String(x.id) === String(id); });
+  if (!d) return;
+  const { data: auth } = await db.auth.getUser();
+  const uid = auth && auth.user && auth.user.id;
+  if (!uid) { toast('Sessione scaduta: rientra e riprova', 'err'); return; }
+  const e = voceFotoVideoMotore(id);
+  let aggiunti = 0;
+  for (const f of files) {
+    const giusto = d.tipo === 'video' ? fileVideoProgetto(f) : (d.tipo === 'foto' ? /^image\//.test(f.type || '') : true);
+    if (!giusto) { toast(f.name + ': qui serve ' + (d.tipo === 'video' ? 'un video (mp4 o mov)' : 'una foto'), 'err'); continue; }
+    toast('Caricamento di ' + f.name + '…', 'info');
+    const r = await caricaFileNelProgetto(progettoId, uid, f, { cartella: 'foto_video' });
+    let alleg = r.alleg;
+    if (!alleg && r.doppione) {
+      if (fileGiaInSchedaMotore(r.doppione.id)) {
+        toast('«' + r.doppione.nome_file + '» è già in questa scheda: la stessa foto non vale per due voci', 'err');
+        continue;
+      }
+      if (!confirm(r.errore + '.\n\nUsare il file già caricato per «' + d.descrizione + '»?\n(Se è già in un’altra scheda o in una posizione P-xx il salvataggio lo rifiuta.)')) continue;
+      alleg = r.doppione;
+    }
+    if (!alleg) { toast(r.errore, 'err'); continue; }
+    if (!FONTI_DATI.allegati.some(function(x) { return x.id === alleg.id; })) FONTI_DATI.allegati.unshift(alleg);
+    e.allegati.push({ allegato_id: alleg.id, nome: alleg.nome_file, percorso: alleg.storage_path, mime: alleg.mime_type });
+    aggiunti++;
+  }
+  if (aggiunti) {
+    if (typeof segnaSchedaRilievoModificata === 'function') segnaSchedaRilievoModificata();
+    ridisegnaVoceFotoVideoMotore(id);
+    toast((aggiunti === 1 ? 'File caricato' : aggiunti + ' file caricati') + ': ricordati di salvare la scheda', 'ok');
+  }
+}
+
+function togliFileFotoVideoMotore(id, i) {
+  const e = voceFotoVideoMotore(id);
+  if (!e.allegati[i] || !confirm('Togliere «' + (e.allegati[i].nome || 'file') + '» da questa voce? Il file resta tra i file del progetto.')) return;
+  e.allegati.splice(i, 1);
+  if (typeof segnaSchedaRilievoModificata === 'function') segnaSchedaRilievoModificata();
+  ridisegnaVoceFotoVideoMotore(id);
+}
+
+async function apriFileFotoVideoMotore(id, i) {
+  const a = (voceFotoVideoMotore(id).allegati || [])[i];
+  const x = a && (FONTI_DATI.allegati || []).find(function(y) { return y.id === a.allegato_id; });
+  const percorso = (x && x.storage_path) || (a && a.percorso);
+  if (!percorso) { toast('File non trovato', 'err'); return; }
+  const { data, error } = await db.storage.from('progetti-tecnici').createSignedUrl(percorso, 600);
+  if (error || !data || !data.signedUrl) { toast('File non disponibile' + (error ? ': ' + error.message : ''), 'err'); return; }
+  window.open(data.signedUrl, '_blank', 'noopener');
+}
+
+// Prima del salvataggio della scheda: "Altro" senza nota (il database lo rifiuta)
+function problemaFotoVideoMotore() {
+  const fv = MOTORE_SCHEDE.fotoVideo || {};
+  const k = Object.keys(fv).find(function(x) {
+    const m = fv[x] && fv[x].mancanza;
+    return m && m.motivo === 'altro' && String(m.nota || '').trim().length < 3;
+  });
+  return k ? 'Foto e video: con «Altro» scrivi il motivo nella nota' : '';
+}
+
+// Prima di inviare il progetto (js/17). true = si può inviare.
+async function controllaFotoVideoPrimaDellInvio(progettoId) {
+  if (!(await verificaFotoVideoDisponibile())) return true;
+  const { data, error } = await db.rpc('foto_video_mancanti_progetto', { p_progetto: progettoId });
+  if (error || !data || !data.length) return true; // il database lo ricontrolla comunque all'invio
+  const righe = data.slice(0, 8).map(function(r) {
+    return '- ' + (r.scheda ? r.scheda + ' – ' : '') + r.etichetta + ': ' + r.motivo;
+  });
+  alert('Il progetto non si può ancora inviare: mancano foto o video.\n\n' + righe.join('\n') +
+    (data.length > 8 ? '\n- … e altri ' + (data.length - 8) : '') +
+    '\n\nCaricali nella scheda (📝 Rilievi tecnici → 📝 Compila la scheda → 📷 Foto e video) oppure, se non si può, ' +
+    'scegli il motivo in «🚫 Non fotografabile» / «🚫 Video impossibile». Video: ' + TESTO_CONSIGLIO_VIDEO);
   return false;
 }
