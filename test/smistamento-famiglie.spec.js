@@ -540,7 +540,8 @@ async function cartaProgetto(s, progettoId) {
       psql("delete from public.progetti_tecnici_schede where progetto_tecnico_id = " + q(progettoId) + " and creato_il >= " + q(inizio));
       psql("delete from public.progetti_tecnici_allegati where progetto_id = " + q(progettoId) + " and caricato_il >= " + q(inizio));
       if (!SENZA) {
-        psql("update public.avvisi set stato = 'annullato', esito = 'prova F15.13', chiuso_il = now() where tipo = 'smistamento_verificato' and rif_id = " + q(progettoId) + " and stato = 'aperto'");
+        // solo database locale: gli avvisi di prova si tolgono (la matrice dei permessi conta le righe vere)
+        psql("delete from public.avvisi where tipo = 'smistamento_verificato' and rif_id = " + q(progettoId) + " and creato_il >= " + q(inizio));
         regolePartenza.forEach(x => { const [id, a] = x.split(':'); psql('update public.regole_smistamento set attiva = ' + (a === 't' || a === 'true') + ' where id = ' + id); });
         psql("update public.regole_smistamento set attiva = false where nome like 'PROVA F15.13%'");
       }
