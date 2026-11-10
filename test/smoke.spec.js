@@ -57,7 +57,7 @@ const ATTESE = {
     'fatture', 'catalogo', 'cliente-detail', 'fornitore-detail', 'commesse', 'commessa-detail', 'team-subappalti',
     'scheda-documenti', 'info'],
   contabile: ['dashboard', 'workflow', 'fatture', 'documenti', 'catalogo', 'info'],
-  tecnico: ['dashboard', 'calendario-tec', 'tecnico', 'documenti', 'info'],
+  tecnico: ['dashboard', 'calendario-tec', 'tecnico', 'presidi', 'documenti', 'info'],
   commerciale: ['dashboard', 'progetti-da-preventivare', 'preventivi', 'fornitori', 'fornitore-detail',
     'preventivo-detail', 'clienti', 'documenti', 'progetto-detail', 'fatture', 'catalogo', 'cliente-detail', 'info',
     'commesse', 'commessa-detail'],

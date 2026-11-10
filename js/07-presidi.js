@@ -14,6 +14,8 @@ async function loadPresidi() {
   }
 
   const presidi = data || [];
+  // sql/257 (js/68): per il tecnico i nomi dei clienti che non legge per RLS
+  if (typeof completaClientiPresidi === 'function') await completaClientiPresidi(presidi);
 
   const sediIds = [
     ...new Set(
@@ -255,6 +257,8 @@ async function apriSchedaPresidio(id) {
     ge('msp-contenuto').innerHTML = '<div class="empty">Impossibile caricare la scheda del presidio.</div>';
     return;
   }
+  // sql/257 (js/68): nome del cliente per il tecnico che non legge la sua riga
+  if (!p.clienti && typeof nomeClientePresidioTecnico === 'function') p.clienti = nomeClientePresidioTecnico(p.cliente_id);
 
   const stato = { ok: '✅ OK', anomalia: '⚠️ Anomalia', fuori_servizio: '🔴 Fuori servizio', scaduto: '❌ Scaduto' }[p.stato] || p.stato || 'Non compilato';
   const coloreStato = { ok: 'var(--g)', anomalia: 'var(--a)', fuori_servizio: 'var(--r)', scaduto: 'var(--r)' }[p.stato] || 'var(--m)';

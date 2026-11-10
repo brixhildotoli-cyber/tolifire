@@ -1999,6 +1999,44 @@ Dopo sql/60 (spese insoluti RIBA e solleciti del contabile, ESEGUITO il 04/11, b
 richiede 47): registra_spese_insoluto_riba; registra_sollecito,
 esito_sollecito ed elimina_sollecito ridefinite (anche contabile);
 colonne nuove riba_righe.spese_insoluto*.
+Dopo sql/257 (storico presidi per tutti i tecnici, richiesta di Erika del
+10/11, DA ESEGUIRE: backup, anteprima in fondo al file,
+257-storico-presidi-tutti-tecnici.sql (senza parole di cancellazione, server
+MCP), controllo in fondo; richiede 07, 71, 255, tutti in produzione, si ferma
+senza; il sito si pubblica prima o dopo): nessuna tabella nuova, nessuna
+scrittura nuova, cliente_visibile NON cambia. Policy NUOVE di sola lettura per
+ruolo_corrente() = 'tecnico' (anche titolare "come" tecnico):
+impianti_lettura_tecnico_tutti (presidi non eliminati dei clienti non
+eliminati), sedi_cliente_lettura_tecnico_presidi (sedi dei clienti con
+presidi), schede_lettura_tecnico_tutti e manichette_lettura_tecnico_tutti
+(storico di quei presidi); funzioni interne cliente_presidi_consultabile e
+impianto_presidio_consultabile (security definer, per le policy). clienti:
+NESSUNA policy nuova (la riga ha P.IVA, IBAN, banca, PEC, contatti, note
+commerciali; i permessi per colonna varrebbero per tutti i ruoli): RPC NUOVA
+elenco_clienti_presidi_tecnico() (id, ragione sociale, indirizzo, città,
+provincia dei clienti non eliminati con presidi; titolare, capo tecnico,
+segreteria, tecnico; 42501 per gli altri). Il riporto (salva_riporto_presidio,
+nuovo_intervento_manichetta, registra_scheda_presidio_intervento) e la modifica
+dei presidi restano sui clienti visibili (suoi interventi). Nel sito (js/68-
+presidi-tecnico.js, caricato prima di js/19): voce 🧯 Presidi nel menu del
+tecnico e 'presidi' in PAGINE_RUOLO.tecnico; pagina IN SOLA LETTURA (niente +
+Nuovo presidio, Importa, Modifica, Elimina, Sostituito; nota
+presidi-tec-nota), nomi dei clienti dalla RPC (hook completaClientiPresidi in
+loadPresidi e nomeClientePresidioTecnico in apriSchedaPresidio di js/07),
+storico con "👁 Apri" in sola lettura e "Riporta"/"Esegui nuovo controllo"
+solo sui clienti visibili (riportaStoricoPresidi, renderPS ed
+eseguiNuovoControllo avvolte); RPC tra le letture tenute sul telefono (js/57).
+Guida info-tec-24. Prove: sql/257-...-PROVA.sql (solo database di prova,
+rollback: tecnico legge presidi, sedi e storico di un cliente senza suoi
+interventi, non la riga del cliente né documenti, preventivi, fatture,
+contratti, interventi; non scrive presidi né storico; riporto rifiutato;
+presidio eliminato escluso; anon niente; titolare "come" tecnico uguale;
+rappresentante senza RPC); test/presidi-tecnico.spec.js (Chrome headless,
+tecnico a 390 px; PRESIDI_TECNICO_SENZA_SQL=1 dopo il rollback); matrice:
+schede_manichette tecnico lettura si; smoke TUTTO OK con e senza sql/257;
+rollback provato (schema identico). Senza sql/257: la pagina mostra i clienti
+dei suoi interventi con la nota "serve l'aggiornamento", nessun errore (una
+chiamata RPC 404).
 Dopo sql/255 (storico presidi da Esegui intervento, ESEGUITO il 04/11, backup pre255; policy con alter policy, nessun
 prerequisito oltre lo schema del 04/11): registra_scheda_presidio_intervento
 (nuova, js/55); salva_riporto_presidio e nuovo_intervento_manichetta
@@ -2091,7 +2129,8 @@ js/02-portale-navigazione.js; controllo in `canAccessPage`):
   clienti, documenti, fatture, catalogo, cliente-detail, fornitore-detail,
   commesse, commessa-detail, team-subappalti, scheda-documenti, info
 - contabile: dashboard, workflow, fatture, documenti, catalogo, info
-- tecnico: dashboard, calendario-tec, tecnico, documenti, info
+- tecnico: dashboard, calendario-tec, tecnico, presidi (consultazione, js/68;
+  tutti i clienti con sql/257, richiesta di Erika del 10/11), documenti, info
 - commerciale: dashboard, progetti-da-preventivare, preventivi, fornitori,
   fornitore-detail, preventivo-detail, clienti, documenti, progetto-detail,
   fatture, catalogo, cliente-detail, info, commesse, commessa-detail

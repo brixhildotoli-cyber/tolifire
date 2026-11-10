@@ -429,7 +429,7 @@ const PAGINE_RUOLO = {
   capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','tecnico','clienti','documenti','cliente-detail','commesse','commessa-detail','team-subappalti','scheda-documenti','ore-cantiere','info'],
   segreteria:     ['dashboard','calendario','workflow','presidi','interventi','tecnico','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail','commesse','commessa-detail','team-subappalti','scheda-documenti','info'],
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo','info'],
-  tecnico:        ['dashboard','calendario-tec','tecnico','documenti','info'],
+  tecnico:        ['dashboard','calendario-tec','tecnico','presidi','documenti','info'], // presidi: consultazione (js/68, sql/257)
   commerciale:    ['dashboard','progetti-da-preventivare', 'preventivi', 'fornitori', 'fornitore-detail','preventivo-detail','clienti','documenti','progetto-detail','fatture','catalogo','cliente-detail', 'info','commesse','commessa-detail'],
   rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','trattative','preventivi-rapp','cliente-detail','progetto-detail','catalogo', 'info','commesse','commessa-detail'],
   ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti', 'certificati-ingegnere','progetto-detail','cliente-detail','info'],

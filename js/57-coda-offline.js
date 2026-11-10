@@ -999,7 +999,7 @@ const ATTESTATI_MAX_BYTE = 15 * 1048576;
 const ATTESTATI_MASSIMI = 60;
 const APERTURE_MASSIME = 300;
 // RPC di sola lettura (le altre RPC scrivono: mai dal telefono)
-const RPC_LETTURE_TELEFONO = /^([a-z0-9_]+_attiv[oie]|schede_migrate_motore|scheda_cantiere_commessa|miei_giorni_cantiere|mie_ore_cantiere|controllo_faldone_commessa|preventivo_firmato_commessa|voci_lavori_extra_commessa|presenti_giornale_commessa|impegni_squadra_periodo|importi_extra_commesse|impegni_tecnici_dashboard|ambito_audit_intervento|prezzi_contratto_cliente)$/;
+const RPC_LETTURE_TELEFONO = /^([a-z0-9_]+_attiv[oie]|schede_migrate_motore|scheda_cantiere_commessa|miei_giorni_cantiere|mie_ore_cantiere|controllo_faldone_commessa|preventivo_firmato_commessa|voci_lavori_extra_commessa|presenti_giornale_commessa|impegni_squadra_periodo|importi_extra_commesse|impegni_tecnici_dashboard|ambito_audit_intervento|prezzi_contratto_cliente|elenco_clienti_presidi_tecnico)$/; // elenco_clienti_presidi_tecnico: sql/257, js/68
 
 function lettureTelefonoPossibili() {
   return !!(window.crypto && window.crypto.subtle && 'indexedDB' in window && codaOfflineAmmessa());

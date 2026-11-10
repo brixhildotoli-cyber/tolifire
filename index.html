@@ -1741,15 +1741,17 @@
   </div>
 
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn" onclick="apriImportPresidi()">
+    <button class="btn" id="btn-import-presidi" onclick="apriImportPresidi()">
       ⇧ Importa presidi CSV
     </button>
 
-    <button class="btn p" onclick="resetPF();openM('m-presidio')">
+    <button class="btn p" id="btn-nuovo-presidio" onclick="resetPF();openM('m-presidio')">
       + Nuovo presidio
     </button>
   </div>
 </div>
+  <!-- sql/257: per il tecnico la pagina è in consultazione (js/68) -->
+  <div id="presidi-tec-nota" class="al2 i" style="display:none;margin-bottom:12px"></div>
   <div class="sb">
     <input type="text" id="psearch" placeholder="Cerca matricola, cliente, ubicazione..." oninput="filterP()">
     <select id="ptipo" onchange="filterP()" style="width:auto"><option value="">Tutti i tipi</option><option value="estintore">🧯 Estintori</option><option value="porta_rei">🚪 Porte REI</option><option value="manichetta">🧵 Manichette</option><option value="idrante">🚿 Idranti</option><option value="naspo">Naspi</option><option value="luce_emergenza">💡 Luci emergenza</option><option value="pompa_antincendio">⚙️ Pompa</option><option value="centrale_rivelazione">Centrale rivelazione</option><option value="sprinkler">Sprinkler</option><option value="uscita_emergenza">Uscite emergenza</option></select>
@@ -4359,6 +4361,25 @@
       </div>
 
       <div class="al2 w">Le pagine mai aperte con la rete restano vuote senza campo: apri prima quello che ti serve. Su iPhone usa l'app installata, altrimenti Safari può cancellare i dati.</div>
+
+      <h4 id="info-tec-24">24. 🧯 Presidi: consulti presidi e storico di tutti i clienti</h4>
+
+      <p>
+        Nel menu c'è <b>🧯 Presidi</b>: vedi i presidi e lo storico dei controlli di <b>tutti i clienti</b>, non solo di quelli dove hai un intervento. Serve quando un collega ti chiede com'era un estintore o quando prepari il giro di domani.
+      </p>
+
+      <ul>
+        <li>In alto <b>Cerca matricola, cliente, ubicazione...</b> e il menu <b>Tutti i clienti</b>: scegli il cliente e la sede che ti servono. Le schede sono divise per periodo, cliente, tipo e sede, come in ufficio.</li>
+        <li><b>Visualizza scheda</b> apre la scheda del presidio con i controlli voce per voce e, sotto, le <b>schede semestrali</b> dello storico (<b>👁 Apri</b> per leggerle).</li>
+        <li>La pagina è <b>in consultazione</b>: niente <b>+ Nuovo presidio</b>, <b>Importa</b>, <b>Modifica</b>, <b>Elimina</b> o <b>🔁 Sostituito</b>. Del cliente vedi solo nome e indirizzo: niente contatti, dati fiscali, contratti, documenti o interventi dei colleghi.</li>
+        <li><b>Riporta in una nuova verifica</b> ed <b>Esegui nuovo controllo</b> ci sono solo per i clienti dei tuoi interventi. Per gli altri il controllo si registra da <b>📝 Esegui intervento</b>, quando l'intervento è assegnato a te.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Domani vai dalla Rossi Srl al posto di un collega. Oggi apri <b>🧯 Presidi</b>, scegli <b>Rossi Srl</b> e guardi quali estintori erano in anomalia a luglio e dove si trovano. Domani, con l'intervento assegnato a te, li controlli da <b>Esegui intervento</b>.
+      </div>
+
+      <div class="al2 i">Se in alto leggi che vedi solo i clienti dei tuoi interventi, il database non è ancora aggiornato: la pagina funziona lo stesso, con meno clienti.</div>
 
       <h4>Regole pratiche</h4>
 
@@ -10542,6 +10563,7 @@
 <script defer src="js/56-motore-schede.js?v=202611101144"></script>
 <script defer src="js/57-coda-offline.js?v=202611101144"></script>
 <script defer src="js/67-smistamento-famiglie.js?v=202611101144"></script>
+<script defer src="js/68-presidi-tecnico.js?v=202611101144"></script>
 <script defer src="js/19-init.js?v=202611101144"></script>
 
 

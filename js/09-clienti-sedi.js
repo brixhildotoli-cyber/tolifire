@@ -443,13 +443,13 @@ function renderPC(data) {
       <div style="grid-column:1/-1">
         <div class="empty">
           Nessun presidio.<br>
-          <button
+          ${ROLE === 'tecnico' ? '' : `<button
             class="btn p sm"
             style="margin-top:12px"
             onclick="resetPF();openM('m-presidio')"
           >
             + Aggiungi
-          </button>
+          </button>`}
         </div>
       </div>
     `;
@@ -661,9 +661,9 @@ ${p.tipo === 'manichetta' ? `
             Visualizza scheda
           </button>
 
-          <button class="btn sm" onclick="editP('${p.id}')">
+          ${ROLE === 'tecnico' ? '' : `<button class="btn sm" onclick="editP('${p.id}')">
             Modifica
-          </button>
+          </button>`}
 
           ${typeof bottoneSostituisciPresidio === 'function' ? bottoneSostituisciPresidio(p.id) : ''}
 
