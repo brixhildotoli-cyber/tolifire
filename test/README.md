@@ -151,3 +151,20 @@ commerciale scrive ancora la sua copia. Dopo il ROLLBACK di sql/78:
 `MOTORE_PROTEZIONI_SENZA_SQL=1 node motore-schede-protezioni.spec.js` (il
 sito funziona come con il 77, la console del rappresentante passa: la
 protezione è del 78). Alla fine toglie schede e posizioni di prova.
+
+## Sconto del rappresentante (sql/258)
+
+`node sconto-rappresentante.spec.js` (database locale con sql/258 e il suo
+-REGISTRO-CANCELLAZIONI; `SMOKE_RISULTATI=<cartella>` per schermate e PDF
+scaricati, mai nei Download): il rappresentante, a 390 px, in "I miei
+preventivi" applica l'1,5% senza motivazione e poi il 5% (bottone spento
+senza motivazione), il PDF per il cliente si rifà con "Sconto N%" e
+"Imponibile scontato" (senza la motivazione) e si registra sul preventivo;
+dalla console Acquisti e segreteria non leggono la motivazione e non
+scontano; nella scheda del preventivo il titolare legge la motivazione,
+Acquisti no. Crea un progetto e un preventivo di prova e li toglie alla
+fine. Dopo il ROLLBACK di sql/258: `SCONTO_SENZA_SQL=1 node
+sconto-rappresentante.spec.js` (nessun riquadro, nessun errore). La prova
+del database (`sql/258-sconto-rappresentante-PROVA.sql`) nel Postgres
+locale va lanciata con `psql -U supabase_admin` (serve per la tabella
+finta dello Storage, tolta dal rollback).

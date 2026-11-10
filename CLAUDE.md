@@ -343,6 +343,19 @@ né cambia le schede gialle) e permissive progetti_tecnici_schede_lettura_
 smistamento e progetti_tecnici_allegati_lettura_smistamento (Acquisti legge
 schede verdi, blocco comune e file del progetto ancora in verifica tecnica).
 progetti_tecnici.stato: valori invariati. Matrice: 20 righe nuove.
+Dopo sql/258 (sconto del rappresentante sul preventivo, decisioni di Erika
+del 10/11, fuori piano; DA ESEGUIRE: pubblicare il sito, backup, anteprima,
+258-sconto-rappresentante.sql (senza parole di cancellazione, server MCP),
+258-...-REGISTRO-CANCELLAZIONI.sql dall'EDITOR, controllo in fondo al file;
+richiede 07, 10, 22, 25, 67, 71): preventivi_sconti (storico degli sconti con
+la MOTIVAZIONE: lettura SOLO titolare/informatico e il rappresentante che
+l'ha scritta, da_id = utente_effettivo(); Acquisti, segreteria e gli altri
+no, nemmeno da console; la scrive solo applica_sconto_preventivo, non si
+modifica; con il -REGISTRO-CANCELLAZIONI segue a cascata il preventivo).
+preventivi: sconto_perc (c'era, mai usata: ora lo sconto applicato, vincolo
+0 <= x < 100) e colonne NUOVE totale_prima_sconto, sconto_da,
+sconto_da_nome, sconto_il (lette da chi legge il preventivo; le scrive solo
+la RPC, il trigger trg_preventivi_00_sconto rifiuta le scritture dirette).
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -1711,6 +1724,67 @@ spengono le regole nella loro transazione; test/smistamento-famiglie.spec.js
 SMISTAMENTO_SENZA_SQL=1 dopo il rollback); matrice TUTTO OK; rollback
 provato (schema identico). Senza sql/83 o con tutte le regole spente: sito
 come prima, nessun errore.
+Dopo sql/258 (sconto del rappresentante, decisioni di Erika del 10/11, DA
+ESEGUIRE; ordine e requisiti nella riga di preventivi_sconti in "Tabelle
+Supabase"): RPC del sito sconto_rappresentante_attivo() (true = il 258 c'è),
+applica_sconto_preventivo(p_preventivo, p_sconto, p_motivazione) (SOLO con il
+preventivo 'inviato_a_rappresentante'; rappresentante del cliente o del
+preventivo come accetta_preventivo, titolare anche "Entra come"; percentuale
+> 0 e < 100, max 2 decimali, 0 = togli; motivazione OBBLIGATORIA sopra il 2%,
+max 1000; rifiuta con il PDF esterno del titolare se non è il titolare e con
+l'anticipo in importo oltre il totale scontato; chiama
+controllo_sconto_preventivo = AGGANCIO per F16.1 margine 29% e F16.42 sconti
+degli agenti, oggi null), dati_pdf_preventivo_cliente(p_preventivo)
+(preventivo e voci con il prezzo al cliente, senza costi: il rappresentante
+non legge preventivi_voci), registra_pdf_preventivo_cliente(p_preventivo,
+p_path, p_nome) (<id>/cliente/<file>, file nello Storage se c'è). SCELTA
+DICHIARATA: con lo sconto preventivi.totale_imponibile È GIÀ SCONTATO
+(totale_prima_sconto = somma delle voci): commessa (sql/26), anticipo
+(sql/24, 25, 46), calcolo e fattura finale (sql/39, 46),
+importi_extra_commesse (sql/56), dashboard lo usano da soli, nessuna loro
+ridefinizione. Trigger trg_preventivi_00_sconto (BEFORE, primo dei
+preventivi): fuori dalla RPC le colonne dello sconto non si cambiano (42501,
+editor libero); un preventivo nuovo nasce senza sconto; con lo sconto, il
+totale delle voci riscritto (js/18, sql/56) diventa il "prima" e lo sconto si
+rimette. Soglia 3.000 € (D14): aggancio sul posto in
+preventivi_blocca_3k_rappresentante (non blocca l'update fatto dentro la RPC,
+segno toli.sconto_preventivo); il resto invariato. Regola storage NUOVA
+preventivi_documenti_cliente_sconto (il rappresentante carica il PDF rifatto
+dei suoi preventivi inviati a lui). Nel sito (js/69-sconto-rappresentante.js,
+caricato dopo js/68 e prima di js/19): in "I miei preventivi" (js/13
+segnaposto .sconto-rapp + caricaScontiRappresentante) totale, "🏷️ Applica
+uno sconto" / "✏️ Cambia lo sconto", la propria motivazione, "⚠️ Il PDF non ha
+ancora lo sconto" con "📄 Rifai il PDF"; finestra m-sconto-rappresentante
+(id scr-: percentuale con la virgola, anteprima con IVA, motivazione,
+"Togli lo sconto", "💾 Applica e rifai il PDF" = RPC + dati_pdf +
+generaPreventivoClientePDF(datiEsterni) + upload + registra_pdf); scheda del
+preventivo (js/18 segnaposto pvd-sconto + caricaScontoPreventivoDettaglio):
+percentuale, totali, chi e quando per chi legge il preventivo, motivazione e
+"▸ Tutti i cambi" solo al titolare, che applica lo sconto anche da lì. PDF del
+cliente (js/18 generaPreventivoClientePDF, legge sconto_perc che c'è già):
+"Totale voci", "Sconto N%", "Imponibile scontato", IVA e totale sullo
+scontato; mai la motivazione. SCELTE DA CONFERMARE DA TOLI: sconto solo prima
+dell'esito anche per il titolare; lo sconto resta se il preventivo torna in
+bozza (Rinvio ad Acquisti) e si rimette sul nuovo totale; con il PDF esterno
+del titolare lo sconto lo mette lui; nessun avviso al titolare per gli
+sconti; nessun tetto (F16.1, F16.42); il database non blocca l'accettazione
+con un PDF vecchio (solo l'avviso nel sito). Guide info-rap-34, info-tit-32,
+info-com-23. Prove: sql/258-sconto-rappresentante-PROVA.sql (solo database di
+prova, nel Postgres locale con -U supabase_admin per lo Storage finto,
+rollback: 1,5% senza motivo, 5% senza motivo rifiutato e con motivo, decimali,
+altro rappresentante, Acquisti, segreteria, tecnico, titolare "come"
+Acquisti rifiutati; motivazione illeggibile ad Acquisti, segreteria,
+contabile, tecnico, altro rappresentante; scritture dirette rifiutate;
+voci risalvate; titolare "come" rappresentante; PDF; anon; preventivo nuovo
+senza sconto; commessa e fattura finale a 9.600 €; anticipo 30% di 9.000 =
+2.700 €; dopo l'esito bloccato); test/sconto-rappresentante.spec.js (Chrome
+headless, rappresentante a 390 px: 1,5% e 5% con PDF rifatto e caricato,
+console di Acquisti e segreteria, scheda del titolare e di Acquisti;
+SCONTO_SENZA_SQL=1 dopo il rollback); matrice TUTTO OK (anche
+MATRICE_AGITO_COME=1; 10 righe nuove); smoke TUTTO OK con e senza sql/258;
+rollback provato (schema identico; i preventivi senza esito tornano al totale
+delle voci). Senza sql/258: nessun riquadro, nessun errore (una chiamata RPC
+404).
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

@@ -3343,6 +3343,26 @@
 
       <div class="al2 w">Non c'è più il modo di scegliere tu: se il gestionale manda all'ingegnere una scheda che secondo te è standard, dillo al titolare (le regole le cambia lui). Il database rifiuta l'invio fatto in un altro modo.</div>
 
+      <h4 id="info-rap-34">34. 🏷️ Il cliente chiede uno sconto sul preventivo</h4>
+
+      <p>
+        In <b>I miei preventivi</b>, prima di registrare l'esito, sotto ogni preventivo vedi il totale e il bottone <b>🏷️ Applica uno sconto</b> (poi <b>✏️ Cambia lo sconto</b>). Scrivi la percentuale con la virgola: la finestra ti mostra subito di quanto scende e il totale scontato, IVA esclusa e inclusa.
+      </p>
+
+      <ul>
+        <li>Fino al <b>2%</b> la motivazione è facoltativa; <b>sopra il 2%</b> è obbligatoria. La leggete <b>solo tu e il titolare</b>: Acquisti, la segreteria e il cliente non la vedono.</li>
+        <li>Premi <b>💾 Applica e rifai il PDF</b>: il gestionale salva lo sconto e rifà subito il PDF per il cliente con <b>Totale voci</b>, <b>Sconto %</b> e <b>Imponibile scontato</b> (si scarica anche sul telefono). <b>📄 Apri / scarica PDF</b> apre quello nuovo.</li>
+        <li>Se il PDF non si è potuto rifare compare <b>⚠️ Il PDF non ha ancora lo sconto</b> con <b>📄 Rifai il PDF</b>: non mandare al cliente quello vecchio.</li>
+        <li>Quando il cliente accetta, segni <b>Accettato dal cliente</b> come sempre: la commessa, l'anticipo e la fattura finale partono dal totale <b>scontato</b>. Dopo l'esito lo sconto non si cambia più.</li>
+        <li><b>Togli lo sconto</b> riporta il totale delle voci (e rifà il PDF). Se il PDF l'ha caricato il titolare, lo sconto lo mette lui.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Preventivo n. 245 da 10.000 € + IVA. Il cliente chiede qualcosa: scrivi <b>1,5</b> e premi <b>💾 Applica e rifai il PDF</b> (9.850 €). Il giorno dopo richiama: la concorrenza offre 9.400 €. <b>✏️ Cambia lo sconto</b>, <b>5</b>, motivazione "Cliente storico, la concorrenza offre 9.400 €": nuovo PDF a 9.500 € + IVA.
+      </div>
+
+      <div class="al2 w">Lo sconto si calcola sempre sul totale delle voci di Acquisti (5% di 10.000 €, non del totale già scontato). Il database rifiuta lo sconto fatto in un altro modo, quello di un altro rappresentante e quello dopo l'esito.</div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -3860,6 +3880,17 @@
       <div class="info-esempio">
         <b>Esempio</b><br>Arriva "Magazzino Rossi" con "🚦 Per te: Porte e portoni REI" e "🟡 Altre schede ancora dall'ingegnere". Premi <b>🧾 Avvia preventivo</b> e prepari le porte. Due giorni dopo l'avviso 🔔 "L'ingegnere ha verificato Vernice intumescente: aggiungile al preventivo n. 245": apri il preventivo, tab dei rilievi, e aggiungi la vernice.
       </div>
+
+      <h4 id="info-com-23">23. 🏷️ Il rappresentante ha messo uno sconto</h4>
+
+      <p>
+        Il rappresentante può scontare in percentuale un preventivo che gli hai mandato, prima dell'esito del cliente. Nella scheda del preventivo il riquadro <b>🏷️ Sconto del rappresentante</b> ti dice percentuale, totale delle voci e imponibile scontato, chi e quando. La motivazione non la vedi (la leggono solo lui e il titolare).
+      </p>
+
+      <ul>
+        <li>Il totale del preventivo è già scontato. Se il preventivo ti torna (<b>Rinvio ad Acquisti</b>) e cambi le voci, lo sconto si rimette da solo sul nuovo totale; il PDF che rigeneri mostra <b>Totale voci</b>, <b>Sconto %</b> e <b>Imponibile scontato</b>.</li>
+        <li>Lo sconto non lo cambi tu: per un dubbio usa <b>❓ Fai una domanda</b> al rappresentante.</li>
+      </ul>
 
   <h4>Checklist prima dell’invio</h4>
 
@@ -5865,6 +5896,24 @@
 
       <div class="al2 w">La regola vale anche nel database: con le regole accese nessuno (nemmeno da console, nemmeno tu) porta un progetto da bozza, da integrare o archiviato ad Acquisti, all'ingegnere, in preventivazione, in valutazione o approvato senza lo smistamento; un progetto con schede ancora dall'ingegnere lo mandano avanti solo l'ingegnere o tu (indietro al rappresentante e <b>Archivia</b> restano possibili). Un progetto archiviato torna al lavoro solo rimettendolo in bozza e inviandolo di nuovo. Prima di eseguire sql/83 il riquadro dice "non ancora attivo" e tutto funziona come prima.</div>
 
+      <h4 id="info-tit-32">32. 🏷️ Sconti del rappresentante: percentuale, motivazione e totali</h4>
+
+      <p>
+        Il rappresentante, in <b>I miei preventivi</b> e prima dell'esito del cliente, può mettere uno sconto in percentuale sul preventivo. Fino al 2% la motivazione è facoltativa, sopra il 2% obbligatoria. Nella scheda del preventivo il riquadro <b>🏷️ Sconto del rappresentante</b> ti dice percentuale, totale delle voci, imponibile scontato, chi e quando, la <b>motivazione</b> (la leggete solo tu e il rappresentante che l'ha scritta) e <b>▸ Tutti i cambi dello sconto</b>.
+      </p>
+
+      <ul>
+        <li>Il <b>totale del preventivo è già scontato</b>: commessa, anticipo in percentuale, fattura finale, importi dei lavori extra, fatturato e "Cosa tocca a me" usano l'importo scontato.</li>
+        <li>Puoi mettere o cambiare lo sconto anche tu (<b>🏷️ Applica uno sconto</b> nella scheda, con il preventivo inviato al rappresentante), anche da <b>👁️ Entra come</b>: la riga resta del rappresentante.</li>
+        <li>Dopo l'esito del cliente lo sconto non si cambia più, nemmeno da te (commessa e anticipo sono già nati con quell'importo). Se poi cambi le voci, lo sconto si rimette sul nuovo totale.</li>
+        <li>Con il <b>PDF esterno</b> caricato da te il rappresentante non può scontare: lo sconto lo metti tu e ricarichi il PDF.</li>
+        <li>Oggi non c'è un tetto allo sconto: il controllo del margine (29%) e gli sconti degli agenti arriveranno con il piano prezzi.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Nella scheda del preventivo n. 245: "Sconto 5%: totale delle voci 10.000,00 € → imponibile 9.500,00 € (− 500,00 €). Ultimo cambio: Giulio Pistolesi il 10/11/2026 15:20. Motivazione: Cliente storico, la concorrenza offre 9.400 €". La commessa nasce a 9.500 €.
+      </div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -7835,6 +7884,40 @@
     <div class="ma">
       <button class="btn" onclick="closeM('m-rifiuto-anticipo')">Annulla</button>
       <button class="btn p" id="mra-conferma" disabled onclick="salvaRifiutoAnticipoNonVersato()">❌ Conferma rifiuto</button>
+    </div>
+  </div>
+</div>
+
+<!-- sql/258 — SCONTO DEL RAPPRESENTANTE SUL PREVENTIVO (js/69) -->
+<div class="mbg" id="m-sconto-rappresentante">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-sconto-rappresentante')">×</button>
+    <h3>🏷️ Sconto sul preventivo</h3>
+    <input type="hidden" id="scr-preventivo-id">
+    <div id="scr-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div style="font-size:13px;margin-bottom:10px">Totale delle voci (prima dello sconto): <b id="scr-base"></b></div>
+    <div class="f">
+      <label>Sconto in % *</label>
+      <input type="text" inputmode="decimal" id="scr-perc" placeholder="es. 1,5" autocomplete="off"
+        oninput="aggiornaAnteprimaScontoRappresentante()">
+    </div>
+    <div id="scr-anteprima" class="al2 i" style="margin-bottom:12px"></div>
+    <div class="f">
+      <label id="scr-motivo-etichetta">Motivazione dello sconto (facoltativa fino al 2%)</label>
+      <textarea id="scr-motivo" rows="3" maxlength="1000" oninput="aggiornaAnteprimaScontoRappresentante()"
+        placeholder="es. Cliente storico, la concorrenza offre 9.400 €"></textarea>
+    </div>
+    <div class="al2 i" style="margin-top:4px">
+      🔒 La motivazione la leggete <b>solo tu e il titolare</b>: non la vedono Acquisti, la segreteria
+      né il cliente (non va nel PDF). Nel PDF per il cliente vanno la percentuale e il totale scontato.
+    </div>
+    <div class="al2 w" id="scr-titolare-pdf" style="margin-top:8px;display:none">
+      Il PDF di questo preventivo l'ha caricato il titolare: dopo lo sconto va ricaricato a mano con il nuovo totale.
+    </div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-sconto-rappresentante')">Annulla</button>
+      <button class="btn warn" id="scr-togli" onclick="salvaScontoRappresentante(true)">Togli lo sconto</button>
+      <button class="btn p" id="scr-salva" disabled onclick="salvaScontoRappresentante(false)">💾 Applica e rifai il PDF</button>
     </div>
   </div>
 </div>
@@ -10564,6 +10647,7 @@
 <script defer src="js/57-coda-offline.js?v=202611101144"></script>
 <script defer src="js/67-smistamento-famiglie.js?v=202611101144"></script>
 <script defer src="js/68-presidi-tecnico.js?v=202611101144"></script>
+<script defer src="js/69-sconto-rappresentante.js?v=202611101144"></script>
 <script defer src="js/19-init.js?v=202611101144"></script>
 
 

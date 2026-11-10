@@ -676,9 +676,12 @@ pdf_esterno_titolare_nome,
 </button>`}
           ${esitoDisponibile ? bottoniEsitoPreventivo(preventivo) : ''}
         </div>
+        <div class="sconto-rapp" data-preventivo="${preventivo.id}"></div>
       </div>
     `;
   }).join('') + esitiRegistrati;
+  // sql/258: sconto del rappresentante nelle schede (js/69; senza sql/258 nulla)
+  if (typeof caricaScontiRappresentante === 'function') caricaScontiRappresentante(box);
 }
 
 async function apriPdfPreventivoRappresentante(preventivoId) {

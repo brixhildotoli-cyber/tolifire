@@ -131,6 +131,8 @@ async function openPreventivoDetail(preventivoId) {
       </div>
     ` : ''}
 
+<div id="pvd-sconto"></div>
+
 ${cardEsitoPreventivo(preventivo)}
 
 ${['commerciale', 'titolare'].includes(ROLE) && preventivo.stato === 'bozza' && preventivo.progetto_tecnico_id &&
@@ -354,6 +356,8 @@ ${ROLE === 'titolare' ? `
   // F14.16: intestazione, "Cosa puoi fare", Collegati e Storico (js/63):
   // le azioni dipendono solo da ruolo e stato, non da dove si arriva.
   if (typeof caricaSchedaOggetto === 'function') await caricaSchedaOggetto('preventivo', preventivo, 'pvd-scheda-oggetto');
+  // sql/258: sconto del rappresentante (js/69; senza sql/258 non mostra nulla)
+  if (typeof caricaScontoPreventivoDettaglio === 'function') caricaScontoPreventivoDettaglio(preventivo, 'pvd-sconto');
   gotoPage('preventivo-detail');
   
 }
@@ -6396,6 +6400,7 @@ async function generaPreventivoClientePDF(datiEsterni) {
         data_scadenza,
         iva_perc,
         totale_imponibile,
+        sconto_perc,
         note,
         condizioni_pagamento,
         progetto_tecnico_id,
@@ -6439,9 +6444,22 @@ async function generaPreventivoClientePDF(datiEsterni) {
       numeroPreventivo(voce.prezzo_unitario);
   }, 0);
 
+  // sql/258: sconto del rappresentante. totaleImponibile resta la somma delle
+  // voci (si salva così: il database rimette lo sconto); nel PDF il cliente
+  // legge totale delle voci, sconto e imponibile scontato (mai la motivazione).
+  let scontoPerc = numeroPreventivo(preventivo.sconto_perc);
+  if (preventivo.sconto_perc === undefined && preventivo.id) {
+    const { data: scontoSalvato } = await db.from('preventivi').select('sconto_perc').eq('id', preventivo.id).maybeSingle();
+    scontoPerc = numeroPreventivo(scontoSalvato?.sconto_perc);
+  }
+  if (!(scontoPerc > 0 && scontoPerc < 100)) scontoPerc = 0;
+  const imponibilePdf = scontoPerc > 0
+    ? Math.round(totaleImponibile * (100 - scontoPerc) + Number.EPSILON) / 100
+    : totaleImponibile;
+
   const ivaPerc = Number(preventivo.iva_perc ?? 22);
-  const totaleIva = totaleImponibile * (ivaPerc / 100);
-  const totaleDocumento = totaleImponibile + totaleIva;
+  const totaleIva = imponibilePdf * (ivaPerc / 100);
+  const totaleDocumento = imponibilePdf + totaleIva;
   const cliente = preventivo.clienti || {};
 
   // F15.5 (sql/79): con le misure dichiarate dal cliente la frase fissa nel PDF
@@ -6591,8 +6609,19 @@ margin: {
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
+  if (scontoPerc > 0) {
+    doc.setFont('helvetica', 'normal');
+    doc.text('Totale voci: ' + euroPreventivo(totaleImponibile), 194, y, { align: 'right' });
+    y += 7;
+    doc.text(
+      'Sconto ' + String(scontoPerc).replace('.', ',') + '%: - ' + euroPreventivo(totaleImponibile - imponibilePdf),
+      194, y, { align: 'right' }
+    );
+    y += 7;
+    doc.setFont('helvetica', 'bold');
+  }
   doc.text(
-    'Imponibile: ' + euroPreventivo(totaleImponibile),
+    (scontoPerc > 0 ? 'Imponibile scontato: ' : 'Imponibile: ') + euroPreventivo(imponibilePdf),
     194,
     y,
     { align: 'right' }
