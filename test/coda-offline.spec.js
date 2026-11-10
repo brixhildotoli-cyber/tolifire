@@ -5,6 +5,8 @@
 // Il nome del database di produzione è mandato su una porta chiusa
 // (--host-resolver-rules): nessuna richiesta arriva mai alla produzione,
 // nemmeno quelle del service worker.
+// A0. Uno script che risponde 500 all'installazione: il service worker si
+//    attiva lo stesso (pushManager c'è), cache completata alla riapertura.
 // A. Service worker: cache "toli-app-<versione>" con tutti gli script di
 //    index.html; sito spento (senza rete) = l'app si apre lo stesso, le
 //    librerie PDF arrivano dalla cache, con l'utente salvato sul telefono si
@@ -82,7 +84,7 @@ function sessione(u) {
 
 // ── Sito servito in locale (cartella del repository, solo lettura) ─────
 const TIPI = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.ico': 'image/x-icon' };
-const SITO_STATO = { versione: null, spento: false, richieste: [] };
+const SITO_STATO = { versione: null, spento: false, richieste: [], errore500: null };
 function avviaSito() {
   return new Promise(ok => {
     const srv = http.createServer((req, res) => {
@@ -90,6 +92,8 @@ function avviaSito() {
       if (SITO_STATO.spento) { req.socket.destroy(); return; }
       SITO_STATO.richieste.push(req.url);
       let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+      // Uno script che non si scarica (rete debole, errore del server)
+      if (SITO_STATO.errore500 && p === SITO_STATO.errore500) { res.writeHead(500); return res.end('errore di prova'); }
       if ((p === '/' || p === '/index.html') && SITO_STATO.versione) {
         const html = fs.readFileSync(path.join(SITO, 'index.html'), 'utf8').replace(/\?v=[0-9]+"/g, '?v=' + SITO_STATO.versione + '"');
         res.writeHead(200, { 'content-type': 'text/html', 'cache-control': 'no-store' });
@@ -356,8 +360,31 @@ async function provaServiceWorker(KO, righe, srv, utenteFinto) {
     await page.evaluateOnNewDocument(() => { try { localStorage.setItem('toli_sw_locale', '1'); } catch (e) { /* niente */ } });
     const base = 'http://127.0.0.1:' + srv.address().port + '/';
     SITO_STATO.versione = '202611109901';
+    // A0. Telefono nuovo con la rete debole: uno script risponde 500 mentre il
+    // service worker si installa. Si attiva lo stesso (pushManager per
+    // "Attiva le notifiche"), cache segnata incompleta, completata dopo.
+    SITO_STATO.errore500 = '/js/48-riba-cbi.js';
     await page.goto(base + 'index.html', { waitUntil: 'load', timeout: 60000 });
     await attendiSw(page, '202611109901');
+    const a0 = await page.evaluate(async () => {
+      const r = await navigator.serviceWorker.ready;
+      const c = await caches.open('toli-app-202611109901');
+      const segno = await c.match(new URL('cache-incompleta', r.scope).href);
+      const voci = (await c.keys()).map(x => x.url);
+      return { push: !!r.pushManager, segno: segno ? await segno.json() : null, presente: voci.some(u => u.includes('48-riba-cbi.js')), voci: voci.length };
+    });
+    if (!a0.push || !a0.segno || !a0.segno.some(u => u.includes('48-riba-cbi.js?v=202611109901')) || a0.presente)
+      KO('A0: installazione con uno script in errore: ' + JSON.stringify(a0));
+    else righe.push('A0. js/48 risponde 500 durante l\'installazione: service worker attivo lo stesso, pushManager presente, cache segnata incompleta (' + a0.segno.length + ' file da riprendere, ' + a0.voci + ' in cache)');
+    SITO_STATO.errore500 = null;
+    await page.reload({ waitUntil: 'load', timeout: 60000 });
+    const completa = await page.waitForFunction(async () => {
+      const r = await navigator.serviceWorker.ready;
+      const c = await caches.open('toli-app-202611109901');
+      return !(await c.match(new URL('cache-incompleta', r.scope).href)) && (await c.keys()).some(x => x.url.includes('48-riba-cbi.js?v=202611109901'));
+    }, { timeout: 30000, polling: 500 }).then(() => true, () => false);
+    if (!completa) KO('A0: alla riapertura con la rete la cache non si completa');
+    else righe.push('    riaperto con la rete: js/48 della stessa versione ripreso, segno "incompleta" tolto');
     const c1 = await cacheApp(page);
     const scriptIndice = await page.evaluate(() => [...document.querySelectorAll('script[src^="js/"]')].map(s => s.src));
     const inCache = c1.voci['toli-app-202611109901'] || [];

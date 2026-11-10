@@ -454,7 +454,7 @@ async function salvaSchedaRilievoInCoda(riga, giaControllata) {
   const multiple = typeof schedeMultipleAttive === 'function' && schedeMultipleAttive() && s && s.elenco && s.famiglia === riga.famiglia;
   try {
     if (!multiple) {
-      // Senza sql/48 (oggi non in produzione): una scheda per tipo
+      // Senza sql/48 (in produzione dal 30/10: ramo solo per un database senza il 48): una scheda per tipo
       if (typeof schedeMultipleDisponibili === 'undefined' || schedeMultipleDisponibili !== false) {
         return { error: { message: 'senza rete la scheda non si salva: aprila una volta con la rete, poi si può compilare anche senza' }, salvate: 0 };
       }

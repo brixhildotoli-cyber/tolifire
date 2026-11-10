@@ -51,28 +51,68 @@ function fileDaIndice(html) {
   return Array.from(nomi).map(function(n) { return nellaScope(n + suffissoVersione()); });
 }
 
-async function preparaCacheApp() {
-  const cache = await caches.open(CACHE_APP);
-  const r = await fetch(nellaScope('index.html'), { cache: 'reload' });
-  if (!r.ok) throw new Error('index.html: ' + r.status);
-  const html = await r.clone().text();
-  // index.html si tiene come copia "senza rete" solo se è di questa versione
-  if (VERSIONE === 'dev' || html.indexOf('?v=' + VERSIONE) >= 0) await cache.put(nellaScope('index.html'), r);
-  const elenco = fileDaIndice(html).concat([
-    nellaScope('manifest.webmanifest'), nellaScope('assets/logo-192.png'), nellaScope('assets/logo-512.png')
-  ]);
-  // Uno alla volta a gruppi: un file che manca non ferma gli altri, ma l'app
-  // è "pronta senza rete" solo se ci sono tutti gli script.
-  let mancanti = 0;
+// Segno "cache incompleta": elenco dei file che all'installazione non sono
+// arrivati (rete debole, errore del server). L'installazione NON si ferma
+// (altrimenti "Attiva le notifiche" di js/59 aspetterebbe per sempre
+// serviceWorker.ready): i file mancanti si riprendono alla prossima apertura
+// del gestionale (completaCacheApp) e comunque al primo uso (fetch: cache,
+// se manca la rete, poi si tiene). Sempre e solo file di QUESTA versione:
+// niente file vecchi dopo una pubblicazione.
+const SEGNO_INCOMPLETA = 'cache-incompleta';
+
+async function segnaCacheApp(cache, mancanti) {
+  const chiave = nellaScope(SEGNO_INCOMPLETA);
+  if (mancanti.length) await cache.put(chiave, new Response(JSON.stringify(mancanti), { headers: { 'content-type': 'application/json' } }));
+  else await cache.delete(chiave);
+}
+
+async function scaricaInCache(cache, elenco) {
+  const mancanti = [];
   for (let i = 0; i < elenco.length; i += 8) {
     await Promise.all(elenco.slice(i, i + 8).map(async function(u) {
       try {
         const x = await fetch(u, { cache: 'reload' });
-        if (x.ok) await cache.put(u, x); else mancanti++;
-      } catch (e) { mancanti++; }
+        if (x.ok) await cache.put(u, x); else mancanti.push(u);
+      } catch (e) { mancanti.push(u); }
     }));
   }
-  if (mancanti) throw new Error(mancanti + ' file dell\'app non scaricati');
+  return mancanti;
+}
+
+async function preparaCacheApp() {
+  const cache = await caches.open(CACHE_APP);
+  let html = null;
+  try {
+    const r = await fetch(nellaScope('index.html'), { cache: 'reload' });
+    if (r.ok) {
+      html = await r.clone().text();
+      // index.html si tiene come copia "senza rete" solo se è di questa versione
+      if (VERSIONE === 'dev' || html.indexOf('?v=' + VERSIONE) >= 0) await cache.put(nellaScope('index.html'), r);
+    }
+  } catch (e) { html = null; }
+  if (html === null) { await segnaCacheApp(cache, ['index.html']); return; }
+  const elenco = fileDaIndice(html).concat([
+    nellaScope('manifest.webmanifest'), nellaScope('assets/logo-192.png'), nellaScope('assets/logo-512.png')
+  ]);
+  await segnaCacheApp(cache, await scaricaInCache(cache, elenco));
+}
+
+// Riprende i file mancanti (una volta per avvio del service worker alla volta)
+let completamento = null;
+function completaCacheApp() {
+  if (completamento) return completamento;
+  completamento = (async function() {
+    const cache = await caches.open(CACHE_APP);
+    const segno = await cache.match(nellaScope(SEGNO_INCOMPLETA));
+    if (!segno) return;
+    let elenco = [];
+    try { elenco = await segno.json(); } catch (e) { elenco = ['index.html']; }
+    if (elenco.indexOf('index.html') >= 0) { await preparaCacheApp(); return; }
+    const ancora = [];
+    for (const u of elenco) { if (!(await cache.match(u))) ancora.push(u); }
+    await segnaCacheApp(cache, await scaricaInCache(cache, ancora));
+  })().catch(function() {}).finally(function() { completamento = null; });
+  return completamento;
 }
 
 async function preparaCacheLibrerie() {
@@ -94,7 +134,7 @@ self.addEventListener('activate', function(e) {
   e.waitUntil(caches.keys().then(function(nomi) {
     return Promise.all(nomi.filter(function(n) { return /^toli-app-/.test(n) && n !== CACHE_APP; })
       .map(function(n) { return caches.delete(n); }));
-  }).then(function() { return self.clients.claim(); }));
+  }).then(function() { return self.clients.claim(); }).then(function() { completaCacheApp(); }));
 });
 
 // La pagina chiede: svuota i dati (Esci, altra persona) o dimmi la versione
@@ -156,6 +196,7 @@ async function dallaCachePoiRete(req, nomeCache) {
 async function pagina(req) {
   try {
     const r = await fetch(req);
+    if (r && r.ok) completaCacheApp(); // con la rete: si riprendono i file mancanti
     if (r && r.ok && !new URL(req.url).searchParams.get('portale')) {
       const copia = r.clone();
       copia.text().then(function(html) {

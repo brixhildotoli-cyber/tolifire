@@ -587,7 +587,7 @@ registra_invio_avviso. Interne: segreto_invio_avvisi,
 imposta_configurazione_push, chiama_funzione_avvisi,
 avvia_riepilogo_avvisi. Nel sito (js/59): senza sql/66 o senza
 configurazione NULLA (niente service worker, niente permesso); con:
-service worker sw.js (solo push e notificationclick, nessuna cache;
+service worker sw.js (in F14.6 solo push e notificationclick, nessuna cache; da F15.11 anche cache dell'app, librerie e dati e registrazione per tutti, vedi "App installabile offline";
 registraServiceWorker in js/01), invito al primo accesso (iPhone senza
 app: "Installa l'app"; altri: "Attiva le notifiche" / "Non ora" 7
 giorni), riquadro "📱 Notifiche" in cima alla finestra Avvisi (Attiva /
@@ -1629,7 +1629,7 @@ sw.js?v=<versione> (indirizzoServiceWorker: il ?v= di pubblica.sh letto dallo
 script js/19-init.js di index.html; pubblica.sh NON cambia). Cache
 toli-app-<versione> (index.html, style.css e tutti gli script di index.html
 con quella versione, manifest, logo; le toli-app-* vecchie si cancellano
-all'attivazione), toli-librerie-1 (supabase-js@2, jsPDF, autotable, pdf-lib,
+all'attivazione; un file che all'installazione non arriva NON ferma l'installazione: segno "cache-incompleta" con l'elenco, ripreso alla riapertura con la rete o al primo uso, sempre della stessa versione), toli-librerie-1 (supabase-js@2, jsPDF, autotable, pdf-lib,
 xlsx: dalla cache, aggiornate in sottofondo), toli-dati (GET di /rest/v1 e RPC
 di sola lettura *_attivo/_attivi/_attive e schede_migrate_motore: prima la
 rete, la cache solo senza rete; mai auth, storage, scritture, richieste con
@@ -1676,7 +1676,7 @@ TOLI: solo scheda di rilievo e sue foto/fonti in questa task; dati già visti
 leggibili senza rete sul telefono fino a "Esci"; avviso iPhone ogni 7 giorni.
 Guide info-tit-30, seg-24, con-15, ct-26, tec-22, com-21, rap-31, ing-27.
 Prove: test/coda-offline.spec.js (Chrome headless, produzione mandata su una
-porta chiusa; A: cache della versione con tutti gli script, sito spento = si
+porta chiusa; A0: uno script che risponde 500 all'installazione = service worker attivo con pushManager, cache completata alla riapertura; A: cache della versione con tutti gli script, sito spento = si
 apre, jsPDF dalla cache, modalità aereo con l'utente salvato fino alla
 dashboard in 0,2 s, nuova versione = cache nuova e vecchia cancellata, pagina
 senza rete della versione nuova; B database locale, rappresentante a 390 px:
