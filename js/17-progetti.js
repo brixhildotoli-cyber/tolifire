@@ -279,8 +279,10 @@ if (
     const smistamento = progettoConSmistamento();
     const inviaSmistamento = smistamento && ['bozza', 'da_integrare'].includes(p.stato);
     const richiediVerifica = !smistamento && ['bozza', 'da_integrare'].includes(p.stato);
+    // F15.13: con lo smistamento il rappresentante non sposta da solo un progetto
+    // già verificato (sql/83 lo rifiuta): è già in "Da preventivare" di Acquisti
     const inviaCommerciale = smistamento
-      ? p.stato === 'pronto_per_preventivo'
+      ? p.stato === 'pronto_per_preventivo' && ROLE !== 'rappresentante'
       : ['bozza', 'da_integrare', 'pronto_per_preventivo'].includes(p.stato);
     const avvisoSoglia = (inviaCommerciale || inviaSmistamento) && progettoSopraSoglia(p);
 
@@ -1001,6 +1003,10 @@ async function inviaProgettoAlCommerciale(progettoId) {
   if (typeof verificaRegoleSmistamentoDisponibili === 'function' && await verificaRegoleSmistamentoDisponibili(true)) {
     const { data: attuale } = await db.from('progetti_tecnici').select('stato').eq('id', progettoId).maybeSingle();
     if (!attuale || ['bozza', 'da_integrare'].includes(attuale.stato)) return inviaProgettoConSmistamento(progettoId);
+    if (ROLE === 'rappresentante' && attuale.stato === 'pronto_per_preventivo') {
+      toast('Il progetto è già verificato: lo trova Acquisti in "Da preventivare".');
+      return;
+    }
   }
   // F15.5: fonte del rilievo e fonti dei dati normativi (js/56, sql/79)
   // (solo l'invio da bozza o da integrare: dopo la verifica dell'ingegnere no)
@@ -1156,7 +1162,7 @@ async function loadPaginaProgetti() {
       !smistamento && (p.stato === 'bozza' || p.stato === 'da_integrare');
 
     const puoInviareCommerciale = smistamento
-      ? p.stato === 'pronto_per_preventivo'
+      ? p.stato === 'pronto_per_preventivo' && ROLE !== 'rappresentante'
       : p.stato === 'bozza' ||
         p.stato === 'da_integrare' ||
         p.stato === 'pronto_per_preventivo';
@@ -2990,7 +2996,7 @@ if (btnModifica) {
       ) : ''}
     </div>
 
-    ${['bozza', 'da_integrare', 'pronto_per_preventivo']
+    ${(progettoConSmistamento() ? ['bozza', 'da_integrare'] : ['bozza', 'da_integrare', 'pronto_per_preventivo'])
         .includes(progetto.stato) && progettoSopraSoglia(progetto) ? `
       <div class="al2 w" style="margin-bottom:16px">
         ⚠️ ${esc(testoAvvisoSoglia(progetto))}
