@@ -308,7 +308,7 @@ entro_il data AAAA-MM-GG, entro_motivo menu, accessi, orari); la scheda comune
 è una riga di progetti_tecnici_schede famiglia 'comune' numero 1. Trigger NUOVI
 trg_progetti_tecnici_invio_completo (progetti_tecnici) e
 trg_commesse_rilievo_comune (commesse, BEFORE INSERT).
-Dopo sql/82-foto-video (F15.9 foto e video, DA ESEGUIRE: prima si PUBBLICA il
+Dopo sql/82-foto-video (F15.9 foto e video, ESEGUITO il 10/11 con il -VINCOLO dall'editor (backup pre82fv, controllo in regola): prima si PUBBLICA il
 sito, poi backup, anteprima, 82-foto-video.sql (senza parole di
 cancellazione, server MCP), controllo, 82-foto-video-VINCOLO.sql dall'EDITOR
 (drop e add del vincolo del tipo), di nuovo il controllo; richiede 07, 71,
@@ -1504,8 +1504,8 @@ sql/82; rollback provato (schema identico; campi comune "tolti", lavorazione
 spenta; rieseguito il file: campi di nuovo attivi). Senza sql/82: nessun
 riquadro, controlli di invio solo nel sito, nessun errore (una chiamata RPC
 404).
-Dopo sql/82-foto-video (F15.9 foto e video delle schede di rilievo, DA
-ESEGUIRE; numero 82 dato dal piano anche a F15.8: il file si chiama sempre
+Dopo sql/82-foto-video (F15.9 foto e video delle schede di rilievo, ESEGUITO
+il 10/11 con il -VINCOLO dall'editor (backup pre82fv, controllo in regola); numero 82 dato dal piano anche a F15.8: il file si chiama sempre
 "sql/82-foto-video"). ORDINE: 1) PUBBLICARE il sito (dopo il file il database
 vuole l'impronta su ogni file nuovo dei progetti: il sito vecchio non la manda,
 "Manca l'impronta del file: ricarica la pagina"); 2) backup, anteprima in
