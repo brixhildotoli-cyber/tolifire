@@ -234,6 +234,9 @@ async function loadProgettiCliente(clienteId) {
 
   lista.innerHTML = '<div class="load">Caricamento...</div>';
 
+  // F15.13: con le regole di smistamento attive un solo "Invia il progetto" (js/67)
+  if (typeof verificaRegoleSmistamentoDisponibili === 'function') await verificaRegoleSmistamentoDisponibili();
+
   const { data, error } = await db
     .from('progetti_tecnici')
     .select('*')
@@ -273,12 +276,13 @@ if (
       archiviato: 'Archiviato'
       
     }[p.stato] || p.stato;
-    const richiediVerifica = ['bozza', 'da_integrare'].includes(p.stato);
-    const inviaCommerciale = [
-    'bozza',
-    'da_integrare',
-    'pronto_per_preventivo'].includes(p.stato);
-    const avvisoSoglia = inviaCommerciale && progettoSopraSoglia(p);
+    const smistamento = progettoConSmistamento();
+    const inviaSmistamento = smistamento && ['bozza', 'da_integrare'].includes(p.stato);
+    const richiediVerifica = !smistamento && ['bozza', 'da_integrare'].includes(p.stato);
+    const inviaCommerciale = smistamento
+      ? p.stato === 'pronto_per_preventivo'
+      : ['bozza', 'da_integrare', 'pronto_per_preventivo'].includes(p.stato);
+    const avvisoSoglia = (inviaCommerciale || inviaSmistamento) && progettoSopraSoglia(p);
 
     return '<div class="card" style="margin-bottom:10px">' +
       '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
@@ -320,6 +324,12 @@ if (
 (inviaCommerciale
   ? '<button class="btn sm info" onclick="inviaProgettoAlCommerciale(\'' + p.id + '\')">' +
       '📤 Invia ad Acquisti' +
+    '</button>'
+  : '') +
+
+(inviaSmistamento
+  ? '<button class="btn sm p" onclick="inviaProgettoConSmistamento(\'' + p.id + '\')">' +
+      '📤 Invia il progetto' +
     '</button>'
   : '') +
 
@@ -773,6 +783,10 @@ async function eliminaProgetto(progettoId) {
 }
 
 async function inviaProgettoAUfficioTecnico(progettoId) {
+  // F15.13: con le regole di smistamento attive decide il gestionale (js/67, sql/83)
+  if (typeof verificaRegoleSmistamentoDisponibili === 'function' && await verificaRegoleSmistamentoDisponibili(true)) {
+    return inviaProgettoConSmistamento(progettoId);
+  }
   // F15.5: fonte del rilievo e fonti dei dati normativi (js/56, sql/79)
   if (typeof controllaFontiPrimaDellInvio === 'function' && !(await controllaFontiPrimaDellInvio(progettoId))) {
     return;
@@ -826,6 +840,9 @@ async function inviaProgettoAUfficioTecnico(progettoId) {
 }
 
 // ── F3.3 — SOGLIA "LAVORO GRANDE": AVVISO, NESSUN BLOCCO ─────
+// F15.13 (T2): con le regole di smistamento attive (sql/83) la soglia è la
+// regola "Lavoro grande": il progetto va all'ingegnere da solo e l'avviso lo
+// dice; con la regola spenta niente avviso. Senza regole come prima.
 // Soglia: impostazioni.soglia_lavoro_grande (sql/20, letta da loadImp in
 // IMPOSTAZIONI). Importo: progetti_tecnici.importo_stimato (sql/21).
 // Decisione del 26/10: decide il rappresentante se mandare il progetto
@@ -874,8 +891,20 @@ function formatoEuroSoglia(importo) {
   }) + ' €';
 }
 
+// true: le regole di smistamento sono attive (js/67) e i due invii di prima non ci sono
+function progettoConSmistamento() {
+  return typeof smistamentoAttivoSubito === 'function' && smistamentoAttivoSubito();
+}
+
+function sogliaAvvisoProgetto() {
+  if (progettoConSmistamento()) {
+    return regolaImportoSmistamentoAttiva() ? sogliaRegolaImportoSmistamento() : null;
+  }
+  return sogliaLavoroGrande();
+}
+
 function importoSopraSoglia(importo) {
-  const soglia = sogliaLavoroGrande();
+  const soglia = sogliaAvvisoProgetto();
   if (soglia === null) return false;
   if (importo === null || importo === undefined || importo === '') return false;
   const numero = Number(importo);
@@ -890,8 +919,10 @@ function progettoSopraSoglia(progetto) {
 function testoAvvisoSoglia(progetto) {
   return 'Lavoro grande (importo stimato ' +
     formatoEuroSoglia(progetto.importo_stimato) +
-    ', soglia ' + formatoEuroSoglia(sogliaLavoroGrande()) +
-    '): valuta l’invio all’ingegnere (Invia a ufficio tecnico).';
+    ', soglia ' + formatoEuroSoglia(sogliaAvvisoProgetto()) +
+    (progettoConSmistamento()
+      ? '): con lo smistamento automatico tutto il progetto va all’ingegnere.'
+      : '): valuta l’invio all’ingegnere (Invia a ufficio tecnico).');
 }
 
 // Nota sotto il campo "Importo stimato" nel modal: avviso giallo se
@@ -910,13 +941,15 @@ function aggiornaAvvisoImportoProgetto() {
     return;
   }
 
-  const soglia = sogliaLavoroGrande();
+  const soglia = sogliaAvvisoProgetto();
   nota.className = '';
   nota.style.color = 'var(--m)';
   nota.textContent = soglia === null
     ? ''
     : 'Sopra ' + formatoEuroSoglia(soglia) +
-      ' è un lavoro grande: valuta l’invio all’ingegnere.';
+      (progettoConSmistamento()
+        ? ' è un lavoro grande: il progetto andrà all’ingegnere.'
+        : ' è un lavoro grande: valuta l’invio all’ingegnere.');
 }
 
 // Campo "Importo stimato" nel modal del progetto: visibile solo se la
@@ -963,6 +996,12 @@ function aggiornaNotaFonteRilievoProgetto() {
 }
 
 async function inviaProgettoAlCommerciale(progettoId) {
+  // F15.13: con le regole di smistamento attive, da bozza o da integrare decide
+  // il gestionale (js/67, sql/83); da "pronto per il preventivo" come prima
+  if (typeof verificaRegoleSmistamentoDisponibili === 'function' && await verificaRegoleSmistamentoDisponibili(true)) {
+    const { data: attuale } = await db.from('progetti_tecnici').select('stato').eq('id', progettoId).maybeSingle();
+    if (!attuale || ['bozza', 'da_integrare'].includes(attuale.stato)) return inviaProgettoConSmistamento(progettoId);
+  }
   // F15.5: fonte del rilievo e fonti dei dati normativi (js/56, sql/79)
   // (solo l'invio da bozza o da integrare: dopo la verifica dell'ingegnere no)
   if (typeof controllaFontiPrimaDellInvio === 'function') {
@@ -1031,6 +1070,9 @@ async function loadPaginaProgetti() {
   }
 
   box.innerHTML = '<div class="load">Caricamento progetti...</div>';
+
+  // F15.13: con le regole di smistamento attive un solo "Invia il progetto" (js/67)
+  if (typeof verificaRegoleSmistamentoDisponibili === 'function') await verificaRegoleSmistamentoDisponibili();
 
   const { data, error } = await db
     .from('progetti_tecnici')
@@ -1106,15 +1148,20 @@ async function loadPaginaProgetti() {
       classe: 'bgray'
     };
 
+    const smistamento = progettoConSmistamento();
+    const puoInviareSmistamento =
+      smistamento && (p.stato === 'bozza' || p.stato === 'da_integrare');
+
     const puoRichiedereVerifica =
-      p.stato === 'bozza' || p.stato === 'da_integrare';
+      !smistamento && (p.stato === 'bozza' || p.stato === 'da_integrare');
 
-    const puoInviareCommerciale =
-      p.stato === 'bozza' ||
-      p.stato === 'da_integrare' ||
-      p.stato === 'pronto_per_preventivo';
+    const puoInviareCommerciale = smistamento
+      ? p.stato === 'pronto_per_preventivo'
+      : p.stato === 'bozza' ||
+        p.stato === 'da_integrare' ||
+        p.stato === 'pronto_per_preventivo';
 
-    const avvisoSoglia = puoInviareCommerciale && progettoSopraSoglia(p);
+    const avvisoSoglia = (puoInviareCommerciale || puoInviareSmistamento) && progettoSopraSoglia(p);
 
     const nota = p.nota_integrazione || p.nota_verifica_tecnica;
 
@@ -1193,6 +1240,15 @@ async function loadPaginaProgetti() {
             </button>
           ` : ''}
 
+          ${puoInviareSmistamento ? `
+            <button
+              class="btn sm p"
+              onclick="inviaProgettoConSmistamento('${p.id}')"
+            >
+              📤 Invia il progetto
+            </button>
+          ` : ''}
+
           <button
             class="btn sm"
             style="color:var(--r)"
@@ -1257,7 +1313,15 @@ async function loadProgettiDaPreventivare() {
 
   box.innerHTML = '<div class="load">Caricamento progetti...</div>';
 
-  const { data, error } = await db
+  // F15.13: con lo smistamento automatico (js/67, sql/83) arrivano anche i
+  // progetti ancora dall'ingegnere con qualche scheda verde, e la lista va in
+  // ordine di arrivo (il primo arrivato in cima)
+  const smistamento = typeof verificaRegoleSmistamentoDisponibili === 'function' &&
+    await verificaRegoleSmistamentoDisponibili();
+  const statiLista = ['inviato_a_commerciale', 'pronto_per_preventivo', 'in_preventivazione'];
+  if (smistamento) statiLista.push('in_verifica_tecnica');
+
+  const { data: datiProgetti, error } = await db
     .from('progetti_tecnici')
     .select(`
       id,
@@ -1266,17 +1330,15 @@ async function loadProgettiDaPreventivare() {
       descrizione_tecnica,
       nota_verifica_tecnica,
       creato_il,
+      aggiornato_il,
       stato,
       cliente_id,
       rappresentante_id,
       clienti(ragione_sociale)
     `)
-.in('stato', [
-  'inviato_a_commerciale',
-  'pronto_per_preventivo',
-  'in_preventivazione'
-])
+.in('stato', statiLista)
     .order('creato_il', { ascending: false });
+  let data = datiProgetti;
 
    if (error) {
     box.innerHTML =
@@ -1309,6 +1371,34 @@ async function loadProgettiDaPreventivare() {
     preventiviCollegati = righePreventivi || [];
   }
 
+  // F15.13: schede smistate dei progetti in elenco (Acquisti legge solo le verdi)
+  const smistamentoPerProgetto = {};
+  if (smistamento && idsProgetti.length) {
+    for (let i = 0; i < idsProgetti.length; i += 100) {
+      const { data: righeSchede } = await db
+        .from('progetti_tecnici_schede')
+        .select('progetto_tecnico_id, famiglia, numero, stato_smistamento, smistamento_il')
+        .in('progetto_tecnico_id', idsProgetti.slice(i, i + 100))
+        .not('stato_smistamento', 'is', null);
+      (righeSchede || []).forEach(function(r) {
+        (smistamentoPerProgetto[r.progetto_tecnico_id] = smistamentoPerProgetto[r.progetto_tecnico_id] || []).push(r);
+      });
+    }
+    data = (data || []).filter(function(p) {
+      if (p.stato !== 'in_verifica_tecnica') return true;
+      return (smistamentoPerProgetto[p.id] || []).some(function(r) {
+        return ['acquisti', 'verificata'].includes(r.stato_smistamento);
+      });
+    });
+    // in ordine di arrivo: quando le schede sono arrivate ad Acquisti (o, senza, l'ultimo cambio)
+    const arrivo = function(p) {
+      const verdi = (smistamentoPerProgetto[p.id] || []).filter(function(r) { return r.smistamento_il; })
+        .map(function(r) { return new Date(r.smistamento_il).getTime(); });
+      return verdi.length ? Math.min.apply(null, verdi) : new Date(p.aggiornato_il || p.creato_il).getTime();
+    };
+    data.sort(function(a, b) { return arrivo(a) - arrivo(b); });
+  }
+
   // Un progetto con preventivo esce dalla lista, tranne quando il
   // preventivo è ancora in bozza e il progetto è stato rimandato indietro
   // (di nuovo inviato al commerciale o pronto): si riprende la bozza.
@@ -1321,7 +1411,7 @@ async function loadProgettiDaPreventivare() {
     const preventivo = preventivoPerProgetto[progetto.id];
     if (!preventivo) return true;
     return preventivo.stato === 'bozza' &&
-      ['inviato_a_commerciale', 'pronto_per_preventivo'].includes(progetto.stato);
+      ['inviato_a_commerciale', 'pronto_per_preventivo', 'in_verifica_tecnica'].includes(progetto.stato);
   });
 
   if (!progettiDaPreventivare.length) {
@@ -1337,6 +1427,19 @@ async function loadProgettiDaPreventivare() {
     const dataInvio = p.creato_il
       ? new Date(p.creato_il).toLocaleDateString('it-IT')
       : '';
+    // F15.13: famiglie per Acquisti e famiglie ancora dall'ingegnere
+    const schedeSmistate = smistamentoPerProgetto[p.id] || [];
+    const nomeFam = function(r) {
+      return (typeof etichettaFamigliaTecnica === 'function' ? etichettaFamigliaTecnica(r.famiglia) : r.famiglia) +
+        (r.numero > 1 ? ' ' + r.numero : '');
+    };
+    const verdi = schedeSmistate.filter(function(r) { return ['acquisti', 'verificata'].includes(r.stato_smistamento); });
+    const ancoraIngegnere = p.stato === 'in_verifica_tecnica';
+    const htmlSmistamento = smistamento && (verdi.length || ancoraIngegnere) ? `
+          <div class="al2 ${ancoraIngegnere ? 'w' : 'i'}" style="margin-top:10px">
+            <b>🚦 Per te:</b> ${esc(verdi.map(nomeFam).join(', ') || '—')}
+            ${ancoraIngegnere ? '<br>🟡 Altre schede sono ancora dall’ingegnere: le vedi quando le ha verificate (ti arriva l’avviso 🔔). Il preventivo resta uno solo.' : ''}
+          </div>` : '';
 
     return `
       <div class="card" style="margin-bottom:12px">
@@ -1366,6 +1469,8 @@ async function loadProgettiDaPreventivare() {
           </div>
         ` : ''}
 
+        ${htmlSmistamento}
+
         <div style="font-size:12px;color:var(--m);margin-top:10px">
           Ricevuto il ${esc(dataInvio)}
         </div>
@@ -1378,13 +1483,13 @@ async function loadProgettiDaPreventivare() {
     📂 Apri progetto
   </button>
 
-  <button
+  ${ancoraIngegnere ? '' : `<button
     class="btn sm"
     style="color:#b45309"
     onclick="apriIntegrazioneCommerciale('${p.id}')"
   >
     ↩ Richiedi integrazione
-  </button>
+  </button>`}
 
 <button
   class="btn sm p"
@@ -1572,8 +1677,22 @@ async function _avviaPreventivo(progettoId, commercialeScelto) {
     return;
   }
 
+  // F15.13: progetto smistato con famiglie verdi mentre l'ingegnere ha ancora
+  // le gialle (in verifica tecnica): il preventivo nasce, il progetto resta
+  // all'ingegnere (non passa "in preventivazione").
+  const { data: statoProgetto } = await db
+    .from('progetti_tecnici').select('stato').eq('id', progettoId).maybeSingle();
+  const progettoAncoraDallIngegnere = !!statoProgetto && statoProgetto.stato === 'in_verifica_tecnica';
+
   // Se il preventivo esiste già, il progetto non deve più restare
   // nella lista "Da preventivare".
+  if (esistente && progettoAncoraDallIngegnere) {
+    toast('Ripreso il preventivo n. ' + esistente.numero + ' (l’ingegnere ha ancora alcune schede)', 'ok');
+    gotoPage(paginaPreventivi);
+    if (typeof openPreventivoDetail === 'function') await openPreventivoDetail(esistente.id);
+    return;
+  }
+
   if (esistente) {
     const { error: erroreStato } = await db
       .from('progetti_tecnici')
@@ -1694,7 +1813,9 @@ async function _avviaPreventivo(progettoId, commercialeScelto) {
     return;
   }
 
-  const { data: progettoAggiornato, error: erroreStato } = await db
+  const { data: progettoAggiornato, error: erroreStato } = progettoAncoraDallIngegnere
+    ? { data: [{ id: progettoId }], error: null }
+    : await db
     .from('progetti_tecnici')
     .update({
       stato: 'in_preventivazione',
@@ -2790,6 +2911,7 @@ async function openProgettoDetail(progettoId) {
   if (paginaAttuale && paginaAttuale !== 'progetto-detail') {
     paginaPrecedenteProgetto = paginaAttuale;
   }
+  if (typeof verificaRegoleSmistamentoDisponibili === 'function') await verificaRegoleSmistamentoDisponibili(); // F15.13
   const { data: progetto, error } = await db
     .from('progetti_tecnici')
     .select('*, clienti(ragione_sociale)')
@@ -3185,7 +3307,14 @@ async function renderSchedeProgettoCommerciale(progettoId) {
         L’ingegnere non ha ancora compilato rilievi tecnici.
       </div>
     `;
+    // F15.13: per Acquisti le schede ancora dall'ingegnere non si leggono: il riquadro le elenca
+    if (typeof aggiungiRiquadroSmistamento === 'function') await aggiungiRiquadroSmistamento(box, progettoId);
     return;
+  }
+
+  if (typeof aggiungiRiquadroSmistamento === 'function') {
+    // F15.13: dopo il disegno delle schede (sotto), riquadro "🚦 Smistamento" in cima
+    setTimeout(function() { aggiungiRiquadroSmistamento(box, progettoId); }, 0);
   }
 
   box.innerHTML = ordinaSchedeRilievo(data).map(function(scheda, indice, schede) {
@@ -3524,6 +3653,11 @@ if (ge('mvt-allegati')) {
   // Schede di rilievo salvate per tipo (solo con sql/48, js/18)
   if (typeof aggiornaRiepilogoSchedeVerifica === 'function') {
     await aggiornaRiepilogoSchedeVerifica(progetto.id);
+  }
+
+  // F15.13: quali schede sono all'ingegnere e quali già ad Acquisti (js/67)
+  if (typeof aggiungiRiquadroSmistamento === 'function') {
+    await aggiungiRiquadroSmistamento(ge('mvt-riepilogo'), progetto.id);
   }
 
   openM('m-verifica-tecnica');

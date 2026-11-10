@@ -2528,6 +2528,23 @@
     <div class="al2 i" id="si-catalogo-lav-stato"></div>
     <button class="btn p" type="button" id="si-catalogo-lav-apri" style="display:none" onclick="apriCatalogoLavorazioni()">📚 Apri il catalogo</button>
   </div>
+  <!-- F15.13 — REGOLE DI SMISTAMENTO PER FAMIGLIA (js/67-smistamento-famiglie.js, sql/83): solo titolare -->
+  <div class="card" id="si-smistamento-card" style="margin-top:14px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:13px;font-weight:600">🚦 Regole di smistamento</div>
+      <button class="btn sm" title="Rileggi" onclick="mostraRegoleSmistamentoImpostazioni()">↻</button>
+    </div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Quando il rappresentante invia un progetto, il gestionale decide scheda per scheda: se una regola attiva scatta la scheda va all'<b>ingegnere</b> (🟡), altrimenti subito ad <b>Acquisti</b> (🟢). Il preventivo resta uno solo. Con tutte le regole spente il rappresentante sceglie come prima. Ogni modifica resta nel registro.</div>
+    <div class="al2 i" id="si-smistamento-stato"></div>
+    <div id="si-smistamento-azioni" style="display:none;margin:8px 0">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn p sm" type="button" onclick="apriRegolaSmistamento()">➕ Aggiungi regola</button>
+        <button class="btn sm" type="button" onclick="apriAnteprimaSmistamento(false)">🧪 Anteprima su un progetto di prova</button>
+        <button class="btn sm" type="button" onclick="apriRegistroSmistamento()">📒 Registro delle modifiche</button>
+      </div>
+    </div>
+    <div id="si-smistamento-elenco"></div>
+  </div>
 </div>
 </div>
 
@@ -3304,6 +3321,26 @@
 
       <div class="al2 w">Il progetto si invia solo con la rete e quando nel menu non c'è più 📤: prima devono arrivare schede, foto e posizioni.</div>
 
+      <h4 id="info-rap-33">33. 🚦 Invii un progetto: decide il gestionale chi lo prepara</h4>
+
+      <p>
+        Quando il titolare ha acceso le <b>regole di smistamento</b>, nelle pagine <b>Progetti</b> e nella scheda cliente non ci sono più <b>🔧 Invia a ufficio tecnico</b> e <b>📤 Invia ad Acquisti</b>: c'è un solo bottone, <b>📤 Invia il progetto</b>. Il gestionale guarda ogni scheda di rilievo e decide dove va.
+      </p>
+
+      <ul>
+        <li>Premi <b>📤 Invia il progetto</b>: prima ti controlla fonti, dati del prezzo e foto come sempre, poi ti mostra <b>dove va ogni scheda e perché</b>: 🟢 ad Acquisti (preventivo subito) oppure 🟡 all'ingegnere (per esempio "Vernice intumescente: spessori a calcolo interno"). Confermi con <b>OK</b>.</li>
+        <li>Se tutte le schede sono verdi il progetto va ad Acquisti come prima. Se ce n'è almeno una gialla il progetto è <b>In verifica tecnica</b>, ma le schede verdi Acquisti le prepara già: il <b>preventivo resta uno solo</b>.</li>
+        <li><b>Lavoro grande</b>: sopra la soglia (30.000 € di importo stimato) tutto il progetto va all'ingegnere da solo. Nella finestra del progetto, sotto <b>Importo stimato</b>, lo leggi già mentre scrivi.</li>
+        <li>Un progetto senza schede di rilievo va all'ingegnere: le compila lui.</li>
+        <li>Se l'ingegnere o Acquisti ti rimandano il progetto (da integrare), al nuovo invio lo smistamento si rifà da capo.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Progetto "Magazzino Rossi" con la scheda <b>Porte e portoni REI</b> (3 porte REI 60 a battente singolo, 90 × 210) e la scheda <b>Vernice intumescente</b> (travi R60). Premi <b>📤 Invia il progetto</b>: "🟢 Porte e portoni REI → ad Acquisti", "🟡 Vernice intumescente → all'ingegnere". OK: Acquisti trova le porte in <b>Da preventivare</b>, l'ingegnere la vernice in <b>Verifiche tecniche</b>.
+      </div>
+
+      <div class="al2 w">Non c'è più il modo di scegliere tu: se il gestionale manda all'ingegnere una scheda che secondo te è standard, dillo al titolare (le regole le cambia lui). Il database rifiuta l'invio fatto in un altro modo.</div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -3804,6 +3841,23 @@
       </div>
 
       <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
+
+      <h4 id="info-com-22">22. 🚦 Da preventivare: arrivano solo le schede verdi</h4>
+
+      <p>
+        Con le <b>regole di smistamento</b> accese è il gestionale a decidere, scheda per scheda, cosa arriva a te e cosa va prima all'ingegnere. In <b>Da preventivare</b> i progetti sono in <b>ordine di arrivo</b>: il primo arrivato è in cima.
+      </p>
+
+      <ul>
+        <li>Ogni progetto ha il riquadro <b>🚦 Per te:</b> con le schede che puoi preventivare (per esempio "Porte e portoni REI").</li>
+        <li>Se c'è anche "🟡 Altre schede sono ancora dall'ingegnere" il progetto è in verifica tecnica: <b>🧾 Avvia preventivo</b> funziona lo stesso con le schede verdi, il <b>preventivo resta uno solo</b>. Le schede gialle non le vedi (nemmeno nel preventivo): nel tab dei rilievi il riquadro <b>🚦 Smistamento automatico delle schede</b> ti dice quali mancano e perché.</li>
+        <li>Quando l'ingegnere le ha verificate ti arriva l'avviso 🔔 <b>Schede verificate dall'ingegnere</b> ("aggiungile al preventivo n. ..."): apri il preventivo e aggiungi le voci.</li>
+        <li>Finché l'ingegnere ha il progetto non c'è <b>↩ Richiedi integrazione</b>: per un dubbio usa <b>❓ Fai una domanda</b>.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Arriva "Magazzino Rossi" con "🚦 Per te: Porte e portoni REI" e "🟡 Altre schede ancora dall'ingegnere". Premi <b>🧾 Avvia preventivo</b> e prepari le porte. Due giorni dopo l'avviso 🔔 "L'ingegnere ha verificato Vernice intumescente: aggiungile al preventivo n. 245": apri il preventivo, tab dei rilievi, e aggiungi la vernice.
+      </div>
 
   <h4>Checklist prima dell’invio</h4>
 
@@ -5236,7 +5290,7 @@
         <li>Il bottone <b>↺</b> accanto al campo rimette il valore predefinito (lo scrive nel campo: poi salvi).</li>
         <li>Se vuoi, scrivi il <b>Motivo della modifica</b>, poi <b>💾 Salva regole</b>: si salvano solo le regole che hai cambiato.</li>
         <li><b>📜 Registro delle modifiche</b>: chi ha cambiato cosa, quando, valore prima e dopo e il motivo. Ci finiscono anche le soglie cambiate da <b>Soglie e tariffe</b>.</li>
-        <li>Soglia “lavoro grande”, tariffa oraria e i due preavvisi sono le stesse di <b>Soglie e tariffe</b>: puoi cambiarle da uno qualsiasi dei due riquadri. Sopra la soglia “lavoro grande” il lavoro va all'ingegnere.</li>
+        <li>Soglia “lavoro grande”, tariffa oraria e i due preavvisi sono le stesse di <b>Soglie e tariffe</b>: puoi cambiarle da uno qualsiasi dei due riquadri. Sopra la soglia “lavoro grande” il lavoro va all'ingegnere: con le regole di smistamento accese da solo (vedi il punto 31).</li>
       </ul>
 
       <div class="info-esempio">
@@ -5769,6 +5823,26 @@
       <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
 
       <div class="al2 i">Nessuna tabella nuova nel database: le righe nascono con il codice (id) generato dal telefono e il secondo invio della stessa riga non crea doppioni. Le altre pagine (preventivi, commesse, interventi...) senza rete si vedono come l'ultima volta ma non si salvano: la coda è pronta per buono di lavoro e giornale di cantiere, che arriveranno con le loro task.</div>
+
+      <h4 id="info-tit-31">31. 🚦 Regole di smistamento: chi prepara il progetto lo decide il gestionale</h4>
+
+      <p>
+        In <b>Impostazioni</b> il riquadro <b>🚦 Regole di smistamento</b> (solo tu) decide dove va ogni scheda quando il rappresentante preme <b>📤 Invia il progetto</b>: se una regola attiva scatta la scheda va all'ingegnere (🟡), altrimenti subito ad Acquisti (🟢). Il preventivo resta uno solo.
+      </p>
+
+      <ul>
+        <li>Regole di partenza accese: <b>Lavoro grande</b> (importo stimato sopra la soglia "lavoro grande" delle Regole, 30.000 €: tutto il progetto all'ingegnere), <b>Lavorazione fuori catalogo</b>, <b>Vernice intumescente</b>, <b>Porte REI classe superiore o da definire</b>. Spente, da controllare prima di accenderle: doppia anta oltre 180 cm, sostituzione di porta esistente, lana minerale, più di 30 posizioni.</li>
+        <li><b>➕ Aggiungi regola</b>: nome, perché (lo legge chi invia), quando scatta (importo, fuori catalogo, una lavorazione sempre, condizioni sui dati di una scheda o di una posizione P-xx, numero di posizioni). Le condizioni sui dati usano i campi del catalogo lavorazioni.</li>
+        <li><b>✏️ Modifica</b>, <b>⏸ Disattiva</b> e <b>▶️ Riattiva</b>: nessuna regola si cancella. Ogni cambio va nel <b>📒 Registro delle modifiche</b> con chi, quando, prima e dopo e il motivo.</li>
+        <li><b>🧪 Anteprima su un progetto di prova</b> (anche <b>🧪 Prova su un progetto</b> dentro la regola, prima di salvarla): ti dice dove andrebbe ogni scheda di un progetto, senza cambiare nulla.</li>
+        <li>Con <b>tutte le regole spente</b> il rappresentante torna ai due bottoni di prima (<b>🔧 Invia a ufficio tecnico</b> e <b>📤 Invia ad Acquisti</b>) con l'avviso giallo sopra la soglia.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Vuoi che la vernice all'esterno o in container vada sempre all'ingegnere anche se un giorno spegni la regola della vernice: <b>➕ Aggiungi regola</b>, "Vernice all'esterno o container", <b>Quando scatta</b> = condizioni, lavorazione Vernice intumescente, campo Ambiente "è uno di" <i>esterno</i>. <b>🧪 Prova su un progetto</b> con un progetto di prova, poi <b>💾 Salva</b>.
+      </div>
+
+      <div class="al2 w">La regola vale anche nel database: con le regole accese nessuno (nemmeno da console) manda un progetto ad Acquisti o all'ingegnere senza lo smistamento. Prima di eseguire sql/83 il riquadro dice "non ancora attivo" e tutto funziona come prima.</div>
 
       <h4>Regole pratiche</h4>
 
@@ -7289,6 +7363,23 @@
 
       <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
 
+      <h4 id="info-ing-28">28. 🚦 Ti arrivano solo le schede che servono a te</h4>
+
+      <p>
+        Con le <b>regole di smistamento</b> accese il rappresentante non sceglie più chi prepara il progetto: il gestionale manda a te le schede "gialle" (vernice a calcolo, lavorazioni fuori catalogo, classi da definire, lavori sopra 30.000 €...) e subito ad Acquisti quelle standard.
+      </p>
+
+      <ul>
+        <li>Aprendo <b>Verifica tecnica</b> trovi il riquadro <b>🚦 Smistamento automatico delle schede</b>: 🟡 quelle per te con il motivo, 🟢 quelle già ad Acquisti (che può avere già avviato il preventivo).</li>
+        <li><b>✅ Approva e invia ad Acquisti</b> funziona come prima: le tue schede diventano "✅ verificata dall'ingegnere" e, se c'è già il preventivo, Acquisti riceve l'avviso 🔔.</li>
+        <li>Una scheda che aggiungi tu durante la verifica resta tua (gialla) finché non approvi.</li>
+        <li><b>↩ Rimanda al rappresentante</b> come prima: al nuovo invio lo smistamento si rifà.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>"Magazzino Rossi": nel riquadro leggi "🟡 Vernice intumescente – Vernice intumescente: spessori a calcolo interno" e "🟢 Porte e portoni REI ad Acquisti". Compili gli spessori nella scheda vernice e premi <b>✅ Approva e invia ad Acquisti</b>.
+      </div>
+
       <h4>Checklist veloce prima di chiudere la giornata</h4>
 
       <ul>
@@ -8209,6 +8300,59 @@
     <div style="font-size:12px;color:var(--m);margin-bottom:8px">Le ultime 300 modifiche: chi, quando, valore prima e dopo, motivo. Comprende le soglie cambiate da “Soglie e tariffe”.</div>
     <div id="mrr-elenco" style="max-height:60vh;overflow:auto"></div>
     <div class="ma"><button class="btn" onclick="closeM('m-registro-regole')">Chiudi</button></div>
+  </div>
+</div>
+
+<!-- F15.13 — REGOLE DI SMISTAMENTO (js/67-smistamento-famiglie.js, sql/83) -->
+<div class="mbg" id="m-regola-smistamento">
+  <div class="modal" style="max-width:640px">
+    <button class="x" onclick="closeM('m-regola-smistamento')">×</button>
+    <h3 id="rgs-titolo">Regola di smistamento</h3>
+    <input type="hidden" id="rgs-id">
+    <div class="f"><label for="rgs-nome">Nome della regola *</label><input id="rgs-nome" maxlength="120" placeholder="Es. Vernice all'esterno o in container"></div>
+    <div class="f"><label for="rgs-descrizione">Perché va all'ingegnere (lo legge chi invia)</label><input id="rgs-descrizione" maxlength="500" placeholder="Es. Ciclo di verniciatura da calcolare"></div>
+    <div class="f"><label for="rgs-tipo">Quando scatta</label><select id="rgs-tipo" onchange="aggiornaTipoRegolaSmistamento()"></select></div>
+    <div class="f" id="rgs-famiglia-box"><label for="rgs-famiglia">Lavorazione</label><select id="rgs-famiglia" onchange="aggiornaTipoRegolaSmistamento()"></select></div>
+    <div class="f" id="rgs-soglia-box"><label for="rgs-soglia" id="rgs-soglia-label">Soglia</label><input id="rgs-soglia" inputmode="decimal" placeholder="Es. 30.000"></div>
+    <div id="rgs-condizioni-box">
+      <div style="font-size:13px;font-weight:600;margin:8px 0 4px">Condizioni (tutte vere insieme, sulla scheda o su una posizione P-xx)</div>
+      <div id="rgs-condizioni"></div>
+      <button class="btn sm" type="button" onclick="aggiungiCondizioneRegolaSmistamento()">➕ Aggiungi condizione</button>
+      <div style="font-size:12px;color:var(--m);margin-top:4px">Per i menu scrivi il codice del valore (si sceglie dall'elenco), più valori separati da virgola. Un dato vuoto o "non noto" non fa scattare la regola (tranne "è vuoto").</div>
+    </div>
+    <div class="fr" style="margin-top:8px">
+      <div class="f"><label><input type="checkbox" id="rgs-attiva"> Attiva</label></div>
+      <div class="f"><label for="rgs-ordine">Ordine</label><input id="rgs-ordine" inputmode="numeric" maxlength="4"></div>
+    </div>
+    <div class="f"><label for="rgs-nota">Motivo della modifica (facoltativo, va nel registro)</label><input id="rgs-nota" maxlength="500"></div>
+    <div class="ma">
+      <button class="btn" type="button" onclick="closeM('m-regola-smistamento')">Annulla</button>
+      <button class="btn" type="button" onclick="apriAnteprimaSmistamento(true)">🧪 Prova su un progetto</button>
+      <button class="btn p" type="button" id="rgs-salva" onclick="salvaRegolaSmistamento()">💾 Salva</button>
+    </div>
+  </div>
+</div>
+
+<div class="mbg" id="m-anteprima-smistamento">
+  <div class="modal" style="max-width:560px">
+    <button class="x" onclick="closeM('m-anteprima-smistamento')">×</button>
+    <h3>🧪 Anteprima dello smistamento</h3>
+    <input type="hidden" id="ans-con-regola">
+    <div id="ans-regola-info" style="font-size:12px;color:var(--m);margin-bottom:8px"></div>
+    <div class="f"><label for="ans-progetto">Progetto di prova</label><select id="ans-progetto"></select></div>
+    <button class="btn p sm" type="button" onclick="eseguiAnteprimaSmistamento()">▶️ Calcola</button>
+    <div id="ans-esito" style="margin-top:8px"></div>
+    <div class="ma"><button class="btn" onclick="closeM('m-anteprima-smistamento')">Chiudi</button></div>
+  </div>
+</div>
+
+<div class="mbg" id="m-registro-smistamento">
+  <div class="modal" style="max-width:560px">
+    <button class="x" onclick="closeM('m-registro-smistamento')">×</button>
+    <h3>📒 Registro delle regole di smistamento</h3>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Le ultime 300 modifiche: chi, quando, cosa è cambiato e il motivo.</div>
+    <div id="rgr-elenco" style="max-height:60vh;overflow:auto"></div>
+    <div class="ma"><button class="btn" onclick="closeM('m-registro-smistamento')">Chiudi</button></div>
   </div>
 </div>
 
@@ -10397,6 +10541,7 @@
 <script defer src="js/66-posizioni.js?v=202611101144"></script>
 <script defer src="js/56-motore-schede.js?v=202611101144"></script>
 <script defer src="js/57-coda-offline.js?v=202611101144"></script>
+<script defer src="js/67-smistamento-famiglie.js?v=202611101144"></script>
 <script defer src="js/19-init.js?v=202611101144"></script>
 
 

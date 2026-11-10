@@ -1037,11 +1037,26 @@ registraFonteToccaAMe({
   // stesse regole della lista "Da preventivare" (js/17): un progetto con
   // preventivo esce, tranne se il preventivo è in bozza e il progetto è
   // stato rimandato al commerciale (inviato o pronto)
+  // F15.13: con lo smistamento (js/67) anche i progetti ancora dall'ingegnere con schede verdi
   conta: async function() {
+    const smistamento = typeof verificaRegoleSmistamentoDisponibili === 'function' && await verificaRegoleSmistamentoDisponibili();
+    const stati = ['inviato_a_commerciale', 'pronto_per_preventivo', 'in_preventivazione'];
+    if (smistamento) stati.push('in_verifica_tecnica');
     const { data, error } = await db.from('progetti_tecnici').select('id, stato')
-      .in('stato', ['inviato_a_commerciale', 'pronto_per_preventivo', 'in_preventivazione']).limit(2000);
+      .in('stato', stati).limit(2000);
     if (error) { console.warn('Cosa tocca a me (progetti da preventivare):', error.message); return null; }
-    const progetti = data || [];
+    let progetti = data || [];
+    const inVerifica = progetti.filter(function(p) { return p.stato === 'in_verifica_tecnica'; }).map(function(p) { return p.id; });
+    if (inVerifica.length) {
+      const conVerdi = {};
+      for (let i = 0; i < inVerifica.length; i += 100) {
+        const r = await db.from('progetti_tecnici_schede').select('progetto_tecnico_id')
+          .in('progetto_tecnico_id', inVerifica.slice(i, i + 100)).in('stato_smistamento', ['acquisti', 'verificata']);
+        if (r.error) { console.warn('Cosa tocca a me (progetti da preventivare):', r.error.message); return null; }
+        (r.data || []).forEach(function(x) { conVerdi[x.progetto_tecnico_id] = true; });
+      }
+      progetti = progetti.filter(function(p) { return p.stato !== 'in_verifica_tecnica' || conVerdi[p.id]; });
+    }
     if (!progetti.length) return 0;
     const ids = progetti.map(function(p) { return p.id; });
     const preventivi = {};
@@ -1053,7 +1068,7 @@ registraFonteToccaAMe({
     return progetti.filter(function(p) {
       const pr = preventivi[p.id];
       if (!pr) return true;
-      return pr.stato === 'bozza' && ['inviato_a_commerciale', 'pronto_per_preventivo'].includes(p.stato);
+      return pr.stato === 'bozza' && ['inviato_a_commerciale', 'pronto_per_preventivo', 'in_verifica_tecnica'].includes(p.stato);
     }).length;
   }
 });

@@ -1363,7 +1363,14 @@ async function renderSchedePreventivo() {
         L’ingegnere non ha ancora compilato alcun rilievo tecnico.
       </div>
     `;
+    // F15.13: schede ancora dall'ingegnere (Acquisti non le legge): js/67
+    if (typeof aggiungiRiquadroSmistamento === 'function') await aggiungiRiquadroSmistamento(box, currentPreventivoProgettoId);
     return;
+  }
+
+  if (typeof aggiungiRiquadroSmistamento === 'function') {
+    // F15.13: riquadro "🚦 Smistamento" in cima, dopo il disegno qui sotto (js/67)
+    setTimeout(function() { aggiungiRiquadroSmistamento(box, currentPreventivoProgettoId); }, 0);
   }
 
   box.innerHTML = `

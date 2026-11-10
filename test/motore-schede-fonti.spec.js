@@ -313,6 +313,9 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
   if (!riga) fermati('serve un progetto in bozza di un rappresentante senza schede');
   const [progettoId, statoPartenza, rapId] = riga.split('|');
   const inizio = psql('select now()');
+  // F15.13 (sql/83): le regole di smistamento attive cambiano l'invio (le prova smistamento-famiglie.spec.js): qui spente, poi riaccese
+  const regoleSpente = psql("select case when to_regclass('public.regole_smistamento') is null then '' else (select coalesce(string_agg(id::text, ','), '') from public.regole_smistamento where attiva) end");
+  if (regoleSpente) psql('update public.regole_smistamento set attiva = false where id in (' + regoleSpente + ')');
   // F15.9: foto e video obbligatori (sql/82-foto-video) li prova foto-video.spec.js: qui spenti, poi riaccesi
   const docSpenti = psql("update public.lavorazioni_documenti set attivo = false where attivo returning id").split('\n').filter(x => /^\d+$/.test(x));
   // un allegato qualunque: senza, "Invia" si ferma prima (regola di js/17)
@@ -525,6 +528,7 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
     for (const s of sessioni) { try { if (!s.chiuso) await s.contesto.close(); } catch (e) { /* già chiuso */ } }
     await browser.close();
     srv.close();
+    try { if (regoleSpente) psql('update public.regole_smistamento set attiva = true where id in (' + regoleSpente + ')'); } catch (e) { console.error('regole di smistamento: ' + e.message); }
     try {
       psql('update public.progetti_tecnici set stato = ' + q(statoPartenza) + (SENZA ? '' : ', fonte_rilievo = null') + ' where id = ' + q(progettoId));
       psql("delete from public.progetti_tecnici_schede where progetto_tecnico_id = " + q(progettoId) + " and creato_il >= " + q(inizio));

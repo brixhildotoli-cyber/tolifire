@@ -21,7 +21,7 @@ L'icona nella schermata Home apre il gestionale anche senza rete (F15.11). Senza
 
 Questa procedura la esegue chi amministra il repository GitHub.
 
-1. Verifica di aver salvato e inviato (`push`) sul branch da pubblicare i file `index.html`, `style.css`, `manifest.webmanifest`, `sw.js` (service worker: notifiche e uso senza rete), la cartella `assets/` e tutti i moduli della cartella `js/` (da `00-librerie.js` a `66-posizioni.js`, compreso `55-catalogo-lavorazioni.js`, più `56-motore-schede.js` e `57-coda-offline.js`, caricati prima di `19-init.js`).
+1. Verifica di aver salvato e inviato (`push`) sul branch da pubblicare i file `index.html`, `style.css`, `manifest.webmanifest`, `sw.js` (service worker: notifiche e uso senza rete), la cartella `assets/` e tutti i moduli della cartella `js/` (da `00-librerie.js` a `66-posizioni.js`, compreso `55-catalogo-lavorazioni.js`, più `56-motore-schede.js`, `57-coda-offline.js` e `67-smistamento-famiglie.js`, caricati prima di `19-init.js`).
 2. Apri il repository GitHub `brixhildotoli-cyber/tolifire`.
 3. Vai in **Settings** > **Pages**.
 4. In **Build and deployment**, seleziona **Deploy from a branch**.
@@ -88,7 +88,7 @@ assets/                immagini e icone
 js/00-*.js … js/49-*.js  logica frontend e chiamate Supabase, divisa in moduli
 ```
 
-I moduli in `js/` sono caricati da `index.html` con `defer`, nell'ordine numerico da `00-librerie.js` a `18-preventivi.js`, poi le estensioni da `20-storico-presidi.js` a `66-posizioni.js` (due file con il numero 55: `55-storico-esegui-intervento.js` e poi `55-catalogo-lavorazioni.js`), poi `56-motore-schede.js` (F15.3: numero 56 come `56-festivita-giorni-lavorativi.js`, ma si carica dopo `66-posizioni.js` perché avvolge funzioni di js/17, js/18, js/55 e js/66) e per ultimo `19-init.js` (avvio). Le estensioni 20–66 possono ridefinire funzioni dei moduli precedenti: l'ordine di caricamento va rispettato.
+I moduli in `js/` sono caricati da `index.html` con `defer`, nell'ordine numerico da `00-librerie.js` a `18-preventivi.js`, poi le estensioni da `20-storico-presidi.js` a `66-posizioni.js` (due file con il numero 55: `55-storico-esegui-intervento.js` e poi `55-catalogo-lavorazioni.js`), poi `56-motore-schede.js` (F15.3: numero 56 come `56-festivita-giorni-lavorativi.js`, ma si carica dopo `66-posizioni.js` perché avvolge funzioni di js/17, js/18, js/55 e js/66) poi `57-coda-offline.js` e `67-smistamento-famiglie.js` (F15.13, smistamento automatico per famiglia) e per ultimo `19-init.js` (avvio). Le estensioni 20–66 possono ridefinire funzioni dei moduli precedenti: l'ordine di caricamento va rispettato.
 
 ## Stato del progetto
 

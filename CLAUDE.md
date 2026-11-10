@@ -325,6 +325,24 @@ compartimentazione, vernice, rilevazione, spegnimento). Nella scheda
 dati.foto_video.<id riga del catalogo> = { allegati, mancanza }. Trigger NUOVI
 trg_progetti_tecnici_allegati_impronta, trg_progetti_tecnici_schede_foto_video,
 trg_progetti_tecnici_posizioni_foto, trg_progetti_tecnici_invio_foto_video.
+Dopo sql/83 (F15.13 smistamento automatico per famiglia, DA ESEGUIRE: backup,
+anteprima, 83-smistamento-automatico-famiglia.sql (server MCP), poi
+-REGISTRO-CANCELLAZIONI dall'editor, poi il controllo; richiede 07, 21, 48,
+62, 65, 67, 71, 75, 76, 78, 79, 82-blocco, tutti in produzione; conviene
+PUBBLICARE IL SITO PRIMA): regole_smistamento (regole: tipo importo_progetto,
+fuori_catalogo, famiglia, campo con condizioni jsonb, numero_posizioni;
+attiva, ordine; lettura per tutti gli utenti attivi, scrive solo
+salva_regola_smistamento del titolare, nessuna cancellazione),
+regole_smistamento_storico (registro creata/modificata/disattivata/
+riattivata con prima e dopo; sola lettura del titolare, immutabile).
+progetti_tecnici_schede: colonne NUOVE stato_smistamento ('acquisti',
+'ingegnere', 'verificata'; vuota = mai smistata o blocco comune),
+smistamento_motivo, smistamento_il (le scrive solo il database); policy
+RESTRITTIVA progetti_tecnici_schede_smistamento_acquisti (Acquisti non legge
+né cambia le schede gialle) e permissive progetti_tecnici_schede_lettura_
+smistamento e progetti_tecnici_allegati_lettura_smistamento (Acquisti legge
+schede verdi, blocco comune e file del progetto ancora in verifica tecnica).
+progetti_tecnici.stato: valori invariati. Matrice: 20 righe nuove.
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -1587,6 +1605,70 @@ spengono le righe del catalogo durante la prova; rollback provato (schema
 identico; righe del catalogo spente; rieseguito il file: righe di nuovo
 attive). Senza sql/82-foto-video: niente impronta, niente video, niente
 riquadro né blocco, nessun errore (una chiamata RPC 404).
+Dopo sql/83 (F15.13 smistamento automatico per famiglia, decisione di Toli
+T2, DA ESEGUIRE; ORDINE: pubblicare il sito, backup, anteprima in fondo al
+file, 83-smistamento-automatico-famiglia.sql (senza parole di cancellazione,
+server MCP), 83-...-REGISTRO-CANCELLAZIONI.sql dall'EDITOR, controllo in
+fondo al file: regole 8, attive 4, funzioni 11, trigger 6, policy 5;
+richiede 07, 21, 48, 62, 65, 67, 71, 75, 76, 78, 79, 82-blocco, si ferma
+senza). RPC del sito: smistamento_attivo() (almeno una regola attiva),
+anteprima_smistamento(p_progetto, p_regola_prova) (SECURITY INVOKER, non
+scrive: scheda_id, famiglia, numero, nome_scheda, lavorazione, esito
+acquisti/ingegnere, motivi; regola di prova solo titolare; senza schede una
+riga "ingegnere"), smista_progetto(p_progetto) (rappresentante del progetto o
+titolare, da bozza/da integrare, regole attive: scrive lo stato delle schede
+e porta il progetto in inviato_a_commerciale se tutte verdi, altrimenti
+in_verifica_tecnica; blocchi di sql/79 e 82 come prima), smistamento_progetto
+(p_progetto) (famiglie e stato senza i dati: titolare, ingegnere, Acquisti,
+rappresentante del progetto), salva_regola_smistamento(p_id, p_regola, p_nota)
+(solo titolare: aggiungi, modifica, attiva false = Disattiva; registro).
+Interne: smistamento_condizione_vera, smistamento_controlla_regola,
+progetto_smistato_ad_acquisti (per le policy), trigger
+trg_progetti_tecnici_smistamento (con regole attive da bozza/da integrare
+verso in_verifica_tecnica, inviato_a_commerciale, pronto_per_preventivo solo
+con smista_progetto: 42501 per ogni utente del sito, anche il titolare;
+editor libero), trg_progetti_tecnici_schede_smistamento (stato della scheda
+solo dal database; scheda aggiunta durante la verifica = gialla),
+trg_progetti_tecnici_smistamento_dopo (da in_verifica_tecnica a
+in_preventivazione/pronto/inviato: gialle → 'verificata' e, se c'è il
+preventivo, avviso 'smistamento_verificato' ad Acquisti). Regole di partenza
+ATTIVE: Lavoro grande (soglia vuota = leggi_regola('soglia_lavoro_grande'),
+se vuota 30.000 €: tutto il progetto all'ingegnere; progetto senza importo
+non scatta), fuori catalogo, vernice intumescente, porte REI classe
+superiore; SPENTE: doppia anta oltre 180 cm, sostituzione, lana minerale, più
+di 30 posizioni. SCELTE DA CONFERMARE DA TOLI: progetto senza schede
+all'ingegnere; solo regole "gialle"; il preventivo nasce con le schede verdi
+mentre il progetto resta all'ingegnere (in_verifica_tecnica, il progetto
+non passa in preventivazione); l'ingegnere approva tutto il progetto (niente
+"passa una famiglia"); file del progetto visibili ad Acquisti appena c'è una
+famiglia verde; regole di partenza e valori spenti. Nel sito
+(js/67-smistamento-famiglie.js, caricato dopo js/57-coda-offline):
+verificaRegoleSmistamentoDisponibili (legge regole_smistamento, cache 60 s;
+senza sql/83 una lettura 404), inviaProgettoConSmistamento (controlli di
+js/56, allegato, conferma con dove va ogni scheda e perché, RPC),
+aggiungiRiquadroSmistamento ("🚦 Smistamento automatico delle schede" in
+Rilievi tecnici di js/17, nel preventivo di js/18 e nella Verifica tecnica);
+Impostazioni > "🚦 Regole di smistamento" (si-smistamento-card, loadImp di
+js/10, solo titolare: ➕ Aggiungi, ✏️ Modifica, ⏸ Disattiva / ▶️ Riattiva,
+🧪 Anteprima su un progetto di prova anche con la regola non salvata,
+📒 Registro; finestre m-regola-smistamento id rgs-, m-anteprima-smistamento
+ans-, m-registro-smistamento rgr-). js/17: con regole attive niente "🔧
+Invia a ufficio tecnico" né "📤 Invia ad Acquisti" da bozza/da integrare ma
+"📤 Invia il progetto" (inviaProgettoAUfficioTecnico e
+inviaProgettoAlCommerciale rimandano lì); avviso della soglia "tutto il
+progetto va all'ingegnere" (regola spenta: nessun avviso); "Da preventivare"
+anche con i progetti in verifica con schede verdi ("🚦 Per te: ...", senza
+"Richiedi integrazione"), in ordine di arrivo; avviaPreventivo non cambia lo
+stato di un progetto in verifica tecnica. js/46: "Progetti da preventivare"
+con le stesse regole. Guide info-rap-33, info-com-22, info-ing-28,
+info-tit-31. Prove: sql/83-...-PROVA.sql (solo database di prova, rollback:
+porte + vernice, 35.000 €, senza schede, regole spente, ruoli rifiutati
+anche "come", registro immutabile); 79, 82-blocco e 82-foto-video -PROVA
+spengono le regole nella loro transazione; test/smistamento-famiglie.spec.js
+(Chrome headless: rappresentante a 390 px, Acquisti, ingegnere, titolare;
+SMISTAMENTO_SENZA_SQL=1 dopo il rollback); matrice TUTTO OK; rollback
+provato (schema identico). Senza sql/83 o con tutte le regole spente: sito
+come prima, nessun errore.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
@@ -2095,7 +2177,8 @@ progetto ha un "Importo stimato" (€, imponibile; colonna
 eseguire dopo sql/20). Sopra `impostazioni.soglia_lavoro_grande` compare
 solo un avviso giallo ("valuta l'invio all'ingegnere"); "Invia al
 commerciale" resta sempre possibile. Importo o soglia vuoti: nessun
-avviso (js/17).
+avviso (js/17). SUPERATO da T2 con sql/83 (F15.13, smistamento automatico):
+con le regole di smistamento attive decide il gestionale (vedi sql/83).
 
 Scheda tecnica "Coppelle" (richiesta di Erika del 28/10, js/18
 `apriSchedaCoppelleIngegnere`, bottone "🔥 Compila coppelle" nella verifica

@@ -512,7 +512,9 @@ const SALVATAGGI = {
         if (!data || !data[0]) return { errore: 'il progetto non risulta salvato' };
         await inviaProgettoAlCommerciale(data[0].id);
         const { data: d2 } = await db.from('progetti_tecnici').select('stato').eq('id', data[0].id).single();
-        if (!d2 || d2.stato !== 'inviato_a_commerciale') return { errore: 'progetto salvato ma non inviato al commerciale (stato ' + (d2 && d2.stato) + ')' };
+        // F15.13 (sql/83): con lo smistamento automatico un progetto senza schede va all'ingegnere
+        const statoAtteso = typeof smistamentoAttivoSubito === 'function' && smistamentoAttivoSubito() ? 'in_verifica_tecnica' : 'inviato_a_commerciale';
+        if (!d2 || d2.stato !== statoAtteso) return { errore: 'progetto salvato ma non inviato (stato ' + (d2 && d2.stato) + ', atteso ' + statoAtteso + ')' };
         return { id: data[0].id };
       }, titolo);
       if (r.id) condivisi.progetto = r.id;
