@@ -1631,7 +1631,10 @@ editor libero), trg_progetti_tecnici_schede_smistamento (stato della scheda
 solo dal database; scheda aggiunta durante la verifica = gialla),
 trg_progetti_tecnici_smistamento_dopo (da in_verifica_tecnica a
 in_preventivazione/pronto/inviato: gialle → 'verificata' e, se c'è il
-preventivo, avviso 'smistamento_verificato' ad Acquisti). Regole di partenza
+preventivo, avviso 'smistamento_verificato' ad Acquisti; invio da bozza/da
+integrare SENZA smista_progetto, a regole spente o dall'editor: stato,
+motivo e data dello smistamento delle schede azzerati, così nessuna scheda
+resta "all'ingegnere" nascosta ad Acquisti). Regole di partenza
 ATTIVE: Lavoro grande (soglia vuota = leggi_regola('soglia_lavoro_grande'),
 se vuota 30.000 €: tutto il progetto all'ingegnere; progetto senza importo
 non scatta), fuori catalogo, vernice intumescente, porte REI classe
