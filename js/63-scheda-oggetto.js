@@ -180,8 +180,12 @@ registraAzioneScheda('preventivo', {
 registraAzioneScheda('preventivo', {
   codice: 'rimanda_indietro', etichetta: '↩ Rimanda indietro',
   ruoli: ['commerciale', 'titolare'], stati: ['bozza'],
-  // F15.13: non con il progetto ancora dall'ingegnere (smistamento automatico)
-  quando: function(p) { return !!p.progetto_tecnico_id && !(p.progetti_tecnici && p.progetti_tecnici.stato === 'in_verifica_tecnica'); },
+  // F15.13: non con il progetto ancora dall'ingegnere con schede gialle dello
+  // smistamento (sql/83; dato letto da openPreventivoDetail di js/18)
+  quando: function(p) {
+    return !!p.progetto_tecnico_id && !(p.progetti_tecnici && p.progetti_tecnici.stato === 'in_verifica_tecnica' &&
+      typeof progettoConSchedeIngegnereSubito === 'function' && progettoConSchedeIngegnereSubito(p.progetto_tecnico_id));
+  },
   esegui: function() { return apriRimandaPreventivoAvviato(); }
 });
 registraAzioneScheda('preventivo', {

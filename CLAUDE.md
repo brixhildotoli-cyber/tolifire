@@ -1629,9 +1629,19 @@ integrare o archiviato verso uno stato di lavoro: in_verifica_tecnica,
 inviato_a_commerciale, pronto_per_preventivo, in_preventivazione,
 in_valutazione, approvato, solo con smista_progetto: 42501 per ogni utente
 del sito, anche il titolare; archiviare resta permesso e le schede
-'ingegnere' restano nascoste ad Acquisti; un progetto CREATO dal
-rappresentante si controlla solo nei 3 stati di sql/79 e 82, perché in
-quegli altri stati non può aggiungere schede; editor libero), trg_progetti_tecnici_schede_smistamento (stato della scheda
+'ingegnere' restano nascoste ad Acquisti; con regole attive un progetto
+NUOVO di un utente del sito che non è titolare né ingegnere, anche il
+titolare "come" uno di loro, nasce solo fuori dagli stati di lavoro (bozza,
+da integrare: 22023 "nasce in bozza"), tranne il lavoro extra creato da
+registra_lavoro_extra di sql/38; il RAPPRESENTANTE, anche "come", porta il
+progetto verso uno stato di lavoro da QUALUNQUE stato solo con
+smista_progetto o le RPC che lo fanno già (sql/56
+salva_preventivo_extra_rappresentante e lascia_preventivo_extra_al_commerciale,
+anche da bozza; sql/57 rinvia_preventivo_al_commerciale_da_rappresentante),
+riconosciute dalla pila delle chiamate (PG_CONTEXT): niente update diretto
+da in_valutazione o approvato a inviato_a_commerciale (quarto controllo del
+10/11); i passaggi di Acquisti (avvia il preventivo, Rimanda indietro),
+dell'ingegnere e del titolare restano; editor libero), trg_progetti_tecnici_schede_smistamento (stato della scheda
 solo dal database; scheda aggiunta durante la verifica = gialla),
 trg_progetti_tecnici_smistamento_dopo (da in_verifica_tecnica a
 in_preventivazione/pronto/inviato/in_valutazione/approvato: gialle →
@@ -1660,7 +1670,10 @@ salta in in_preventivazione/in_valutazione/approvato senza fonti, dati del
 prezzo e foto (proposta: file a parte sql/83b con la sola lista degli stati,
 in attesa di decisione). js/18 e js/63:
 "↩ Rimanda indietro" non c'è (spiegazione al suo posto) finché il progetto
-del preventivo è in verifica tecnica. SCELTE DA CONFERMARE DA TOLI: progetto senza schede
+del preventivo è in verifica tecnica CON schede ancora all'ingegnere
+(progettoConSchedeIngegnere di js/67, RPC smistamento_progetto; senza sql/83
+o senza schede gialle come prima); in "Da preventivare" la riga "🟡 Altre
+schede sono ancora dall'ingegnere" solo con schede gialle. SCELTE DA CONFERMARE DA TOLI: progetto senza schede
 all'ingegnere; solo regole "gialle"; il preventivo nasce con le schede verdi
 mentre il progetto resta all'ingegnere (in_verifica_tecnica, il progetto
 non passa in preventivazione); l'ingegnere approva tutto il progetto (niente

@@ -17,6 +17,7 @@
 //   regolaImportoSmistamentoAttiva()            → la regola della soglia è accesa?
 //   inviaProgettoConSmistamento(progettoId)     → bottone "📤 Invia il progetto"
 //   leggiSmistamentoProgetto(progettoId)        → righe di smistamento_progetto
+//   progettoConSchedeIngegnere(progettoId)      → ha schede gialle? (+ ...Subito dalla cache)
 //   aggiungiRiquadroSmistamento(box, progettoId)→ riquadro "🚦 Smistamento"
 // Impostazioni (solo titolare): riquadro si-smistamento-card,
 // mostraRegoleSmistamentoImpostazioni (chiamata da loadImp di js/10),
@@ -28,6 +29,7 @@ const SMISTAMENTO = {
   presente: null,      // null = non ancora controllato; false = senza sql/83
   attivo: false,
   regole: [],          // tutte le regole (anche spente)
+  gialle: {},          // progetto → ha schede ancora all'ingegnere (progettoConSchedeIngegnere)
   letto_il: 0
 };
 
@@ -188,6 +190,23 @@ async function leggiSmistamentoProgetto(progettoId) {
     return null;
   }
   return data || [];
+}
+
+// Progetto con schede ancora all'ingegnere (gialle dello smistamento)?
+// Senza sql/83 sempre false. L'ultimo esito per progetto resta in
+// SMISTAMENTO.gialle per le funzioni sincrone (azioni della scheda di js/63).
+async function progettoConSchedeIngegnere(progettoId) {
+  if (!progettoId) return false;
+  if (SMISTAMENTO.presente === null) await verificaRegoleSmistamentoDisponibili();
+  if (SMISTAMENTO.presente === false) return false;
+  const righe = await leggiSmistamentoProgetto(progettoId);
+  const si = !!(righe && righe.some(function(r) { return r.stato_smistamento === 'ingegnere'; }));
+  SMISTAMENTO.gialle[progettoId] = si;
+  return si;
+}
+
+function progettoConSchedeIngegnereSubito(progettoId) {
+  return !!(progettoId && SMISTAMENTO.gialle[progettoId]);
 }
 
 function htmlRigheSmistamento(righe) {

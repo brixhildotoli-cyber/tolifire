@@ -12,7 +12,9 @@
 //  3. un progetto da 35.000 € va tutto all'ingegnere, senza "Invia ad Acquisti";
 //  4. il titolare: riquadro delle regole, anteprima su un progetto di prova,
 //     regola nuova, Disattiva, registro;
-//  5. con le regole spente il sito ha i due bottoni di prima.
+//  5. con le regole spente il sito ha i due bottoni di prima;
+//  6. con le regole spente (o senza sql/83) un preventivo il cui progetto è
+//     in verifica tecnica senza schede gialle ha "↩ Rimanda indietro" come prima.
 // Con SMISTAMENTO_SENZA_SQL=1 (dopo il ROLLBACK di sql/83): due bottoni come
 // prima, riquadro "non ancora attivo", nessun errore.
 // Uso: cd test && node smistamento-famiglie.spec.js   (uscita 0 = TUTTO OK)
@@ -529,6 +531,27 @@ async function cartaProgetto(s, progettoId) {
       if (statoProgetto() !== 'inviato_a_commerciale') KO('5: invio ad Acquisti con le regole spente: ' + statoProgetto() + ' ' + d5);
       else righe.push('   "📤 Invia ad Acquisti" come prima: inviato');
       await chiudi(r5);
+    }
+
+    // 6. Regole spente (o senza sql/83): preventivo in bozza con il progetto in
+    //    verifica tecnica SENZA schede gialle → "↩ Rimanda indietro" c'è come prima
+    {
+      if (!SENZA) psql('update public.regole_smistamento set attiva = false');
+      psql("update public.progetti_tecnici set stato = 'in_verifica_tecnica' where id = " + q(progettoId));
+      const idPrev6 = psql("with x as (insert into public.preventivi (cliente_id, commerciale_id, rappresentante_id, progetto_tecnico_id, tipo, origine, totale_imponibile, sconto_perc, iva_perc, stato) " +
+        "select cliente_id, " + q(com.id) + ", rappresentante_id, id, 'fornitura_e_posa', 'progetto_tecnico', 0, 0, 22, 'bozza' from public.progetti_tecnici where id = " + q(progettoId) + " returning id) select id from x");
+      const c6 = await apriSito(browser, url); sessioni.push(c6);
+      await login(c6, com);
+      await c6.page.evaluate(async id => { await openPreventivoDetail(id); }, idPrev6);
+      await attendiQuiete(c6.stato, 1500);
+      const r6 = await c6.page.evaluate(() => ({
+        testo: (document.getElementById('pg-preventivo-detail') || document.body).innerText,
+        bottone: [...document.querySelectorAll('button')].some(b => b.offsetParent && /↩ Rimanda indietro$/.test(b.textContent.trim()))
+      }));
+      if (!r6.bottone || /non è disponibile/.test(r6.testo) || /smistamento automatico/i.test(r6.testo)) KO('6: regole spente, progetto in verifica: bottone ' + r6.bottone);
+      else righe.push('6. ' + (SENZA ? 'senza sql/83' : 'regole spente') + ': preventivo con il progetto in verifica tecnica, "↩ Rimanda indietro" c’è come prima');
+      await c6.page.screenshot({ path: path.join(CARTELLA_OUT, '6-rimanda-regole-spente.png'), fullPage: true });
+      await chiudi(c6);
     }
 
     for (const s of sessioni) {

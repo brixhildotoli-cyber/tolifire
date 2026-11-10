@@ -1373,6 +1373,7 @@ async function loadProgettiDaPreventivare() {
 
   // F15.13: schede smistate dei progetti in elenco (Acquisti legge solo le verdi)
   const smistamentoPerProgetto = {};
+  const schedeGialleProgetto = {};   // progetto in verifica con schede ancora all'ingegnere
   if (smistamento && idsProgetti.length) {
     for (let i = 0; i < idsProgetti.length; i += 100) {
       const { data: righeSchede } = await db
@@ -1397,6 +1398,12 @@ async function loadProgettiDaPreventivare() {
       return verdi.length ? Math.min.apply(null, verdi) : new Date(p.aggiornato_il || p.creato_il).getTime();
     };
     data.sort(function(a, b) { return arrivo(a) - arrivo(b); });
+    // le gialle Acquisti non le legge: chiede allo smistamento (RPC di sql/83)
+    if (typeof progettoConSchedeIngegnere === 'function') {
+      await Promise.all(data.filter(function(p) { return p.stato === 'in_verifica_tecnica'; }).map(async function(p) {
+        schedeGialleProgetto[p.id] = await progettoConSchedeIngegnere(p.id);
+      }));
+    }
   }
 
   // Un progetto con preventivo esce dalla lista, tranne quando il
@@ -1434,7 +1441,7 @@ async function loadProgettiDaPreventivare() {
         (r.numero > 1 ? ' ' + r.numero : '');
     };
     const verdi = schedeSmistate.filter(function(r) { return ['acquisti', 'verificata'].includes(r.stato_smistamento); });
-    const ancoraIngegnere = p.stato === 'in_verifica_tecnica';
+    const ancoraIngegnere = p.stato === 'in_verifica_tecnica' && !!schedeGialleProgetto[p.id];
     const htmlSmistamento = smistamento && (verdi.length || ancoraIngegnere) ? `
           <div class="al2 ${ancoraIngegnere ? 'w' : 'i'}" style="margin-top:10px">
             <b>🚦 Per te:</b> ${esc(verdi.map(nomeFam).join(', ') || '—')}
