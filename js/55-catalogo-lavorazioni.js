@@ -681,3 +681,411 @@ if (typeof loadVerificheTecniche === 'function') {
     return loadVerificheTecnicheSenzaCatalogo.apply(this, arguments);
   };
 }
+
+// ── F15.10 — IMPORT DEL CATALOGO DA UN FOGLIO EXCEL ──────────────────
+// Un foglio (xlsx, xls o csv) con UNA RIGA PER CAMPO: la lavorazione (codice
+// e/o nome, famiglia, documento finale; vuoti = quelli della riga sopra) e il
+// campo (etichetta, codice, tipo, unità, valori del menu separati da ";",
+// minimo e massimo plausibili, chi lo compila, normativo, serve al prezzo, per
+// posizione, uso a valle, ordine). "⬇️ Scarica il modello" dà il foglio vuoto
+// con un esempio e le istruzioni.
+// Flusso: importaFoglioLavorazioni legge il file con la libreria xlsx già usata
+// da js/14 (caricaLibreriaExcel di js/00), controlla ogni riga con le stesse
+// regole del database (sql/75, 78, 81) e mostra l'ANTEPRIMA (finestra
+// m-import-lavorazioni, id ilv-): cosa nasce, cosa c'è già, errori con il
+// numero di riga. Con anche un solo errore non si importa nulla.
+// "📥 Importa" scrive con insert diretti sotto RLS (titolare e ingegnere,
+// nessuna RPC, nessun SQL nuovo):
+// - lavorazione NUOVA: nasce SPENTA (attiva = false, in bozza): la attiva il
+//   titolare dal catalogo quando ha controllato campi e menu;
+// - lavorazione GIÀ NEL CATALOGO: nome, famiglia e documento non cambiano; si
+//   aggiungono solo i campi nuovi. Se la lavorazione è ATTIVA i campi nuovi
+//   arrivano "tolti" (attivo = false: non compaiono nelle schede finché non si
+//   preme ↩️ Rimetti), a meno di spuntare "rendili subito visibili";
+// - campo con un codice già nella lavorazione: NON si tocca (si corregge dal
+//   catalogo con ✏️ Modifica), l'anteprima lo dice.
+// I campi di una lavorazione si inseriscono con un solo insert (tutto o
+// niente per lavorazione); il registro del catalogo (lavorazioni_registro) li
+// scrive il database come per l'inserimento a mano.
+
+const IMPORT_LAV = { righe: null, piano: null, file: '' };
+
+// Colonne del foglio: nome della colonna (senza maiuscole, accenti, spazi) → chiave
+const COLONNE_IMPORT_LAV = {
+  lavorazione: 'lav_codice', codice_lavorazione: 'lav_codice', lavorazione_codice: 'lav_codice',
+  nome_lavorazione: 'lav_nome', lavorazione_nome: 'lav_nome',
+  famiglia: 'famiglia',
+  documento_finale: 'documento', documento: 'documento',
+  descrizione_lavorazione: 'descrizione', descrizione: 'descrizione',
+  codice_campo: 'codice', campo: 'codice', codice: 'codice',
+  etichetta: 'etichetta', etichetta_campo: 'etichetta', nome_campo: 'etichetta',
+  tipo: 'tipo', tipo_campo: 'tipo',
+  unita: 'unita', unita_di_misura: 'unita', um: 'unita',
+  valori: 'valori', valori_menu: 'valori', valori_del_menu: 'valori', valori_ammessi: 'valori',
+  min: 'min', minimo: 'min', min_plausibile: 'min', minimo_plausibile: 'min',
+  max: 'max', massimo: 'max', max_plausibile: 'max', massimo_plausibile: 'max',
+  livello: 'livello', chi_lo_compila: 'livello', chi_compila: 'livello',
+  normativo: 'normativo', dato_normativo: 'normativo',
+  serve_al_prezzo: 'prezzo', obbligatorio: 'prezzo', serve_a_calcolare_il_preventivo: 'prezzo',
+  per_posizione: 'posizione', posizione: 'posizione',
+  uso_a_valle: 'uso', uso: 'uso',
+  ordine: 'ordine'
+};
+
+const TESTATA_MODELLO_LAV = ['Codice lavorazione', 'Nome lavorazione', 'Famiglia', 'Documento finale', 'Codice campo', 'Etichetta',
+  'Tipo', 'Unità', 'Valori menu', 'Minimo', 'Massimo', 'Chi lo compila', 'Normativo', 'Serve al prezzo', 'Per posizione', 'Uso a valle', 'Ordine'];
+
+// Chiavi che il motore usa già nei dati della scheda (js/56, js/66): un campo
+// con lo stesso codice le sovrascriverebbe
+const CODICI_RISERVATI_LAV = ['nome_scheda', 'fonti_normative', 'foto_video', 'tipo_richiesta', 'sede_id', 'indirizzo_lavori',
+  'referente_lavori', 'telefono_referente', 'pareti_cartongesso'];
+const CODICI_RISERVATI_POSIZIONE_LAV = ['larghezza', 'altezza', 'note'];
+
+function chiaveColonnaImportLav(testo) {
+  const k = String(testo || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  return COLONNE_IMPORT_LAV[k] || null;
+}
+
+function testoCellaLav(x) {
+  if (x === null || x === undefined) return '';
+  return String(x).replace(/ /g, ' ').trim();
+}
+
+function siNoCellaLav(testo) {
+  const t = testoCellaLav(testo).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  if (!t) return false;
+  if (['si', 's', 'x', '1', 'vero', 'true', 'yes', 'y', '✓', 'ok'].indexOf(t) >= 0) return true;
+  if (['no', 'n', '0', 'falso', 'false', '-'].indexOf(t) >= 0) return false;
+  return null;
+}
+
+function tipoCellaLav(testo) {
+  const t = testoCellaLav(testo).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z]+/g, '');
+  if (!t) return '';
+  if (t.indexOf('numer') === 0) return 'numero';
+  if (t.indexOf('menu') === 0 || t === 'elencoavalori' || t === 'scelta' || t.indexOf('sceltada') === 0) return 'menu';
+  if (t === 'sino' || t === 'si' || t === 'booleano') return 'si_no';
+  if (t.indexOf('test') === 0) return 'testo';
+  if (t.indexOf('foto') === 0) return 'foto';
+  return null;
+}
+
+function documentoCellaLav(testo) {
+  const t = testoCellaLav(testo);
+  if (!t) return '';
+  const n = codiceDaTestoLav(t);
+  const d = DOCUMENTI_FINALI_LAV.find(function(x) {
+    return x.value && (x.value === n || codiceDaTestoLav(x.label) === n || codiceDaTestoLav(x.label).indexOf(n) === 0);
+  });
+  return d ? d.value : null;
+}
+
+// Etichette del menu: separate da ";" o a capo (anche "|")
+function valoriMenuCellaLav(testo) {
+  const etichette = testoCellaLav(testo).split(/[;|\n\r]+/).map(function(x) { return x.trim(); }).filter(Boolean);
+  const valori = [];
+  const errori = [];
+  etichette.forEach(function(e) {
+    if (e.length > 120) { errori.push('valore del menu troppo lungo (max 120 caratteri): "' + e.slice(0, 30) + '…"'); return; }
+    if (valori.some(function(x) { return x.etichetta.toLowerCase() === e.toLowerCase(); })) { errori.push('valore ripetuto nel menu: "' + e + '"'); return; }
+    let codice = codiceDaTestoLav(e) || 'valore';
+    const base = codice;
+    for (let n = 2; valori.some(function(x) { return x.valore === codice; }); n++) codice = base.slice(0, 36) + '_' + n;
+    valori.push({ valore: codice, etichetta: e });
+  });
+  if (valori.length > 200) errori.push('un menu ha al massimo 200 valori');
+  return { valori: valori, errori: errori };
+}
+
+// Righe del foglio → { righe: [...], errore }
+function leggiRigheFoglioLav(workbook) {
+  for (const nome of workbook.SheetNames) {
+    const tab = XLSX.utils.sheet_to_json(workbook.Sheets[nome], { header: 1, defval: null, raw: false });
+    let riga = -1;
+    for (let i = 0; i < Math.min(15, tab.length); i++) {
+      if ((tab[i] || []).some(function(c) { return chiaveColonnaImportLav(c) === 'etichetta'; })) { riga = i; break; }
+    }
+    if (riga < 0) continue;
+    const colonne = (tab[riga] || []).map(chiaveColonnaImportLav);
+    const righe = [];
+    for (let r = riga + 1; r < tab.length; r++) {
+      const cel = tab[r] || [];
+      if (!cel.some(function(c) { return testoCellaLav(c) !== ''; })) continue;
+      const o = { n: r + 1, foglio: nome };
+      colonne.forEach(function(k, j) { if (k && o[k] === undefined) o[k] = testoCellaLav(cel[j]); });
+      righe.push(o);
+    }
+    return { righe: righe, foglio: nome };
+  }
+  return { righe: [], errore: 'Nel file non c’è una riga di intestazione con la colonna "Etichetta". Usa il modello (⬇️ Scarica il modello).' };
+}
+
+// Controllo di tutte le righe e piano dell'import (niente scritture qui)
+function pianoImportLav(righe) {
+  const lavs = [];
+  const perCodice = {};
+  const errori = [];
+  let attuale = null;
+  righe.forEach(function(r) {
+    const err = [];
+    // Lavorazione: quella della riga, se no quella della riga sopra
+    if (r.lav_codice || r.lav_nome) {
+      const codiceLav = r.lav_codice ? r.lav_codice : codiceDaTestoLav(r.lav_nome);
+      if (!/^[a-z][a-z0-9_]{1,40}$/.test(codiceLav)) {
+        errori.push({ n: r.n, testo: 'codice della lavorazione non valido "' + codiceLav + '" (lettere minuscole, numeri e _, comincia con una lettera)' });
+        attuale = null;
+        return;
+      }
+      if (!perCodice[codiceLav]) {
+        const esistente = lavorazioneCatalogo(codiceLav);
+        const nuova = { codice: codiceLav, esistente: esistente, nome: esistente ? esistente.nome : (r.lav_nome || ''), famiglia: '', documento: '', descrizione: '', campi: [], codiciCampi: {}, n: r.n };
+        if (!esistente) {
+          if (nuova.nome.length < 2 || nuova.nome.length > 120) err.push('scrivi il nome della lavorazione nuova (da 2 a 120 caratteri)');
+          nuova.famiglia = r.famiglia ? codiceDaTestoLav(r.famiglia) : codiceLav;
+          if (!/^[a-z][a-z0-9_]{1,40}$/.test(nuova.famiglia)) err.push('famiglia non valida "' + (r.famiglia || '') + '"');
+          const doc = documentoCellaLav(r.documento);
+          if (doc === null) err.push('documento finale non riconosciuto "' + r.documento + '" (es. corretta posa, D.M. 37/08, rapporto, attestato, DoP, progetto)');
+          nuova.documento = doc || '';
+          nuova.descrizione = (r.descrizione || '').slice(0, 1000);
+        }
+        perCodice[codiceLav] = nuova;
+        lavs.push(nuova);
+      }
+      attuale = perCodice[codiceLav];
+    }
+    if (!attuale) {
+      errori.push({ n: r.n, testo: 'manca la lavorazione (codice o nome; in una riga sopra o in questa)' });
+      return;
+    }
+    // Campo
+    const etichetta = r.etichetta || '';
+    if (!etichetta && !r.codice && !r.tipo) {
+      // riga con la sola lavorazione (es. lavorazione nuova senza campi): va bene
+      err.forEach(function(t) { errori.push({ n: r.n, testo: t }); });
+      return;
+    }
+    if (!etichetta || etichetta.length > 160) err.push('etichetta del campo vuota o più lunga di 160 caratteri');
+    const codice = r.codice ? r.codice : codiceDaTestoLav(etichetta).slice(0, 41);
+    if (!/^[a-z][a-z0-9_]{0,40}$/.test(codice)) err.push('codice del campo non valido "' + codice + '" (lettere minuscole, numeri e _)');
+    if (CODICI_RISERVATI_LAV.indexOf(codice) >= 0) err.push('il codice "' + codice + '" è già usato dal gestionale nelle schede: scegline un altro');
+    const tipo = tipoCellaLav(r.tipo);
+    if (!tipo) err.push(tipo === null ? 'tipo non valido "' + r.tipo + '" (numero, menu, sì/no, testo, foto)' : 'manca il tipo (numero, menu, sì/no, testo, foto)');
+    const unita = r.unita || '';
+    if (unita.length > 20) err.push('unità più lunga di 20 caratteri');
+    let valori = null;
+    if (tipo === 'menu') {
+      const m = valoriMenuCellaLav(r.valori);
+      m.errori.forEach(function(t) { err.push(t); });
+      if (!m.valori.length) err.push('un menu ha almeno un valore (colonna "Valori menu", separati da ;)');
+      valori = m.valori;
+    } else if (tipo && r.valori) {
+      err.push('i valori servono solo ai campi di tipo menu');
+    }
+    let min = null, max = null;
+    if (tipo === 'numero') {
+      min = numeroCampoLav(r.min); max = numeroCampoLav(r.max);
+      if (Number.isNaN(min) || Number.isNaN(max)) err.push('minimo e massimo: numeri (es. 0,5)');
+      else if (min !== null && max !== null && min > max) err.push('il minimo è più grande del massimo');
+    } else if (tipo && (r.min || r.max)) {
+      err.push('minimo e massimo servono solo ai campi di tipo numero');
+    }
+    const liv = (r.livello || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    let livello = 'base';
+    if (/ingegner|🎓/.test(liv)) livello = 'ingegnere';
+    else if (liv && !/^(base|venditore|rappresentante|tutti)/.test(liv)) err.push('"Chi lo compila": base oppure ingegnere');
+    const flag = {};
+    [['normativo', 'Normativo'], ['prezzo', 'Serve al prezzo'], ['posizione', 'Per posizione']].forEach(function(p) {
+      const x = siNoCellaLav(r[p[0]]);
+      if (x === null) err.push('"' + p[1] + '": sì oppure no');
+      flag[p[0]] = !!x;
+    });
+    if (flag.posizione && CODICI_RISERVATI_POSIZIONE_LAV.indexOf(codice) >= 0) err.push('in una posizione "' + codice + '" c’è già (misure e note della posizione): scegli un altro codice');
+    const uso = r.uso || '';
+    if (uso.length < 3 || uso.length > 500) err.push('scrivi l’uso a valle: quale calcolo o documento usa il campo (da 3 a 500 caratteri)');
+    let ordine = null;
+    if (r.ordine) {
+      ordine = Number(String(r.ordine).replace(',', '.'));
+      if (!Number.isInteger(ordine) || ordine < 0 || ordine > 9999) err.push('ordine: un numero intero da 0 a 9999');
+    }
+    if (attuale.codiciCampi[codice]) err.push('codice del campo "' + codice + '" ripetuto nella stessa lavorazione (riga ' + attuale.codiciCampi[codice] + ')');
+    attuale.codiciCampi[codice] = r.n;
+    const gia = attuale.esistente && (attuale.esistente.lavorazioni_campi || []).find(function(c) { return c.codice === codice; });
+    err.forEach(function(t) { errori.push({ n: r.n, testo: t }); });
+    attuale.campi.push({
+      n: r.n, gia: gia || null, errore: err.length > 0,
+      riga: {
+        codice: codice, etichetta: etichetta, tipo: tipo || '', unita: unita || null, valori_ammessi: valori,
+        min_plausibile: min, max_plausibile: max, livello: livello, normativo: flag.normativo,
+        obbligatorio: flag.prezzo, per_posizione: flag.posizione, uso_a_valle: uso, ordine: ordine
+      }
+    });
+  });
+  // Ordine: quello del foglio dopo l'ultimo campo già nella lavorazione
+  lavs.forEach(function(l) {
+    let ultimo = ((l.esistente && l.esistente.lavorazioni_campi) || []).reduce(function(m, c) { return Math.max(m, c.ordine || 0); }, 0);
+    l.campi.forEach(function(c) {
+      if (c.gia) return;
+      if (c.riga.ordine === null) { ultimo = Math.min(ultimo + 10, 9999); c.riga.ordine = ultimo; } else ultimo = Math.max(ultimo, c.riga.ordine);
+    });
+  });
+  if (!righe.length) errori.push({ n: 0, testo: 'il foglio non ha righe sotto l’intestazione' });
+  return { lavorazioni: lavs, errori: errori };
+}
+
+// Bottone "📥 Importa da foglio": sceglie il file
+function scegliFoglioLavorazioni() {
+  if (!puoModificareCatalogoLav()) { toast('Il catalogo lo correggono titolare e ingegnere', 'err'); return; }
+  const inp = ge('cl-import-file');
+  if (inp) { inp.value = ''; inp.click(); }
+}
+
+async function importaFoglioLavorazioni(input) {
+  if (!puoModificareCatalogoLav()) { toast('Il catalogo lo correggono titolare e ingegnere', 'err'); return; }
+  const file = input && input.files && input.files[0];
+  if (!file) return;
+  input.value = '';
+  if (file.size > 5 * 1024 * 1024) { toast('File troppo grande (max 5 MB)', 'err'); return; }
+  let letto;
+  try {
+    await caricaLibreriaExcel();
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    letto = leggiRigheFoglioLav(wb);
+  } catch (e) {
+    toast('File non leggibile: ' + (e && e.message ? e.message : e), 'err');
+    return;
+  }
+  await caricaCatalogoLavorazioni(true);
+  if (!CATALOGO_LAV.disponibili) { toast('Il catalogo delle lavorazioni non è ancora attivo (serve sql/75)', 'err'); return; }
+  IMPORT_LAV.file = file.name;
+  if (ge('ilv-visibili')) ge('ilv-visibili').checked = false;
+  IMPORT_LAV.righe = letto.righe;
+  IMPORT_LAV.piano = letto.errore ? { lavorazioni: [], errori: [{ n: 0, testo: letto.errore }] } : pianoImportLav(letto.righe);
+  disegnaAnteprimaImportLav();
+  openM('m-import-lavorazioni');
+}
+
+function disegnaAnteprimaImportLav() {
+  const p = IMPORT_LAV.piano;
+  const box = ge('ilv-contenuto');
+  const nuove = p.lavorazioni.filter(function(l) { return !l.esistente; });
+  const daAggiungere = p.lavorazioni.reduce(function(s, l) { return s + l.campi.filter(function(c) { return !c.gia; }).length; }, 0);
+  const gia = p.lavorazioni.reduce(function(s, l) { return s + l.campi.filter(function(c) { return c.gia; }).length; }, 0);
+  const attiveToccate = p.lavorazioni.some(function(l) { return l.esistente && l.esistente.attiva && l.campi.some(function(c) { return !c.gia; }); });
+  let h = '<div style="font-size:13px;margin-bottom:8px">File <b>' + esc(IMPORT_LAV.file) + '</b>: ' +
+    '<b>' + p.lavorazioni.length + '</b> ' + (p.lavorazioni.length === 1 ? 'lavorazione' : 'lavorazioni') + ' (' + nuove.length + (nuove.length === 1 ? ' nuova' : ' nuove') + '), <b>' + daAggiungere + '</b> ' + (daAggiungere === 1 ? 'campo' : 'campi') + ' da aggiungere' +
+    (gia ? ', ' + gia + ' già nel catalogo (non si cambiano)' : '') + '.</div>';
+  if (p.errori.length) {
+    h += '<div class="al2 e" style="margin-bottom:8px"><b>' + p.errori.length + (p.errori.length === 1 ? ' errore' : ' errori') + ': non si importa nulla.</b> Correggi il foglio e caricalo di nuovo.<ul style="margin:6px 0 0 18px;padding:0">' +
+      p.errori.slice(0, 60).map(function(e) { return '<li>' + (e.n ? 'Riga ' + e.n + ': ' : '') + esc(e.testo) + '</li>'; }).join('') +
+      (p.errori.length > 60 ? '<li>… e altri ' + (p.errori.length - 60) + '</li>' : '') + '</ul></div>';
+  }
+  p.lavorazioni.forEach(function(l) {
+    const stato = l.esistente
+      ? (l.esistente.attiva ? '✅ già nel catalogo, attiva' : '⏸ già nel catalogo, spenta')
+      : '➕ nuova, nasce spenta';
+    h += '<div class="card" style="margin-bottom:8px"><div style="font-size:13px;font-weight:600;margin-bottom:4px">' + esc(l.nome || l.codice) +
+      ' <span style="font-weight:400;font-size:11px;color:var(--m)">' + esc(l.codice) + (l.esistente ? '' : ' · famiglia ' + esc(l.famiglia) +
+      (l.documento ? ' · ' + esc((DOCUMENTI_FINALI_LAV.find(function(d) { return d.value === l.documento; }) || {}).label || '') : '')) + ' · ' + stato + '</span></div>';
+    if (!l.campi.length) h += '<div style="font-size:12px;color:var(--m)">Nessun campo nel foglio.</div>';
+    h += l.campi.map(function(c) {
+      const r = c.riga;
+      const segni = [];
+      const tipo = (TIPI_CAMPO_LAV.find(function(t) { return t.value === r.tipo; }) || {}).label || 'tipo ?';
+      segni.push(tipo);
+      if (r.unita) segni.push(r.unita);
+      if (r.livello === 'ingegnere') segni.push('🎓 ingegnere');
+      if (r.normativo) segni.push('📜 normativo');
+      if (r.obbligatorio) segni.push('* serve al prezzo');
+      if (r.per_posizione) segni.push('per posizione');
+      if (r.tipo === 'numero' && (r.min_plausibile !== null || r.max_plausibile !== null)) segni.push('plausibile ' + (r.min_plausibile ?? '…') + '–' + (r.max_plausibile ?? '…'));
+      if (r.tipo === 'menu' && r.valori_ammessi) segni.push(r.valori_ammessi.length + ' valori: ' + r.valori_ammessi.slice(0, 6).map(function(x) { return x.etichetta; }).join(', ') + (r.valori_ammessi.length > 6 ? '…' : ''));
+      const esito = c.errore ? '<span style="color:var(--r)">❌ errore</span>'
+        : c.gia ? '<span style="color:var(--m)">già nel catalogo: non cambia</span>'
+        : (l.esistente && l.esistente.attiva ? '➕ si aggiunge' + (ge('ilv-visibili') && ge('ilv-visibili').checked ? '' : ' (tolto)') : '➕ si aggiunge');
+      return '<div style="padding:4px 0;border-bottom:1px solid var(--bo);font-size:12px' + (c.gia ? ';opacity:.6' : '') + '">' +
+        '<span style="color:var(--m)">riga ' + c.n + '</span> · <b>' + esc(r.etichetta || '(senza etichetta)') + '</b> <span style="color:var(--m)">' + esc(r.codice) + '</span> · ' +
+        esc(segni.join(' · ')) + ' · ' + esito + '</div>';
+    }).join('');
+    h += '</div>';
+  });
+  box.innerHTML = h;
+  ge('ilv-visibili-box').style.display = attiveToccate ? 'flex' : 'none';
+  ge('ilv-importa').disabled = !!p.errori.length || !(nuove.length || daAggiungere);
+}
+
+async function confermaImportLavorazioni() {
+  const p = IMPORT_LAV.piano;
+  if (!p || p.errori.length) return;
+  if (!puoModificareCatalogoLav()) { toast('Il catalogo lo correggono titolare e ingegnere', 'err'); return; }
+  const visibili = !!(ge('ilv-visibili') && ge('ilv-visibili').checked);
+  const btn = ge('ilv-importa');
+  btn.disabled = true;
+  const fatte = [];
+  const problemi = [];
+  let campiAggiunti = 0;
+  try {
+    for (const l of p.lavorazioni) {
+      let idLav = l.esistente ? l.esistente.id : null;
+      let attiva = !!(l.esistente && l.esistente.attiva);
+      if (!idLav) {
+        const { data, error } = await db.from('lavorazioni').insert({
+          codice: l.codice, nome: l.nome, famiglia: l.famiglia, documento_finale: l.documento || null,
+          descrizione: l.descrizione || null, attiva: false
+        }).select('id').maybeSingle();
+        if (error || !data) { problemi.push(l.nome + ': lavorazione non creata (' + erroreCatalogoLav(error || 'permesso mancante') + ')'); continue; }
+        idLav = data.id; attiva = false;
+      }
+      const nuovi = l.campi.filter(function(c) { return !c.gia; }).map(function(c) {
+        return Object.assign({}, c.riga, { lavorazione_id: idLav, attivo: attiva ? visibili : true });
+      });
+      if (nuovi.length) {
+        const { data, error } = await db.from('lavorazioni_campi').insert(nuovi).select('id');
+        if (error || !data || data.length !== nuovi.length) { problemi.push(l.nome + ': campi non aggiunti (' + erroreCatalogoLav(error || 'permesso mancante') + ')'); fatte.push(l.codice); continue; }
+        campiAggiunti += data.length;
+      }
+      fatte.push(l.codice);
+    }
+  } finally {
+    btn.disabled = false;
+  }
+  await caricaCatalogoLavorazioni(true);
+  mostraCatalogoLavorazioniImpostazioni().catch(function() {});
+  if (problemi.length) {
+    alert('Import fatto in parte (' + campiAggiunti + ' campi aggiunti).\n\n' + problemi.join('\n') +
+      '\n\nLe lavorazioni create restano spente: correggi il foglio e ricaricalo, i campi già importati non si ripetono.');
+  } else {
+    toast('Import fatto: ' + campiAggiunti + ' campi in ' + fatte.length + ' lavorazioni (le nuove sono spente)');
+  }
+  closeM('m-import-lavorazioni');
+  IMPORT_LAV.piano = null;
+  if (fatte.length) CATALOGO_LAV.aperta = fatte[0];
+  if (ge('m-catalogo-lavorazioni') && ge('m-catalogo-lavorazioni').classList.contains('on')) disegnaCatalogoLavorazioni();
+  else await apriCatalogoLavorazioni(fatte.length ? fatte[0] : undefined);
+}
+
+// "⬇️ Scarica il modello": foglio con intestazione, due righe d'esempio e istruzioni
+async function scaricaModelloImportLav() {
+  try { await caricaLibreriaExcel(); } catch (e) { toast('Libreria Excel non caricata: ' + e.message, 'err'); return; }
+  const righe = [TESTATA_MODELLO_LAV,
+    ['sigillature', 'Sigillature', 'compartimentazione', 'Dichiarazione di corretta posa in opera', 'tipo_servizio', 'Tipo di servizio', 'menu', '', 'Sigillatura di canaline; Sigillatura di tubi; Sigillatura di cavi', '', '', 'base', 'no', 'sì', 'no', 'Voce del preventivo; dichiarazione di corretta posa', 10],
+    ['', '', '', '', 'numero_attraversamenti', 'Numero di attraversamenti', 'numero', 'pz', '', '1', '500', 'base', 'no', 'sì', 'no', 'Quantità per il preventivo', 20],
+    ['', '', '', '', 'classe_ei', 'Classe EI richiesta', 'menu', '', 'EI 60; EI 90; EI 120', '', '', 'base', 'sì', 'sì', 'no', 'Scelta del prodotto certificato; dichiarazione di corretta posa', 30]];
+  const istruzioni = [['Come compilare il foglio (una riga per campo)'],
+    ['Codice lavorazione / Nome lavorazione: almeno uno dei due; vuoti = la lavorazione della riga sopra. Codice: lettere minuscole, numeri e _ (es. sigillature).'],
+    ['Una lavorazione NUOVA nasce spenta: la attiva il titolare dal catalogo. In una lavorazione già nel catalogo si aggiungono solo i campi nuovi; nome e famiglia non cambiano.'],
+    ['Famiglia: per le lavorazioni nuove (vuota = il codice). Documento finale: corretta posa, D.M. 37/08, rapporto, attestato, DoP, progetto o vuoto.'],
+    ['Codice campo: vuoto = ricavato dall’etichetta. Un codice già nella lavorazione non si cambia (si corregge dal catalogo).'],
+    ['Tipo: numero, menu, sì/no, testo, foto. Valori menu: separati da punto e virgola (;), solo per il tipo menu.'],
+    ['Minimo e Massimo: solo per il tipo numero, con la virgola (es. 0,5). Chi lo compila: base (venditore) o ingegnere.'],
+    ['Normativo, Serve al prezzo (obbligatorio, decisione D2), Per posizione: sì oppure no (vuoto = no).'],
+    ['Uso a valle: OBBLIGATORIO, quale calcolo o documento usa il campo. Ordine: facoltativo (vuoto = dopo gli altri, di 10 in 10).'],
+    ['Se una riga ha un errore non si importa nulla: l’anteprima dice riga e motivo.']];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(righe);
+  ws['!cols'] = TESTATA_MODELLO_LAV.map(function(t, i) { return { wch: [16, 22, 18, 26, 22, 28, 9, 7, 44, 8, 8, 13, 10, 13, 12, 44, 7][i] || 14 }; });
+  XLSX.utils.book_append_sheet(wb, ws, 'Campi');
+  const wi = XLSX.utils.aoa_to_sheet(istruzioni);
+  wi['!cols'] = [{ wch: 140 }];
+  XLSX.utils.book_append_sheet(wb, wi, 'Istruzioni');
+  XLSX.writeFile(wb, 'Modello_catalogo_lavorazioni.xlsx');
+}

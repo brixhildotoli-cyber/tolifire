@@ -1587,6 +1587,37 @@ spengono le righe del catalogo durante la prova; rollback provato (schema
 identico; righe del catalogo spente; rieseguito il file: righe di nuovo
 attive). Senza sql/82-foto-video: niente impronta, niente video, niente
 riquadro né blocco, nessun errore (una chiamata RPC 404).
+Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
+insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
+m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
+csv, max 5 MB; libreria di js/00 caricaLibreriaExcel) e "⬇️ Scarica il modello"
+(scaricaModelloImportLav: fogli "Campi" e "Istruzioni"). Foglio con UNA RIGA
+PER CAMPO: codice e/o nome della lavorazione (vuoti = riga sopra), famiglia,
+documento finale (valore o etichetta), codice campo (vuoto = dall'etichetta),
+etichetta, tipo (numero, menu, sì/no, testo, foto; NON elenco), unità, valori
+del menu separati da ";" (valore = codiceDaTestoLav dell'etichetta), minimo e
+massimo con la virgola, chi lo compila (base/ingegnere), normativo, serve al
+prezzo (= obbligatorio, D2), per posizione, uso a valle (obbligatorio), ordine
+(vuoto = di 10 in 10 dopo l'ultimo). importaFoglioLavorazioni →
+pianoImportLav (stesse regole dei vincoli e del trigger di sql/75, 78, 81;
+codici riservati CODICI_RISERVATI_LAV: nome_scheda, fonti_normative,
+foto_video, chiavi proprie del motore, pareti_cartongesso; per posizione anche
+larghezza, altezza, note) → ANTEPRIMA m-import-lavorazioni (id ilv-): con un
+solo errore (riga e motivo) non si importa nulla. confermaImportLavorazioni:
+lavorazione NUOVA = insert con attiva false (la attiva il titolare);
+lavorazione esistente = nome/famiglia/documento invariati, solo i campi nuovi;
+campo con codice già presente = non toccato; in una lavorazione ATTIVA i campi
+nuovi arrivano attivo = false salvo la spunta ilv-visibili. Un insert per
+lavorazione (tutto o niente per lavorazione; se si ferma a metà le create
+restano spente e reimportando i campi già entrati non si ripetono). SCELTE DA
+CONFERMARE DA TOLI: campi nuovi "tolti" nelle lavorazioni attive; foglio solo
+per lavorazioni e campi (foto/documenti e checklist restano a mano nel
+catalogo). Guide info-tit-29, info-ing-26. Prova
+test/import-catalogo-lavorazioni.spec.js (database locale: ingegnere a 390 px
+scarica il modello, foglio con 7 errori fermato, foglio di prova 2 lavorazioni
+e 30 campi importato spento con 32 righe di registro, reimport senza doppioni,
+schede aperte nel motore; titolare attiva, aggiunta "tolta" a una lavorazione
+attiva; Acquisti rifiutato dal database); smoke TUTTO OK.
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),

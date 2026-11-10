@@ -5564,6 +5564,28 @@
       </div>
 
 
+      <h4 id="info-tit-29">29. 📥 Importare il catalogo da un foglio Excel</h4>
+
+      <p>
+        Le lavorazioni nuove (la tabella delle 25 lavorazioni della proposta) non si scrivono campo per campo: l'ingegnere le compila in un foglio Excel, <b>una riga per campo</b>, e le carica nel catalogo. Le lavorazioni nuove arrivano <b>spente</b>: le controlli e le attivi tu.
+      </p>
+
+      <ul>
+        <li>In <b>Impostazioni › 📚 Catalogo lavorazioni › 📚 Apri il catalogo</b> premi <b>⬇️ Scarica il modello</b>: c'è il foglio "Campi" con un esempio e il foglio "Istruzioni".</li>
+        <li>Ogni riga: codice o nome della lavorazione (vuoti = quella della riga sopra), famiglia e documento finale, etichetta e codice del campo, tipo (numero, menu, sì/no, testo, foto), unità, valori del menu separati da <b>;</b>, minimo e massimo, chi lo compila, normativo, serve al prezzo, per posizione, <b>uso a valle</b> (obbligatorio), ordine.</li>
+        <li><b>📥 Importa da foglio</b> e scegli il file: si apre l'<b>anteprima</b> con quello che nasce e quello che c'è già. Con anche un solo errore (l'anteprima dice la riga e il motivo) non si importa nulla: correggi il foglio e ricaricalo.</li>
+        <li><b>📥 Importa</b>: le lavorazioni nuove nascono spente; in quelle già nel catalogo si aggiungono solo i campi nuovi, i campi con lo stesso codice non cambiano. In una lavorazione già <b>attiva</b> i campi nuovi arrivano "tolti", a meno di spuntare "rendi subito visibili".</li>
+        <li>Poi apri la lavorazione nel catalogo, controlla campi e menu e premi <b>✅ Attiva</b>: da quel momento il rappresentante la trova in <b>📝 Compila una scheda di rilievo</b>. Ogni campo importato resta nel <b>📒 Registro delle modifiche</b> con chi l'ha caricato.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>L'ingegnere carica un foglio con <b>Sigillature</b> (16 campi) e <b>Cartongesso</b> (14 campi). L'anteprima dice "2 lavorazioni (2 nuove), 30 campi da aggiungere". Dopo <b>📥 Importa</b> nel catalogo le trovi "(spenta)": le apri, controlli i menu e premi <b>✅ Attiva</b>.
+      </div>
+
+      <div class="al2 w">
+        Prima le più frequenti: porte nuove e sostituzioni, estintori e presidi, cartongesso, sigillature, vernice. L'import non cancella né cambia nulla di quello che c'è: per correggere un campo già importato usa <b>✏️ Modifica</b> nel catalogo.
+      </div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -6999,6 +7021,27 @@
         Tutto questo compare dopo l'aggiornamento del database sql/82-foto-video (i video dopo il suo secondo file, -VINCOLO).
       </div>
 
+      <h4 id="info-ing-26">26. 📥 Compilare le lavorazioni in un foglio Excel e importarle</h4>
+
+      <p>
+        Le lavorazioni della tabella della proposta le compili in un foglio Excel, <b>una riga per campo</b>, e le carichi nel <b>📚 Catalogo lavorazioni</b> (dalla pagina <b>Verifiche tecniche</b>). Arrivano <b>spente</b>: le attiva il titolare.
+      </p>
+
+      <ul>
+        <li>Nel catalogo premi <b>⬇️ Scarica il modello</b> e compila il foglio "Campi" (le istruzioni sono nel secondo foglio). Codice o nome della lavorazione solo nella prima riga: le righe sotto senza lavorazione sono della stessa.</li>
+        <li>Per ogni campo: etichetta, tipo (numero, menu, sì/no, testo, foto), unità, valori del menu separati da <b>;</b>, minimo e massimo plausibili (con la virgola), "ingegnere" se lo compili solo tu (🎓), normativo, <b>serve al prezzo</b> (solo i dati del preventivo, D2), per posizione e l'<b>uso a valle</b>, obbligatorio.</li>
+        <li><b>📥 Importa da foglio</b>: nell'<b>anteprima</b> vedi lavorazioni e campi, con gli errori riga per riga (codice non valido, tipo sconosciuto, menu senza valori, minimo sopra il massimo, uso a valle mancante...). Con un errore non si importa nulla.</li>
+        <li><b>📥 Importa</b>: le lavorazioni nuove nascono spente; i campi con un codice già nel catalogo non cambiano. Puoi già aprire la scheda dal progetto per vedere come viene; il rappresentante la vede solo quando il titolare la attiva.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Riga 2: "sigillature", "Sigillature", famiglia "compartimentazione", campo "Tipo di servizio", menu "Sigillatura di canaline; Sigillatura di tubi; Sigillatura di cavi", serve al prezzo sì, uso a valle "Voce del preventivo". Righe 3-17: solo i campi, colonna lavorazione vuota. L'anteprima mostra "Sigillature · ➕ nuova, nasce spenta" con i 16 campi.
+      </div>
+
+      <div class="al2 w">
+        L'import aggiunge e basta: non toglie e non cambia campi già nel catalogo. Per correggerne uno usa <b>✏️ Modifica</b>; per un campo sbagliato <b>🗑️ Togli il campo</b>. Se un errore del database ferma l'import a metà, le lavorazioni già create restano spente: correggi il foglio e ricaricalo, i campi già entrati non si ripetono.
+      </div>
+
       <h4>Checklist veloce prima di chiudere la giornata</h4>
 
       <ul>
@@ -7975,8 +8018,29 @@
     <button class="x" onclick="closeM('m-catalogo-lavorazioni')">×</button>
     <h3>📚 Catalogo lavorazioni</h3>
     <div style="font-size:12px;color:var(--m);margin-bottom:8px">Scegli la lavorazione e correggi i suoi dati, i campi (con i valori dei menu), le foto e i documenti obbligatori e la checklist di posa. Ogni modifica resta nel registro qui sotto, con chi e quando. Le righe non si cancellano: <b>🗑️ Togli</b> le nasconde e si possono rimettere.</div>
+    <!-- F15.10 — import da un foglio Excel, una riga per campo (js/55 importaFoglioLavorazioni) -->
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+      <button class="btn sm" type="button" onclick="scegliFoglioLavorazioni()">📥 Importa da foglio</button>
+      <button class="btn sm" type="button" onclick="scaricaModelloImportLav()">⬇️ Scarica il modello</button>
+      <input type="file" id="cl-import-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="importaFoglioLavorazioni(this)">
+    </div>
     <div id="cl-contenuto"></div>
     <div class="ma"><button class="btn" onclick="closeM('m-catalogo-lavorazioni')">Chiudi</button></div>
+  </div>
+</div>
+
+<!-- F15.10 — ANTEPRIMA DELL'IMPORT DEL CATALOGO (js/55 importaFoglioLavorazioni): dopo m-catalogo-lavorazioni, così resta sopra -->
+<div class="mbg" id="m-import-lavorazioni">
+  <div class="modal" style="max-width:760px">
+    <button class="x" onclick="closeM('m-import-lavorazioni')">×</button>
+    <h3>📥 Importa nel catalogo: anteprima</h3>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Controlla cosa entra nel catalogo. Le lavorazioni nuove nascono <b>spente</b>: le attiva il titolare. I campi già nel catalogo (stesso codice) non si cambiano. Con anche un solo errore non si importa nulla.</div>
+    <div id="ilv-contenuto"></div>
+    <label id="ilv-visibili-box" style="display:none;gap:6px;align-items:center;font-size:13px;font-weight:400;margin:6px 0"><input type="checkbox" id="ilv-visibili" style="width:auto" onchange="disegnaAnteprimaImportLav()"> Nelle lavorazioni già <b>attive</b> rendi subito visibili i campi nuovi (senza la spunta arrivano "tolti": li rimetti uno per uno con ↩️ Rimetti)</label>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-import-lavorazioni')">Annulla</button>
+      <button class="btn p" type="button" id="ilv-importa" onclick="confermaImportLavorazioni()">📥 Importa</button>
+    </div>
   </div>
 </div>
 
