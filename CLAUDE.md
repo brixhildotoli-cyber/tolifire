@@ -1624,15 +1624,21 @@ rappresentante del progetto), salva_regola_smistamento(p_id, p_regola, p_nota)
 (solo titolare: aggiungi, modifica, attiva false = Disattiva; registro).
 Interne: smistamento_condizione_vera, smistamento_controlla_regola,
 progetto_smistato_ad_acquisti (per le policy), trigger
-trg_progetti_tecnici_smistamento (con regole attive da bozza/da integrare
-verso in_verifica_tecnica, inviato_a_commerciale, pronto_per_preventivo solo
-con smista_progetto: 42501 per ogni utente del sito, anche il titolare;
-editor libero), trg_progetti_tecnici_schede_smistamento (stato della scheda
+trg_progetti_tecnici_smistamento (con regole attive OGNI uscita da bozza, da
+integrare o archiviato verso uno stato di lavoro: in_verifica_tecnica,
+inviato_a_commerciale, pronto_per_preventivo, in_preventivazione,
+in_valutazione, approvato, solo con smista_progetto: 42501 per ogni utente
+del sito, anche il titolare; archiviare resta permesso e le schede
+'ingegnere' restano nascoste ad Acquisti; un progetto CREATO dal
+rappresentante si controlla solo nei 3 stati di sql/79 e 82, perché in
+quegli altri stati non può aggiungere schede; editor libero), trg_progetti_tecnici_schede_smistamento (stato della scheda
 solo dal database; scheda aggiunta durante la verifica = gialla),
 trg_progetti_tecnici_smistamento_dopo (da in_verifica_tecnica a
-in_preventivazione/pronto/inviato: gialle → 'verificata' e, se c'è il
-preventivo, avviso 'smistamento_verificato' ad Acquisti; invio da bozza/da
-integrare SENZA smista_progetto, a regole spente o dall'editor: stato,
+in_preventivazione/pronto/inviato/in_valutazione/approvato: gialle →
+'verificata' e, se c'è il preventivo, avviso 'smistamento_verificato' ad
+Acquisti; verso da integrare, bozza, archiviato restano gialle; uscita da
+bozza/da integrare/archiviato verso uno stato di lavoro SENZA
+smista_progetto, a regole spente o dall'editor: stato,
 motivo e data dello smistamento delle schede azzerati, così nessuna scheda
 resta "all'ingegnere" nascosta ad Acquisti). Regole di partenza
 ATTIVE: Lavoro grande (soglia vuota = leggi_regola('soglia_lavoro_grande'),
@@ -1641,10 +1647,18 @@ non scatta), fuori catalogo, vernice intumescente; SPENTE: porte REI classe
 superiore (non scatterebbe mai: sql/82 ferma prima l'invio con "Classe
 superiore / da definire", testo vietato su un campo del prezzo), doppia anta
 oltre 180 cm, sostituzione, lana minerale, più di 30 posizioni. Uscita dalla
-verifica tecnica (verso in_preventivazione, pronto, inviato) con schede
-ancora 'ingegnere': solo ingegnere e titolare (42501 per gli altri ruoli del
-sito, anche titolare "come" Acquisti; editor libero), così Acquisti e
-segreteria non rendono "verificate" le gialle da console. js/18 e js/63:
+verifica tecnica (verso qualunque stato tranne da_integrare, bozza e
+archiviato) con schede ancora 'ingegnere': solo ingegnere e titolare (42501
+per gli altri ruoli del sito, anche titolare "come" Acquisti o
+rappresentante; editor libero), così Acquisti, segreteria e rappresentante
+non rendono "verificate" le gialle né saltano l'ingegnere da console (terzo
+controllo del 10/11: prima si guardavano solo 3 stati di arrivo). LIMITE
+NOTO, non corretto qui: i blocchi di invio di sql/79 (trg_progetti_tecnici_
+fonti) e sql/82 (trg_progetti_tecnici_invio_completo, _invio_foto_video)
+guardano ancora solo i 3 stati di arrivo: con le regole SPENTE da console si
+salta in in_preventivazione/in_valutazione/approvato senza fonti, dati del
+prezzo e foto (proposta: file a parte sql/83b con la sola lista degli stati,
+in attesa di decisione). js/18 e js/63:
 "↩ Rimanda indietro" non c'è (spiegazione al suo posto) finché il progetto
 del preventivo è in verifica tecnica. SCELTE DA CONFERMARE DA TOLI: progetto senza schede
 all'ingegnere; solo regole "gialle"; il preventivo nasce con le schede verdi
@@ -1673,7 +1687,12 @@ stato di un progetto in verifica tecnica. js/46: "Progetti da preventivare"
 con le stesse regole. Guide info-rap-33, info-com-22, info-ing-28,
 info-tit-31. Prove: sql/83-...-PROVA.sql (solo database di prova, rollback:
 porte + vernice, 35.000 €, senza schede, regole spente, ruoli rifiutati
-anche "come", registro immutabile); 79, 82-blocco e 82-foto-video -PROVA
+anche "come", registro immutabile; rappresentante, Acquisti, segreteria e
+titolare da bozza/da integrare/archiviato verso in_preventivazione,
+in_valutazione, approvato rifiutati; Acquisti, rappresentante e titolare
+"come" rappresentante da in verifica verso approvato rifiutati, titolare
+ammesso con le gialle verificate; archiviato ammesso con le gialle nascoste
+ad Acquisti; 104 controlli); 79, 82-blocco e 82-foto-video -PROVA
 spengono le regole nella loro transazione; test/smistamento-famiglie.spec.js
 (Chrome headless: rappresentante a 390 px, Acquisti, ingegnere, titolare;
 SMISTAMENTO_SENZA_SQL=1 dopo il rollback); matrice TUTTO OK; rollback
