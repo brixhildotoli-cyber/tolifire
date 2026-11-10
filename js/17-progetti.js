@@ -284,7 +284,7 @@ if (
     const inviaCommerciale = smistamento
       ? p.stato === 'pronto_per_preventivo' && ROLE !== 'rappresentante'
       : ['bozza', 'da_integrare', 'pronto_per_preventivo'].includes(p.stato);
-    const avvisoSoglia = (inviaCommerciale || inviaSmistamento) && progettoSopraSoglia(p);
+    const avvisoSoglia = (smistamento ? inviaSmistamento : inviaCommerciale) && progettoSopraSoglia(p);
 
     return '<div class="card" style="margin-bottom:10px">' +
       '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
@@ -1167,7 +1167,7 @@ async function loadPaginaProgetti() {
         p.stato === 'da_integrare' ||
         p.stato === 'pronto_per_preventivo';
 
-    const avvisoSoglia = (puoInviareCommerciale || puoInviareSmistamento) && progettoSopraSoglia(p);
+    const avvisoSoglia = (smistamento ? puoInviareSmistamento : puoInviareCommerciale) && progettoSopraSoglia(p);
 
     const nota = p.nota_integrazione || p.nota_verifica_tecnica;
 
