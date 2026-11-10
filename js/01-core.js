@@ -546,13 +546,16 @@ async function doLogout(){
   location.reload();
 }
 
-// F14.6: service worker minimo (sw.js: solo le notifiche, nessuna cache).
-// Lo chiama js/59 solo quando le notifiche sono configurate (sql/66).
+// F14.6: service worker (sw.js: notifiche). Da F15.11 anche cache dell'app
+// e dei dati per l'uso senza rete: lo registra js/19 all'avvio per tutti
+// (registraServiceWorkerApp di js/57) e js/59 per le notifiche, sempre con lo
+// stesso indirizzo sw.js?v=<versione di pubblica.sh> (indirizzoServiceWorker).
 // Restituisce la registrazione pronta, o null (browser senza service worker,
 // pagina non https, errore).
 function registraServiceWorker(){
   if(!('serviceWorker' in navigator)||!window.isSecureContext)return Promise.resolve(null);
-  return navigator.serviceWorker.register('sw.js',{scope:'./'})
+  const indirizzo=typeof indirizzoServiceWorker==='function'?indirizzoServiceWorker():'sw.js';
+  return navigator.serviceWorker.register(indirizzo,{scope:'./'})
     .then(function(){return navigator.serviceWorker.ready;})
     .catch(function(e){console.warn('Service worker non registrato:',e&&e.message);return null;});
 }

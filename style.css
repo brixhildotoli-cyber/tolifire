@@ -1491,3 +1491,8 @@ body.entra-come-on{padding-bottom:64px}
 body.entra-come-on .toast{bottom:76px}
 body.entra-come-on .avviso-barra,body.entra-come-on .push-invito{bottom:64px}
 @media (max-width:600px){.entra-come-banner .ecb-reale,.entra-come-banner .ecb-db{display:block}}
+/* F15.11: senza rete e invii in attesa (js/57) */
+.coda-rete{display:none;position:sticky;top:0;z-index:170;background:#fef3c7;color:#78350f;border-bottom:1px solid #f59e0b;padding:6px 12px;font-size:12px;line-height:1.4;text-align:center}
+.coda-rete .btn{margin-left:6px;vertical-align:middle}
+.nav-coda{background:rgba(255,255,255,.22)}
+.coda-tab{font-size:11px}

@@ -21,7 +21,7 @@ L'icona nella schermata Home apre comunque il gestionale via Internet. La connes
 
 Questa procedura la esegue chi amministra il repository GitHub.
 
-1. Verifica di aver salvato e inviato (`push`) sul branch da pubblicare i file `index.html`, `style.css`, `manifest.webmanifest`, la cartella `assets/` e tutti i moduli della cartella `js/` (da `00-librerie.js` a `66-posizioni.js`, compreso `55-catalogo-lavorazioni.js`, più `56-motore-schede.js`).
+1. Verifica di aver salvato e inviato (`push`) sul branch da pubblicare i file `index.html`, `style.css`, `manifest.webmanifest`, `sw.js` (service worker: notifiche e uso senza rete), la cartella `assets/` e tutti i moduli della cartella `js/` (da `00-librerie.js` a `66-posizioni.js`, compreso `55-catalogo-lavorazioni.js`, più `56-motore-schede.js` e `57-coda-offline.js`, caricati prima di `19-init.js`).
 2. Apri il repository GitHub `brixhildotoli-cyber/tolifire`.
 3. Vai in **Settings** > **Pages**.
 4. In **Build and deployment**, seleziona **Deploy from a branch**.
@@ -29,7 +29,7 @@ Questa procedura la esegue chi amministra il repository GitHub.
 6. Premi **Save** e attendi il completamento della pubblicazione.
 7. GitHub mostrerà l'indirizzo pubblico del sito: è il link da inviare ai dipendenti.
 
-Pubblicare un aggiornamento (dal 02/11/2026): dal Terminale `zsh ~/Desktop/GESTIONALE/pubblica.sh`. Lo script controlla di essere su `sviluppo` e che il sito pubblicato sia già contenuto in `sviluppo`, mette a tutti gli script e a `style.css` di `index.html` un numero di versione nuovo (`?v=AAAAMMGGHHMM`, commit "Pubblicazione ...") e fa il push su `gestionale_new` e `sviluppo`. Il numero di versione evita che un browser, dopo la pubblicazione, tenga file vecchi insieme a file nuovi (GitHub Pages li fa tenere 10 minuti).
+Pubblicare un aggiornamento (dal 02/11/2026): dal Terminale `zsh ~/Desktop/GESTIONALE/pubblica.sh`. Lo script controlla di essere su `sviluppo` e che il sito pubblicato sia già contenuto in `sviluppo`, mette a tutti gli script e a `style.css` di `index.html` un numero di versione nuovo (`?v=AAAAMMGGHHMM`, commit "Pubblicazione ...") e fa il push su `gestionale_new` e `sviluppo`. Il numero di versione evita che un browser, dopo la pubblicazione, tenga file vecchi insieme a file nuovi (GitHub Pages li fa tenere 10 minuti). Dal 10/11 (F15.11) lo stesso numero è anche la versione del service worker: la pagina registra `sw.js?v=<numero>` e la cache dell'app si chiama `toli-app-<numero>`, quindi dopo ogni pubblicazione telefoni e computer scaricano la versione nuova e cancellano quella vecchia da soli (index.html si prende sempre prima dalla rete). Sul Mac (localhost, 127.0.0.1) il service worker si registra solo con `localStorage.toli_sw_locale = '1'` (le prove con il database locale passano dalle deviazioni dei test).
 
 Ogni nuovo `push` sul branch scelto aggiorna automaticamente il sito pubblicato.
 

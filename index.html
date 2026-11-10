@@ -15,6 +15,18 @@
 </head>
 <body>
 <div class="toast" id="toast"></div>
+<!-- F15.11: cose salvate sul telefono senza rete, non ancora inviate (js/57) -->
+<div class="mbg" id="m-coda-offline" style="z-index:210"><div class="modal" style="max-width:560px">
+  <div class="mh">📤 Salvato sul telefono, da inviare <button class="mx" onclick="closeM('m-coda-offline')">✕</button></div>
+  <div id="cof-stato" class="al2 i" style="margin-bottom:10px"></div>
+  <div id="cof-elenco"></div>
+  <div id="cof-iphone" class="al2 w" style="display:none;margin-top:10px">📲 <b>iPhone:</b> installa l’app (Safari → <b>Condividi</b> ⬆️ → <b>Aggiungi alla schermata Home</b>). Safari cancella i dati delle pagine non installate dopo 7 giorni senza usarle, anche quelli non ancora inviati.</div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap">
+    <button type="button" class="btn" onclick="closeM('m-coda-offline')">Chiudi</button>
+    <button type="button" class="btn p" onclick="inviaOraCodaOffline()">📤 Invia ora</button>
+  </div>
+</div></div>
+
 
 <!-- LOGIN -->
 <div id="lp">
@@ -3245,6 +3257,31 @@
         Il riquadro, il controllo delle foto doppie e i video compaiono dopo l'aggiornamento del database sql/82-foto-video. Prima tutto resta come oggi (foto e PDF fino a 10 MB).
       </div>
 
+      <h4 id="info-rap-31">31. 📴 Senza rete: app installata e cose da inviare</h4>
+
+      <p>
+        Il gestionale si installa sul telefono come un'app e funziona anche senza campo per il lavoro che fai dal cliente: la <b>scheda di rilievo</b> con le sue <b>foto</b>. Quello che salvi senza rete resta sul telefono e parte da solo appena torna la rete.
+      </p>
+
+      <ul>
+        <li><b>Installa l'app</b> sul telefono: su <b>iPhone</b> in Safari tocca <b>Condividi</b> ⬆️ → <b>Aggiungi alla schermata Home</b> e apri Toli Fire dall'icona (al primo accesso da Safari il gestionale te lo ricorda: <b>Ho capito</b>); su <b>Android</b> in Chrome menu ⋮ → <b>Installa app</b> (o <b>Aggiungi a schermata Home</b>).</li>
+        <li>Senza campo (modalità aereo, cantiere interrato) il gestionale si apre lo stesso, se sul telefono avevi già fatto l'accesso: in cima compare la barra gialla <b>📴 Senza rete</b> e quello che hai già aperto si vede com'era l'ultima volta. Le pagine mai aperte restano vuote finché non torna la rete.</li>
+        <li>Nella scheda di rilievo (<b>📝 Compila una scheda di rilievo</b>) senza rete puoi caricare le foto e i video del riquadro <b>📷 Foto e video</b> e i file della <b>📜 Fonte del dato</b>, e premere <b>💾 Salva scheda</b>: tutto resta sul telefono. Sul tab della scheda compare <b>📤</b> e in cima <b>📤 Salvata sul telefono, non ancora inviata</b>; chiudendo e riaprendo la scheda i dati ci sono.</li>
+        <li>Quando torna la rete parte tutto da solo, nell'ordine giusto (prima le foto, poi la scheda che le usa) e <b>una volta sola</b>: ogni scheda e ogni foto ha un codice nato sul telefono, se l'invio si interrompe e riparte non si creano doppioni. Arriva il messaggio <b>📤 Inviate N cose salvate sul telefono</b>.</li>
+        <li>Senza rete NON si salvano le posizioni P-xx e le loro foto, i file della finestra del progetto, l'invio del progetto e il resto del gestionale: il gestionale lo dice ("senza rete qui non si carica"). Falli quando torna il campo.</li>
+        <li>Nel menu, accanto alla campanella, <b>📴</b> vuol dire senza rete; <b>📤</b> con un numero = cose salvate sul telefono e <b>non ancora inviate</b>. Toccandolo si apre <b>📤 Salvato sul telefono, da inviare</b>: ogni riga dice cosa è e quando l'hai salvata (<b>⏳ Non ancora inviato</b>). Quando torna la rete partono da sole (non serve tenere aperta la finestra); <b>📤 Invia ora</b> le manda subito.</li>
+        <li>Se il gestionale rifiuta qualcosa (per esempio la stessa foto già tra i file del progetto) la riga diventa rossa <b>⚠️ Non inviato</b> con il motivo: <b>↻ Riprova</b> oppure <b>🗑️ Togli</b> (si perde: va rifatto). Il 📤 nel menu diventa rosso.</li>
+        <li><b>Esci</b> con qualcosa ancora da inviare ti avvisa: se esci lo stesso resta sul telefono e parte quando rientri tu. Uscendo si cancellano dal telefono i dati letti senza rete: chi entra dopo non vede i tuoi.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Sei nel locale tecnico interrato senza campo: apri la porta REI, scatti 3 foto in <b>📷 Foto e video</b>, scrivi le misure e premi <b>💾 Salva scheda</b>. Nel menu vedi <b>📴 4</b>. Risalito in strada il telefono ritrova la rete: compare <b>📤 Inviate 4 cose salvate sul telefono</b> e il 📤 sparisce. Ora puoi inviare il progetto.
+      </div>
+
+      <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
+
+      <div class="al2 i">Il progetto si invia (<b>📤 Invia ad Acquisti</b> / all'ufficio tecnico) solo con la rete e quando nel menu non c'è più 📤: prima devono arrivare scheda e foto.</div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -3726,6 +3763,26 @@
       </div>
 
 
+      <h4 id="info-com-21">21. 📴 Senza rete: app installata e cose da inviare</h4>
+
+      <p>
+        Il gestionale si installa sul telefono come un'app e si apre anche senza rete, con i dati come l'ultima volta. Dopo ogni pubblicazione si aggiorna da solo.
+      </p>
+
+      <ul>
+        <li><b>Installa l'app</b> sul telefono: su <b>iPhone</b> in Safari tocca <b>Condividi</b> ⬆️ → <b>Aggiungi alla schermata Home</b> e apri Toli Fire dall'icona (al primo accesso da Safari il gestionale te lo ricorda: <b>Ho capito</b>); su <b>Android</b> in Chrome menu ⋮ → <b>Installa app</b> (o <b>Aggiungi a schermata Home</b>).</li>
+        <li>Senza campo (modalità aereo, cantiere interrato) il gestionale si apre lo stesso, se sul telefono avevi già fatto l'accesso: in cima compare la barra gialla <b>📴 Senza rete</b> e quello che hai già aperto si vede com'era l'ultima volta. Le pagine mai aperte restano vuote finché non torna la rete.</li>
+        <li>Senza rete si salvano sul telefono solo le <b>schede di rilievo</b> con le loro foto (rappresentante e ingegnere). Il resto del tuo lavoro va fatto con la rete: se provi a salvare senza campo il gestionale dà errore, riprova quando torna la rete.</li>
+        <li>Nel menu, accanto alla campanella, <b>📴</b> vuol dire senza rete; <b>📤</b> con un numero = cose salvate sul telefono e <b>non ancora inviate</b>. Toccandolo si apre <b>📤 Salvato sul telefono, da inviare</b>: ogni riga dice cosa è e quando l'hai salvata (<b>⏳ Non ancora inviato</b>). Quando torna la rete partono da sole (non serve tenere aperta la finestra); <b>📤 Invia ora</b> le manda subito.</li>
+        <li><b>Esci</b> con qualcosa ancora da inviare ti avvisa: se esci lo stesso resta sul telefono e parte quando rientri tu. Uscendo si cancellano dal telefono i dati letti senza rete: chi entra dopo non vede i tuoi.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Senza campo apri l'app e rivedi la richiesta al fornitore aperta prima; il preventivo si salva quando torna la rete.
+      </div>
+
+      <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
+
   <h4>Checklist prima dell’invio</h4>
 
   <ul>
@@ -4186,6 +4243,26 @@
         Finché il database non è aggiornato (sql/72) i pulsanti <b>↩️ Annulla</b> e <b>✏️ Chiedi correzione</b> non compaiono e si lavora come prima.
       </div>
 
+
+      <h4 id="info-tec-22">22. 📴 Senza rete: app installata e cose da inviare</h4>
+
+      <p>
+        Il gestionale si installa sul telefono come un'app e si apre anche senza rete, con i dati come l'ultima volta (i tuoi interventi e cantieri già aperti). Dopo ogni pubblicazione si aggiorna da solo.
+      </p>
+
+      <ul>
+        <li><b>Installa l'app</b> sul telefono: su <b>iPhone</b> in Safari tocca <b>Condividi</b> ⬆️ → <b>Aggiungi alla schermata Home</b> e apri Toli Fire dall'icona (al primo accesso da Safari il gestionale te lo ricorda: <b>Ho capito</b>); su <b>Android</b> in Chrome menu ⋮ → <b>Installa app</b> (o <b>Aggiungi a schermata Home</b>).</li>
+        <li>Senza campo (modalità aereo, cantiere interrato) il gestionale si apre lo stesso, se sul telefono avevi già fatto l'accesso: in cima compare la barra gialla <b>📴 Senza rete</b> e quello che hai già aperto si vede com'era l'ultima volta. Le pagine mai aperte restano vuote finché non torna la rete.</li>
+        <li>Senza rete si salvano sul telefono solo le <b>schede di rilievo</b> con le loro foto (rappresentante e ingegnere). Il resto del tuo lavoro va fatto con la rete: se provi a salvare senza campo il gestionale dà errore, riprova quando torna la rete.</li>
+        <li>Nel menu, accanto alla campanella, <b>📴</b> vuol dire senza rete; <b>📤</b> con un numero = cose salvate sul telefono e <b>non ancora inviate</b>. Toccandolo si apre <b>📤 Salvato sul telefono, da inviare</b>: ogni riga dice cosa è e quando l'hai salvata (<b>⏳ Non ancora inviato</b>). Quando torna la rete partono da sole (non serve tenere aperta la finestra); <b>📤 Invia ora</b> le manda subito.</li>
+        <li><b>Esci</b> con qualcosa ancora da inviare ti avvisa: se esci lo stesso resta sul telefono e parte quando rientri tu. Uscendo si cancellano dal telefono i dati letti senza rete: chi entra dopo non vede i tuoi.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Nel seminterrato del cliente senza campo apri l'app e rivedi indirizzo e note dell'intervento aperti prima. <b>Esegui intervento</b> e la scheda di lavoro si salvano quando torna la rete: esci all'aperto o aspetta il Wi-Fi.
+      </div>
+
+      <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
 
       <h4>Regole pratiche</h4>
 
@@ -4767,6 +4844,26 @@
         Finché il database non è aggiornato (sql/72) i pulsanti <b>↩️ Annulla</b> e <b>✏️ Chiedi correzione</b> non compaiono e si lavora come prima.
       </div>
 
+
+      <h4 id="info-ct-26">26. 📴 Senza rete: app installata e cose da inviare</h4>
+
+      <p>
+        Il gestionale si installa sul telefono come un'app e si apre anche senza rete, con i dati come l'ultima volta (cantiere, squadra, interventi già aperti). Dopo ogni pubblicazione si aggiorna da solo.
+      </p>
+
+      <ul>
+        <li><b>Installa l'app</b> sul telefono: su <b>iPhone</b> in Safari tocca <b>Condividi</b> ⬆️ → <b>Aggiungi alla schermata Home</b> e apri Toli Fire dall'icona (al primo accesso da Safari il gestionale te lo ricorda: <b>Ho capito</b>); su <b>Android</b> in Chrome menu ⋮ → <b>Installa app</b> (o <b>Aggiungi a schermata Home</b>).</li>
+        <li>Senza campo (modalità aereo, cantiere interrato) il gestionale si apre lo stesso, se sul telefono avevi già fatto l'accesso: in cima compare la barra gialla <b>📴 Senza rete</b> e quello che hai già aperto si vede com'era l'ultima volta. Le pagine mai aperte restano vuote finché non torna la rete.</li>
+        <li>Senza rete si salvano sul telefono solo le <b>schede di rilievo</b> con le loro foto (rappresentante e ingegnere). Il resto del tuo lavoro va fatto con la rete: se provi a salvare senza campo il gestionale dà errore, riprova quando torna la rete.</li>
+        <li>Nel menu, accanto alla campanella, <b>📴</b> vuol dire senza rete; <b>📤</b> con un numero = cose salvate sul telefono e <b>non ancora inviate</b>. Toccandolo si apre <b>📤 Salvato sul telefono, da inviare</b>: ogni riga dice cosa è e quando l'hai salvata (<b>⏳ Non ancora inviato</b>). Quando torna la rete partono da sole (non serve tenere aperta la finestra); <b>📤 Invia ora</b> le manda subito.</li>
+        <li><b>Esci</b> con qualcosa ancora da inviare ti avvisa: se esci lo stesso resta sul telefono e parte quando rientri tu. Uscendo si cancellano dal telefono i dati letti senza rete: chi entra dopo non vede i tuoi.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>In cantiere senza campo apri l'app: la scheda <b>🏗️ Cantiere</b> già aperta stamattina si vede com'era. Il giornale di cantiere e le ore si salvano quando torna la rete (la coda li prenderà con la loro task).
+      </div>
+
+      <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
 
       <h4>Regole pratiche</h4>
 
@@ -5586,6 +5683,32 @@
         Prima le più frequenti: porte nuove e sostituzioni, estintori e presidi, cartongesso, sigillature, vernice. L'import non cancella né cambia nulla di quello che c'è: per correggere un campo già importato usa <b>✏️ Modifica</b> nel catalogo.
       </div>
 
+      <h4 id="info-tit-30">30. 📴 Senza rete: app installata e cose da inviare</h4>
+
+      <p>
+        Il gestionale si installa sul telefono come un'app (il service worker tiene sul telefono il gestionale e le librerie, con il numero di versione della pubblicazione: dopo ogni pubblicazione si aggiorna da solo, niente file vecchi). Senza rete si apre lo stesso e le <b>schede di rilievo con le loro foto</b> (rappresentante, ingegnere e tu) si salvano sul telefono e partono da sole al ritorno della rete.
+      </p>
+
+      <ul>
+        <li><b>Installa l'app</b> sul telefono: su <b>iPhone</b> in Safari tocca <b>Condividi</b> ⬆️ → <b>Aggiungi alla schermata Home</b> e apri Toli Fire dall'icona (al primo accesso da Safari il gestionale te lo ricorda: <b>Ho capito</b>); su <b>Android</b> in Chrome menu ⋮ → <b>Installa app</b> (o <b>Aggiungi a schermata Home</b>).</li>
+        <li>Senza campo (modalità aereo, cantiere interrato) il gestionale si apre lo stesso, se sul telefono avevi già fatto l'accesso: in cima compare la barra gialla <b>📴 Senza rete</b> e quello che hai già aperto si vede com'era l'ultima volta. Le pagine mai aperte restano vuote finché non torna la rete.</li>
+        <li>Nella scheda di rilievo (<b>📝 Compila una scheda di rilievo</b>) senza rete puoi caricare le foto e i video del riquadro <b>📷 Foto e video</b> e i file della <b>📜 Fonte del dato</b>, e premere <b>💾 Salva scheda</b>: tutto resta sul telefono. Sul tab della scheda compare <b>📤</b> e in cima <b>📤 Salvata sul telefono, non ancora inviata</b>; chiudendo e riaprendo la scheda i dati ci sono.</li>
+        <li>Quando torna la rete parte tutto da solo, nell'ordine giusto (prima le foto, poi la scheda che le usa) e <b>una volta sola</b>: ogni scheda e ogni foto ha un codice nato sul telefono, se l'invio si interrompe e riparte non si creano doppioni. Arriva il messaggio <b>📤 Inviate N cose salvate sul telefono</b>.</li>
+        <li>Senza rete NON si salvano le posizioni P-xx e le loro foto, i file della finestra del progetto, l'invio del progetto e il resto del gestionale: il gestionale lo dice ("senza rete qui non si carica"). Falli quando torna il campo.</li>
+        <li>Nel menu, accanto alla campanella, <b>📴</b> vuol dire senza rete; <b>📤</b> con un numero = cose salvate sul telefono e <b>non ancora inviate</b>. Toccandolo si apre <b>📤 Salvato sul telefono, da inviare</b>: ogni riga dice cosa è e quando l'hai salvata (<b>⏳ Non ancora inviato</b>). Quando torna la rete partono da sole (non serve tenere aperta la finestra); <b>📤 Invia ora</b> le manda subito.</li>
+        <li>Se il gestionale rifiuta qualcosa (per esempio la stessa foto già tra i file del progetto) la riga diventa rossa <b>⚠️ Non inviato</b> con il motivo: <b>↻ Riprova</b> oppure <b>🗑️ Togli</b> (si perde: va rifatto). Il 📤 nel menu diventa rosso.</li>
+        <li><b>Esci</b> con qualcosa ancora da inviare ti avvisa: se esci lo stesso resta sul telefono e parte quando rientri tu. Uscendo si cancellano dal telefono i dati letti senza rete: chi entra dopo non vede i tuoi.</li>
+        <li>Mentre lavori con <b>👁️ Entra come</b> la coda è spenta: senza rete non si salva nulla "come" un altro.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Il rappresentante salva in cantiere senza campo una porta REI con 3 foto: sul suo telefono vede <b>📴 4</b>. Tu nel gestionale non vedi ancora nulla. Appena il suo telefono ritrova la rete scheda e foto arrivano, una volta sola, e compaiono nella scheda progetto.
+      </div>
+
+      <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
+
+      <div class="al2 i">Nessuna tabella nuova nel database: le righe nascono con il codice (id) generato dal telefono e il secondo invio della stessa riga non crea doppioni. Le altre pagine (preventivi, commesse, interventi...) senza rete si vedono come l'ultima volta ma non si salvano: la coda è pronta per buono di lavoro e giornale di cantiere, che arriveranno con le loro task.</div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -6144,6 +6267,26 @@
       </div>
 
 
+      <h4 id="info-seg-24">24. 📴 Senza rete: app installata e cose da inviare</h4>
+
+      <p>
+        Il gestionale si installa sul telefono come un'app e si apre anche senza rete, con i dati come l'ultima volta. Dopo ogni pubblicazione si aggiorna da solo.
+      </p>
+
+      <ul>
+        <li><b>Installa l'app</b> sul telefono: su <b>iPhone</b> in Safari tocca <b>Condividi</b> ⬆️ → <b>Aggiungi alla schermata Home</b> e apri Toli Fire dall'icona (al primo accesso da Safari il gestionale te lo ricorda: <b>Ho capito</b>); su <b>Android</b> in Chrome menu ⋮ → <b>Installa app</b> (o <b>Aggiungi a schermata Home</b>).</li>
+        <li>Senza campo (modalità aereo, cantiere interrato) il gestionale si apre lo stesso, se sul telefono avevi già fatto l'accesso: in cima compare la barra gialla <b>📴 Senza rete</b> e quello che hai già aperto si vede com'era l'ultima volta. Le pagine mai aperte restano vuote finché non torna la rete.</li>
+        <li>Senza rete si salvano sul telefono solo le <b>schede di rilievo</b> con le loro foto (rappresentante e ingegnere). Il resto del tuo lavoro va fatto con la rete: se provi a salvare senza campo il gestionale dà errore, riprova quando torna la rete.</li>
+        <li>Nel menu, accanto alla campanella, <b>📴</b> vuol dire senza rete; <b>📤</b> con un numero = cose salvate sul telefono e <b>non ancora inviate</b>. Toccandolo si apre <b>📤 Salvato sul telefono, da inviare</b>: ogni riga dice cosa è e quando l'hai salvata (<b>⏳ Non ancora inviato</b>). Quando torna la rete partono da sole (non serve tenere aperta la finestra); <b>📤 Invia ora</b> le manda subito.</li>
+        <li><b>Esci</b> con qualcosa ancora da inviare ti avvisa: se esci lo stesso resta sul telefono e parte quando rientri tu. Uscendo si cancellano dal telefono i dati letti senza rete: chi entra dopo non vede i tuoi.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Sei in treno senza campo: apri Toli Fire dall'icona e ritrovi la dashboard com'era l'ultima volta, con la barra <b>📴 Senza rete</b>. Per fissare un appuntamento aspetti di avere la rete.
+      </div>
+
+      <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -6451,6 +6594,26 @@
         Finché il database non è aggiornato (sql/72) i pulsanti <b>↩️ Annulla</b> e <b>✏️ Chiedi correzione</b> non compaiono e si lavora come prima.
       </div>
 
+
+      <h4 id="info-con-15">15. 📴 Senza rete: app installata e cose da inviare</h4>
+
+      <p>
+        Il gestionale si installa sul telefono come un'app e si apre anche senza rete, con i dati come l'ultima volta. Dopo ogni pubblicazione si aggiorna da solo.
+      </p>
+
+      <ul>
+        <li><b>Installa l'app</b> sul telefono: su <b>iPhone</b> in Safari tocca <b>Condividi</b> ⬆️ → <b>Aggiungi alla schermata Home</b> e apri Toli Fire dall'icona (al primo accesso da Safari il gestionale te lo ricorda: <b>Ho capito</b>); su <b>Android</b> in Chrome menu ⋮ → <b>Installa app</b> (o <b>Aggiungi a schermata Home</b>).</li>
+        <li>Senza campo (modalità aereo, cantiere interrato) il gestionale si apre lo stesso, se sul telefono avevi già fatto l'accesso: in cima compare la barra gialla <b>📴 Senza rete</b> e quello che hai già aperto si vede com'era l'ultima volta. Le pagine mai aperte restano vuote finché non torna la rete.</li>
+        <li>Senza rete si salvano sul telefono solo le <b>schede di rilievo</b> con le loro foto (rappresentante e ingegnere). Il resto del tuo lavoro va fatto con la rete: se provi a salvare senza campo il gestionale dà errore, riprova quando torna la rete.</li>
+        <li>Nel menu, accanto alla campanella, <b>📴</b> vuol dire senza rete; <b>📤</b> con un numero = cose salvate sul telefono e <b>non ancora inviate</b>. Toccandolo si apre <b>📤 Salvato sul telefono, da inviare</b>: ogni riga dice cosa è e quando l'hai salvata (<b>⏳ Non ancora inviato</b>). Quando torna la rete partono da sole (non serve tenere aperta la finestra); <b>📤 Invia ora</b> le manda subito.</li>
+        <li><b>Esci</b> con qualcosa ancora da inviare ti avvisa: se esci lo stesso resta sul telefono e parte quando rientri tu. Uscendo si cancellano dal telefono i dati letti senza rete: chi entra dopo non vede i tuoi.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Senza campo apri l'app e vedi la pagina Fatture com'era l'ultima volta; registrare un pagamento si fa quando torna la rete.
+      </div>
+
+      <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
 
       <h4>Checklist</h4>
 
@@ -7041,6 +7204,29 @@
       <div class="al2 w">
         L'import aggiunge e basta: non toglie e non cambia campi già nel catalogo. Per correggerne uno usa <b>✏️ Modifica</b>; per un campo sbagliato <b>🗑️ Togli il campo</b>. Se un errore del database ferma l'import a metà, le lavorazioni già create restano spente: correggi il foglio e ricaricalo, i campi già entrati non si ripetono.
       </div>
+
+      <h4 id="info-ing-27">27. 📴 Senza rete: app installata e cose da inviare</h4>
+
+      <p>
+        Il gestionale si installa sul telefono come un'app e funziona anche senza campo per il sopralluogo: la <b>scheda di rilievo</b> del motore con le sue <b>foto</b> e i file della fonte del dato. Quello che salvi senza rete resta sul telefono e parte da solo appena torna la rete.
+      </p>
+
+      <ul>
+        <li><b>Installa l'app</b> sul telefono: su <b>iPhone</b> in Safari tocca <b>Condividi</b> ⬆️ → <b>Aggiungi alla schermata Home</b> e apri Toli Fire dall'icona (al primo accesso da Safari il gestionale te lo ricorda: <b>Ho capito</b>); su <b>Android</b> in Chrome menu ⋮ → <b>Installa app</b> (o <b>Aggiungi a schermata Home</b>).</li>
+        <li>Senza campo (modalità aereo, cantiere interrato) il gestionale si apre lo stesso, se sul telefono avevi già fatto l'accesso: in cima compare la barra gialla <b>📴 Senza rete</b> e quello che hai già aperto si vede com'era l'ultima volta. Le pagine mai aperte restano vuote finché non torna la rete.</li>
+        <li>Nella scheda di rilievo (<b>📝 Compila una scheda di rilievo</b>) senza rete puoi caricare le foto e i video del riquadro <b>📷 Foto e video</b> e i file della <b>📜 Fonte del dato</b>, e premere <b>💾 Salva scheda</b>: tutto resta sul telefono. Sul tab della scheda compare <b>📤</b> e in cima <b>📤 Salvata sul telefono, non ancora inviata</b>; chiudendo e riaprendo la scheda i dati ci sono.</li>
+        <li>Quando torna la rete parte tutto da solo, nell'ordine giusto (prima le foto, poi la scheda che le usa) e <b>una volta sola</b>: ogni scheda e ogni foto ha un codice nato sul telefono, se l'invio si interrompe e riparte non si creano doppioni. Arriva il messaggio <b>📤 Inviate N cose salvate sul telefono</b>.</li>
+        <li>Senza rete NON si salvano le posizioni P-xx e le loro foto, i file della finestra del progetto, l'invio del progetto e il resto del gestionale: il gestionale lo dice ("senza rete qui non si carica"). Falli quando torna il campo.</li>
+        <li>Nel menu, accanto alla campanella, <b>📴</b> vuol dire senza rete; <b>📤</b> con un numero = cose salvate sul telefono e <b>non ancora inviate</b>. Toccandolo si apre <b>📤 Salvato sul telefono, da inviare</b>: ogni riga dice cosa è e quando l'hai salvata (<b>⏳ Non ancora inviato</b>). Quando torna la rete partono da sole (non serve tenere aperta la finestra); <b>📤 Invia ora</b> le manda subito.</li>
+        <li>Se il gestionale rifiuta qualcosa (per esempio la stessa foto già tra i file del progetto) la riga diventa rossa <b>⚠️ Non inviato</b> con il motivo: <b>↻ Riprova</b> oppure <b>🗑️ Togli</b> (si perde: va rifatto). Il 📤 nel menu diventa rosso.</li>
+        <li><b>Esci</b> con qualcosa ancora da inviare ti avvisa: se esci lo stesso resta sul telefono e parte quando rientri tu. Uscendo si cancellano dal telefono i dati letti senza rete: chi entra dopo non vede i tuoi.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Sopralluogo in un capannone senza segnale: compili la scheda Porte REI, carichi 3 foto e la foto della targhetta come <b>📜 Fonte del dato</b>, <b>💾 Salva scheda</b>. Il tab mostra <b>📤</b>. Tornato in ufficio il Wi-Fi si collega e tutto arriva da solo; nella scheda progetto la scheda compare con le 3 foto.
+      </div>
+
+      <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
 
       <h4>Checklist veloce prima di chiudere la giornata</h4>
 
@@ -10149,6 +10335,7 @@
 <script defer src="js/65-deleghe-titolare.js?v=202611100946"></script>
 <script defer src="js/66-posizioni.js?v=202611100946"></script>
 <script defer src="js/56-motore-schede.js?v=202611100946"></script>
+<script defer src="js/57-coda-offline.js?v=202611100946"></script>
 <script defer src="js/19-init.js?v=202611100946"></script>
 
 

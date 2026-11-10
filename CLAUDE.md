@@ -1618,6 +1618,73 @@ scarica il modello, foglio con 7 errori fermato, foglio di prova 2 lavorazioni
 e 30 campi importato spento con 32 righe di registro, reimport senza doppioni,
 schede aperte nel motore; titolare attiva, aggiunta "tolta" a una lavorazione
 attiva; Acquisti rifiutato dal database); smoke TUTTO OK.
+App installabile offline con coda di invio (F15.11, sw.js + js/57-coda-offline.js
++ js/19 + js/01 registraServiceWorker, NESSUN SQL; caricato dopo js/56 e prima
+di js/19, stesso numero 57 di js/57-motore-scadenze.js, nome dato dalla task).
+SERVICE WORKER (stesso file di F14.6, push e notificationclick invariati):
+registrato da js/19 all'avvio per tutti (registraServiceWorkerApp; non nel
+portale; su localhost/127.0.0.1 solo con localStorage toli_sw_locale = '1',
+così gli smoke test non mandano Supabase alla rete) e da js/59, sempre come
+sw.js?v=<versione> (indirizzoServiceWorker: il ?v= di pubblica.sh letto dallo
+script js/19-init.js di index.html; pubblica.sh NON cambia). Cache
+toli-app-<versione> (index.html, style.css e tutti gli script di index.html
+con quella versione, manifest, logo; le toli-app-* vecchie si cancellano
+all'attivazione), toli-librerie-1 (supabase-js@2, jsPDF, autotable, pdf-lib,
+xlsx: dalla cache, aggiornate in sottofondo), toli-dati (GET di /rest/v1 e RPC
+di sola lettura *_attivo/_attivi/_attive e schede_migrate_motore: prima la
+rete, la cache solo senza rete; mai auth, storage, scritture, richieste con
+x-agito-come o x-portale-token; max 600 righe). index.html sempre prima dalla
+rete; gli script con ?v= della versione dalla cache, di un'altra versione
+dalla rete: niente file vecchi dopo una pubblicazione. SENZA RETE: boot salva
+la riga dell'utente in localStorage toli_offline_utente (svuota toli-dati se
+entra un'altra persona); js/19 con la sessione salvata e la rete che non
+risponde chiama avvioSenzaRete (boot con l'utente salvato, solo se è lo stesso
+della sessione di Supabase Auth); in modalità aereo db.auth.getSession
+restituisce la sessione salvata senza rinnovarla, db.auth.getUser l'utente
+della sessione, db.rest.retry = false (niente 3 tentativi da 7 s); "Esci"
+avvisa se c'è qualcosa da inviare, senza rete esce solo dal telefono
+(signOut local), toglie toli_offline_utente e toli-dati. CODA in IndexedDB
+(toli-coda-offline, archivio invii; righe dell'utente che le ha salvate, mai
+con "Entra come"): file della scheda di rilievo del motore (caricaFileNelProgetto
+avvolta, SOLO cartelle foto_video e fonti: id di progetti_tecnici_allegati e
+percorso <utente>/<progetto>/<cartella>/<id>_<nome> generati sul telefono,
+file rimpicciolito come prima, impronta SHA-256, contenuto ArrayBuffer; la
+stessa foto già in coda = doppione come online) e schede di rilievo
+(salvaRigaSchedaRilievo avvolta: senza rete o con errore di rete, id della
+scheda = quello salvato o crypto.randomUUID per le nuove, chiave "scheda:<id>",
+risalvare sostituisce la riga; elenco in memoria aggiornato; leggiSchedaRilievo
+avvolta sovrappone le schede in coda e senza rete riparte dalla memoria;
+senza sql/48 solo se schedeMultipleDisponibili === false). Invio
+(inviaCodaOffline: evento online, ogni 45 s, rientro nell'app, dopo boot,
+"📤 Invia ora"; navigator.locks; in ordine, prima i file): file = upload con
+upsert false (409 = già caricato) + insert con l'id (23505 con la riga
+presente = già arrivato; rifiutato = file tolto dallo storage); scheda = upsert
+onConflict id (23505 sul numero = primo numero libero, con avviso). Errore di
+rete o di accesso = si riprova dopo; errore del database = riga "⚠️ Non
+inviato" con il motivo, ↻ Riprova, 🗑️ Togli. registraTipoCodaOffline(tipo,
+{ invia, icona, titolo }) per buono e giornale. INTERFACCIA: 📴/📤 N nel menu
+(nav-coda, rosso con errori), barra coda-rete "📴 Senza rete" (e "✅ La rete è
+tornata ↻ Aggiorna i dati" dopo un avvio senza rete), finestra m-coda-offline
+(cof-: elenco "⏳ Non ancora inviato"), 📤 sui tab rsm-tab-N e riga
+coda-scheda-avviso nella scheda di rilievo, file in coda apribili (👁 Apri
+dal telefono), avviso "📲 Installa l'app sull'iPhone" ogni 7 giorni (Safari
+cancella i dati delle pagine non installate), navigator.storage.persist().
+NON in coda (senza rete messaggio "senza rete qui non si carica"): posizioni
+P-xx e loro foto (js/66), file della finestra del progetto e della verifica
+(js/17), invio del progetto, ogni altra scrittura. SCELTE DA CONFERMARE DA
+TOLI: solo scheda di rilievo e sue foto/fonti in questa task; dati già visti
+leggibili senza rete sul telefono fino a "Esci"; avviso iPhone ogni 7 giorni.
+Guide info-tit-30, seg-24, con-15, ct-26, tec-22, com-21, rap-31, ing-27.
+Prove: test/coda-offline.spec.js (Chrome headless, produzione mandata su una
+porta chiusa; A: cache della versione con tutti gli script, sito spento = si
+apre, jsPDF dalla cache, modalità aereo con l'utente salvato fino alla
+dashboard in 0,2 s, nuova versione = cache nuova e vecchia cancellata, pagina
+senza rete della versione nuova; B database locale, rappresentante a 390 px:
+modalità aereo, 3 foto + scheda porte REI salvate sul telefono e niente nel
+database, riaperta con i dati, tornata la rete 1 scheda e 3 file con gli id
+del telefono e l'impronta, le stesse 4 righe rimandate = nessun doppione,
+stessa foto con un altro id = "⚠️ Non inviato"); foto-video, motore-schede,
+posizioni, motore-schede-fonti, smoke (9 utenti) ed entra-come TUTTO OK.
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),
