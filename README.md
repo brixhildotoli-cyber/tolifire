@@ -15,7 +15,7 @@ Non serve scaricare file, clonare GitHub o installare programmi.
    - **iPhone/iPad:** Safari > Condividi > **Aggiungi a Home**.
    - **Android:** Chrome > menu con tre puntini > **Installa app** oppure **Aggiungi a schermata Home**.
 
-L'icona nella schermata Home apre comunque il gestionale via Internet. La connessione è necessaria per leggere e aggiornare i dati Supabase.
+L'icona nella schermata Home apre il gestionale anche senza rete (F15.11). Senza rete si vedono solo le pagine aperte con la rete negli ultimi 7 giorni: le letture restano sul telefono cifrate (AES-GCM, chiave legata alla sessione, cancellate con "Esci"; F15.12, js/57). Per aggiornare i dati serve la rete: schede di rilievo, loro foto e posizioni salvate senza rete partono da sole quando torna.
 
 ## Pubblicare il gestionale con GitHub Pages
 

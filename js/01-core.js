@@ -11,9 +11,13 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 function intestazioneAgitoCome(){
   try{return (ENTRA_COME&&ROLE_REALE==='titolare'&&ENTRA_COME.id)?String(ENTRA_COME.id):'';}catch(e){return '';}
 }
+// F15.12: senza "Entra come" le richieste passano da fetchDatabase, che
+// js/57 sostituisce con le letture cifrate sul telefono (dati già visti
+// senza rete, 7 giorni). Con "Entra come" mai: si va sempre in rete.
+function fetchDatabase(risorsa,opzioni){return fetch(risorsa,opzioni);}
 function fetchConAgitoCome(risorsa,opzioni){
   const come=intestazioneAgitoCome();
-  if(!come)return fetch(risorsa,opzioni);
+  if(!come)return fetchDatabase(risorsa,opzioni);
   const o=Object.assign({},opzioni||{});
   const h=new Headers(o.headers||(risorsa instanceof Request?risorsa.headers:undefined));
   h.set('x-agito-come',come);

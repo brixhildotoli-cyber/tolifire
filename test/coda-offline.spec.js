@@ -391,6 +391,8 @@ async function provaServiceWorker(KO, righe, srv, utenteFinto) {
     const mancano = scriptIndice.filter(u => !inCache.includes(u));
     if (mancano.length || !scriptIndice.length) KO('A1: script non nella cache della versione: ' + mancano.slice(0, 5).join(', '));
     else righe.push('A1. service worker sw.js?v=202611109901 attivo; cache toli-app-202611109901 con tutti i ' + scriptIndice.length + ' script di index.html, style.css e index.html; cache: ' + c1.nomi.join(', '));
+    // F15.12: il service worker non tiene più i dati del database (in chiaro)
+    if (c1.nomi.includes('toli-dati')) KO('A1: c\'è ancora la cache dei dati in chiaro toli-dati');
     const lib = c1.voci['toli-librerie-1'] || [];
     if (lib.length < 5) KO('A1: librerie CDN in cache: ' + lib.length + ' ' + lib.join(', '));
     else righe.push('    librerie dei CDN in cache: ' + lib.length + ' (supabase-js, jsPDF, autotable, pdf-lib, xlsx)');

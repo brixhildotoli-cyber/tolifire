@@ -13,12 +13,11 @@
 //    versione.
 //  - Librerie dai CDN (supabase-js, jsPDF, autotable, pdf-lib, xlsx) nella
 //    cache "toli-librerie-1": prese dalla cache, aggiornate in sottofondo.
-//  - Dati di Supabase già visti (letture GET di /rest/v1 e le RPC di sola
-//    lettura "..._attivo/_attivi/_attive", "schede_migrate_motore") nella
-//    cache "toli-dati": prima la rete, la cache solo quando la rete manca.
-//    Mai login, file (storage), scritture, "Entra come" (x-agito-come) e
-//    portale (x-portale-token). La pagina svuota "toli-dati" a "Esci" e
-//    quando sul telefono entra un'altra persona (js/57).
+//  - Dati di Supabase: da F15.12 il service worker NON li tiene più (in
+//    F15.11 erano nella cache "toli-dati", in chiaro e senza scadenza). I
+//    dati già visti li tiene la pagina (js/57) in IndexedDB, cifrati con
+//    AES-GCM e validi 7 giorni; la vecchia "toli-dati" si cancella
+//    all'attivazione. Le richieste a Supabase passano dritte alla rete.
 //  - Le cose salvate senza rete NON passano da qui: le tiene la coda in
 //    IndexedDB di js/57 e le manda la pagina quando torna la rete.
 // Carico della notifica (JSON): { titolo, testo, url, tag, avviso_id, urgente }.
@@ -26,7 +25,7 @@
 const VERSIONE = new URL(self.location.href).searchParams.get('v') || 'dev';
 const CACHE_APP = 'toli-app-' + VERSIONE;
 const CACHE_LIBRERIE = 'toli-librerie-1';
-const CACHE_DATI = 'toli-dati';
+const CACHE_DATI = 'toli-dati';      // solo F15.11: si cancella
 const LIBRERIE = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
@@ -35,8 +34,6 @@ const LIBRERIE = [
   'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
 ];
 const HOST_LIBRERIE = ['cdn.jsdelivr.net', 'cdnjs.cloudflare.com'];
-const RPC_IN_CACHE = /\/rest\/v1\/rpc\/([a-z0-9_]+_attiv[oie]|schede_migrate_motore)$/;
-const MASSIMO_DATI = 600;   // righe nella cache dei dati (le più vecchie escono)
 
 function nellaScope(percorso) { return new URL(percorso, self.registration.scope).href; }
 function suffissoVersione() { return VERSIONE === 'dev' ? '' : '?v=' + VERSIONE; }
@@ -132,7 +129,8 @@ self.addEventListener('install', function(e) {
 
 self.addEventListener('activate', function(e) {
   e.waitUntil(caches.keys().then(function(nomi) {
-    return Promise.all(nomi.filter(function(n) { return /^toli-app-/.test(n) && n !== CACHE_APP; })
+    // Versioni vecchie dell'app e la cache dei dati in chiaro di F15.11
+    return Promise.all(nomi.filter(function(n) { return (/^toli-app-/.test(n) && n !== CACHE_APP) || n === CACHE_DATI; })
       .map(function(n) { return caches.delete(n); }));
   }).then(function() { return self.clients.claim(); }).then(function() { completaCacheApp(); }));
 });
@@ -155,9 +153,7 @@ async function primaLaRete(req, nomeCache, chiave, conserva) {
     const r = await fetch(req);
     if (r && r.ok && conserva(r)) {
       const copia = r.clone();
-      caches.open(nomeCache).then(function(c) { return c.put(chiave || req, copia); }).then(function() {
-        if (nomeCache === CACHE_DATI) potaDati();
-      }).catch(function() {});
+      caches.open(nomeCache).then(function(c) { return c.put(chiave || req, copia); }).catch(function() {});
     }
     return r;
   } catch (err) {
@@ -166,14 +162,6 @@ async function primaLaRete(req, nomeCache, chiave, conserva) {
     if (x) return x;
     throw err;
   }
-}
-
-let potature = 0;
-async function potaDati() {
-  if (++potature % 40) return;
-  const c = await caches.open(CACHE_DATI);
-  const chiavi = await c.keys();
-  for (let i = 0; i < chiavi.length - MASSIMO_DATI; i++) await c.delete(chiavi[i]);
 }
 
 async function dallaCachePoiRete(req, nomeCache) {
@@ -218,20 +206,6 @@ async function pagina(req) {
   }
 }
 
-// Chiave della cache dei dati: l'indirizzo + il tipo di risposta (single()
-// chiede un oggetto, le altre un elenco) + il corpo per le RPC.
-function chiaveDati(req, corpo) {
-  const u = new URL(req.url);
-  const acc = req.headers.get('accept') || '';
-  if (/vnd\.pgrst/.test(acc)) u.searchParams.set('__accept', acc);
-  if (corpo !== undefined) u.searchParams.set('__corpo', corpo);
-  return new Request(u.href, { method: 'GET' });
-}
-
-function datiDaNonConservare(req) {
-  return !!(req.headers.get('x-agito-come') || req.headers.get('x-portale-token'));
-}
-
 self.addEventListener('fetch', function(e) {
   const req = e.request;
   let url;
@@ -260,21 +234,7 @@ self.addEventListener('fetch', function(e) {
     e.respondWith(dallaCachePoiRete(req, CACHE_LIBRERIE));
     return;
   }
-
-  // Supabase: solo letture del database e RPC di sola lettura
-  if (/\.supabase\.(co|in)$/.test(url.hostname) && url.pathname.indexOf('/rest/v1/') === 0) {
-    if (datiDaNonConservare(req)) return;
-    if (req.method === 'GET') {
-      const chiave = chiaveDati(req);
-      e.respondWith(primaLaRete(req, CACHE_DATI, chiave, function(r) { return r.status === 200; }));
-      return;
-    }
-    if (req.method === 'POST' && RPC_IN_CACHE.test(url.pathname)) {
-      e.respondWith(req.clone().text().then(function(corpo) {
-        return primaLaRete(req, CACHE_DATI, chiaveDati(req, corpo || '{}'), function(r) { return r.status === 200; });
-      }));
-    }
-  }
+  // Supabase: niente (F15.12, i dati già visti li tiene js/57 cifrati)
 });
 
 // ── F14.6 notifiche (invariato) ──────────────────────────────────────

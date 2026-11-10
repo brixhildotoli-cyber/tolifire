@@ -259,8 +259,10 @@ async function apriPosizione(id, contenitore) {
   let p = null;
   if (id) {
     const { data, error } = await db.from('progetti_tecnici_posizioni').select('*').eq('id', id).maybeSingle();
-    if (error || !data) { toast('Posizione non trovata' + (error ? ': ' + error.message : ''), 'err'); return; }
-    p = data;
+    // F15.12 (js/57): la posizione salvata sul telefono e non ancora inviata
+    const inCoda = typeof posizioneDaCodaOffline === 'function' ? await posizioneDaCodaOffline(id, data || null) : null;
+    if (!inCoda && (error || !data)) { toast('Posizione non trovata' + (error ? ': ' + error.message : ''), 'err'); return; }
+    p = inCoda || data;
   }
   if (typeof caricaCatalogoLavorazioni === 'function') {
     try { await caricaCatalogoLavorazioni(); } catch (e) { /* catalogo facoltativo */ }
@@ -276,7 +278,9 @@ async function apriPosizione(id, contenitore) {
   ge('pos-larghezza').value = testoNumeroPosizione(d.larghezza);
   ge('pos-altezza').value = testoNumeroPosizione(d.altezza);
   ge('pos-note').value = d.note || '';
-  ge('pos-codice-info').textContent = p
+  ge('pos-codice-info').textContent = p && p.in_coda_nuova
+    ? '📤 Salvata sul telefono, non ancora inviata: il codice (P-01, P-02...) lo dà il gestionale quando arriva.'
+    : p
     ? 'Codice ' + p.codice + ' (non cambia)' + (p.creata_da_nome ? ' · creata da ' + p.creata_da_nome : '') +
       (p.aggiornata_il ? ' · ultima modifica ' + new Date(p.aggiornata_il).toLocaleString('it-IT') + (p.aggiornata_da_nome ? ' (' + p.aggiornata_da_nome + ')' : '') : '')
     : 'Il codice (P-01, P-02...) lo dà il gestionale al salvataggio.';
@@ -308,9 +312,10 @@ async function apriPosizione(id, contenitore) {
     el.disabled = !scrive || (ROLE === 'rappresentante' && el.dataset.livello === 'ingegnere'); // F15.4: campo dell'ingegnere
   });
   ge('pos-salva').style.display = scrive ? '' : 'none';
-  ge('pos-togli').style.display = scrive && p ? '' : 'none';
-  ge('pos-foto-riga').style.display = scrive && p ? '' : 'none';
-  ge('pos-foto-nuova-info').style.display = scrive && !p ? '' : 'none';
+  ge('pos-togli').style.display = scrive && p && !p.in_coda_nuova ? '' : 'none';
+  // Foto solo su una posizione già arrivata al gestionale (F15.12: non su quella in coda)
+  ge('pos-foto-riga').style.display = scrive && p && !p.in_coda_nuova ? '' : 'none';
+  ge('pos-foto-nuova-info').style.display = scrive && (!p || p.in_coda_nuova) ? '' : 'none';
   openM('m-posizione');
 }
 
@@ -427,22 +432,27 @@ async function salvaPosizione() {
   const btn = ge('pos-salva');
   btn.disabled = true;
   try {
-    let r;
-    if (a.id) {
-      r = await db.from('progetti_tecnici_posizioni').update(riga).eq('id', a.id).select('codice').single();
-    } else {
-      // progetto e numero li mette il database (dalla scheda); numero qui è solo segnaposto
-      r = await db.from('progetti_tecnici_posizioni')
-        .insert(Object.assign({ scheda_id: a.ctx.schedaId, progetto_tecnico_id: a.ctx.progettoId, numero: 1 }, riga))
-        .select('codice').single();
-    }
+    const r = await scriviPosizione(a, riga);
     if (r.error) { toast('Errore salvataggio posizione: ' + erroreScritturaPosizione(r.error), 'err'); return; }
     closeM('m-posizione');
-    toast((r.data && r.data.codice ? r.data.codice : 'Posizione') + ' salvata', 'ok');
+    if (r.inCoda) toast('📤 Posizione salvata sul telefono, non ancora inviata: il codice P-xx arriva quando torna la rete', 'warn');
+    else toast((r.data && r.data.codice ? r.data.codice : 'Posizione') + ' salvata', 'ok');
     await ridisegnaPosizioni(a.ctx.contenitore);
   } finally {
     btn.disabled = false;
   }
+}
+
+// Scrittura di una posizione (nuova o esistente). F15.12: js/57 la avvolge
+// per salvarla sul telefono senza rete (r.inCoda).
+async function scriviPosizione(a, riga) {
+  if (a.id) {
+    return db.from('progetti_tecnici_posizioni').update(riga).eq('id', a.id).select('codice').single();
+  }
+  // progetto e numero li mette il database (dalla scheda); numero qui è solo segnaposto
+  return db.from('progetti_tecnici_posizioni')
+    .insert(Object.assign({ scheda_id: a.ctx.schedaId, progetto_tecnico_id: a.ctx.progettoId, numero: 1 }, riga))
+    .select('codice').single();
 }
 
 async function togliPosizione() {

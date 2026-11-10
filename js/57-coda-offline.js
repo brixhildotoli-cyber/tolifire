@@ -5,14 +5,14 @@
 // Cosa fa:
 //  - registra il service worker sw.js?v=<versione> (la versione è il
 //    numero ?v= che pubblica.sh mette agli script di index.html): cache
-//    dell'app con il nome della versione, librerie CDN e dati già visti
-//    (sw.js). Chiamato da js/19 all'avvio per tutti i ruoli; la stessa
+//    dell'app con il nome della versione e librerie CDN (sw.js; i dati già
+//    visti da F15.12 sono qui, cifrati in IndexedDB). Chiamato da js/19 all'avvio per tutti i ruoli; la stessa
 //    registrazione serve alle notifiche di js/59 (stesso file, stesso
 //    indirizzo: registraServiceWorker di js/01 usa indirizzoServiceWorker).
 //  - apre il gestionale anche senza rete: all'accesso la riga dell'utente
 //    si tiene sul telefono (localStorage "toli_offline_utente", solo chi
 //    ha fatto il login, tolta con "Esci"); senza rete js/19 chiama
-//    avvioSenzaRete e boot parte da lì. "Esci" svuota anche i dati in cache.
+//    avvioSenzaRete e boot parte da lì. "Esci" svuota anche i dati letti.
 //  - CODA DI INVIO in IndexedDB ("toli-coda-offline", archivio "invii"):
 //    * file della scheda di rilievo del motore (📷 Foto e video, 📜 fonte
 //      del dato; caricaFileNelProgetto di js/56 avvolta, solo cartelle
@@ -34,8 +34,11 @@
 //    in cima alla scheda di rilievo, barra "Senza rete".
 //  - iPhone senza app installata: avviso "Installa l'app" (Safari cancella
 //    i dati delle pagine non installate dopo 7 giorni senza uso).
+//  - F15.12 (in fondo al file): LETTURE SUL TELEFONO cifrate (AES-GCM,
+//    chiave legata alla sessione) e valide 7 giorni, ATTESTATI sul telefono
+//    con le aperture registrate, POSIZIONI P-xx in coda.
 // Non in coda (senza rete restano come prima, con un messaggio chiaro):
-// posizioni P-xx e loro foto (js/66), file della finestra del progetto e
+// foto delle posizioni (js/66), file della finestra del progetto e
 // della verifica tecnica (js/17), invio del progetto, preventivi e ogni
 // altra pagina. La coda è pronta per altri tipi: registraTipoCodaOffline.
 // Con "Entra come" la coda è spenta (si salverebbe come un altro).
@@ -176,6 +179,8 @@ function utenteAuthLocale() {
 }
 async function svuotaCacheDatiOffline() {
   try { if ('caches' in window) await caches.delete(CACHE_DATI_OFFLINE); } catch (e) { /* niente */ }
+  // F15.12: letture e attestati cifrati, chiave e registro delle aperture
+  try { if (typeof svuotaLettureOffline === 'function') await svuotaLettureOffline(); } catch (e) { /* niente */ }
 }
 // Supabase raggiungibile? (risposta qualunque = sì; nessuna risposta = no)
 async function supabaseRaggiungibile() {
@@ -699,6 +704,7 @@ async function giroInvioCoda(opz) {
 function testoErroreInvioCoda(voce, e) {
   let t = '';
   if (voce.tipo === 'scheda_rilievo' && typeof testoErroreSchedaMotore === 'function') t = testoErroreSchedaMotore(e);
+  else if (voce.tipo === 'posizione' && typeof erroreScritturaPosizione === 'function') t = erroreScritturaPosizione(e);
   else if (voce.tipo === 'file_progetto' && typeof testoErroreFileProgetto === 'function') t = testoErroreFileProgetto(e);
   return t || testoErroreCoda(e);
 }
@@ -709,6 +715,12 @@ function aggiornaPagineDopoInvio() {
     const s = schedaRilievoAperta;
     if (s && s.elenco && !s.modificata && !Object.keys(s.bozze || {}).length && ge('m-rilievo-tecnico') && ge('m-rilievo-tecnico').classList.contains('on')) {
       sovrapponiCodaSchede(s).then(decoraSchedaRilievoCoda);
+    }
+    // F15.12: elenchi delle posizioni aperti (le posizioni arrivate hanno ora il codice P-xx)
+    if (typeof POSIZIONI !== 'undefined' && POSIZIONI.contesti && typeof ridisegnaPosizioni === 'function') {
+      aggiornaBadgeCoda().then(function() {
+        Object.keys(POSIZIONI.contesti).forEach(function(c) { if (ge(c)) ridisegnaPosizioni(c).catch(function() {}); });
+      });
     }
     if (typeof currentProgettoTecnicoId !== 'undefined' && currentProgettoTecnicoId && ge('pd-schede-content') &&
         typeof renderSchedeProgettoCommerciale === 'function' && !(ge('m-rilievo-tecnico') && ge('m-rilievo-tecnico').classList.contains('on'))) {
@@ -761,8 +773,10 @@ function preparaBadgeCoda() {
 
 async function aggiornaBadgeCoda() {
   const b = ge('nav-coda');
-  if (!b) return;
   const voci = await codaMie();
+  // F15.12: posizioni in coda tenute anche in memoria (elenco delle posizioni, js/66)
+  CODA.posizioni = voci.filter(function(x) { return x.tipo === 'posizione'; });
+  if (!b) return;
   const errori = voci.filter(function(x) { return x.stato === 'errore'; }).length;
   if (!voci.length && !senzaRete()) { b.style.display = 'none'; return; }
   b.style.display = '';
@@ -783,7 +797,7 @@ function aggiornaBarraRete() {
     document.body.insertBefore(el, document.body.firstChild);
   }
   if (senzaRete()) {
-    el.innerHTML = '📴 <b>Senza rete.</b> Schede di rilievo e loro foto si salvano sul telefono e partono da sole quando torna la rete. Il resto si vede com’era l’ultima volta.';
+    el.innerHTML = '📴 <b>Senza rete.</b> Schede di rilievo, loro foto e posizioni si salvano sul telefono e partono da sole quando torna la rete. Il resto si vede com’era l’ultima volta che l’hai aperto con la rete (fino a 7 giorni).';
     el.style.display = 'block';
   } else if (CODA.avvioSenzaRete) {
     el.innerHTML = '✅ <b>La rete è tornata.</b> <button type="button" class="btn sm p" onclick="aggiornaDopoRete()">↻ Aggiorna i dati</button>';
@@ -940,4 +954,661 @@ function chiudiAvvisoInstallaOffline() {
   try { if (u) localStorage.setItem(CHIAVE_INSTALLA_OFFLINE + u.id, String(Date.now())); } catch (e) { /* niente */ }
   const el = ge('coda-installa');
   if (el) el.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ── F15.12 — Dati in lettura sul telefono (nessun SQL) ──────────────
+// LETTURE: ogni lettura del database fatta con la rete (GET e HEAD di
+// /rest/v1 e le RPC di sola lettura di RPC_LETTURE_TELEFONO: definizioni dei
+// campi delle lavorazioni, cliente e sede, progetto, schede e posizioni,
+// scheda_cantiere_commessa di sql/34, miei_giorni_cantiere di sql/35, faldone
+// del cantiere...) si tiene in IndexedDB ("toli-letture-offline", archivio
+// "letture"), CIFRATA con AES-GCM (WebCrypto). Senza rete (o se la rete non
+// risponde) la stessa lettura risponde dal telefono, se è stata fatta con la
+// rete negli ultimi 7 GIORNI (LETTURE_VALIDE_MS); più vecchia = si cancella e
+// la pagina resta vuota come una pagina mai aperta. Prima la rete, sempre.
+// CHIAVE legata alla sessione: una chiave AES-GCM a 256 bit NON esportabile
+// (generateKey extractable false: nessuno script la può leggere né copiare),
+// una per persona e per sessione di accesso (session_id del token di
+// Supabase Auth, uguale finché non si esce; senza session_id l'utente): con
+// un nuovo accesso o un'altra persona la chiave di prima e tutto quello che
+// cifrava si cancellano; "Esci" cancella chiave, letture e attestati.
+// Indirizzi e corpi delle richieste NON si scrivono in chiaro: la chiave
+// dell'archivio è l'impronta SHA-256 di persona + richiesta.
+// ATTESTATI (documenti di team e subappalti, js/30: formazione, PLE,
+// idoneità...): aprendo un attestato con la rete il file si tiene sul
+// telefono, cifrato, per 7 giorni ("📥 Tieni sul telefono" li prende tutti in
+// una volta da "I miei documenti" e dalla scheda documenti). Senza rete
+// "Apri" lo apre dal telefono e l'APERTURA SI REGISTRA (registro sul
+// telefono, cifrato: chi, quando, quale attestato, senza rete); dopo 7 giorni
+// non si apre più ("aprilo con la rete"). Il registro si vede nella finestra
+// 📤/📴 (m-coda-offline, riquadro cof-telefono).
+// POSIZIONI P-xx (js/66) in coda: senza rete "Salva" della posizione la
+// tiene sul telefono (id generato dal telefono, codice P-xx dato dal
+// database all'arrivo), nell'elenco "📤 da inviare"; le foto della posizione
+// si aggiungono quando è arrivata.
+// Il service worker (sw.js) da F15.12 non tiene più i dati: niente dati in
+// chiaro sul telefono.
+
+const LETTURE = { db: null, chiave: null, chiaveDi: '', inCreazione: null, scritture: 0, posizioniRighe: {} };
+const LETTURE_NOME_DB = 'toli-letture-offline';
+const LETTURE_VALIDE_MS = 7 * 24 * 3600 * 1000;    // 7 giorni
+const LETTURE_MASSIME = 1500;                      // righe nell'archivio (le più vecchie escono)
+const LETTURE_MAX_BYTE = 3 * 1048576;              // una lettura più grande non si tiene
+const ATTESTATI_MAX_BYTE = 15 * 1048576;
+const ATTESTATI_MASSIMI = 60;
+const APERTURE_MASSIME = 300;
+// RPC di sola lettura (le altre RPC scrivono: mai dal telefono)
+const RPC_LETTURE_TELEFONO = /^([a-z0-9_]+_attiv[oie]|schede_migrate_motore|scheda_cantiere_commessa|miei_giorni_cantiere|mie_ore_cantiere|controllo_faldone_commessa|preventivo_firmato_commessa|voci_lavori_extra_commessa|presenti_giornale_commessa|impegni_squadra_periodo|importi_extra_commesse|impegni_tecnici_dashboard|ambito_audit_intervento|prezzi_contratto_cliente)$/;
+
+function lettureTelefonoPossibili() {
+  return !!(window.crypto && window.crypto.subtle && 'indexedDB' in window && codaOfflineAmmessa());
+}
+
+// ── IndexedDB delle letture ─────────────────────────────────────────
+function apriDbLetture() {
+  if (LETTURE.db) return LETTURE.db;
+  LETTURE.db = new Promise(function(ok, ko) {
+    const r = indexedDB.open(LETTURE_NOME_DB, 1);
+    r.onupgradeneeded = function() {
+      const d = r.result;
+      if (!d.objectStoreNames.contains('chiavi')) d.createObjectStore('chiavi', { keyPath: 'utente_id' });
+      ['letture', 'attestati'].forEach(function(n) {
+        if (!d.objectStoreNames.contains(n)) d.createObjectStore(n, { keyPath: 'k' }).createIndex('per_data', 'salvato_il');
+      });
+      if (!d.objectStoreNames.contains('aperture')) d.createObjectStore('aperture', { keyPath: 'id' }).createIndex('per_data', 'quando');
+    };
+    r.onsuccess = function() { ok(r.result); };
+    r.onerror = function() { ko(r.error); };
+  });
+  LETTURE.db.catch(function() { LETTURE.db = null; });
+  return LETTURE.db;
+}
+async function operazioneLetture(archivio, modo, fn) {
+  const d = await apriDbLetture();
+  return new Promise(function(ok, ko) {
+    const t = d.transaction(archivio, modo);
+    let esito;
+    const req = fn(t.objectStore(archivio), t);
+    if (req) req.onsuccess = function() { esito = req.result; };
+    t.oncomplete = function() { ok(esito); };
+    t.onerror = function() { ko(t.error || (req && req.error)); };
+    t.onabort = function() { ko(t.error || new Error('Lettura sul telefono annullata')); };
+  });
+}
+// Toglie con un cursore sull'indice per_data le righe salvate prima di "prima"
+// (e, se massimo, le più vecchie oltre il massimo)
+function potaArchivioLetture(archivio, campoData, massimo) {
+  return operazioneLetture(archivio, 'readwrite', function(s) {
+    const limite = Date.now() - LETTURE_VALIDE_MS;
+    const conta = s.count();
+    conta.onsuccess = function() {
+      let daTogliere = massimo ? Math.max(0, conta.result - massimo) : 0;
+      const cur = s.index('per_data').openCursor();
+      cur.onsuccess = function() {
+        const c = cur.result;
+        if (!c) return;
+        if (c.value[campoData] < limite || daTogliere > 0) { c.delete(); if (daTogliere > 0) daTogliere--; c.continue(); }
+      };
+    };
+    return null;
+  }).catch(function() { /* niente */ });
+}
+async function potaLettureTelefono() {
+  await potaArchivioLetture('letture', 'salvato_il', LETTURE_MASSIME);
+  await potaArchivioLetture('attestati', 'salvato_il', ATTESTATI_MASSIMI);
+}
+
+// Cancella tutto (Esci, un'altra persona sul telefono)
+async function svuotaLettureOffline() {
+  LETTURE.chiave = null; LETTURE.chiaveDi = ''; LETTURE.posizioniRighe = {};
+  if (!('indexedDB' in window)) return;
+  for (const a of ['letture', 'attestati', 'aperture', 'chiavi']) {
+    try { await operazioneLetture(a, 'readwrite', function(s) { return s.clear(); }); } catch (e) { /* niente */ }
+  }
+}
+
+// ── Chiave legata alla sessione ─────────────────────────────────────
+function sessioneIdLocale() {
+  try {
+    const s = JSON.parse(localStorage.getItem(chiaveSessioneAuth()) || 'null');
+    const t = s && s.access_token && String(s.access_token).split('.')[1];
+    if (!t) return '';
+    const p = JSON.parse(decodeURIComponent(escape(atob(t.replace(/-/g, '+').replace(/_/g, '/')))));
+    return String(p.session_id || ('utente:' + (p.sub || '')));
+  } catch (e) { return ''; }
+}
+async function chiaveLetture() {
+  const u = utenteCoda();
+  const sess = sessioneIdLocale();
+  if (!u || !sess) return null;
+  const di = u.id + '|' + sess;
+  if (LETTURE.chiave && LETTURE.chiaveDi === di) return LETTURE.chiave;
+  if (LETTURE.inCreazione && LETTURE.inCreazioneDi === di) return LETTURE.inCreazione;
+  LETTURE.inCreazioneDi = di;
+  LETTURE.inCreazione = (async function() {
+    const rec = await operazioneLetture('chiavi', 'readonly', function(s) { return s.get(u.id); });
+    if (rec && rec.sessione === sess && rec.chiave) return rec.chiave;
+    // Nuovo accesso (o altra persona): quello cifrato con la chiave di prima non serve più
+    for (const a of ['letture', 'attestati', 'aperture']) {
+      await operazioneLetture(a, 'readwrite', function(s) { return s.clear(); });
+    }
+    const chiave = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    await operazioneLetture('chiavi', 'readwrite', function(s) {
+      s.clear();
+      return s.put({ utente_id: u.id, sessione: sess, chiave: chiave, creata_il: Date.now() });
+    });
+    return chiave;
+  })().then(function(k) { LETTURE.chiave = k; LETTURE.chiaveDi = di; return k; })
+    .finally(function() { LETTURE.inCreazione = null; LETTURE.inCreazioneDi = ''; });
+  return LETTURE.inCreazione;
+}
+
+const TESTO_CIFRA = new TextEncoder();
+const TESTO_DECIFRA = new TextDecoder();
+async function improntaLettura(testo) {
+  const h = await crypto.subtle.digest('SHA-256', TESTO_CIFRA.encode(testo));
+  return Array.from(new Uint8Array(h)).map(function(x) { return x.toString(16).padStart(2, '0'); }).join('');
+}
+// contenuto: ArrayBuffer o testo; aad = la chiave della riga (una riga
+// cifrata non vale se spostata sotto un'altra chiave)
+async function cifraLettura(chiave, k, contenuto) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const dati = typeof contenuto === 'string' ? TESTO_CIFRA.encode(contenuto) : contenuto;
+  const cifrato = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv, additionalData: TESTO_CIFRA.encode('toli|' + k) }, chiave, dati);
+  return { iv: iv, dati: cifrato };
+}
+async function decifraLettura(chiave, k, iv, dati) {
+  return crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv, additionalData: TESTO_CIFRA.encode('toli|' + k) }, chiave, dati);
+}
+
+// ── Letture del database ────────────────────────────────────────────
+// Descrizione della richiesta se è una lettura da tenere, altrimenti null
+function letturaDaTenere(risorsa, opzioni) {
+  try {
+    const url = new URL(typeof risorsa === 'string' ? risorsa : risorsa.url, location.href);
+    if (url.origin !== new URL(SU).origin || url.pathname.indexOf('/rest/v1/') !== 0) return null;
+    const o = opzioni || {};
+    const metodo = String(o.method || (risorsa && risorsa.method) || 'GET').toUpperCase();
+    const h = new Headers(o.headers || (risorsa instanceof Request ? risorsa.headers : undefined));
+    if (h.get('x-agito-come') || h.get('x-portale-token')) return null;
+    const rpc = /^\/rest\/v1\/rpc\/([a-z0-9_]+)$/.exec(url.pathname);
+    let corpo = '';
+    if (metodo === 'POST') {
+      if (!rpc || !RPC_LETTURE_TELEFONO.test(rpc[1])) return null;
+      corpo = typeof o.body === 'string' ? o.body : (o.body ? null : '');
+      if (corpo === null) return null;
+    } else if (metodo !== 'GET' && metodo !== 'HEAD') {
+      return null;
+    } else if (rpc && !RPC_LETTURE_TELEFONO.test(rpc[1])) {
+      return null;
+    }
+    return {
+      testo: [metodo, url.pathname + url.search, h.get('accept') || '', h.get('prefer') || '', h.get('range') || '', corpo].join('\n'),
+      metodo: metodo
+    };
+  } catch (e) { return null; }
+}
+
+async function tieniLettura(info, risposta) {
+  if (!lettureTelefonoPossibili()) return;
+  const chiave = await chiaveLetture();
+  if (!chiave) return;
+  const corpo = info.metodo === 'HEAD' ? '' : await risposta.text();
+  if (corpo.length > LETTURE_MAX_BYTE) return;
+  const intest = {};
+  ['content-type', 'content-range', 'preference-applied'].forEach(function(n) { const x = risposta.headers.get(n); if (x) intest[n] = x; });
+  const u = utenteCoda();
+  const k = await improntaLettura(u.id + '\n' + info.testo);
+  const c = await cifraLettura(chiave, k, JSON.stringify({ status: risposta.status, intestazioni: intest, corpo: corpo }));
+  await operazioneLetture('letture', 'readwrite', function(s) {
+    return s.put({ k: k, utente_id: u.id, salvato_il: Date.now(), iv: c.iv, dati: c.dati });
+  });
+  if (++LETTURE.scritture % 60 === 0) potaArchivioLetture('letture', 'salvato_il', LETTURE_MASSIME);
+}
+
+// Risposta dal telefono (o null se non c'è, è di un'altra persona o è scaduta)
+async function letturaDalTelefono(info) {
+  if (!lettureTelefonoPossibili()) return null;
+  try {
+    const chiave = await chiaveLetture();
+    if (!chiave) return null;
+    const u = utenteCoda();
+    const k = await improntaLettura(u.id + '\n' + info.testo);
+    const rec = await operazioneLetture('letture', 'readonly', function(s) { return s.get(k); });
+    if (!rec || rec.utente_id !== u.id) return null;
+    if (Date.now() - rec.salvato_il > LETTURE_VALIDE_MS) {
+      await operazioneLetture('letture', 'readwrite', function(s) { return s.delete(k); });
+      return null;
+    }
+    const x = JSON.parse(TESTO_DECIFRA.decode(await decifraLettura(chiave, k, rec.iv, rec.dati)));
+    const h = new Headers(x.intestazioni || {});
+    h.set('x-toli-dal-telefono', new Date(rec.salvato_il).toISOString());
+    LETTURE.ultimaDalTelefono = rec.salvato_il;
+    return new Response(info.metodo === 'HEAD' ? null : x.corpo, { status: x.status || 200, headers: h });
+  } catch (e) { return null; }
+}
+
+if (typeof fetchDatabase === 'function') {
+  const fetchDatabaseInRete = fetchDatabase;
+  // eslint-disable-next-line no-global-assign
+  fetchDatabase = async function(risorsa, opzioni) {
+    const info = lettureTelefonoPossibili() ? letturaDaTenere(risorsa, opzioni) : null;
+    if (!info) return fetchDatabaseInRete(risorsa, opzioni);
+    if (senzaRete()) {
+      const x = await letturaDalTelefono(info);
+      if (x) return x;
+    }
+    let r;
+    try {
+      r = await fetchDatabaseInRete(risorsa, opzioni);
+    } catch (e) {
+      if (e && e.name === 'AbortError') throw e;
+      const x = await letturaDalTelefono(info);
+      if (x) { avvisaLetturaDalTelefono(); return x; }
+      throw e;
+    }
+    if (r && (r.status === 200 || r.status === 206)) {
+      try { tieniLettura(info, r.clone()).catch(function() { /* spazio pieno: niente */ }); } catch (e) { /* niente */ }
+    }
+    return r;
+  };
+}
+
+// Rete "presente" ma che non risponde (campo debole): i dati arrivano dal
+// telefono senza la barra "Senza rete", quindi lo si dice (una volta al minuto)
+function avvisaLetturaDalTelefono() {
+  if (senzaRete() || Date.now() - (LETTURE.avvisato || 0) < 60000) return;
+  LETTURE.avvisato = Date.now();
+  const quando = LETTURE.ultimaDalTelefono ? new Date(LETTURE.ultimaDalTelefono).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+  setTimeout(function() {
+    toast('📴 La rete non risponde: vedi i dati salvati sul telefono' + (quando ? ' (letti il ' + quando + ')' : '') + '. Non sono aggiornati.', 'warn');
+  }, 300);
+}
+
+// Catalogo delle lavorazioni (js/55): senza rete e senza copia sul telefono
+// non va segnato "non attivo" per sempre: si rilegge con la rete.
+if (typeof caricaCatalogoLavorazioni === 'function') {
+  const caricaCatalogoConRete = caricaCatalogoLavorazioni;
+  // eslint-disable-next-line no-global-assign
+  caricaCatalogoLavorazioni = async function() {
+    const r = await caricaCatalogoConRete.apply(this, arguments);
+    if (typeof CATALOGO_LAV !== 'undefined' && CATALOGO_LAV.disponibili === false && senzaRete()) {
+      CATALOGO_LAV.disponibili = null;
+      CATALOGO_LAV.letto = 0;
+    }
+    return r;
+  };
+}
+
+// ── Attestati sul telefono ──────────────────────────────────────────
+function nomeFileAttestato(percorso) {
+  return String(percorso || '').split('/').pop().replace(/^[0-9a-f-]{8,}_/i, '') || 'attestato';
+}
+async function attestatoSulTelefono(percorso) {
+  const u = utenteCoda();
+  if (!u || !lettureTelefonoPossibili()) return null;
+  const k = await improntaLettura(u.id + '\nattestato\n' + percorso);
+  const rec = await operazioneLetture('attestati', 'readonly', function(s) { return s.get(k); });
+  return rec && rec.utente_id === u.id ? rec : null;
+}
+
+// Scarica il file (link firmato) e lo tiene cifrato. Vero = tenuto.
+async function tieniAttestatoSulTelefono(percorso, nome, urlFirmato) {
+  if (!lettureTelefonoPossibili() || !percorso || senzaRete()) return false;
+  try {
+    const chiave = await chiaveLetture();
+    if (!chiave) return false;
+    let url = urlFirmato;
+    if (!url) {
+      const { data, error } = await db.storage.from(BUCKET_TEAM_SUBAPPALTI).createSignedUrl(percorso, 600);
+      if (error || !data || !data.signedUrl) return false;
+      url = data.signedUrl;
+    }
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) return false;
+    const tipo = r.headers.get('content-type') || 'application/octet-stream';
+    const contenuto = await r.arrayBuffer();
+    if (contenuto.byteLength > ATTESTATI_MAX_BYTE) return false;
+    const u = utenteCoda();
+    const k = await improntaLettura(u.id + '\nattestato\n' + percorso);
+    const file = await cifraLettura(chiave, k, contenuto);
+    const meta = await cifraLettura(chiave, k + '|meta', JSON.stringify({ nome: nome || nomeFileAttestato(percorso), tipo: tipo, byte: contenuto.byteLength }));
+    await operazioneLetture('attestati', 'readwrite', function(s) {
+      return s.put({ k: k, utente_id: u.id, salvato_il: Date.now(), iv: file.iv, dati: file.dati, meta_iv: meta.iv, meta: meta.dati });
+    });
+    potaArchivioLetture('attestati', 'salvato_il', ATTESTATI_MASSIMI);
+    return true;
+  } catch (e) { return false; }
+}
+
+async function metaAttestato(chiave, rec) {
+  try { return JSON.parse(TESTO_DECIFRA.decode(await decifraLettura(chiave, rec.k + '|meta', rec.meta_iv, rec.meta))); } catch (e) { return null; }
+}
+
+// Registro delle aperture dal telefono (cifrato)
+async function registraAperturaAttestato(nome, senzaRete) {
+  try {
+    const chiave = await chiaveLetture();
+    const u = utenteCoda();
+    if (!chiave || !u) return;
+    const id = nuovoIdCoda();
+    const chi = [u.nome, u.cognome].filter(Boolean).join(' ') || u.email || '';
+    const c = await cifraLettura(chiave, 'apertura|' + id, JSON.stringify({ nome: nome, chi: chi, ruolo: u.ruolo || '', senza_rete: !!senzaRete }));
+    await operazioneLetture('aperture', 'readwrite', function(s) { return s.put({ id: id, utente_id: u.id, quando: Date.now(), iv: c.iv, dati: c.dati }); });
+    await potaArchivioLetture('aperture', 'quando', APERTURE_MASSIME);
+  } catch (e) { /* niente */ }
+}
+
+// Apre la copia sul telefono. Esito: 'aperto' | 'scaduto' | 'manca'
+async function apriAttestatoDalTelefono(percorso, conRete) {
+  let rec = null;
+  try { rec = await attestatoSulTelefono(percorso); } catch (e) { rec = null; }
+  if (!rec) return 'manca';
+  if (Date.now() - rec.salvato_il > LETTURE_VALIDE_MS) {
+    try { await operazioneLetture('attestati', 'readwrite', function(s) { return s.delete(rec.k); }); } catch (e) { /* niente */ }
+    return 'scaduto';
+  }
+  try {
+    const chiave = await chiaveLetture();
+    const meta = (await metaAttestato(chiave, rec)) || {};
+    const contenuto = await decifraLettura(chiave, rec.k, rec.iv, rec.dati);
+    const url = URL.createObjectURL(new Blob([contenuto], { type: meta.tipo || 'application/octet-stream' }));
+    await registraAperturaAttestato(meta.nome || nomeFileAttestato(percorso), !conRete);
+    window.open(url, '_blank', 'noopener');
+    setTimeout(function() { URL.revokeObjectURL(url); }, 120000);
+    return 'aperto';
+  } catch (e) { return 'manca'; }
+}
+
+// Nome leggibile dell'attestato dal pulsante (riga dell'elenco di js/30)
+function nomeAttestatoDaPulsante(percorso) {
+  try {
+    const b = Array.from(document.querySelectorAll('[data-path]')).find(function(x) { return x.dataset.path === percorso; });
+    const riga = b && b.closest('div[style*="justify-content:space-between"]');
+    const titolo = riga && riga.querySelector('div[style*="font-weight:700"]');
+    let nome = titolo ? String(titolo.childNodes[0] && titolo.childNodes[0].textContent || titolo.textContent).trim() : '';
+    const intest = ge('sdoc-titolo') && ge('pg-scheda-documenti') && ge('pg-scheda-documenti').classList.contains('on') ? ge('sdoc-titolo').textContent.replace(/^\S+\s/, '') : '';
+    if (intest && nome) nome += ' – ' + intest;
+    return nome || nomeFileAttestato(percorso);
+  } catch (e) { return nomeFileAttestato(percorso); }
+}
+
+if (typeof apriFileDocumentoTS === 'function') {
+  const apriAttestatoConRete = apriFileDocumentoTS;
+  // eslint-disable-next-line no-global-assign
+  apriFileDocumentoTS = async function(percorso) {
+    const nome = nomeAttestatoDaPulsante(percorso);
+    if (lettureTelefonoPossibili() && senzaRete()) {
+      const esito = await apriAttestatoDalTelefono(percorso, false);
+      if (esito === 'scaduto') toast('Questa copia sul telefono è di più di 7 giorni fa e non si apre più: aprilo con la rete', 'err');
+      else if (esito === 'manca') toast('Senza rete: questo attestato non è sul telefono. Aprilo una volta con la rete (o usa 📥 Tieni sul telefono)', 'err');
+      return;
+    }
+    if (!lettureTelefonoPossibili()) return apriAttestatoConRete.apply(this, arguments);
+    const { data, error } = await db.storage.from(BUCKET_TEAM_SUBAPPALTI).createSignedUrl(percorso, 3600);
+    if (error || !data || !data.signedUrl) {
+      // La rete non risponde: la copia sul telefono
+      if (error && erroreDiRete(error)) {
+        const esito = await apriAttestatoDalTelefono(percorso, false);
+        if (esito === 'aperto') return;
+      }
+      toast('Impossibile aprire il documento: ' + ((error && error.message) || 'file non disponibile'), 'err');
+      return;
+    }
+    window.open(data.signedUrl, '_blank', 'noopener');
+    // Copia per quando manca la rete (in sottofondo)
+    tieniAttestatoSulTelefono(percorso, nome, data.signedUrl).then(function(ok) { if (ok) decoraAttestatiTelefono(); });
+  };
+}
+
+// "📥 Tieni sul telefono": tutti gli attestati con file di un elenco
+async function tieniAttestatiSulTelefono(idContenitore) {
+  if (senzaRete()) { toast('Senza rete: si fa con la rete', 'warn'); return; }
+  const box = ge(idContenitore);
+  if (!box) return;
+  const percorsi = Array.from(new Set(Array.from(box.querySelectorAll('[data-path]')).map(function(b) { return b.dataset.path; }).filter(Boolean)));
+  if (!percorsi.length) { toast('Nessun attestato con il file', 'warn'); return; }
+  const btn = box.querySelector('.att-telefono-btn');
+  if (btn) btn.disabled = true;
+  let tenuti = 0;
+  for (const p of percorsi) { if (await tieniAttestatoSulTelefono(p, nomeAttestatoDaPulsante(p))) tenuti++; }
+  if (btn) btn.disabled = false;
+  toast(tenuti === percorsi.length
+    ? '📥 ' + tenuti + (tenuti === 1 ? ' attestato sul telefono' : ' attestati sul telefono') + ': si aprono anche senza rete per 7 giorni'
+    : '📥 ' + tenuti + ' di ' + percorsi.length + ' sul telefono (gli altri non si aprono per il tuo ruolo o sono troppo grandi)', tenuti === percorsi.length ? 'ok' : 'warn');
+  decoraAttestatiTelefono();
+}
+
+// Riga "📥" in fondo agli elenchi degli attestati e ✓ sui pulsanti
+async function decoraAttestatiTelefono() {
+  if (!lettureTelefonoPossibili()) return;
+  for (const id of ['tec-miei-documenti', 'sdoc-documenti']) {
+    const box = ge(id);
+    if (!box) continue;
+    const pulsanti = Array.from(box.querySelectorAll('[data-path]'));
+    if (!pulsanti.length) { const r = box.querySelector('.att-telefono'); if (r) r.remove(); continue; }
+    let sul = 0, scadenza = null;
+    for (const b of pulsanti) {
+      let rec = null;
+      try { rec = await attestatoSulTelefono(b.dataset.path); } catch (e) { rec = null; }
+      const valido = rec && Date.now() - rec.salvato_il <= LETTURE_VALIDE_MS;
+      b.querySelectorAll('.att-tel').forEach(function(x) { x.remove(); });
+      if (valido) {
+        sul++;
+        const fine = rec.salvato_il + LETTURE_VALIDE_MS;
+        if (!scadenza || fine < scadenza) scadenza = fine;
+        b.insertAdjacentHTML('beforeend', ' <span class="att-tel" title="Sul telefono: si apre anche senza rete">📱</span>');
+      }
+    }
+    let riga = box.querySelector('.att-telefono');
+    if (!riga) {
+      riga = document.createElement('div');
+      riga.className = 'att-telefono';
+      riga.style.cssText = 'font-size:12px;color:var(--m);margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap';
+      const dentro = box.querySelector('.card') || box;
+      dentro.appendChild(riga);
+    }
+    riga.innerHTML = '<span>📱 ' + (sul ? sul + ' di ' + pulsanti.length + ' sul telefono (cifrati): senza rete si aprono fino al ' +
+      esc(new Date(scadenza).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })) : 'Nessun attestato sul telefono: senza rete non si aprono') + '.</span>' +
+      (senzaRete() ? '' : '<button type="button" class="btn sm att-telefono-btn" onclick="tieniAttestatiSulTelefono(\'' + id + '\')">📥 Tieni sul telefono (7 giorni)</button>');
+  }
+}
+['caricaMieiDocumentiTecnico', 'caricaSchedaDocumenti'].forEach(function(nome) {
+  if (typeof window[nome] !== 'function') return;
+  const originale = window[nome];
+  window[nome] = async function() {
+    const r = await originale.apply(this, arguments);
+    decoraAttestatiTelefono().catch(function() { /* niente */ });
+    return r;
+  };
+});
+
+// ── Posizioni P-xx in coda (js/66) ──────────────────────────────────
+function posizioniInCodaScheda(schedaId) {
+  return (CODA.posizioni || []).filter(function(x) { return x.scheda_id === schedaId; });
+}
+async function posizioneDaCodaOffline(id, rigaDb) {
+  if (!id) return null;
+  let voce = null;
+  try { voce = await codaPrendi('posizione:' + id); } catch (e) { voce = null; }
+  const u = utenteCoda();
+  if (!voce || !u || voce.utente_id !== u.id) return null;
+  return rigaPosizioneDaVoce(voce, rigaDb);
+}
+function rigaPosizioneDaVoce(voce, rigaDb) {
+  if (voce.nuova) {
+    return Object.assign({ codice: '📤 Nuova (da inviare)', numero: null, foto: [], tolta: false }, voce.riga, { in_coda: true, in_coda_nuova: true });
+  }
+  return Object.assign({ id: voce.posizione_id, codice: voce.codice || 'P-?', foto: voce.foto || [], tolta: false }, rigaDb || {}, voce.riga,
+    { codice: ((rigaDb && rigaDb.codice) || voce.codice || 'P-?') + ' 📤', in_coda: true });
+}
+
+async function mettiPosizioneInCoda(a, riga) {
+  const u = utenteCoda();
+  const nuova = !a.id || !!(a.riga && a.riga.in_coda_nuova);
+  const id = a.id || nuovoIdCoda();
+  const prima = a.id ? await codaPrendi('posizione:' + id).catch(function() { return null; }) : null;
+  const voce = {
+    id: 'posizione:' + id, tipo: 'posizione', utente_id: u.id, ordine: (prima && prima.ordine) || ordineCoda(),
+    creato_il: new Date().toISOString(), stato: 'in_attesa', errore: '', tentativi: 0,
+    progetto_id: a.ctx.progettoId, titolo_progetto: titoloProgettoCoda(a.ctx.progettoId) || ((prima && prima.titolo_progetto) || ''),
+    scheda_id: a.ctx.schedaId, famiglia: a.ctx.famiglia, titolo_scheda: a.ctx.titolo || '', nuova: nuova, posizione_id: id,
+    codice: (a.riga && !a.riga.in_coda_nuova && String(a.riga.codice || '').replace(/ 📤$/, '')) || '',
+    foto: (a.riga && a.riga.foto) || [],
+    riga: nuova
+      ? Object.assign({ id: id, scheda_id: a.ctx.schedaId, progetto_tecnico_id: a.ctx.progettoId, numero: 1 }, riga)
+      : Object.assign({}, riga)
+  };
+  try { await codaMetti(voce); } catch (e) { return { data: null, error: { message: 'non salvata sul telefono: ' + testoErroreCoda(e) } }; }
+  await aggiornaBadgeCoda();
+  if (!senzaRete()) setTimeout(function() { inviaCodaOffline(); }, 300);
+  return { data: null, error: null, inCoda: true };
+}
+
+if (typeof scriviPosizione === 'function') {
+  const scriviPosizioneConRete = scriviPosizione;
+  // eslint-disable-next-line no-global-assign
+  scriviPosizione = async function(a, riga) {
+    if (!codaOfflineAmmessa() || !a || !a.ctx) return scriviPosizioneConRete.apply(this, arguments);
+    // Una posizione già in coda resta in coda (si aggiorna la riga salvata)
+    const inCoda = a.id && (CODA.posizioni || []).some(function(x) { return x.posizione_id === a.id; });
+    if (!senzaRete() && !inCoda) {
+      const r = await scriviPosizioneConRete.apply(this, arguments);
+      if (!r || !r.error || !erroreDiRete(r.error)) return r;
+    }
+    return mettiPosizioneInCoda(a, riga);
+  };
+}
+
+// Elenco delle posizioni: le righe lette + quelle in coda; senza rete le
+// ultime righe lette per la scheda (ridisegno dopo un salvataggio)
+if (typeof htmlElencoPosizioni === 'function') {
+  const htmlElencoSenzaCoda = htmlElencoPosizioni;
+  // eslint-disable-next-line no-global-assign
+  htmlElencoPosizioni = function(ctx, righe, scrive) {
+    const lette = (righe || []).filter(function(p) { return !p.in_coda; });
+    if (ctx && ctx.schedaId) LETTURE.posizioniRighe[ctx.schedaId] = lette;
+    const coda = ctx ? posizioniInCodaScheda(ctx.schedaId) : [];
+    if (!coda.length) return htmlElencoSenzaCoda.call(this, ctx, lette, scrive);
+    const tutte = lette.map(function(p) {
+      const v = coda.find(function(x) { return !x.nuova && x.posizione_id === p.id; });
+      return v ? rigaPosizioneDaVoce(v, p) : p;
+    });
+    coda.filter(function(x) { return x.nuova; }).forEach(function(x) { tutte.push(rigaPosizioneDaVoce(x, null)); });
+    let html = htmlElencoSenzaCoda.call(this, ctx, tutte, scrive);
+    // ⧉ Duplica solo per le posizioni già arrivate
+    coda.filter(function(x) { return x.nuova; }).forEach(function(x) {
+      html = html.replace(new RegExp('<button[^>]*id="pos-duplica-' + String(x.posizione_id).replace(/[^0-9a-f-]/gi, '') + '"[^>]*>[^<]*</button>'), '');
+    });
+    return html;
+  };
+}
+if (typeof disegnaPosizioniScheda === 'function') {
+  const disegnaPosizioniConRete = disegnaPosizioniScheda;
+  // eslint-disable-next-line no-global-assign
+  disegnaPosizioniScheda = async function(ctx, righe) {
+    if (!righe && ctx && senzaRete() && LETTURE.posizioniRighe[ctx.schedaId]) {
+      return disegnaPosizioniConRete.call(this, ctx, LETTURE.posizioniRighe[ctx.schedaId]);
+    }
+    return disegnaPosizioniConRete.apply(this, arguments);
+  };
+}
+
+async function inviaPosizioneCoda(voce) {
+  if (voce.nuova) {
+    const ins = await db.from('progetti_tecnici_posizioni').insert(voce.riga).select('codice').single();
+    if (!ins.error) { if (ins.data && ins.data.codice) voce.avviso = 'posizione arrivata come ' + ins.data.codice; return; }
+    if (ins.error.code === '23505') {
+      const { data } = await db.from('progetti_tecnici_posizioni').select('id').eq('id', voce.posizione_id).maybeSingle();
+      if (data) return; // già arrivata (rimandata dopo un invio a metà)
+    }
+    throw ins.error;
+  }
+  const up = await db.from('progetti_tecnici_posizioni').update(voce.riga).eq('id', voce.posizione_id).select('id');
+  if (up.error) throw up.error;
+  if (!up.data || !up.data.length) throw { message: 'posizione non trovata o non più modificabile (progetto inviato o posizione tolta?)' };
+}
+registraTipoCodaOffline('posizione', {
+  icona: function() { return '📍'; },
+  titolo: function(v) {
+    const r = v.riga || {};
+    return 'Posizione ' + (v.nuova ? 'nuova' : (v.codice || '')) + (r.ubicazione ? ' · ' + r.ubicazione : '') +
+      (v.titolo_scheda ? ' (' + v.titolo_scheda + ')' : '');
+  },
+  invia: inviaPosizioneCoda
+});
+
+// ── Finestra: riquadro "📱 Dati sul telefono" ───────────────────────
+async function disegnaDatiTelefono() {
+  const box = ge('cof-telefono');
+  if (!box) return;
+  if (!lettureTelefonoPossibili()) { box.innerHTML = ''; return; }
+  let letture = 0, attestati = [], aperture = [];
+  try {
+    await potaLettureTelefono();
+    const chiave = await chiaveLetture();
+    const u = utenteCoda();
+    letture = await operazioneLetture('letture', 'readonly', function(s) { return s.count(); });
+    const recs = (await operazioneLetture('attestati', 'readonly', function(s) { return s.getAll(); })) || [];
+    for (const r of recs) {
+      if (r.utente_id !== u.id) continue;
+      const m = chiave ? await metaAttestato(chiave, r) : null;
+      attestati.push({ nome: (m && m.nome) || 'attestato', fine: r.salvato_il + LETTURE_VALIDE_MS });
+    }
+    const ap = ((await operazioneLetture('aperture', 'readonly', function(s) { return s.getAll(); })) || [])
+      .filter(function(x) { return x.utente_id === u.id; }).sort(function(a, b) { return b.quando - a.quando; }).slice(0, 10);
+    for (const x of ap) {
+      try { aperture.push(Object.assign({ quando: x.quando }, JSON.parse(TESTO_DECIFRA.decode(await decifraLettura(chiave, 'apertura|' + x.id, x.iv, x.dati))))); } catch (e) { /* chiave di un'altra sessione */ }
+    }
+  } catch (e) { box.innerHTML = ''; return; }
+  const quando = function(ms) { return new Date(ms).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); };
+  attestati.sort(function(a, b) { return a.fine - b.fine; });
+  box.innerHTML = '<div style="font-weight:700;margin-bottom:4px">📱 Dati sul telefono (cifrati)</div>' +
+    '<div style="font-size:12px;color:var(--m)">' + (letture
+      ? letture + (letture === 1 ? ' lettura tenuta' : ' letture tenute') + ': le pagine aperte con la rete si vedono senza rete per 7 giorni dall’ultima apertura.'
+      : 'Nessuna pagina tenuta sul telefono: aprile una volta con la rete.') + '</div>' +
+    (attestati.length
+      ? '<div style="font-size:12px;margin-top:6px"><b>Attestati</b> (si aprono senza rete fino a):<br>' +
+        attestati.map(function(a) { return '🪪 ' + esc(a.nome) + ' · fino al ' + esc(quando(a.fine)); }).join('<br>') + '</div>'
+      : '') +
+    (aperture.length
+      ? '<div style="font-size:12px;margin-top:6px"><b>Aperture registrate</b> (ultime ' + aperture.length + '):<br>' +
+        aperture.map(function(a) { return esc(quando(a.quando)) + ' · ' + esc(a.chi) + ' · ' + esc(a.nome) + (a.senza_rete ? ' (senza rete)' : ''); }).join('<br>') + '</div>'
+      : '') +
+    ((letture || attestati.length)
+      ? '<div style="margin-top:8px"><button type="button" class="btn sm" onclick="togliDatiDalTelefono()">🗑️ Togli i dati letti dal telefono</button></div>'
+      : '');
+}
+
+async function togliDatiDalTelefono() {
+  if (!confirm('Togliere dal telefono le pagine e gli attestati tenuti per quando manca la rete?\n\nLe cose ancora da inviare restano.')) return;
+  await svuotaLettureOffline();
+  toast('Dati letti tolti dal telefono', 'ok');
+  disegnaDatiTelefono();
+  decoraAttestatiTelefono();
+}
+
+{
+  const disegnaCodaSenzaTelefono = disegnaCodaOffline;
+  // eslint-disable-next-line no-global-assign
+  disegnaCodaOffline = async function() {
+    const r = await disegnaCodaSenzaTelefono.apply(this, arguments);
+    if (ge('m-coda-offline') && ge('m-coda-offline').classList.contains('on')) await disegnaDatiTelefono();
+    return r;
+  };
+}
+
+// All'avvio: pulizia di quello che ha più di 7 giorni
+{
+  const avviaCodaSenzaLetture = avviaCodaOffline;
+  // eslint-disable-next-line no-global-assign
+  avviaCodaOffline = function() {
+    const r = avviaCodaSenzaLetture.apply(this, arguments);
+    if (lettureTelefonoPossibili() && !LETTURE.potate) {
+      LETTURE.potate = true;
+      setTimeout(function() { potaLettureTelefono(); }, 4000);
+    }
+    return r;
+  };
 }

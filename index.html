@@ -20,6 +20,7 @@
   <div class="mh">📤 Salvato sul telefono, da inviare <button class="mx" onclick="closeM('m-coda-offline')">✕</button></div>
   <div id="cof-stato" class="al2 i" style="margin-bottom:10px"></div>
   <div id="cof-elenco"></div>
+  <div id="cof-telefono" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--b)"></div>
   <div id="cof-iphone" class="al2 w" style="display:none;margin-top:10px">📲 <b>iPhone:</b> installa l’app (Safari → <b>Condividi</b> ⬆️ → <b>Aggiungi alla schermata Home</b>). Safari cancella i dati delle pagine non installate dopo 7 giorni senza usarle, anche quelli non ancora inviati.</div>
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap">
     <button type="button" class="btn" onclick="closeM('m-coda-offline')">Chiudi</button>
@@ -3268,7 +3269,7 @@
         <li>Senza campo (modalità aereo, cantiere interrato) il gestionale si apre lo stesso, se sul telefono avevi già fatto l'accesso: in cima compare la barra gialla <b>📴 Senza rete</b> e quello che hai già aperto si vede com'era l'ultima volta. Le pagine mai aperte restano vuote finché non torna la rete.</li>
         <li>Nella scheda di rilievo (<b>📝 Compila una scheda di rilievo</b>) senza rete puoi caricare le foto e i video del riquadro <b>📷 Foto e video</b> e i file della <b>📜 Fonte del dato</b>, e premere <b>💾 Salva scheda</b>: tutto resta sul telefono. Sul tab della scheda compare <b>📤</b> e in cima <b>📤 Salvata sul telefono, non ancora inviata</b>; chiudendo e riaprendo la scheda i dati ci sono.</li>
         <li>Quando torna la rete parte tutto da solo, nell'ordine giusto (prima le foto, poi la scheda che le usa) e <b>una volta sola</b>: ogni scheda e ogni foto ha un codice nato sul telefono, se l'invio si interrompe e riparte non si creano doppioni. Arriva il messaggio <b>📤 Inviate N cose salvate sul telefono</b>.</li>
-        <li>Senza rete NON si salvano le posizioni P-xx e le loro foto, i file della finestra del progetto, l'invio del progetto e il resto del gestionale: il gestionale lo dice ("senza rete qui non si carica"). Falli quando torna il campo.</li>
+        <li>Senza rete si salvano anche le <b>posizioni P-xx</b> (<b>💾 Salva</b> della posizione: nell'elenco <b>📤 Nuova (da inviare)</b>, il codice P-xx arriva con la rete), ma NON le loro foto, i file della finestra del progetto, l'invio del progetto e il resto del gestionale: il gestionale lo dice ("senza rete qui non si carica"). Falli quando torna il campo.</li>
         <li>Nel menu, accanto alla campanella, <b>📴</b> vuol dire senza rete; <b>📤</b> con un numero = cose salvate sul telefono e <b>non ancora inviate</b>. Toccandolo si apre <b>📤 Salvato sul telefono, da inviare</b>: ogni riga dice cosa è e quando l'hai salvata (<b>⏳ Non ancora inviato</b>). Quando torna la rete partono da sole (non serve tenere aperta la finestra); <b>📤 Invia ora</b> le manda subito.</li>
         <li>Se il gestionale rifiuta qualcosa (per esempio la stessa foto già tra i file del progetto) la riga diventa rossa <b>⚠️ Non inviato</b> con il motivo: <b>↻ Riprova</b> oppure <b>🗑️ Togli</b> (si perde: va rifatto). Il 📤 nel menu diventa rosso.</li>
         <li><b>Esci</b> con qualcosa ancora da inviare ti avvisa: se esci lo stesso resta sul telefono e parte quando rientri tu. Uscendo si cancellano dal telefono i dati letti senza rete: chi entra dopo non vede i tuoi.</li>
@@ -3281,6 +3282,27 @@
       <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
 
       <div class="al2 i">Il progetto si invia (<b>📤 Invia ad Acquisti</b> / all'ufficio tecnico) solo con la rete e quando nel menu non c'è più 📤: prima devono arrivare scheda e foto.</div>
+
+      <h4 id="info-rap-32">32. 📱 Senza rete: progetti già visti e posizioni P-xx</h4>
+
+      <p>
+        I progetti che apri con la rete restano sul telefono per <b>7 giorni</b>, protetti (cifrati) e legati al tuo accesso: senza campo dal cliente riapri la scheda del progetto, cliente e sede, le schede di rilievo e i <b>menu della lavorazione</b>, e aggiungi posizioni.
+      </p>
+
+      <ul>
+        <li>Prima di partire, con la rete, apri il progetto e il tab <b>📝 Rilievi tecnici</b> (e la scheda che compilerai): così è sul telefono con i menu del catalogo.</li>
+        <li>Senza rete (barra gialla <b>📴 Senza rete</b>) apri il progetto dalla pagina <b>Progetti</b> come sempre: lo vedi com'era l'ultima volta che l'hai aperto con la rete.</li>
+        <li>Nel riquadro <b>📍 Posizioni</b> premi <b>+ Aggiungi posizione</b>: ubicazione, quantità, misure e i menu della lavorazione funzionano come con la rete. <b>💾 Salva</b> la tiene sul telefono: nell'elenco compare <b>📤 Nuova (da inviare)</b> e nel menu <b>📴</b> con il numero.</li>
+        <li>Quando torna la rete parte da sola: arriva il messaggio <b>posizione arrivata come P-07</b> e nell'elenco compare il codice vero. Il codice P-xx lo dà sempre il gestionale, mai il telefono: due colleghi senza rete non prendono lo stesso numero.</li>
+        <li>Puoi anche correggere senza rete una posizione già arrivata (<b>✏️ Modifica</b>): accanto al codice compare 📤 finché non parte. <b>⧉ Duplica</b>, <b>🗑️ Togli la posizione</b> e le <b>foto della posizione</b> vanno fatti con la rete.</li>
+        <li>Dopo <b>7 giorni</b> senza riaprirlo con la rete il progetto non si vede più dal telefono. <b>Esci</b> cancella tutto quello che è stato letto (le cose ancora da inviare restano e partono quando rientri tu).</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Ieri hai aperto il progetto “Uffici Rossi” e la scheda <b>Porte e portoni REI – scheda 1</b>. Oggi nel seminterrato del cliente non c'è campo: apri il progetto, <b>+ Aggiungi posizione</b>, “Corridoio piano -1”, 1 pezzo, 90 × 210 cm, REI 60 dal menu, <b>💾 Salva</b>. In strada il telefono ritrova la rete: “posizione arrivata come P-04”.
+      </div>
+
+      <div class="al2 w">Il progetto si invia solo con la rete e quando nel menu non c'è più 📤: prima devono arrivare schede, foto e posizioni.</div>
 
       <h4>Regole pratiche</h4>
 
@@ -4264,6 +4286,26 @@
 
       <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
 
+      <h4 id="info-tec-23">23. 📱 Senza rete: cantieri, indirizzi e i tuoi attestati sul telefono</h4>
+
+      <p>
+        Quello che apri con la rete resta sul telefono per <b>7 giorni</b>, protetto (cifrato) e legato al tuo accesso: senza campo rivedi i tuoi interventi, <b>🏗️ I miei cantieri</b> (indirizzo, orario, colleghi, referente, note di sicurezza) e i tuoi attestati.
+      </p>
+
+      <ul>
+        <li>La mattina, con la rete, apri la dashboard e il <b>Calendario</b>: i cantieri e gli interventi della settimana restano sul telefono. Senza campo li ritrovi com'erano (barra gialla <b>📴 Senza rete</b>).</li>
+        <li><b>I tuoi attestati</b> (formazione, PLE, lavori in quota, idoneità) in <b>🪪 I miei documenti</b>: con la rete premi <b>📥 Tieni sul telefono (7 giorni)</b>; accanto ad <b>Apri</b> compare <b>📱</b> e sotto la data fino a cui si aprono senza rete. Anche un attestato aperto con la rete resta sul telefono per 7 giorni.</li>
+        <li>Senza rete <b>Apri</b> lo apre dal telefono e l'apertura <b>si registra</b> (chi, quando, quale attestato): la vedi toccando <b>📴</b> nel menu, riquadro <b>📱 Dati sul telefono</b>.</li>
+        <li>Dopo 7 giorni la copia sul telefono <b>non si apre più</b>: il gestionale dice di aprirlo con la rete. Riaprendolo con la rete riparte da 7 giorni.</li>
+        <li><b>Esci</b> cancella dal telefono pagine, attestati e registro: chi usa il telefono dopo di te non li vede. Se rientri con un nuovo accesso si riparte da zero.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Lunedì in ufficio premi <b>📥 Tieni sul telefono</b>. Mercoledì in un cantiere interrato il coordinatore della sicurezza chiede il patentino PLE: tocchi <b>Apri</b> e lo mostri anche senza campo. Il martedì della settimana dopo non si apre più: riaprilo con la rete.
+      </div>
+
+      <div class="al2 w">Le pagine mai aperte con la rete restano vuote senza campo: apri prima quello che ti serve. Su iPhone usa l'app installata, altrimenti Safari può cancellare i dati.</div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -4864,6 +4906,25 @@
       </div>
 
       <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
+
+      <h4 id="info-ct-27">27. 📱 Senza rete: scheda cantiere, faldone e attestati della squadra</h4>
+
+      <p>
+        Quello che apri con la rete resta sul telefono per <b>7 giorni</b>, protetto (cifrato) e legato al tuo accesso: in cantiere senza campo rivedi la scheda <b>🏗️ Cantiere</b> (dove si va, referenti, note di sicurezza, cosa si fa), la squadra, il faldone e gli attestati che hai tenuto sul telefono.
+      </p>
+
+      <ul>
+        <li>Con la rete apri la commessa e la scheda <b>🏗️ Cantiere</b> (e il box <b>🗂️ Date dei lavori e faldone</b>): restano sul telefono. Senza campo li vedi com'erano (barra gialla <b>📴 Senza rete</b>).</li>
+        <li><b>Attestati</b> di dipendenti e subappaltatori: in <b>🦺 Team e subappalti</b> apri la scheda documenti della persona e premi <b>📥 Tieni sul telefono (7 giorni)</b> (anche un attestato aperto con <b>⬇️ Apri</b> resta sul telefono). Accanto ad <b>Apri</b> compare <b>📱</b>. L'idoneità sanitaria non si apre per il tuo ruolo, quindi non va nemmeno sul telefono.</li>
+        <li>Senza rete <b>Apri</b> lo apre dal telefono e l'apertura <b>si registra</b> (chi, quando, quale attestato): la vedi toccando <b>📴</b> nel menu, riquadro <b>📱 Dati sul telefono</b>.</li>
+        <li>Dopo <b>7 giorni</b> le copie non si aprono più: riaprile con la rete. <b>🗑️ Togli i dati letti dal telefono</b> (stesso riquadro) le toglie subito; <b>Esci</b> cancella tutto.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Venerdì con la rete apri la scheda documenti dei due operai del subappaltatore e premi <b>📥 Tieni sul telefono</b>. Lunedì in cantiere, senza campo, il committente chiede gli attestati di formazione: li apri dal telefono e nel riquadro <b>📱 Dati sul telefono</b> resta scritto “09:12 · senza rete”.
+      </div>
+
+      <div class="al2 w">Giornale, ore, squadra e stati della commessa si salvano solo con la rete.</div>
 
       <h4>Regole pratiche</h4>
 
@@ -5694,7 +5755,7 @@
         <li>Senza campo (modalità aereo, cantiere interrato) il gestionale si apre lo stesso, se sul telefono avevi già fatto l'accesso: in cima compare la barra gialla <b>📴 Senza rete</b> e quello che hai già aperto si vede com'era l'ultima volta. Le pagine mai aperte restano vuote finché non torna la rete.</li>
         <li>Nella scheda di rilievo (<b>📝 Compila una scheda di rilievo</b>) senza rete puoi caricare le foto e i video del riquadro <b>📷 Foto e video</b> e i file della <b>📜 Fonte del dato</b>, e premere <b>💾 Salva scheda</b>: tutto resta sul telefono. Sul tab della scheda compare <b>📤</b> e in cima <b>📤 Salvata sul telefono, non ancora inviata</b>; chiudendo e riaprendo la scheda i dati ci sono.</li>
         <li>Quando torna la rete parte tutto da solo, nell'ordine giusto (prima le foto, poi la scheda che le usa) e <b>una volta sola</b>: ogni scheda e ogni foto ha un codice nato sul telefono, se l'invio si interrompe e riparte non si creano doppioni. Arriva il messaggio <b>📤 Inviate N cose salvate sul telefono</b>.</li>
-        <li>Senza rete NON si salvano le posizioni P-xx e le loro foto, i file della finestra del progetto, l'invio del progetto e il resto del gestionale: il gestionale lo dice ("senza rete qui non si carica"). Falli quando torna il campo.</li>
+        <li>Senza rete si salvano anche le <b>posizioni P-xx</b> (<b>💾 Salva</b> della posizione: nell'elenco <b>📤 Nuova (da inviare)</b>, il codice P-xx arriva con la rete), ma NON le loro foto, i file della finestra del progetto, l'invio del progetto e il resto del gestionale: il gestionale lo dice ("senza rete qui non si carica"). Falli quando torna il campo.</li>
         <li>Nel menu, accanto alla campanella, <b>📴</b> vuol dire senza rete; <b>📤</b> con un numero = cose salvate sul telefono e <b>non ancora inviate</b>. Toccandolo si apre <b>📤 Salvato sul telefono, da inviare</b>: ogni riga dice cosa è e quando l'hai salvata (<b>⏳ Non ancora inviato</b>). Quando torna la rete partono da sole (non serve tenere aperta la finestra); <b>📤 Invia ora</b> le manda subito.</li>
         <li>Se il gestionale rifiuta qualcosa (per esempio la stessa foto già tra i file del progetto) la riga diventa rossa <b>⚠️ Non inviato</b> con il motivo: <b>↻ Riprova</b> oppure <b>🗑️ Togli</b> (si perde: va rifatto). Il 📤 nel menu diventa rosso.</li>
         <li><b>Esci</b> con qualcosa ancora da inviare ti avvisa: se esci lo stesso resta sul telefono e parte quando rientri tu. Uscendo si cancellano dal telefono i dati letti senza rete: chi entra dopo non vede i tuoi.</li>
@@ -7216,7 +7277,7 @@
         <li>Senza campo (modalità aereo, cantiere interrato) il gestionale si apre lo stesso, se sul telefono avevi già fatto l'accesso: in cima compare la barra gialla <b>📴 Senza rete</b> e quello che hai già aperto si vede com'era l'ultima volta. Le pagine mai aperte restano vuote finché non torna la rete.</li>
         <li>Nella scheda di rilievo (<b>📝 Compila una scheda di rilievo</b>) senza rete puoi caricare le foto e i video del riquadro <b>📷 Foto e video</b> e i file della <b>📜 Fonte del dato</b>, e premere <b>💾 Salva scheda</b>: tutto resta sul telefono. Sul tab della scheda compare <b>📤</b> e in cima <b>📤 Salvata sul telefono, non ancora inviata</b>; chiudendo e riaprendo la scheda i dati ci sono.</li>
         <li>Quando torna la rete parte tutto da solo, nell'ordine giusto (prima le foto, poi la scheda che le usa) e <b>una volta sola</b>: ogni scheda e ogni foto ha un codice nato sul telefono, se l'invio si interrompe e riparte non si creano doppioni. Arriva il messaggio <b>📤 Inviate N cose salvate sul telefono</b>.</li>
-        <li>Senza rete NON si salvano le posizioni P-xx e le loro foto, i file della finestra del progetto, l'invio del progetto e il resto del gestionale: il gestionale lo dice ("senza rete qui non si carica"). Falli quando torna il campo.</li>
+        <li>Senza rete si salvano anche le <b>posizioni P-xx</b> (<b>💾 Salva</b> della posizione: nell'elenco <b>📤 Nuova (da inviare)</b>, il codice P-xx arriva con la rete), ma NON le loro foto, i file della finestra del progetto, l'invio del progetto e il resto del gestionale: il gestionale lo dice ("senza rete qui non si carica"). Falli quando torna il campo.</li>
         <li>Nel menu, accanto alla campanella, <b>📴</b> vuol dire senza rete; <b>📤</b> con un numero = cose salvate sul telefono e <b>non ancora inviate</b>. Toccandolo si apre <b>📤 Salvato sul telefono, da inviare</b>: ogni riga dice cosa è e quando l'hai salvata (<b>⏳ Non ancora inviato</b>). Quando torna la rete partono da sole (non serve tenere aperta la finestra); <b>📤 Invia ora</b> le manda subito.</li>
         <li>Se il gestionale rifiuta qualcosa (per esempio la stessa foto già tra i file del progetto) la riga diventa rossa <b>⚠️ Non inviato</b> con il motivo: <b>↻ Riprova</b> oppure <b>🗑️ Togli</b> (si perde: va rifatto). Il 📤 nel menu diventa rosso.</li>
         <li><b>Esci</b> con qualcosa ancora da inviare ti avvisa: se esci lo stesso resta sul telefono e parte quando rientri tu. Uscendo si cancellano dal telefono i dati letti senza rete: chi entra dopo non vede i tuoi.</li>

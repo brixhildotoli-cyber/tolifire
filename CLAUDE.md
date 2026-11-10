@@ -1633,7 +1633,9 @@ all'attivazione; un file che all'installazione non arriva NON ferma l'installazi
 xlsx: dalla cache, aggiornate in sottofondo), toli-dati (GET di /rest/v1 e RPC
 di sola lettura *_attivo/_attivi/_attive e schede_migrate_motore: prima la
 rete, la cache solo senza rete; mai auth, storage, scritture, richieste con
-x-agito-come o x-portale-token; max 600 righe). index.html sempre prima dalla
+x-agito-come o x-portale-token; max 600 righe; DA F15.12 NON PIÙ: il service
+worker non tiene i dati e cancella toli-dati all'attivazione, i dati già visti
+sono in IndexedDB cifrati, vedi F15.12 qui sotto). index.html sempre prima dalla
 rete; gli script con ?v= della versione dalla cache, di un'altra versione
 dalla rete: niente file vecchi dopo una pubblicazione. SENZA RETE: boot salva
 la riga dell'utente in localStorage toli_offline_utente (svuota toli-dati se
@@ -1685,6 +1687,74 @@ database, riaperta con i dati, tornata la rete 1 scheda e 3 file con gli id
 del telefono e l'impronta, le stesse 4 righe rimandate = nessun doppione,
 stessa foto con un altro id = "⚠️ Non inviato"); foto-video, motore-schede,
 posizioni, motore-schede-fonti, smoke (9 utenti) ed entra-come TUTTO OK.
+Dati in lettura sul telefono (F15.12, js/57 sezione "F15.12" + js/01
+fetchDatabase + js/66 scriviPosizione/posizioneDaCodaOffline + sw.js +
+index.html cof-telefono, NESSUN SQL). LETTURE: fetchConAgitoCome (js/01) senza
+"Entra come" passa da fetchDatabase, che js/57 avvolge: ogni lettura fatta con
+la rete (GET e HEAD di /rest/v1, RPC di sola lettura RPC_LETTURE_TELEFONO:
+*_attivo/_attivi/_attive, schede_migrate_motore, scheda_cantiere_commessa,
+miei_giorni_cantiere, mie_ore_cantiere, controllo_faldone_commessa,
+preventivo_firmato_commessa, voci_lavori_extra_commessa,
+presenti_giornale_commessa, impegni_squadra_periodo, importi_extra_commesse,
+impegni_tecnici_dashboard, ambito_audit_intervento, prezzi_contratto_cliente)
+si tiene in IndexedDB toli-letture-offline (archivi letture, attestati,
+aperture, chiavi), CIFRATA AES-GCM (iv casuale, additionalData = chiave della
+riga), chiave della riga = SHA-256 di utente + metodo, indirizzo, accept,
+prefer, range, corpo (niente indirizzi in chiaro); max 1.500 righe, 3 MB per
+lettura. Prima la rete; senza rete (navigator.onLine false) o se la rete non
+risponde (fetch che fallisce: toast "La rete non risponde... non sono
+aggiornati", una volta al minuto) la risposta dal telefono se letta con la
+rete negli ultimi 7 GIORNI (LETTURE_VALIDE_MS); più vecchia = cancellata,
+come una pagina mai aperta; pulizia all'avvio. CHIAVE legata alla sessione:
+AES-GCM 256 NON esportabile (generateKey extractable false) in IndexedDB, una
+per persona e per session_id del token di Supabase Auth (senza session_id
+l'utente); nuovo accesso o altra persona = chiave nuova e tutto il vecchio
+cancellato; "Esci" e l'altra persona sul telefono (svuotaCacheDatiOffline)
+cancellano letture, attestati, registro e chiave; "🗑️ Togli i dati letti dal
+telefono" nella finestra. Catalogo lavorazioni (js/55): senza rete e senza
+copia non resta "non attivo". ATTESTATI (documenti di team e subappalti, js/30
+apriFileDocumentoTS avvolta): aperto con la rete il file si tiene cifrato per
+7 giorni (in sottofondo dopo l'apertura); "📥 Tieni sul telefono (7 giorni)"
+in fondo a "🪪 I miei documenti" (tec-miei-documenti) e alla scheda documenti
+(sdoc-documenti) li prende tutti, 📱 sui pulsanti Apri; senza rete Apri = file
+dal telefono (blob) e APERTURA REGISTRATA nel registro sul telefono (cifrato:
+chi, ruolo, quale attestato, senza rete; ultime 300; si vede nel riquadro
+"📱 Dati sul telefono" della finestra 📤/📴 m-coda-offline, cof-telefono);
+dopo 7 giorni "non si apre più: aprilo con la rete". Gli attestati che il
+ruolo non apre (idoneità per il capo tecnico) non vanno sul telefono.
+POSIZIONI P-xx in coda (tipo 'posizione' di registraTipoCodaOffline): senza
+rete (o errore di rete) "💾 Salva" della posizione (js/66 scriviPosizione
+avvolta) la tiene sul telefono con l'id generato dal telefono (nuova: insert
+con l'id, numero 1 segnaposto, codice P-xx dal database all'arrivo, 23505 con
+la riga presente = già arrivata; esistente: update per id, "non trovata o non
+più modificabile" se nessuna riga); nell'elenco "📤 Nuova (da inviare)" o il
+codice con 📤 (htmlElencoPosizioni avvolta, CODA.posizioni in memoria;
+disegnaPosizioniScheda senza rete usa le ultime righe lette); riaperta dalla
+coda (apriPosizione legge posizioneDaCodaOffline), ⧉ Duplica, 🗑️ Togli e
+foto solo dopo l'arrivo; messaggio "posizione arrivata come P-07". sw.js: tolta
+la cache dei dati (niente dati in chiaro), toli-dati cancellata
+all'attivazione; push, notificationclick, cache dell'app per versione e
+librerie invariati. SCELTE DA CONFERMARE DA TOLI: cache per TUTTI i ruoli e
+tutte le letture (non solo i 4 elenchi della task), valida 7 giorni
+dall'ultima lettura con la rete; "attestati" = documenti di team e
+subappalti con file; registro delle aperture SOLO sul telefono (cancellato
+con "Esci"): registrarlo nel database richiede una tabella nuova (sql/NN,
+task a parte); la chiave non esportabile protegge da copia dei dati, non da
+chi usa il telefono sbloccato con la sessione aperta. Guide info-tec-23,
+info-rap-32, info-ct-27 (e righe delle posizioni in info-rap-31, info-tit-30,
+info-ing-27). Prove: test/letture-offline.spec.js (Chrome headless, database
+locale, richieste abortite in modalità aereo: C rappresentante a 390 px, 71
+letture cifrate senza testo in chiaro, chiave non esportabile, modalità aereo
+con la memoria del sito svuotata = progetto riaperto dal telefono, "+ Aggiungi
+posizione" con il menu del catalogo, salvata in coda, riaperta e risalvata
+(una riga), tornata la rete arriva P-01 con l'id del telefono, rimandata =
+nessun doppione; D letture di 8 giorni fa = "Errore apertura progetto" e
+cancellate; E tecnico: 📥 Tieni sul telefono, senza rete Apri = blob con il
+contenuto e apertura registrata, miei_giorni_cantiere uguale, 8 giorni = non
+si apre, Esci = 0,0,0,0; F capo tecnico: scheda_cantiere_commessa e
+controllo_faldone_commessa senza rete uguali, nuova session_id = letture di
+prima cancellate); coda-offline (A0-A5, B1-B5), posizioni, smoke (9 utenti),
+entra-come, motore-schede TUTTO OK.
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),
