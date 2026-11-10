@@ -1609,7 +1609,7 @@ Dopo sql/83 (F15.13 smistamento automatico per famiglia, decisione di Toli
 T2, DA ESEGUIRE; ORDINE: pubblicare il sito, backup, anteprima in fondo al
 file, 83-smistamento-automatico-famiglia.sql (senza parole di cancellazione,
 server MCP), 83-...-REGISTRO-CANCELLAZIONI.sql dall'EDITOR, controllo in
-fondo al file: regole 8, attive 4, funzioni 11, trigger 6, policy 5;
+fondo al file: regole 8, attive 3, funzioni 11, trigger 6, policy 5;
 richiede 07, 21, 48, 62, 65, 67, 71, 75, 76, 78, 79, 82-blocco, si ferma
 senza). RPC del sito: smistamento_attivo() (almeno una regola attiva),
 anteprima_smistamento(p_progetto, p_regola_prova) (SECURITY INVOKER, non
@@ -1637,9 +1637,16 @@ motivo e data dello smistamento delle schede azzerati, così nessuna scheda
 resta "all'ingegnere" nascosta ad Acquisti). Regole di partenza
 ATTIVE: Lavoro grande (soglia vuota = leggi_regola('soglia_lavoro_grande'),
 se vuota 30.000 €: tutto il progetto all'ingegnere; progetto senza importo
-non scatta), fuori catalogo, vernice intumescente, porte REI classe
-superiore; SPENTE: doppia anta oltre 180 cm, sostituzione, lana minerale, più
-di 30 posizioni. SCELTE DA CONFERMARE DA TOLI: progetto senza schede
+non scatta), fuori catalogo, vernice intumescente; SPENTE: porte REI classe
+superiore (non scatterebbe mai: sql/82 ferma prima l'invio con "Classe
+superiore / da definire", testo vietato su un campo del prezzo), doppia anta
+oltre 180 cm, sostituzione, lana minerale, più di 30 posizioni. Uscita dalla
+verifica tecnica (verso in_preventivazione, pronto, inviato) con schede
+ancora 'ingegnere': solo ingegnere e titolare (42501 per gli altri ruoli del
+sito, anche titolare "come" Acquisti; editor libero), così Acquisti e
+segreteria non rendono "verificate" le gialle da console. js/18 e js/63:
+"↩ Rimanda indietro" non c'è (spiegazione al suo posto) finché il progetto
+del preventivo è in verifica tecnica. SCELTE DA CONFERMARE DA TOLI: progetto senza schede
 all'ingegnere; solo regole "gialle"; il preventivo nasce con le schede verdi
 mentre il progetto resta all'ingegnere (in_verifica_tecnica, il progetto
 non passa in preventivazione); l'ingegnere approva tutto il progetto (niente

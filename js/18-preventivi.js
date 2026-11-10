@@ -127,7 +127,17 @@ async function openPreventivoDetail(preventivoId) {
 
 ${cardEsitoPreventivo(preventivo)}
 
-${['commerciale', 'titolare'].includes(ROLE) && preventivo.stato === 'bozza' && preventivo.progetto_tecnico_id ? `
+${['commerciale', 'titolare'].includes(ROLE) && preventivo.stato === 'bozza' && preventivo.progetto_tecnico_id &&
+  preventivo.progetti_tecnici?.stato === 'in_verifica_tecnica' ? `
+  <div class="al2 i" style="margin-top:16px">
+    ↩ <b>Rimanda indietro</b> non è disponibile: il progetto è ancora dall'ingegnere
+    (smistamento automatico: alcune schede sono in verifica tecnica). Torna disponibile
+    quando l'ingegnere l'ha approvato. Per un dubbio usa <b>❓ Fai una domanda</b>.
+  </div>
+` : ''}
+
+${['commerciale', 'titolare'].includes(ROLE) && preventivo.stato === 'bozza' && preventivo.progetto_tecnico_id &&
+  preventivo.progetti_tecnici?.stato !== 'in_verifica_tecnica' ? `
   <div class="card" style="margin-top:16px;border-left:4px solid #d97706">
     <div style="font-size:14px;font-weight:700">↩ Rimanda indietro il preventivo avviato</div>
     <div style="font-size:12px;color:var(--m);margin:6px 0 10px">
@@ -348,7 +358,17 @@ ${ROLE === 'titolare' ? `
 //   ingegnere       → in_verifica_tecnica, con nota
 // Quando il progetto torna in "Da preventivare" la lista mostra
 // "Riprendi preventivo" (js/17 loadProgettiDaPreventivare).
-function apriRimandaPreventivoAvviato() {
+async function apriRimandaPreventivoAvviato() {
+  // F15.13: progetto ancora dall'ingegnere (smistamento automatico, schede
+  // verdi già ad Acquisti): non si rimanda indietro finché non lo approva
+  if (currentPreventivoId) {
+    const { data: prev } = await db.from('preventivi')
+      .select('progetti_tecnici(stato)').eq('id', currentPreventivoId).maybeSingle();
+    if (prev && prev.progetti_tecnici && prev.progetti_tecnici.stato === 'in_verifica_tecnica') {
+      toast('Il progetto è ancora dall’ingegnere (verifica tecnica): si rimanda indietro dopo la sua approvazione', 'err');
+      return;
+    }
+  }
   ge('mrpa-destinazione').value = 'da_preventivare';
   ge('mrpa-nota').value = '';
   aggiornaFinestraRimandaPreventivo();

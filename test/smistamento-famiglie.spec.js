@@ -412,6 +412,16 @@ async function cartaProgetto(s, progettoId) {
       const prev = psql("select count(*) from public.preventivi where progetto_tecnico_id = " + q(progettoId));
       if (prev !== '1' || statoProgetto() !== 'in_verifica_tecnica') KO('2: avvia preventivo: preventivi ' + prev + ', stato ' + statoProgetto() + ' ' + await toastTesto(c));
       else righe.push('   🧾 Avvia preventivo: bozza creata, il progetto resta all’ingegnere (in verifica tecnica)');
+      const idPrev = psql("select id from public.preventivi where progetto_tecnico_id = " + q(progettoId) + " limit 1");
+      await c.page.evaluate(async id => { await openPreventivoDetail(id); }, idPrev);
+      await attendiQuiete(c.stato, 1500);
+      const rimanda = await c.page.evaluate(() => ({
+        testo: (document.getElementById('pg-preventivo-detail') || document.body).innerText,
+        bottone: [...document.querySelectorAll('button')].some(b => b.offsetParent && /↩ Rimanda indietro$/.test(b.textContent.trim()))
+      }));
+      if (rimanda.bottone || !/Rimanda indietro\s+non è disponibile/.test(rimanda.testo)) KO('2: preventivo con il progetto dall’ingegnere: bottone ' + rimanda.bottone);
+      else righe.push('   preventivo in bozza: "↩ Rimanda indietro non è disponibile: il progetto è ancora dall’ingegnere", nessun bottone');
+      await c.page.screenshot({ path: path.join(CARTELLA_OUT, '2-preventivo-rimanda.png'), fullPage: true });
       await chiudi(c);
 
       // Ingegnere --------------------------------------------------------
@@ -460,7 +470,7 @@ async function cartaProgetto(s, progettoId) {
       if (!/non è ancora attivo/.test(card)) KO('senza sql/83: riquadro delle regole: ' + card.slice(0, 200));
       else righe.push('senza sql/83: Impostazioni, "🚦 Regole di smistamento" dice "non è ancora attivo"');
     } else {
-      if (!/Lavoro grande/.test(card) || !/Vernice intumescente/.test(card) || !/4<\/b>|4 regole attive/.test(card.replace(/\s+/g, ' ')) && !/regole attive/.test(card)) KO('4: riquadro: ' + card.slice(0, 300));
+      if (!/Lavoro grande/.test(card) || !/Vernice intumescente/.test(card) || !/3 regole attive su/.test(card)) KO('4: riquadro: ' + card.slice(0, 300));
       else righe.push('4. titolare, Impostazioni: riquadro delle regole (' + (card.match(/\d+ regole attive su \d+/) || [''])[0] + ')');
       await t.page.screenshot({ path: path.join(CARTELLA_OUT, '4-regole-titolare.png'), fullPage: true });
       // anteprima su un progetto di prova
@@ -543,7 +553,9 @@ async function cartaProgetto(s, progettoId) {
         // solo database locale: gli avvisi di prova si tolgono (la matrice dei permessi conta le righe vere)
         psql("delete from public.avvisi where tipo = 'smistamento_verificato' and rif_id = " + q(progettoId) + " and creato_il >= " + q(inizio));
         regolePartenza.forEach(x => { const [id, a] = x.split(':'); psql('update public.regole_smistamento set attiva = ' + (a === 't' || a === 'true') + ' where id = ' + id); });
-        psql("update public.regole_smistamento set attiva = false where nome like 'PROVA F15.13%'");
+        // solo database locale: la regola di prova si toglie con il suo registro
+        // (il registro non si cancella dal sito: qui i trigger sono spenti per la sola pulizia)
+        psql("set session_replication_role = replica; delete from public.regole_smistamento_storico where regola_id in (select id from public.regole_smistamento where nome like 'PROVA F15.13%'); delete from public.regole_smistamento where nome like 'PROVA F15.13%'");
       }
       if (docSpenti.length) psql('update public.lavorazioni_documenti set attivo = true where id in (' + docSpenti.join(',') + ')');
     } catch (e) { console.error('pulizia: ' + e.message); }

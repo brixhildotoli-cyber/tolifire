@@ -180,7 +180,8 @@ registraAzioneScheda('preventivo', {
 registraAzioneScheda('preventivo', {
   codice: 'rimanda_indietro', etichetta: '↩ Rimanda indietro',
   ruoli: ['commerciale', 'titolare'], stati: ['bozza'],
-  quando: function(p) { return !!p.progetto_tecnico_id; },
+  // F15.13: non con il progetto ancora dall'ingegnere (smistamento automatico)
+  quando: function(p) { return !!p.progetto_tecnico_id && !(p.progetti_tecnici && p.progetti_tecnici.stato === 'in_verifica_tecnica'); },
   esegui: function() { return apriRimandaPreventivoAvviato(); }
 });
 registraAzioneScheda('preventivo', {
