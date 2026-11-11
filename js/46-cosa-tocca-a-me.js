@@ -514,6 +514,27 @@ registraFonteToccaAMe({
   }
 });
 
+// ── F15.15: progetto da inviare dopo la visita (sql/85, js/16) ──────────
+// Rappresentante: le sue visite fatte senza progetto inviato dal giorno
+// lavorativo dopo la visita (rossa dal secondo); titolare: tutte, dal secondo
+// giorno lavorativo. Senza sql/85 la riga non c'è.
+registraFonteToccaAMe({
+  id: 'invio-dopo-visita', ruoli: ['rappresentante', 'titolare'], icona: '⏰',
+  titolo: 'Progetti da inviare dopo la visita', priorita: 20,
+  vai: function() { if (funzioneEsiste('apriInviiDopoVisita')) apriInviiDopoVisita(); },
+  conta: async function() {
+    if (!funzioneEsiste('leggiInviiDopoVisita')) return null;
+    const righe = await leggiInviiDopoVisita();
+    if (righe === null) return null;
+    const urgente = ROLE === 'titolare' || righe.some(function(r) { return r.livello === 'titolare'; });
+    return {
+      n: righe.length,
+      livello: urgente ? 'urgente' : '',
+      nota: ROLE === 'titolare' && righe.length ? 'visite di 2+ giorni lavorativi fa senza invio' : 'entro il giorno lavorativo dopo la visita'
+    };
+  }
+});
+
 // ── Commesse: sede del cantiere da indicare (segreteria, rappresentante) ──
 registraFonteToccaAMe({
   id: 'sede-cantiere', ruoli: ['segreteria', 'rappresentante'], icona: '📍',

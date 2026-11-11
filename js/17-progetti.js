@@ -472,6 +472,7 @@ async function apriNuovoProgetto() {
 
   await mostraImportoProgetto(null);
   await mostraFonteRilievoProgetto(null);
+  await mostraVisitaProgetto(null); // F15.15
   await caricaAllegatiProgetto(null);
   preparaBozzaProgetto(null);
 
@@ -501,6 +502,7 @@ async function modificaProgetto(id) {
 
   await mostraImportoProgetto(progetto);
   await mostraFonteRilievoProgetto(progetto);
+  await mostraVisitaProgetto(progetto); // F15.15
   await caricaAllegatiProgetto(id);
   preparaBozzaProgetto(id);
 
@@ -621,6 +623,14 @@ const authUserId = authData.user.id;
     const boxFonte = ge('mp-fonte-rilievo-box');
     if (boxFonte && boxFonte.style.display !== 'none' && selFonte && !selFonte.disabled) {
       payload.fonte_rilievo = selFonte.value || null;
+    }
+
+    // F15.15: visita da cui nasce il progetto (solo con sql/85, solo se cambiata)
+    const selVisita = ge('mp-visita');
+    const boxVisita = ge('mp-visita-box');
+    if (boxVisita && boxVisita.style.display !== 'none' && selVisita && !selVisita.disabled &&
+        (selVisita.value || '') !== (selVisita.dataset.originale || '')) {
+      payload.appuntamento_id = selVisita.value || null;
     }
 
     let progettoId = id;
@@ -995,6 +1005,50 @@ function aggiornaNotaFonteRilievoProgetto() {
     ? 'Foto e video non obbligatori. Nel preventivo per il cliente comparirà: «' +
       (typeof TESTO_MISURE_DICHIARATE !== 'undefined' ? TESTO_MISURE_DICHIARATE : 'Misure fornite dal committente, da verificare prima dell’ordine.') + '»'
     : (valore ? '' : 'Da dove vengono le misure: senza, il progetto non si invia.');
+}
+
+// F15.15: campo "Visita da cui nasce il progetto" nella finestra del progetto,
+// solo con sql/85 (js/16 verificaInvioDopoVisitaDisponibile). Lo cambiano il
+// rappresentante del progetto e il titolare (il database rifiuta gli altri);
+// per un progetto nuovo propone l'ultima visita fatta allo stesso cliente
+// negli ultimi 14 giorni senza un progetto già inviato.
+async function mostraVisitaProgetto(progetto) {
+  const box = ge('mp-visita-box');
+  const campo = ge('mp-visita');
+  const nota = ge('mp-visita-nota');
+  if (!box || !campo) return;
+  box.style.display = 'none';
+  campo.innerHTML = '';
+  campo.dataset.originale = progetto && progetto.appuntamento_id ? progetto.appuntamento_id : '';
+  if (typeof verificaInvioDopoVisitaDisponibile !== 'function' || !(await verificaInvioDopoVisitaDisponibile())) return;
+  if (!['rappresentante', 'titolare'].includes(ROLE) && !(progetto && progetto.appuntamento_id)) return;
+
+  const rappresentante = progetto ? progetto.rappresentante_id : ME.id;
+  const cliente = progetto ? progetto.cliente_id : currentCliId;
+  const attuale = progetto && progetto.appuntamento_id ? progetto.appuntamento_id : '';
+  const visite = await visiteCollegabiliProgetto(cliente, rappresentante, attuale);
+  if (!visite.length && !attuale) return;
+
+  let proposta = attuale;
+  if (!progetto) {
+    const limite = Date.now() - 14 * 86400000;
+    const fatta = visite.find(function(a) {
+      return a.visita_fatta_il && !a.visita_senza_progetto && a.cliente_id === cliente && new Date(a.visita_fatta_il).getTime() >= limite;
+    });
+    if (fatta) proposta = fatta.id;
+  }
+  campo.innerHTML = '<option value="">Nessuna visita collegata</option>' + visite.map(function(a) {
+    return '<option value="' + esc(a.id) + '">' + esc(etichettaVisitaProgetto(a)) + '</option>';
+  }).join('');
+  campo.value = proposta || '';
+  const puoCambiare = ROLE === 'titolare' || (ROLE === 'rappresentante' && rappresentante === ME.id);
+  campo.disabled = !puoCambiare;
+  if (nota) {
+    nota.textContent = proposta && !attuale
+      ? 'Proposta: l\'ultima visita fatta a questo cliente. Controlla che sia quella giusta.'
+      : 'Collegando la visita il gestionale ti ricorda di inviare il progetto entro il giorno lavorativo dopo.';
+  }
+  box.style.display = 'block';
 }
 
 async function inviaProgettoAlCommerciale(progettoId) {
@@ -3618,6 +3672,7 @@ async function apriProgettoDaElenco(id) {
 
   await mostraImportoProgetto(progetto);
   await mostraFonteRilievoProgetto(progetto);
+  await mostraVisitaProgetto(progetto); // F15.15
   await caricaAllegatiProgetto(progetto.id);
 
   openM('m-progetto');

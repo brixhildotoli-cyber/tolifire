@@ -3364,6 +3364,26 @@
 
       <div class="al2 w">Lo sconto si calcola sempre sul totale delle voci di Acquisti (5% di 10.000 €, non del totale già scontato). Il database rifiuta lo sconto fatto in un altro modo, quello di un altro rappresentante e quello dopo l'esito.</div>
 
+      <h4 id="info-rap-35">35. ⏰ Sei tornato da una visita: il progetto parte entro il giorno dopo</h4>
+
+      <p>
+        Dopo una <b>visita</b> o un <b>sopralluogo</b> segnala subito nel <b>Calendario appuntamenti</b>: sotto l'appuntamento (o aprendolo con <b>✏️ Modifica</b>) premi <b>✅ Visita fatta</b>, controlla data e ora e <b>💾 Salva</b>. L'appuntamento diventa "completato" e il gestionale scrive chi l'ha segnato.
+      </p>
+
+      <ul>
+        <li>Poi crea il progetto dalla scheda del cliente: nella finestra del progetto il campo <b>Visita da cui nasce il progetto</b> propone l'ultima visita fatta a quel cliente. Controlla che sia quella giusta (puoi scegliere un'altra visita o <b>Nessuna visita collegata</b>) e salva.</li>
+        <li>Il progetto va <b>inviato entro il giorno lavorativo dopo la visita</b>. Se il giorno dopo è ancora in bozza (o non l'hai creato) in <b>Cosa tocca a me</b> compare <b>⏰ Progetti da inviare dopo la visita</b>; dal secondo giorno lavorativo la riga diventa rossa e la vede anche il titolare.</li>
+        <li>Dalla riga si apre l'elenco: <b>📁 Apri il progetto e invialo</b>, oppure <b>👤 Apri il cliente e crea il progetto</b> se non c'è ancora.</li>
+        <li>Se dalla visita non nasce nessun lavoro premi <b>🚫 Nessun progetto da questa visita</b> (o la spunta nella finestra <b>✅ Visita fatta</b>) e scrivi il perché: la visita esce dall'elenco.</li>
+        <li>Sabato, domenica e festivi non contano. Un progetto rimandato a te da integrare non fa ripartire l'avviso: l'avviso guarda solo i progetti mai usciti dalla bozza.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Martedì visiti la Rossi Srl per 6 porte REI e segni <b>✅ Visita fatta</b>. Mercoledì mattina il progetto è ancora in bozza: in <b>Cosa tocca a me</b> leggi "⏰ Progetti da inviare dopo la visita 1". Completi le schede e premi <b>📤 Invia il progetto</b>: la riga sparisce. Se giovedì fosse ancora lì, la vedrebbe anche il titolare.
+      </div>
+
+      <div class="al2 w">"Visita fatta" la segni solo tu (sulle tue visite) o il titolare: il database rifiuta gli altri e chi prova a scriverla senza il bottone. Se l'hai segnata per errore apri <b>✅ Visita fatta</b> e premi <b>↩️ Togli "visita fatta"</b>.</div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -5940,6 +5960,25 @@
       </div>
 
       <div class="al2 w">Il colore delle schede lo scrive solo il database: nessuno lo cambia da console, nemmeno tu. Se serve tornare indietro, Erika esegue il file di ritorno di sql/84 (le schede tornano "non smistate", i progetti non cambiano). Prima di sql/84 tutto funziona come oggi.</div>
+
+      <h4 id="info-tit-34">34. ⏰ Un rappresentante ha fatto una visita ma il progetto non parte</h4>
+
+      <p>
+        I rappresentanti segnano <b>✅ Visita fatta</b> sulle visite e sui sopralluoghi del loro calendario e collegano il progetto alla visita (campo <b>Visita da cui nasce il progetto</b> nella finestra del progetto). Il progetto va inviato entro il giorno lavorativo dopo la visita: dal giorno dopo lo ricorda al rappresentante, dal <b>secondo giorno lavorativo</b> compare anche a te in <b>Cosa tocca a me</b> come <b>⏰ Progetti da inviare dopo la visita</b> (riga rossa).
+      </p>
+
+      <ul>
+        <li>Dalla riga si apre l'elenco con cliente, visita, rappresentante e da quanti giorni lavorativi aspetta; <b>📁 Apri il progetto e invialo</b> apre il progetto in bozza, <b>👤 Apri il cliente e crea il progetto</b> se non c'è ancora.</li>
+        <li>La visita esce dall'elenco quando un progetto collegato esce dalla bozza (inviato, anche se poi torna da integrare o viene archiviato) o quando il rappresentante scrive <b>🚫 Nessun progetto da questa visita</b> con il motivo. Anche tu puoi segnarlo o togliere "visita fatta".</li>
+        <li>Contano solo visite e sopralluoghi segnati "fatti" dopo l'aggiornamento del database: niente avvisi arretrati. Sabato, domenica e festività (sezione 11) non contano.</li>
+        <li>Il collegamento progetto-visita lo mettono solo il rappresentante del progetto e tu; la visita deve essere sua e dello stesso cliente.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Giulio segna la visita alla Rossi Srl venerdì. Lunedì vede lui la riga; martedì, se il progetto è ancora in bozza, la vedi anche tu con "1 giorno lavorativo" in più: una telefonata a Giulio.
+      </div>
+
+      <div class="al2 w">Scelte da confermare: le 24 e 48 ore si contano a giorni lavorativi (una visita di ieri dà l'avviso oggi a qualunque ora); è una riga di "Cosa tocca a me", non un avviso della campanella con notifica. Prima dell'aggiornamento del database (sql/85) non compare nulla e il sito funziona come prima.</div>
 
       <h4>Regole pratiche</h4>
 
@@ -10176,9 +10215,59 @@
       <textarea id="ma-note" placeholder="Note per l'appuntamento..."></textarea>
     </div>
 
+    <!-- F15.15 (sql/85): visita fatta e progetti collegati -->
+    <div class="f" id="ma-visita-box" style="display:none"></div>
+
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn" onclick="closeM('m-appuntamento')">Annulla</button>
       <button class="btn p" onclick="salvaAppuntamento()">Salva appuntamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- F15.15 (sql/85): visita fatta (js/16) -->
+<div class="mbg" id="m-visita-fatta">
+  <div class="modal">
+    <div class="mh">
+      ✅ Visita fatta
+      <button class="mx" onclick="closeM('m-visita-fatta')">✕</button>
+    </div>
+    <input type="hidden" id="vf-id">
+    <div id="vf-intro" style="font-size:13px;margin-bottom:10px"></div>
+    <div class="f">
+      <label for="vf-quando">Quando è stata fatta *</label>
+      <input type="datetime-local" id="vf-quando">
+    </div>
+    <div class="f">
+      <label style="display:flex;gap:8px;align-items:center;font-weight:400">
+        <input type="checkbox" id="vf-senza" onchange="aggiornaVisitaSenzaProgetto()" style="width:auto">
+        Da questa visita non nasce nessun progetto
+      </label>
+    </div>
+    <div class="f" id="vf-motivo-box" style="display:none">
+      <label for="vf-motivo">Perché *</label>
+      <input type="text" id="vf-motivo" maxlength="300" placeholder="Es. il cliente non è interessato, richiamare a marzo">
+    </div>
+    <div class="al2 i">Dopo la visita il progetto va creato, collegato alla visita e inviato entro il giorno lavorativo dopo: altrimenti ti compare in "Cosa tocca a me" e, dal secondo giorno, anche al titolare.</div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+      <button class="btn" onclick="closeM('m-visita-fatta')">Annulla</button>
+      <button class="btn" id="vf-togli" style="color:var(--r)" onclick="salvaVisitaFatta(true)">↩️ Togli "visita fatta"</button>
+      <button class="btn p" onclick="salvaVisitaFatta(false)">💾 Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- F15.15 (sql/85): progetti da inviare dopo la visita (js/16) -->
+<div class="mbg" id="m-invii-visita">
+  <div class="modal">
+    <div class="mh">
+      ⏰ Progetti da inviare dopo la visita
+      <button class="mx" onclick="closeM('m-invii-visita')">✕</button>
+    </div>
+    <div id="iv-intro" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div id="iv-lista"></div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn" onclick="closeM('m-invii-visita')">Chiudi</button>
     </div>
   </div>
 </div>
@@ -10235,6 +10324,12 @@
       <input type="number" id="mp-importo" min="0" step="100"
         placeholder="Es. 8000 (solo cifre, senza punti)" oninput="aggiornaAvvisoImportoProgetto()">
       <div id="mp-importo-nota" style="font-size:12px;color:var(--m);margin-top:5px"></div>
+    </div>
+    <!-- F15.15 (sql/85): visita da cui nasce il progetto (js/17, js/16) -->
+    <div class="f" id="mp-visita-box" style="display:none">
+      <label for="mp-visita">Visita da cui nasce il progetto</label>
+      <select id="mp-visita"></select>
+      <div id="mp-visita-nota" style="font-size:12px;color:var(--m);margin-top:5px"></div>
     </div>
     <div class="f" id="mp-fonte-rilievo-box" style="display:none">
       <label for="mp-fonte-rilievo">Fonte del rilievo *</label>
