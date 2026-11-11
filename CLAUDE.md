@@ -344,7 +344,7 @@ smistamento e progetti_tecnici_allegati_lettura_smistamento (Acquisti legge
 schede verdi, blocco comune e file del progetto ancora in verifica tecnica).
 progetti_tecnici.stato: valori invariati. Matrice: 20 righe nuove.
 Dopo sql/258 (sconto del rappresentante sul preventivo, decisioni di Erika
-del 10/11, fuori piano; DA ESEGUIRE: pubblicare il sito, backup, anteprima,
+del 10/11, fuori piano; ESEGUITO l'11/11 dal server MCP + -REGISTRO-CANCELLAZIONI dall'editor (backup pre258, controllo in regola): pubblicare il sito, backup, anteprima,
 258-sconto-rappresentante.sql (senza parole di cancellazione, server MCP),
 258-...-REGISTRO-CANCELLAZIONI.sql dall'EDITOR, controllo in fondo al file;
 richiede 07, 10, 22, 25, 44, 67, 71; si ferma se annulla_leggi_riga o
@@ -1726,7 +1726,7 @@ spengono le regole nella loro transazione; test/smistamento-famiglie.spec.js
 SMISTAMENTO_SENZA_SQL=1 dopo il rollback); matrice TUTTO OK; rollback
 provato (schema identico). Senza sql/83 o con tutte le regole spente: sito
 come prima, nessun errore.
-Dopo sql/258 (sconto del rappresentante, decisioni di Erika del 10/11, DA
+Dopo sql/258 (sconto del rappresentante, decisioni di Erika del 10/11, ESEGUITO l'11/11 (backup pre258, controllo in regola); era DA
 ESEGUIRE; ordine e requisiti nella riga di preventivi_sconti in "Tabelle
 Supabase"): RPC del sito sconto_rappresentante_attivo() (true = il 258 c'è),
 applica_sconto_preventivo(p_preventivo, p_sconto, p_motivazione) (SOLO con il
