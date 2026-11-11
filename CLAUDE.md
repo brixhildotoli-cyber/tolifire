@@ -325,7 +325,7 @@ compartimentazione, vernice, rilevazione, spegnimento). Nella scheda
 dati.foto_video.<id riga del catalogo> = { allegati, mancanza }. Trigger NUOVI
 trg_progetti_tecnici_allegati_impronta, trg_progetti_tecnici_schede_foto_video,
 trg_progetti_tecnici_posizioni_foto, trg_progetti_tecnici_invio_foto_video.
-Dopo sql/83 (F15.13 smistamento automatico per famiglia, DA ESEGUIRE: backup,
+Dopo sql/83 (F15.13 smistamento automatico per famiglia, ESEGUITO l'11/11 con il -REGISTRO-CANCELLAZIONI (backup pre83, controllo in regola): backup,
 anteprima, 83-smistamento-automatico-famiglia.sql (server MCP), poi
 -REGISTRO-CANCELLAZIONI dall'editor, poi il controllo; richiede 07, 21, 48,
 62, 65, 67, 71, 75, 76, 78, 79, 82-blocco, tutti in produzione; conviene
@@ -1619,7 +1619,7 @@ identico; righe del catalogo spente; rieseguito il file: righe di nuovo
 attive). Senza sql/82-foto-video: niente impronta, niente video, niente
 riquadro né blocco, nessun errore (una chiamata RPC 404).
 Dopo sql/83 (F15.13 smistamento automatico per famiglia, decisione di Toli
-T2, DA ESEGUIRE; ORDINE: pubblicare il sito, backup, anteprima in fondo al
+T2, ESEGUITO l'11/11 dal server MCP + -REGISTRO-CANCELLAZIONI dall'editor (backup pre83, controllo in regola); ORDINE: pubblicare il sito, backup, anteprima in fondo al
 file, 83-smistamento-automatico-famiglia.sql (senza parole di cancellazione,
 server MCP), 83-...-REGISTRO-CANCELLAZIONI.sql dall'EDITOR, controllo in
 fondo al file: regole 8, attive 3, funzioni 11, trigger 6, policy 5;
