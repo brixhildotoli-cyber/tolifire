@@ -1277,10 +1277,10 @@ provato (schema identico al backup pre76 + 76 + 77; le righe del registro
 del catalogo restano). Senza sql/78: sito come con il 77 (controlli solo
 nel sito), nessun errore.
 Dopo sql/79 (F15.5 motore delle schede, parte 2: fonte del rilievo e fonte
-dei dati normativi [NOTA 11/11: con sql/259, DA ESEGUIRE, la fonte del
+dei dati normativi [NOTA 11/11: con sql/259, ESEGUITO l'11/11, la fonte del
 rilievo mancante NON blocca più l'invio: la scrive il database
 'sopralluogo_toli'; il rappresentante non vede più il campo, vedi "Dopo
-sql/259"; NOTA 11/11: con sql/261, DA ESEGUIRE, il blocco dei dati normativi
+sql/259"; NOTA 11/11: con sql/261, ESEGUITO l'11/11, il blocco dei dati normativi
 senza fonte NON vale più per il RAPPRESENTANTE (anche "come"), vedi "Dopo
 sql/261"], ESEGUITO il 09/11 (backup pre79, dal server MCP, controllo in regola): backup, anteprima in fondo al file,
 79-motore-schede.sql (senza parole di cancellazione, server MCP), poi il
@@ -1506,7 +1506,7 @@ al backup pre80 + 80; i 49 campi "tolti", le pareti testo "tolto";
 rieseguito il file: catalogo identico). Senza sql/81: le 4 schede di js/18
 come prima, nessun errore.
 Dopo sql/82 (F15.8 blocco comune e controlli di invio [NOTA 11/11: con sql/261,
-DA ESEGUIRE, il blocco dei dati del prezzo NON vale più per il RAPPRESENTANTE,
+ESEGUITO l'11/11, il blocco dei dati del prezzo NON vale più per il RAPPRESENTANTE,
 anche "come"; vedi "Dopo sql/261"], ESEGUITO il 09/11 (backup pre82, dal server MCP, controllo in regola): backup,
 anteprima in fondo al file, 82-blocco-comune-controlli-invio.sql (senza parole
 di cancellazione, server MCP), controllo in fondo; nessun file
@@ -1569,7 +1569,7 @@ spenta; rieseguito il file: campi di nuovo attivi). Senza sql/82: nessun
 riquadro, controlli di invio solo nel sito, nessun errore (una chiamata RPC
 404).
 Dopo sql/82-foto-video (F15.9 foto e video delle schede di rilievo [NOTA 11/11:
-con sql/261, DA ESEGUIRE, il blocco delle foto e dei video all'invio NON vale
+con sql/261, ESEGUITO l'11/11, il blocco delle foto e dei video all'invio NON vale
 più per il RAPPRESENTANTE, anche "come"; impronta e foto doppie restano; vedi
 "Dopo sql/261"], ESEGUITO
 il 10/11 con il -VINCOLO dall'editor (backup pre82fv, controllo in regola); numero 82 dato dal piano anche a F15.8: il file si chiama sempre
@@ -1957,7 +1957,7 @@ rollback provato (schema identico; i preventivi senza esito tornano al totale
 delle voci). Senza sql/258: nessun riquadro, nessun errore (una chiamata RPC
 404).
 Dopo sql/259 (fonte del rilievo automatica, richiesta di Erika dell'11/11,
-scelta 1, numero fuori piano; DA ESEGUIRE: backup, anteprima in fondo al file,
+scelta 1, numero fuori piano; ESEGUITO l'11/11 dal server MCP (backup pre259-261, controllo in regola): backup, anteprima in fondo al file,
 259-fonte-rilievo-automatica.sql (senza parole di cancellazione, server MCP),
 controllo in fondo; nessun -REGISTRO-CANCELLAZIONI, matrice invariata;
 richiede 07, 71, 79, si ferma senza; il sito si pubblica prima o dopo):
@@ -2024,7 +2024,7 @@ del rappresentante: riquadro assente, scheda aperta con apriSchedaMotore;
 404 voluti di sql/85 e 258 ignorati); smoke TUTTO OK con e senza sql/259;
 matrice invariata; rollback provato (schema identico con pg_dump).
 Dopo sql/261 (invio del rappresentante libero, richiesta di Erika dell'11/11:
-flusso come prima del 06/11, commit 449208b; numero fuori piano; DA ESEGUIRE:
+flusso come prima del 06/11, commit 449208b; numero fuori piano; ESEGUITO l'11/11 dal server MCP dopo sql/259 (backup pre259-261, controllo in regola):
 backup, anteprima in fondo al file, 261-invio-rappresentante-libero.sql (senza
 parole di cancellazione, server MCP), controllo in fondo; nessun
 -REGISTRO-CANCELLAZIONI, matrice invariata; richiede 07, 71, 79, 82-blocco,
