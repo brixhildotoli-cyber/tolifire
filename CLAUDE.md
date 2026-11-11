@@ -354,19 +354,6 @@ smistati in in_verifica_tecnica (ingegnere), pronto_per_preventivo o passati
 dall'ingegnere secondo progetti_tecnici_storico (verificata), altrimenti
 inviato_a_commerciale/in_preventivazione (acquisti). progetti_tecnici.stato e
 preventivi NON cambiano.
-Dopo sql/85 (F15.15 invio entro 24 h dalla visita, DA ESEGUIRE: backup,
-anteprima, 85-invio-entro-24-h-dalla.sql (senza parole di cancellazione, server
-MCP), 85-invio-entro-24-h-dalla-VINCOLO.sql dall'EDITOR (chiave esterna "on
-delete set null"), controllo in fondo al file; richiede 07, 63, 71; nessuna
-tabella nuova, nessuna policy nuova, matrice invariata, nessun
--REGISTRO-CANCELLAZIONI): appuntamenti_commerciali colonne NUOVE
-visita_fatta_il, visita_fatta_da, visita_fatta_da_nome, visita_senza_progetto
-(le scrive solo la RPC segna_visita_fatta: trigger trg_appuntamenti_visita_fatta,
-42501 per ogni utente del sito); progetti_tecnici colonna NUOVA appuntamento_id
-(visita da cui nasce il progetto; con il -VINCOLO chiave esterna a NULL se la
-visita si elimina; trigger trg_progetti_tecnici_appuntamento: la mettono solo
-il rappresentante del progetto e il titolare, visita o sopralluogo non
-annullato dello stesso rappresentante e cliente).
 Dopo sql/258 (sconto del rappresentante sul preventivo, decisioni di Erika
 del 10/11, fuori piano; ESEGUITO l'11/11 dal server MCP + -REGISTRO-CANCELLAZIONI dall'editor (backup pre258, controllo in regola): pubblicare il sito, backup, anteprima,
 258-sconto-rappresentante.sql (senza parole di cancellazione, server MCP),
@@ -1814,38 +1801,6 @@ test/migrazione-progetti-aperti.spec.js (Chrome headless, database locale:
 "Da preventivare" di Acquisti e del titolare e "Cosa tocca a me" uguali prima
 e dopo, riquadro 🚦 del titolare, console di titolare, Acquisti e ingegnere
 rifiutata, ROLLBACK). Senza sql/84: sito come prima.
-Dopo sql/85 (F15.15 invio entro 24 h dalla visita, DA ESEGUIRE; ordine e
-requisiti in "Tabelle Supabase"; provato l'11/11 sul database locale con
-sql/83, PROVA 38 controlli, rollback = schema identico): RPC del sito
-invio_dopo_visita_attivo() (true = il 85 c'è), segna_visita_fatta(p_appuntamento,
-p_quando, p_senza_progetto) (rappresentante della visita o titolare, anche
-"Entra come"; solo visita o sopralluogo non annullato; non nel futuro né prima
-del giorno dell'appuntamento; p_quando vuoto = togli; motivo "nessun progetto"
-3-300 caratteri; pianificato → completato), invii_dopo_visita() (visite fatte
-senza un progetto collegato uscito dalla bozza e senza motivo: rappresentante le
-sue dal 1° giorno lavorativo dopo la visita, titolare tutte dal 2°, con
-giorni_lavorativi_tra di sql/63; 42501 per gli altri ruoli). Nel sito: js/16
-(in fondo, F15.15) "✅ Visita fatta" sotto le visite del Calendario
-appuntamenti e nella finestra dell'appuntamento (ma-visita-box, finestra
-m-visita-fatta id vf-: quando, "nessun progetto da questa visita" con motivo,
-↩️ Togli), stato "⏰ Progetto da creare e inviare / in bozza: da inviare",
-progetti collegati; elenco m-invii-visita (iv-: Apri il progetto, Apri il
-cliente, 🚫 Nessun progetto). js/17: campo "Visita da cui nasce il progetto"
-(mp-visita-box, mostraVisitaProgetto: visite e sopralluoghi degli ultimi 60
-giorni del rappresentante del progetto e del cliente; per un progetto nuovo
-propone l'ultima visita fatta a quel cliente negli ultimi 14 giorni; si manda
-solo se cambiato). js/46: fonte 'invio-dopo-visita' "⏰ Progetti da inviare
-dopo la visita" (rappresentante, rossa dal 2° giorno; titolare rossa). Guide
-info-rap-35, info-tit-34. SCELTE DA CONFERMARE DA TOLI: 24/48 h contate a
-giorni lavorativi ("visita ieri → avviso oggi" a qualunque ora); riga di "Cosa
-tocca a me", non avviso della campanella; visita fatta senza progetto collegato
-= avviso finché non c'è il motivo; solo visite segnate dopo il file; contano
-visita e sopralluogo. Prove: sql/85-invio-entro-24-h-dalla-PROVA.sql (solo
-database di prova, rollback); test/invio-dopo-visita.spec.js (rappresentante a
-390 px, titolare, console di Acquisti e segreteria; INVIO_VISITA_SENZA_SQL=1
-dopo il rollback); smoke TUTTO OK con e senza sql/85; PROVA di sql/83 OK con
-sql/85. Senza sql/85: nessun bottone, campo né riga, nessun errore (una
-chiamata RPC 404).
 Dopo sql/258 (sconto del rappresentante, decisioni di Erika del 10/11, ESEGUITO l'11/11 (backup pre258, controllo in regola); era DA
 ESEGUIRE; ordine e requisiti nella riga di preventivi_sconti in "Tabelle
 Supabase"): RPC del sito sconto_rappresentante_attivo() (true = il 258 c'è),
