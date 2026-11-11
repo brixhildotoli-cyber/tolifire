@@ -2087,7 +2087,7 @@ richiede 47): registra_spese_insoluto_riba; registra_sollecito,
 esito_sollecito ed elimina_sollecito ridefinite (anche contabile);
 colonne nuove riba_righe.spese_insoluto*.
 Dopo sql/257 (storico presidi per tutti i tecnici, richiesta di Erika del
-10/11, DA ESEGUIRE: backup, anteprima in fondo al file,
+10/11, ESEGUITO l'11/11 dal server MCP (backup pre257, controllo in regola): backup, anteprima in fondo al file,
 257-storico-presidi-tutti-tecnici.sql (senza parole di cancellazione, server
 MCP), controllo in fondo; richiede 07, 71, 255, tutti in produzione, si ferma
 senza; il sito si pubblica prima o dopo): nessuna tabella nuova, nessuna
