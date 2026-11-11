@@ -2023,6 +2023,15 @@ motore-schede, motore-schede-protezioni, blocco-comune aggiornati (apriMotore
 del rappresentante: riquadro assente, scheda aperta con apriSchedaMotore;
 404 voluti di sql/85 e 258 ignorati); smoke TUTTO OK con e senza sql/259;
 matrice invariata; rollback provato (schema identico con pg_dump).
+Dopo sql/260 (spegni lo smistamento, richiesta di Erika dell'11/11, ESEGUITO
+l'11/11 dal server MCP, backup pre260, controllo in regola: regole attive 0,
+smistamento_attivo false, 3 righe 'disattivata' nel registro
+regole_smistamento_storico): le regole di sql/83 sono SPENTE, il rappresentante
+ha di nuovo "🔧 Invia a ufficio tecnico" e "📤 Invia ad Acquisti" (decide lui);
+si riaccendono da Impostazioni > 🚦 Regole di smistamento (▶️ Riattiva). Lo
+smistamento automatico era la decisione T2 di Toli: spento su richiesta di Erika.
+REGOLA DI ERIKA (11/11): le funzioni esistenti sono volute; solo miglioramenti,
+mai cambiare flussi, bottoni o obblighi di un ruolo senza chiederle prima.
 Dopo sql/261 (invio del rappresentante libero, richiesta di Erika dell'11/11:
 flusso come prima del 06/11, commit 449208b; numero fuori piano; ESEGUITO l'11/11 dal server MCP dopo sql/259 (backup pre259-261, controllo in regola):
 backup, anteprima in fondo al file, 261-invio-rappresentante-libero.sql (senza
