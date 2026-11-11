@@ -505,12 +505,78 @@ registraFonteToccaAMe({
   }
 });
 
+// F15.18: promemoria e avviso al titolare delle integrazioni. Li scrive il
+// motore delle scadenze (sql/64, riga "Integrazione chiesta al venditore":
+// promemoria al rappresentante dopo integrazione_venditore_gg, 2 giorni
+// lavorativi; risalita al titolare dopo integrazione_avviso_titolare_gg,
+// 7 giorni lavorativi con sql/88). Qui si leggono le scadenze aperte già
+// superate dei progetti ANCORA da integrare (una scadenza si chiude al
+// controllo orario: un progetto appena rimandato non conta più). Senza
+// sql/64 o con un errore: null, la riga resta come prima.
+async function integrazioniOltreTAM(colonna, destinatarioId) {
+  let q = db.from('scadenze').select('oggetto_id')
+    .eq('regola_codice', 'integrazione_venditore').eq('stato', 'aperta').eq('prova', false)
+    .lt(colonna, new Date().toISOString()).limit(1000);
+  if (destinatarioId) q = q.eq('destinatario_id', destinatarioId);
+  const { data, error } = await q;
+  if (error || !Array.isArray(data)) return null;
+  const ids = [...new Set(data.map(function(r) { return r.oggetto_id; }).filter(Boolean))];
+  if (!ids.length) return { n: 0, ids: [] };
+  const { data: prog, error: e2 } = await db.from('progetti_tecnici').select('id').eq('stato', 'da_integrare').in('id', ids);
+  if (e2 || !Array.isArray(prog)) return null;
+  return { n: prog.length, ids: prog.map(function(p) { return p.id; }) };
+}
+
+// "2 giorni lavorativi" dal valore e dall'unità delle Regole (sql/62).
+function tempoRegolaTAM(chiave) {
+  const v = typeof leggiRegolaSubito === 'function' ? leggiRegolaSubito(chiave) : null;
+  if (v === null || v === undefined) return '';
+  const riga = typeof REGOLE_STATO !== 'undefined' && REGOLE_STATO.righe && REGOLE_STATO.righe[chiave];
+  const pred = typeof regolaPredefinita === 'function' ? regolaPredefinita(chiave) : null;
+  const unita = (riga && riga.unita) || (pred && pred.unita) || '';
+  const nomi = { giorni_lav: v === 1 ? 'giorno lavorativo' : 'giorni lavorativi', giorni: v === 1 ? 'giorno' : 'giorni',
+                 ore: v === 1 ? 'ora' : 'ore', ore_lav: v === 1 ? 'ora lavorativa' : 'ore lavorative' };
+  return String(v).replace('.', ',') + ' ' + (nomi[unita] || (typeof UNITA_REGOLE !== 'undefined' && UNITA_REGOLE[unita]) || unita);
+}
+
 registraFonteToccaAMe({
   id: 'progetti-da-integrare', ruoli: ['rappresentante'], icona: '🔧',
   titolo: 'Progetti da integrare',
   vai: { box: 'rap-progetti-da-integrare', pagina: 'progetti' },
-  conta: function() {
-    return numeroTAM(contaTAM('progetti_tecnici').eq('stato', 'da_integrare').eq('rappresentante_id', ME.id), 'progetti da integrare');
+  conta: async function() {
+    const n = await numeroTAM(contaTAM('progetti_tecnici').eq('stato', 'da_integrare').eq('rappresentante_id', ME.id), 'progetti da integrare');
+    if (!n) return n;
+    // F15.18: quelli oltre il tempo per rispondere (promemoria del motore)
+    let oltre = null;
+    try { oltre = await integrazioniOltreTAM('scade_il', ME.id); } catch (e) { oltre = null; }
+    if (!oltre || !oltre.n) return n;
+    const tempo = tempoRegolaTAM('integrazione_venditore_gg');
+    return {
+      n: n,
+      nota: 'di cui ' + oltre.n + ' da più di ' + (tempo || 'il tempo previsto') + ': rimandali al più presto',
+      livello: 'urgente'
+    };
+  }
+});
+
+// F15.18: avviso al titolare, integrazioni ferme dal rappresentante oltre
+// la risalita (7 giorni lavorativi con sql/88). Con un solo progetto apre
+// la sua scheda, altrimenti la pagina Progetti (gruppo "Da integrare").
+registraFonteToccaAMe({
+  id: 'integrazioni-ferme-titolare', ruoli: ['titolare'], icona: '⏰',
+  titolo: 'Integrazioni ferme dal rappresentante', livello: 'urgente',
+  vai: { pagina: 'progetti' },
+  conta: async function() {
+    const oltre = await integrazioniOltreTAM('risale_il', null);
+    if (!oltre) return null;
+    if (!oltre.n) return 0;
+    const tempo = tempoRegolaTAM('integrazione_avviso_titolare_gg');
+    const r = { n: oltre.n, nota: 'progetti da integrare da più di ' + (tempo || 'il tempo previsto') + ': senti il rappresentante' };
+    if (oltre.n === 1 && funzioneEsiste('openProgettoDetail')) {
+      const id = oltre.ids[0];
+      r.vai = function() { openProgettoDetail(id); };
+    }
+    return r;
   }
 });
 

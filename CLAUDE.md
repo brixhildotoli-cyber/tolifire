@@ -1866,6 +1866,42 @@ l'avviso (questi due non rilanciati in F15.17); rollback
 provato (schema identico). Senza sql/87: l'avviso elenca solo i progetti che
 chi crea già legge (rappresentante: i suoi), nota "il motivo non si salva
 ancora", nessun errore (una chiamata RPC 404).
+Dopo sql/88 (F15.18 promemoria delle integrazioni, VERSIONE RIDOTTA decisa da
+Erika l'11/11: "le funzioni esistenti sono volute, solo miglioramenti, niente
+cambi di flusso"; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/88": backup,
+anteprima in fondo al file, 88-integrazioni-motivo-promemoria.sql (senza
+parole di cancellazione, server MCP), controllo in fondo; nessun
+-REGISTRO-CANCELLAZIONI; richiede 62 e 64, si ferma senza; 65 per gli avvisi;
+il sito si pubblica prima o dopo). "Richiedi integrazione" INVARIATO (nota
+obbligatoria, niente motivo da lista, niente domande strutturate). C'ERA GIÀ
+(sql/64-65): riga "Integrazione chiesta al venditore" con promemoria al
+rappresentante dopo integrazione_venditore_gg (2 giorni lavorativi) e
+risalita al titolare dall'inizio dopo integrazione_avviso_titolare_gg (7, ma
+giorni DI CALENDARIO); si chiudono da sole quando il progetto esce da
+da_integrare. IL FILE (solo dati, nessuna tabella, funzione, policy;
+matrice invariata): integrazione_avviso_titolare_gg da 'giorni' a
+'giorni_lav' (solo se ancora 'giorni'; valore invariato), riga in
+regole_storico 'sql/88 (F15.18)...', sincronizza_scadenze() (le aperte non
+ancora risalite si spostano). La regola integrazione_promemoria_ore (48 ore)
+di sql/62 resta NON usata dal motore (il promemoria segue
+integrazione_venditore_gg). Nel sito (js/46, nessun file nuovo):
+integrazioniOltreTAM (scadenze aperte superate dei progetti ANCORA da
+integrare), tempoRegolaTAM; riga "🔧 Progetti da integrare" del
+rappresentante rossa con "di cui N da più di 2 giorni lavorativi"; riga NUOVA
+del titolare "⏰ Integrazioni ferme dal rappresentante" (risale_il passata;
+un progetto = la sua scheda, se no la pagina Progetti; anche in ⚖️
+Decisioni); REGOLE_PREDEFINITE di js/01 con giorni_lav. Guide info-rap-36,
+info-tit-35, info-com-24, info-ing-29 (e esempi di info-tit-12, -13). Prove:
+sql/88-...-PROVA.sql (solo database di prova, rollback: 4/12 + 2 = 9/12, + 7
+= 16/12; orologio di prova +1/+3/+6/+8 gg lav. con genera_avvisi_scadenza:
+promemoria dopo 3, nessuna risalita a 6 (oltre 7 di calendario), risalita al
+titolare a 8; progetto rimandato = scadenza e avvisi chiusi; rappresentante,
+ingegnere, Acquisti, tecnico rifiutati su salva_regola e update di regole e
+scadenze); test/integrazioni-promemoria.spec.js (Chrome headless,
+rappresentante a 390 px, titolare, ingegnere e Acquisti a 390 px;
+INTEGRAZIONI_SENZA_SQL=1 senza il file); 64-PROVA accetta 11/12 o 16/12
+secondo l'unità; smoke TUTTO OK senza sql/88. Senza sql/88: avviso al
+titolare dopo 7 giorni di calendario come prima, nessun errore.
 Dopo sql/258 (sconto del rappresentante, decisioni di Erika del 10/11, ESEGUITO l'11/11 (backup pre258, controllo in regola); era DA
 ESEGUIRE; ordine e requisiti nella riga di preventivi_sconti in "Tabelle
 Supabase"): RPC del sito sconto_rappresentante_attivo() (true = il 258 c'è),
