@@ -271,10 +271,23 @@ async function apriProgetto(s, progettoId) {
   await s.page.evaluate(() => { const t = [...document.querySelectorAll('#pg-progetto-detail .tab')].find(x => /Rilievi tecnici/.test(x.textContent)); if (t) t.click(); });
   await attendiQuiete(s.stato, 600);
 }
+// Dall'11/11 (richiesta di Erika, sql/259-260) il rappresentante non ha più
+// "📝 Compila una scheda di rilievo" nel tab: il riquadro deve mancare. Le
+// policy di sql/77 restano, quindi la prova del database apre la stessa
+// scheda del motore con apriSchedaMotore (la strada del bottone).
 async function apriMotore(s) {
-  await s.page.waitForSelector('#msm-apri-btn', { timeout: 10000 });
-  await s.page.select('#msm-lavorazione', 'porte_rei');
-  await s.page.click('#msm-apri-btn');
+  const rappresentante = await s.page.evaluate(() => ROLE === 'rappresentante');
+  if (rappresentante) {
+    await attendiQuiete(s.stato, 600);
+    if (await s.page.evaluate(() => !!document.getElementById('msm-apri') || !!document.getElementById('msm-comune'))) {
+      throw new Error('il rappresentante vede ancora "Compila una scheda di rilievo" o il blocco comune');
+    }
+    await s.page.evaluate(async () => { await apriSchedaMotore(currentProgettoTecnicoId, 'porte_rei'); });
+  } else {
+    await s.page.waitForSelector('#msm-apri-btn', { timeout: 10000 });
+    await s.page.select('#msm-lavorazione', 'porte_rei');
+    await s.page.click('#msm-apri-btn');
+  }
   await s.page.waitForSelector('#msm-motore', { timeout: 10000 });
   await attendiQuiete(s.stato, 600);
 }
@@ -477,7 +490,7 @@ async function scrivi(s, id, testo) {
     for (const s of sessioni.filter(x => !x.chiuso)) await chiudi(s);
     for (const s of sessioni) {
       if (s.stato.erroriJs.length) KO('errori JavaScript: ' + s.stato.erroriJs.join(' | '));
-      const rete = s.stato.rete.filter(r => r.status >= 500 || /does not exist|Could not find/i.test(r.msg) && !/schede_migrate_motore/.test(r.msg) /* F15.6: 404 voluto senza sql/80 */ && !(SENZA && /motore_schede_attivo/.test(r.dove + r.msg)));
+      const rete = s.stato.rete.filter(r => r.status >= 500 || /does not exist|Could not find/i.test(r.msg) && !/schede_migrate_motore|invio_dopo_visita_attivo|sconto_rappresentante_attivo/.test(r.msg) /* F15.6, F15.15, sql/258: 404 voluti */ && !(SENZA && /motore_schede_attivo/.test(r.dove + r.msg)));
       if (rete.length) KO('errori del database: ' + rete.map(r => r.metodo + ' ' + r.dove + ' ' + r.status + ' ' + r.msg).join(' | '));
     }
   } catch (e) {

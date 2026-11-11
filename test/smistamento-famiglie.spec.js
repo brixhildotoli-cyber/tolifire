@@ -265,10 +265,23 @@ async function apriProgetto(s, progettoId) {
   await s.page.evaluate(() => { const t = [...document.querySelectorAll('#pg-progetto-detail .tab')].find(x => /Rilievi tecnici/.test(x.textContent)); if (t) t.click(); });
   await attendiQuiete(s.stato, 600);
 }
+// Dall'11/11 (richiesta di Erika, sql/259-260) il rappresentante non ha più
+// "📝 Compila una scheda di rilievo" nel tab: il riquadro deve mancare. Le
+// policy di sql/77 restano, quindi la prova del database apre la stessa
+// scheda del motore con apriSchedaMotore (la strada del bottone).
 async function apriMotore(s) {
-  await s.page.waitForSelector('#msm-apri-btn', { timeout: 10000 });
-  await s.page.select('#msm-lavorazione', 'porte_rei');
-  await s.page.click('#msm-apri-btn');
+  const rappresentante = await s.page.evaluate(() => ROLE === 'rappresentante');
+  if (rappresentante) {
+    await attendiQuiete(s.stato, 600);
+    if (await s.page.evaluate(() => !!document.getElementById('msm-apri') || !!document.getElementById('msm-comune'))) {
+      throw new Error('il rappresentante vede ancora "Compila una scheda di rilievo" o il blocco comune');
+    }
+    await s.page.evaluate(async () => { await apriSchedaMotore(currentProgettoTecnicoId, 'porte_rei'); });
+  } else {
+    await s.page.waitForSelector('#msm-apri-btn', { timeout: 10000 });
+    await s.page.select('#msm-lavorazione', 'porte_rei');
+    await s.page.click('#msm-apri-btn');
+  }
   await s.page.waitForSelector('#msm-motore', { timeout: 10000 });
   await attendiQuiete(s.stato, 600);
 }
@@ -557,7 +570,7 @@ async function cartaProgetto(s, progettoId) {
     for (const s of sessioni) {
       if (s.stato.erroriJs.length) KO('errori JavaScript: ' + s.stato.erroriJs.join(' | '));
       const rete = s.stato.rete.filter(x => (x.status >= 500 || /does not exist|Could not find/i.test(x.msg)) &&
-        !(SENZA && /regole_smistamento|smistamento/.test(x.dove + x.msg)));
+        !(SENZA && /regole_smistamento|smistamento/.test(x.dove + x.msg)) && !/invio_dopo_visita_attivo|sconto_rappresentante_attivo/.test(x.dove + x.msg) /* F15.15 e sql/258: 404 voluti senza sql/85 e 258 */);
       if (rete.length) KO('errori del database: ' + rete.map(x => x.metodo + ' ' + x.dove + ' ' + x.status + ' ' + x.msg).join(' | '));
     }
   } catch (e) {

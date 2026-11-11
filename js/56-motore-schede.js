@@ -147,6 +147,17 @@ async function disegnaApriMotoreProgetto(progettoId) {
   if (!box || !progettoId) return;
   const vecchio = ge('msm-apri');
   if (vecchio) vecchio.remove();
+  const vecchioComune = ge('msm-comune');
+  if (vecchioComune) vecchioComune.remove();
+  // Richiesta di Erika dell'11/11 (con sql/259 e sql/260): per il
+  // RAPPRESENTANTE (anche "Entra come") il progetto torna com'era prima del
+  // 06/11: titolo, tipologia, descrizione, allegati e foto, poi invio
+  // all'ingegnere o ad Acquisti. Niente "📝 Compila una scheda di rilievo" né
+  // "📋 Blocco comune"; le schede già salvate restano nel tab in sola
+  // lettura. SCELTA SOLO DEL SITO: le policy di sql/77 (il rappresentante
+  // scrive le schede dei suoi progetti in bozza o da integrare) restano.
+  // Ingegnere e titolare come prima.
+  if (ROLE === 'rappresentante') return;
   if (!(await verificaMotoreSchedeDisponibile())) return;
   if (typeof caricaCatalogoLavorazioni === 'function') {
     try { await caricaCatalogoLavorazioni(); } catch (e) { return; }
@@ -922,6 +933,10 @@ function valoreAttualeCampoMotore(codice) {
 // Fonte del rilievo in cima alla scheda: si salva subito sul progetto
 function htmlFonteRilievoMotore() {
   if (!fontiDatiAttive() || !MOTORE_SCHEDE.progetto) return '';
+  // sql/259 (richiesta di Erika dell'11/11): il rappresentante (anche
+  // "Entra come") non sceglie la fonte del rilievo: all'invio vale
+  // "Sopralluogo TOLI". Ingegnere e titolare la vedono e la cambiano.
+  if (ROLE === 'rappresentante') return '';
   const p = MOTORE_SCHEDE.progetto;
   const puo = ['rappresentante', 'ingegnere', 'titolare'].includes(ROLE);
   return `
@@ -1186,21 +1201,55 @@ function htmlFonteDatoScheda(scheda, chiave) {
     esc(testo) + (problema ? (testo ? ' · ' : '') + '⚠️ ' + esc(problema) : '') + '</div>';
 }
 
-// Prima di inviare il progetto (js/17): fonte del rilievo e fonti dei dati
-// normativi (RPC fonti_mancanti_progetto di sql/79). true = si può inviare.
+// Prima di inviare il progetto (js/17, js/67): fonte del rilievo e fonti dei
+// dati normativi (RPC fonti_mancanti_progetto di sql/79). true = si può inviare.
+// sql/259 (richiesta di Erika dell'11/11): il RAPPRESENTANTE (anche "Entra
+// come") non viene fermato dalla fonte del rilievo mancante. Se manca, la
+// mette il sito stesso ('sopralluogo_toli', update del progetto in bozza o da
+// integrare: la policy e il trigger di sql/79 lo permettono al rappresentante)
+// prima dell'invio, così l'invio passa anche con il database di sql/79 senza
+// sql/259; con sql/259 la scrive comunque il database all'invio. Restano i
+// blocchi delle fonti dei DATI NORMATIVI, come prima. Ingegnere e titolare:
+// come prima.
 async function controllaFontiPrimaDellInvio(progettoId) {
   if (!(await verificaFontiDatiDisponibili())) return true;
   const { data, error } = await db.rpc('fonti_mancanti_progetto', { p_progetto: progettoId });
   if (error) return true; // il database lo ricontrolla comunque all'invio
-  if (!data || !data.length) return true;
-  const righe = data.slice(0, 8).map(function(r) {
-    return '- ' + (r.scheda ? r.scheda + ' – ' : '') + r.etichetta + ': ' + r.motivo;
-  });
-  alert('Il progetto non si può ancora inviare:\n\n' + righe.join('\n') +
-    (data.length > 8 ? '\n- … e altri ' + (data.length - 8) : '') +
-    '\n\nLa fonte del rilievo si indica in "Modifica" del progetto o in cima alla scheda di rilievo; ' +
-    'la fonte dei dati normativi sotto il dato, nella scheda (📝 Rilievi tecnici → 📝 Compila la scheda).');
-  return false;
+  const rappresentante = ROLE === 'rappresentante';
+  const senzaFonteRilievo = (data || []).some(function(r) { return r.campo === 'fonte_rilievo'; });
+  const problemi = (data || []).filter(function(r) { return !(rappresentante && r.campo === 'fonte_rilievo'); });
+  if (problemi.length) {
+    const righe = problemi.slice(0, 8).map(function(r) {
+      return '- ' + (r.scheda ? r.scheda + ' – ' : '') + r.etichetta + ': ' + r.motivo;
+    });
+    alert('Il progetto non si può ancora inviare:\n\n' + righe.join('\n') +
+      (problemi.length > 8 ? '\n- … e altri ' + (problemi.length - 8) : '') +
+      '\n\n' + (rappresentante ? '' : 'La fonte del rilievo si indica in "Modifica" del progetto o in cima alla scheda di rilievo; ') +
+      (rappresentante ? 'La fonte dei dati normativi si indica' : 'la fonte dei dati normativi') +
+      ' sotto il dato, nella scheda (📝 Rilievi tecnici → 📝 Compila la scheda).');
+    return false;
+  }
+  if (rappresentante && senzaFonteRilievo) {
+    const ok = await mettiFonteRilievoAutomatica(progettoId);
+    if (!ok) return false;
+  }
+  return true;
+}
+
+// sql/259: fonte del rilievo messa dal sito per il rappresentante ("Sopralluogo
+// TOLI"), solo se è ancora vuota. true = fatto (o già indicata).
+async function mettiFonteRilievoAutomatica(progettoId) {
+  const { data, error } = await db.from('progetti_tecnici')
+    .update({ fonte_rilievo: 'sopralluogo_toli' })
+    .eq('id', progettoId).is('fonte_rilievo', null).select('id');
+  if (error) {
+    toast('Invio non riuscito: ' + (typeof testoErroreSchedaMotore === 'function' ? testoErroreSchedaMotore(error) : error.message), 'err');
+    return false;
+  }
+  if (data && data.length && MOTORE_SCHEDE.progetto && MOTORE_SCHEDE.progetto.id === progettoId) {
+    MOTORE_SCHEDE.progetto.fonte_rilievo = 'sopralluogo_toli';
+  }
+  return true;
 }
 
 // ── F15.6 — MIGRAZIONE DELLE SCHEDE SCRITTE A MANO (sql/80) ─────────────

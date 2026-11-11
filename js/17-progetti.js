@@ -991,7 +991,11 @@ async function mostraFonteRilievoProgetto(progetto) {
   const campo = ge('mp-fonte-rilievo');
   if (!box || !campo) return;
   const attive = typeof verificaFontiDatiDisponibili === 'function' && await verificaFontiDatiDisponibili();
-  box.style.display = attive ? 'block' : 'none';
+  // sql/259 (richiesta di Erika dell'11/11): al rappresentante (anche "Entra
+  // come") il campo non si mostra e non si manda: all'invio vale "Sopralluogo
+  // TOLI" (la mette il database con sql/259, prima il sito: js/56
+  // controllaFontiPrimaDellInvio). Ingegnere e titolare come prima.
+  box.style.display = attive && ROLE !== 'rappresentante' ? 'block' : 'none';
   campo.value = attive && progetto && progetto.fonte_rilievo ? progetto.fonte_rilievo : '';
   campo.disabled = !['rappresentante', 'ingegnere', 'titolare'].includes(ROLE);
   aggiornaNotaFonteRilievoProgetto();
@@ -3041,7 +3045,7 @@ if (btnModifica) {
           ? formatoEuroSoglia(progetto.importo_stimato)
           : null
       ) : ''}
-      ${'fonte_rilievo' in progetto && typeof etichettaFonteRilievo === 'function' ? ir(
+      ${'fonte_rilievo' in progetto && typeof etichettaFonteRilievo === 'function' && ROLE !== 'rappresentante' ? ir(
         'Fonte del rilievo',
         progetto.fonte_rilievo
           ? etichettaFonteRilievo(progetto.fonte_rilievo) +

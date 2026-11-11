@@ -1277,7 +1277,10 @@ provato (schema identico al backup pre76 + 76 + 77; le righe del registro
 del catalogo restano). Senza sql/78: sito come con il 77 (controlli solo
 nel sito), nessun errore.
 Dopo sql/79 (F15.5 motore delle schede, parte 2: fonte del rilievo e fonte
-dei dati normativi, ESEGUITO il 09/11 (backup pre79, dal server MCP, controllo in regola): backup, anteprima in fondo al file,
+dei dati normativi [NOTA 11/11: con sql/259, DA ESEGUIRE, la fonte del
+rilievo mancante NON blocca più l'invio: la scrive il database
+'sopralluogo_toli'; il rappresentante non vede più il campo, vedi "Dopo
+sql/259"], ESEGUITO il 09/11 (backup pre79, dal server MCP, controllo in regola): backup, anteprima in fondo al file,
 79-motore-schede.sql (senza parole di cancellazione, server MCP), poi il
 controllo in fondo; nessun file -REGISTRO-CANCELLAZIONI (nessuna tabella
 nuova); richiede 07, 71, 75, 77, 78, tutti in produzione, si ferma senza).
@@ -1946,6 +1949,73 @@ MATRICE_AGITO_COME=1; 10 righe nuove); smoke TUTTO OK con e senza sql/258;
 rollback provato (schema identico; i preventivi senza esito tornano al totale
 delle voci). Senza sql/258: nessun riquadro, nessun errore (una chiamata RPC
 404).
+Dopo sql/259 (fonte del rilievo automatica, richiesta di Erika dell'11/11,
+scelta 1, numero fuori piano; DA ESEGUIRE: backup, anteprima in fondo al file,
+259-fonte-rilievo-automatica.sql (senza parole di cancellazione, server MCP),
+controllo in fondo; nessun -REGISTRO-CANCELLAZIONI, matrice invariata;
+richiede 07, 71, 79, si ferma senza; il sito si pubblica prima o dopo):
+ridefinisce SOLO trg_progetti_tecnici_fonti (create or replace, permessi NON
+toccati: in produzione la funzione ha i grant di default ad anon e
+authenticated, il rollback la rimette identica, testo di produzione senza
+commenti preso dal backup). All'invio da bozza o da integrare verso
+in_verifica_tecnica, inviato_a_commerciale, pronto_per_preventivo (o progetto
+creato già inviato dal rappresentante) una fonte_rilievo vuota diventa
+'sopralluogo_toli' (BEFORE, per ogni utente del sito; editor senza fonte
+automatica) invece del 22023. Restano: il blocco delle FONTI DEI DATI
+NORMATIVI (trg_progetti_tecnici_schede_fonti e il controllo nel trigger,
+decisione a parte di Erika), chi scrive la fonte a mano (rappresentante,
+ingegnere, titolare; 42501 per gli altri, controllato prima del valore
+automatico), fonti_mancanti_progetto (dice ancora "manca la fonte del rilievo":
+il sito la ignora per il rappresentante). Ordine dei BEFORE su
+progetti_tecnici: _fonti, _invio_completo, _invio_foto_video, _smistamento
+(foto_video_mancanti_progetto rilegge la tabella: vuoto e sopralluogo_toli
+chiedono le stesse foto); smista_progetto di sql/83 passa dallo stesso
+trigger. CHI E QUANDO: nessuna colonna nuova, il registro delle azioni di
+sql/67 scrive fonte_rilievo null → sopralluogo_toli con chi invia (con "Entra
+come" il titolare reale e agito_come_*), quando = invio. Segno nel codice
+v_versione 'sql/259' (i commenti si perdono dal server MCP). SITO (vale con e
+senza sql/259; richiesta di Erika dell'11/11 con sql/260, che spegne le
+regole di smistamento): per ROLE === 'rappresentante' (anche "Entra come")
+il progetto tecnico torna come prima del 06/11: js/17 niente campo "Fonte del
+rilievo" nella finestra (mostraFonteRilievoProgetto, non si manda) né riga
+"Fonte del rilievo" in progetto-detail (nascosta); js/56 niente "📐 Fonte del
+rilievo" nel motore (htmlFonteRilievoMotore), niente "📝 Compila una scheda
+di rilievo" (msm-apri) né "📋 Blocco comune" (msm-comune) nel tab Rilievi
+tecnici (disegnaApriMotoreProgetto); le schede già salvate restano leggibili
+nel tab, le posizioni P-xx delle schede salvate restano modificabili (js/66
+invariato), le anteprime delle foto della finestra del progetto restano
+(mp-file-selezionati). SCELTA SOLO DEL SITO: le policy di sql/77 sulle schede
+del rappresentante restano (apriSchedaMotore funziona ancora da console).
+controllaFontiPrimaDellInvio (js/56, chiamata da inviaProgettoAUfficioTecnico,
+inviaProgettoAlCommerciale, inviaProgettoConSmistamento) per il rappresentante
+ignora la riga fonte_rilievo e, se manca, scrive lei
+fonte_rilievo='sopralluogo_toli' (mettiFonteRilievoAutomatica, update del
+progetto in bozza/da integrare permesso dalla policy e da sql/79) prima
+dell'invio: così l'invio passa anche senza sql/259. Restano i blocchi dei
+dati normativi, dati del prezzo e foto delle schede già salvate (un progetto
+senza schede chiede solo titolo, tipologia, descrizione e allegati, come prima
+del 06/11). Ingegnere e titolare come prima. Guide info-rap-25..33 adattate
+(26 schede all'ingegnere, 28 fonte automatica, 29 cosa serve all'invio, 30
+foto del progetto, 33 due bottoni), note in info-ing e info-tit (catalogo e
+fonti); info-rap-35 (F15.15) non toccata. LIMITE: un dato normativo senza
+fonte in una scheda salvata dal rappresentante prima ferma il suo invio e lui
+non apre più il motore: deve farlo l'ingegnere o il titolare. Prove:
+sql/259-fonte-rilievo-automatica-PROVA.sql (solo database di prova,
+rollback: rappresentante e titolare "come" rappresentante inviano senza fonte
+→ sopralluogo_toli con il registro, titolare da da_integrare, progetto creato
+già inviato, porta REI 60 senza fonte del dato bloccata (fonte resta vuota),
+RPC invariata, ingegnere e titolare scrivono la fonte, Acquisti rifiutato,
+fonte già indicata invariata, editor senza fonte, smista_progetto con le
+regole accese); 79-PROVA aggiornato (con 259 aspetta il blocco dei dati
+normativi); test/progetto-rappresentante.spec.js NUOVO (rappresentante a 390
+px, regole di smistamento spente come dopo sql/260: titolo, tipologia,
+descrizione e foto con l'anteprima, niente fonte né riquadri delle schede,
+"🔧 Invia a ufficio tecnico" e "📤 Invia ad Acquisti"); motore-schede-fonti,
+smoke, foto-video, smistamento-famiglie, migrazione-progetti-aperti,
+motore-schede, motore-schede-protezioni, blocco-comune aggiornati (apriMotore
+del rappresentante: riquadro assente, scheda aperta con apriSchedaMotore;
+404 voluti di sql/85 e 258 ignorati); smoke TUTTO OK con e senza sql/259;
+matrice invariata; rollback provato (schema identico con pg_dump).
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

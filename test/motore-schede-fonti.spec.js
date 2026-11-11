@@ -6,11 +6,12 @@
 // Il "fatto quando" della task:
 //  1. il rappresentante, a 390 px, compila una porta REI 60 senza fonte: la
 //     scheda si salva, "🔧 Invia a ufficio tecnico" si ferma e dice cosa manca
-//     (fonte del rilievo, fonte del dato); dalla console l'invio è rifiutato
+//     (solo la fonte del dato: dall'11/11, sql/259, il rappresentante non vede
+//     né sceglie la fonte del rilievo); dalla console l'invio è rifiutato
 //     dal database;
-//  2. sceglie la fonte del rilievo, per la Resistenza al fuoco "Come
-//     l'esistente" e carica la foto della targhetta: salva e il progetto si
-//     invia;
+//  2. per la Resistenza al fuoco "Come l'esistente" con la foto della
+//     targhetta: salva e il progetto si invia, la fonte del rilievo diventa da
+//     sola "sopralluogo_toli" (sito, e con sql/259 anche il database);
 //  3. dalla console: il rappresentante non sceglie "ingegnere TOLI",
 //     Acquisti (commerciale) non scrive la fonte del rilievo, il tecnico non
 //     tocca nulla (ruoli non ammessi rifiutati dal database);
@@ -272,10 +273,23 @@ async function apriProgetto(s, progettoId) {
   await s.page.evaluate(() => { const t = [...document.querySelectorAll('#pg-progetto-detail .tab')].find(x => /Rilievi tecnici/.test(x.textContent)); if (t) t.click(); });
   await attendiQuiete(s.stato, 600);
 }
+// Dall'11/11 (richiesta di Erika, sql/259-260) il rappresentante non ha più
+// "📝 Compila una scheda di rilievo" nel tab: il riquadro deve mancare. Le
+// policy di sql/77 restano, quindi la prova del database apre la stessa
+// scheda del motore con apriSchedaMotore (la strada del bottone).
 async function apriMotore(s) {
-  await s.page.waitForSelector('#msm-apri-btn', { timeout: 10000 });
-  await s.page.select('#msm-lavorazione', 'porte_rei');
-  await s.page.click('#msm-apri-btn');
+  const rappresentante = await s.page.evaluate(() => ROLE === 'rappresentante');
+  if (rappresentante) {
+    await attendiQuiete(s.stato, 600);
+    if (await s.page.evaluate(() => !!document.getElementById('msm-apri') || !!document.getElementById('msm-comune'))) {
+      throw new Error('il rappresentante vede ancora "Compila una scheda di rilievo" o il blocco comune');
+    }
+    await s.page.evaluate(async () => { await apriSchedaMotore(currentProgettoTecnicoId, 'porte_rei'); });
+  } else {
+    await s.page.waitForSelector('#msm-apri-btn', { timeout: 10000 });
+    await s.page.select('#msm-lavorazione', 'porte_rei');
+    await s.page.click('#msm-apri-btn');
+  }
   await s.page.waitForSelector('#msm-motore', { timeout: 10000 });
   await attendiQuiete(s.stato, 600);
 }
@@ -345,9 +359,10 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
     await r.page.evaluate(async id => { await apriProgettoDaElenco(id); }, progettoId);
     await attendiQuiete(r.stato, 800);
     const boxModal = await r.page.evaluate(() => { const b = document.getElementById('mp-fonte-rilievo-box'); return b ? getComputedStyle(b).display : 'assente'; });
-    if (SENZA ? boxModal !== 'none' : boxModal === 'none') KO('finestra del progetto: campo "Fonte del rilievo" ' + boxModal);
-    else righe.push((SENZA ? 'senza sql/79: ' : '1. ') + 'finestra del progetto, campo Fonte del rilievo: ' + (SENZA ? 'nascosto' : 'visibile'));
-    if (!SENZA && boxModal !== 'none') {
+    // sql/259 (richiesta di Erika dell'11/11): al rappresentante il campo non si mostra mai
+    if (boxModal !== 'none') KO('finestra del progetto: campo "Fonte del rilievo" visibile al rappresentante: ' + boxModal);
+    else righe.push((SENZA ? 'senza sql/79: ' : '1. ') + 'finestra del progetto del rappresentante, campo Fonte del rilievo: nascosto');
+    if (false) {
       await r.page.select('#mp-fonte-rilievo', 'documenti_cliente');
       const nota = await r.page.evaluate(() => { document.getElementById('mp-fonte-rilievo').value = 'misure_dichiarate'; aggiornaNotaFonteRilievoProgetto(); return document.getElementById('mp-fonte-rilievo-nota').textContent; });
       await r.page.select('#mp-fonte-rilievo', 'documenti_cliente');
@@ -361,10 +376,13 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
     await r.page.evaluate(() => closeM('m-progetto'));
 
     await apriProgetto(r, progettoId);
+    const infoRap = await r.page.evaluate(() => (document.getElementById('pd-info-content') || {}).innerText || '');
+    if (/Fonte del rilievo/.test(infoRap)) KO('1: la scheda del progetto mostra "Fonte del rilievo" al rappresentante');
+    else righe.push('   scheda del progetto del rappresentante: nessuna riga "Fonte del rilievo"');
     await apriMotore(r);
     const quanti = await r.page.evaluate(() => ({ fonti: document.querySelectorAll('.msm-fonte').length, rilievo: !!document.getElementById('msm-fonte-rilievo'), rei: !!document.getElementById('msm-fonte-rei') }));
-    if (SENZA ? (quanti.fonti || quanti.rilievo) : (!quanti.rei || !quanti.rilievo)) KO('motore: riquadri delle fonti ' + JSON.stringify(quanti));
-    else righe.push('   motore: ' + (SENZA ? 'nessun riquadro delle fonti' : 'fonte del rilievo in cima e "📜 Fonte del dato" sotto Resistenza al fuoco (' + quanti.fonti + ' campo normativo)'));
+    if (SENZA ? (quanti.fonti || quanti.rilievo) : (!quanti.rei || quanti.rilievo)) KO('motore: riquadri delle fonti ' + JSON.stringify(quanti));
+    else righe.push('   motore: ' + (SENZA ? 'nessun riquadro delle fonti' : 'niente "📐 Fonte del rilievo" per il rappresentante, "📜 Fonte del dato" sotto Resistenza al fuoco (' + quanti.fonti + ' campo normativo)'));
     await r.page.select('#msm-c-tipo_intervento', 'fornitura_e_posa');
     await r.page.select('#msm-c-rei', 'rei_60');
     await r.page.select('#msm-c-tipologia', 'battente_singolo');
@@ -393,7 +411,7 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
       await r.page.evaluate(async id => { await inviaProgettoAUfficioTecnico(id); }, progettoId);
       await attendiQuiete(r.stato, 1200);
       const d1 = testoDialoghi(r);
-      if (statoProgetto() !== 'bozza' || !/fonte del rilievo/.test(d1) || !/Resistenza al fuoco richiesta: senza fonte/.test(d1)) KO('1: invio senza fonte: stato ' + statoProgetto() + ', messaggio ' + d1);
+      if (statoProgetto() !== 'bozza' || /Fonte del rilievo/.test(d1) || !/Resistenza al fuoco richiesta: senza fonte/.test(d1)) KO('1: invio senza fonte del dato: stato ' + statoProgetto() + ', messaggio ' + d1);
       else righe.push('   "🔧 Invia a ufficio tecnico" si ferma: ' + d1.replace(/\n+/g, ' ').slice(0, 260));
       const cons = await r.page.evaluate(async id => {
         const x = await db.from('progetti_tecnici').update({ stato: 'in_verifica_tecnica' }).eq('id', id).select('id');
@@ -404,8 +422,6 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
 
       // 2. Fonte del rilievo, "come l'esistente" con la foto ---------------------
       await apriMotore(r);
-      await r.page.select('#msm-fonte-rilievo', 'sopralluogo_toli');
-      await attendiQuiete(r.stato, 900);
       await r.page.select('#msm-f-rei', 'dichiarato_cliente');
       await attendiQuiete(r.stato, 300);
       const btnModulo = await r.page.evaluate(() => [...document.querySelectorAll('#msm-fonte-rei button')].some(b => /Modulo da far firmare/.test(b.textContent)));
@@ -427,14 +443,15 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
       await attendiQuiete(r.stato, 2000);
       const f2 = fonteRei();
       const fr = psql('select coalesce(fonte_rilievo, \'\') from public.progetti_tecnici where id = ' + q(progettoId));
-      if (fr !== 'sopralluogo_toli' || !/^come_esistente\|fonte_rei_/.test(f2)) KO('2: fonte del rilievo ' + fr + ', fonte di rei ' + f2 + ' ' + await toastTesto(r));
-      else righe.push('2. fonte del rilievo ' + fr + ', Resistenza al fuoco: ' + f2);
+      if (fr !== '' || !/^come_esistente\|fonte_rei_/.test(f2)) KO('2: fonte del rilievo ' + fr + ', fonte di rei ' + f2 + ' ' + await toastTesto(r));
+      else righe.push('2. fonte del rilievo ancora vuota (il rappresentante non la sceglie), Resistenza al fuoco: ' + f2);
       await r.page.evaluate(() => { if (schedaRilievoAperta) { schedaRilievoAperta.modificata = false; schedaRilievoAperta.bozze = {}; } closeM('m-rilievo-tecnico'); });
       r.stato.dialoghi = [];
       await r.page.evaluate(async id => { await inviaProgettoAUfficioTecnico(id); }, progettoId);
       await attendiQuiete(r.stato, 1500);
-      if (statoProgetto() !== 'in_verifica_tecnica') KO('2: con la foto della targhetta il progetto non si invia: ' + statoProgetto() + ' ' + testoDialoghi(r));
-      else righe.push('   con la foto della targhetta "🔧 Invia a ufficio tecnico" invia (in_verifica_tecnica)');
+      const frInvio = psql('select coalesce(fonte_rilievo, \'\') from public.progetti_tecnici where id = ' + q(progettoId));
+      if (statoProgetto() !== 'in_verifica_tecnica' || frInvio !== 'sopralluogo_toli') KO('2: con la foto della targhetta il progetto non si invia: ' + statoProgetto() + ', fonte ' + frInvio + ' ' + testoDialoghi(r));
+      else righe.push('   con la foto della targhetta "🔧 Invia a ufficio tecnico" invia (in_verifica_tecnica), fonte del rilievo messa da sola: ' + frInvio);
       psql("update public.progetti_tecnici set stato = 'bozza' where id = " + q(progettoId));
 
       // 3. Console: ruoli e fonti non ammessi --------------------------------
@@ -446,6 +463,17 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
       }, progettoId);
       if (!/rifiutato: .*solo l.ingegnere/.test(c3)) KO('3: console del rappresentante, "ingegnere TOLI": ' + c3);
       else righe.push('3. console del rappresentante, fonte "ingegnere TOLI": ' + c3);
+      // sql/259: invio diretto dalla console senza fonte del rilievo (fonte del dato a posto)
+      const con259 = psql("select coalesce((select prosrc like '%sql/259%' from pg_proc where oid = to_regprocedure('public.trg_progetti_tecnici_fonti()')), false)") === 't';
+      psql('update public.progetti_tecnici set fonte_rilievo = null where id = ' + q(progettoId));
+      const c259 = await r.page.evaluate(async id => {
+        const x = await db.from('progetti_tecnici').update({ stato: 'in_verifica_tecnica' }).eq('id', id).select('id');
+        return x.error ? 'rifiutato: ' + x.error.message : 'RIUSCITO (' + (x.data || []).length + ')';
+      }, progettoId);
+      const fr259 = psql('select coalesce(fonte_rilievo, \'\') from public.progetti_tecnici where id = ' + q(progettoId));
+      if (con259 ? (!/RIUSCITO \(1\)/.test(c259) || fr259 !== 'sopralluogo_toli') : !/indica la fonte del rilievo/.test(c259)) KO('3: console del rappresentante, invio senza fonte del rilievo: ' + c259 + ', fonte ' + fr259);
+      else righe.push('   console del rappresentante, invio senza fonte del rilievo: ' + c259 + (con259 ? ', fonte dal database: ' + fr259 : ' (senza sql/259 il database blocca: per questo la mette il sito)'));
+      psql("update public.progetti_tecnici set stato = 'bozza', fonte_rilievo = 'sopralluogo_toli' where id = " + q(progettoId));
       await chiudi(r);
 
       const c = await apriSito(browser, url); sessioni.push(c);
@@ -494,6 +522,12 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
     // 5. PDF del preventivo per il cliente --------------------------------------
     const p = await apriSito(browser, url); sessioni.push(p);
     await login(p, tit);
+    await p.page.evaluate(async id => { await apriProgettoDaElenco(id); }, progettoId);
+    await attendiQuiete(p.stato, 800);
+    const boxTit = await p.page.evaluate(() => { const b = document.getElementById('mp-fonte-rilievo-box'); return b ? getComputedStyle(b).display : 'assente'; });
+    if (SENZA ? boxTit !== 'none' : boxTit === 'none') KO('titolare: campo "Fonte del rilievo" nella finestra del progetto ' + boxTit);
+    else righe.push('   titolare: campo "Fonte del rilievo" nella finestra del progetto ' + (SENZA ? 'nascosto (senza sql/79)' : 'visibile'));
+    await p.page.evaluate(() => closeM('m-progetto'));
     const pdfTesto = async fonte => {
       if (!SENZA) psql('update public.progetti_tecnici set fonte_rilievo = ' + (fonte ? q(fonte) : 'null') + ' where id = ' + q(progettoId));
       return p.page.evaluate(async id => {
@@ -518,7 +552,7 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
 
     for (const s of sessioni) {
       if (s.stato.erroriJs.length) KO('errori JavaScript: ' + s.stato.erroriJs.join(' | '));
-      const rete = s.stato.rete.filter(x => (x.status >= 500 || /does not exist|Could not find/i.test(x.msg) && !/schede_migrate_motore/.test(x.msg) /* F15.6: 404 voluto senza sql/80 */) &&
+      const rete = s.stato.rete.filter(x => (x.status >= 500 || /does not exist|Could not find/i.test(x.msg) && !/schede_migrate_motore|invio_dopo_visita_attivo|sconto_rappresentante_attivo/.test(x.msg) /* F15.6 e F15.15: 404 voluti senza sql/80 e sql/85 */) &&
         !(SENZA && (/fonti_dati_attive/.test(x.dove) || /fonte_rilievo/.test(x.msg))));
       if (rete.length) KO('errori del database: ' + rete.map(x => x.metodo + ' ' + x.dove + ' ' + x.status + ' ' + x.msg).join(' | '));
     }

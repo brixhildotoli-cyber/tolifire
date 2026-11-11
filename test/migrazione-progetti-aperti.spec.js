@@ -290,7 +290,7 @@ async function elencoDaPreventivare(browser, url, utente, nome) {
     });
     await s.page.screenshot({ path: path.join(CARTELLA_OUT, nome + '.png'), fullPage: true });
     out.erroriJs = s.stato.erroriJs.slice();
-    out.rete = s.stato.rete.filter(x => x.status >= 500 || /does not exist|Could not find/i.test(x.msg));
+    out.rete = s.stato.rete.filter(x => (x.status >= 500 || /does not exist|Could not find/i.test(x.msg)) && !/invio_dopo_visita_attivo|sconto_rappresentante_attivo/.test(x.dove + x.msg) /* F15.15 e sql/258: 404 voluti senza sql/85 e 258 */);
     return out;
   } finally { await chiudi(s); }
 }

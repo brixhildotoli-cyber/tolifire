@@ -3126,7 +3126,7 @@
       </p>
 
       <ul>
-        <li>Apri il progetto, tab <b>📝 Rilievi tecnici</b>: sotto ogni scheda trovi le posizioni.</li>
+        <li>Apri il progetto, tab <b>📝 Rilievi tecnici</b>: sotto ogni scheda già salvata (le schede nuove le compila l'ingegnere, sezione 26) trovi le posizioni.</li>
         <li>Con il progetto <b>in bozza</b> o <b>da integrare</b> puoi scriverle tu: <b>+ Aggiungi posizione</b>, compili <b>Ubicazione</b>, <b>Quantità</b>, <b>Larghezza</b> e <b>Altezza</b> (cm), <b>💾 Salva posizione</b>.</li>
         <li><b>⧉ Duplica</b> crea le copie uguali (da 1 a 50): poi apri con <b>✏️ Modifica</b> solo quella diversa.</li>
         <li><b>📷 Aggiungi foto</b> (dopo il primo salvataggio): foto con il metro, finiscono anche tra i file del progetto.</li>
@@ -3142,151 +3142,94 @@
       </div>
 
 
-      <h4 id="info-rap-26">26. 📝 Compilare tu la scheda di rilievo dal telefono</h4>
+      <h4 id="info-rap-26">26. 📝 Le schede di rilievo: le compila l'ingegnere</h4>
 
       <p>
-        Dal cliente, con il telefono, compili tu la scheda della lavorazione (per esempio <b>Porte e portoni REI</b>): menu chiusi, unità già scritte accanto ai numeri (cm, mm, pz), luogo dei lavori e referente già presi dalla scheda del cliente. L'ingegnere la trova pronta.
+        Il tuo progetto tecnico è quello di sempre: <b>titolo</b>, <b>tipologia</b>, <b>descrizione</b> (obbligatoria) e almeno un <b>allegato</b> (foto del sopralluogo, planimetria, documento del cliente). Poi lo mandi all'ingegnere o ad Acquisti con i due bottoni (vedi la sezione 33). Le schede di rilievo per lavorazione (porte REI, estintori, compartimentazione...) le compila l'ingegnere.
       </p>
 
       <ul>
-        <li>Apri il progetto (in <b>bozza</b> o <b>da integrare</b>), tab <b>📝 Rilievi tecnici</b>: in cima c'è <b>📝 Compila una scheda di rilievo</b>. Scegli la <b>Lavorazione</b> e premi <b>📝 Compila la scheda</b>.</li>
-        <li><b>Tipo di richiesta</b>: <b>Definitiva</b> se hai misurato e verificato tutto; <b>Indicativa</b> se il cliente non conosce ancora alcuni dati. Solo nell'indicativa puoi scegliere <b>❓ Non noto</b> (nei menu) o spuntare <b>❓ Non noto</b> accanto a un numero.</li>
-        <li><b>Luogo dei lavori e referente</b>: sede, indirizzo, referente e telefono arrivano dalla scheda del cliente; se sul posto è diverso, correggili.</li>
-        <li>I dati con <b>*</b> servono a calcolare il preventivo: compilali sempre. Gli altri sono facoltativi. I campi con <b>🎓</b> li compila l'ingegnere: tu li vedi e basta.</li>
-        <li>Numeri con la virgola (92,5). <b>💾 Salva scheda</b> salva; la scheda resta aperta e puoi aggiungere le <b>📍 Posizioni</b> o una <b>+ Nuova scheda</b> (per esempio una per piano), come le tab di un file Excel.</li>
-        <li>Quando il progetto passa all'ingegnere la scheda non la modifichi più: la vedi nel tab <b>📝 Rilievi tecnici</b>.</li>
+        <li>Nella scheda del progetto, tab <b>📝 Rilievi tecnici</b>, NON trovi più <b>📝 Compila una scheda di rilievo</b> né <b>📋 Blocco comune</b>: scrivi tutto quello che sai nella <b>descrizione</b> del progetto (cosa chiede il cliente, quante porte, misure indicative, piano, accessi, orari, chi decide) e carica le foto.</li>
+        <li>Le schede già salvate (anche quelle che avevi compilato tu prima) restano nel tab <b>📝 Rilievi tecnici</b>: le leggi, senza modificarle.</li>
+        <li>Ingegnere e titolare continuano a compilare e correggere le schede come prima.</li>
       </ul>
 
       <div class="info-esempio">
-        <b>Esempio</b><br>Due porte REI 60 al piano terra: <b>Lavorazione</b> Porte e portoni REI → <b>📝 Compila la scheda</b> → Tipo di intervento "Fornitura e posa", Resistenza "REI 60", Tipologia "Battente singolo", Quantità 2, Larghezza 90 cm, Altezza 210 cm → <b>💾 Salva scheda</b>. Il cliente non sa il verso di apertura? Scegli <b>Indicativa</b> e nel menu <b>❓ Non noto</b>.
+        <b>Esempio</b><br>Due porte REI 60 al piano terra: <b>+ Nuovo progetto</b>, Titolo "Porte REI piano terra", Tipologia "Porte REI", Descrizione "2 porte REI 60 battente singolo circa 90 × 210, sostituzione delle esistenti, accesso dal cortile 8-17", allega le 2 foto delle porte e salva. Poi <b>🔧 Invia a ufficio tecnico</b>.
       </div>
 
-      <div class="al2 w">
-        Se dopo il salvataggio compare "Per il preventivo mancano: ...", la scheda è salvata ma quei dati vanno completati. Finché il database non è aggiornato (sql/77) il riquadro <b>📝 Compila una scheda di rilievo</b> non compare e le schede le compila l'ingegnere, come prima.
-      </div>
-
-
-      <h4 id="info-rap-27">27. 📏 Misure che non tornano e campi dell'ingegnere: cosa ti ferma</h4>
+      <h4 id="info-rap-27">27. 📏 Misure delle posizioni P-xx e campi dell'ingegnere</h4>
 
       <p>
-        Quando salvi una scheda di rilievo o una posizione, il gestionale controlla le misure che hai scritto e ti ferma se qualcosa non è plausibile, così l'ingegnere e Acquisti non lavorano su un dato sbagliato.
+        Nelle schede già salvate del tuo progetto in bozza o da integrare puoi ancora correggere le <b>📍 Posizioni</b> (sezione 25). Quando salvi una posizione il gestionale controlla le misure e ti ferma se qualcosa non è plausibile.
       </p>
 
       <ul>
-        <li><b>Misure fuori dal plausibile</b>: ogni numero ha un minimo e un massimo nel catalogo (per una porta REI larghezza e altezza da 60 a 300 cm, quantità da 1 a 500 pz). Fuori da lì <b>💾 Salva scheda</b> non salva e ti dice quale dato ricontrollare.</li>
-        <li><b>m² e misure</b>: se una scheda chiede i m², devono tornare con larghezza × altezza (di un pezzo o di tutta la quantità), con un margine del 10%.</li>
-        <li><b>Campi 🎓</b> (per esempio "Indicazioni per preventivo e posa", "Note interne per il calcolo"): li scrive solo l'ingegnere. Tu li vedi; quello che ha scritto lui resta anche quando salvi.</li>
-        <li>Solo i dati con <b>*</b> servono a calcolare il preventivo e vanno compilati; tutti gli altri sono facoltativi.</li>
+        <li><b>Misure fuori dal plausibile</b>: per una porta REI larghezza e altezza da 60 a 300 cm, quantità da 1 a 500 pz. Fuori da lì la posizione non si salva e il gestionale ti dice quale dato ricontrollare.</li>
+        <li><b>Campi 🎓</b>: li scrive solo l'ingegnere. Tu li vedi; quello che ha scritto lui resta.</li>
         <li>Le misure già salvate prima non ti bloccano: si controlla solo quello che cambi.</li>
       </ul>
 
-      <div class="info-esempio">
-        <b>Esempio</b><br>Scrivi Larghezza "1000" invece di "100": premendo <b>💾 Salva scheda</b> compare "Larghezza: 1000 cm è fuori dal plausibile (60-300 cm)". Correggi in 100 e salva. Se la porta è davvero più grande (un portone), scrivilo nelle note e chiedi all'ingegnere: lui può salvare anche misure fuori dal plausibile.
-      </div>
-
       <div class="al2 w">
-        Le stesse regole le applica anche il database (aggiornamento sql/78): non si aggirano. Finché il database non è aggiornato le controlla solo il sito.
+        Le stesse regole le applica anche il database (aggiornamento sql/78): non si aggirano.
       </div>
 
 
-      <h4 id="info-rap-28">28. 📜 Da dove vengono le misure e i dati di legge: la fonte</h4>
+      <h4 id="info-rap-28">28. 📜 Da dove vengono le misure: la mette il gestionale</h4>
 
       <p>
-        Prima di inviare un progetto devi dire da dove vengono le misure (la <b>fonte del rilievo</b>) e, per ogni dato di legge che hai scritto (classe REI/EI, classe R, minuti, reazione al fuoco, ATEX...), da dove viene quel dato (la <b>fonte del dato</b>). Il gestionale non decide quale classe serve: registra chi l'ha detta e con quale prova. Senza fonte il dato non vale e il progetto non si invia.
+        Non devi più scegliere la <b>fonte del rilievo</b>: nella finestra del progetto il campo non c'è. Quando invii il progetto il gestionale scrive da solo <b>Sopralluogo TOLI</b>. Se le misure vengono invece dai documenti del cliente o sono dichiarate dal cliente, scrivilo nella <b>descrizione</b>: l'ingegnere o il titolare cambiano la fonte.
       </p>
 
       <ul>
-        <li><b>Fonte del rilievo</b>: in <b>Modifica</b> del progetto o in cima alla scheda di rilievo. <b>Sopralluogo TOLI</b> (hai misurato tu), <b>Documenti del cliente</b> (planimetrie, progetto), <b>Misure dichiarate dal cliente</b> (non sei andato a misurare: foto e video non obbligatori, e nel preventivo per il cliente comparirà da sola la frase "Misure fornite dal committente, da verificare prima dell'ordine").</li>
-        <li><b>📜 Fonte del dato</b>: sotto ogni dato di legge della scheda. <b>Documento del cliente o del progettista</b> → carica il documento con <b>📎 Carica</b> (o sceglilo tra i file del progetto); <b>Come l'esistente</b> → con <b>📎 Foto</b> scatta la foto della targhetta della porta o del prodotto esistente; <b>Dichiarato dal cliente per iscritto</b> → <b>📄 Modulo da far firmare</b> scarica il modulo con i dati, il cliente lo firma (o risponde per email "confermo") e tu lo carichi con <b>📎 Carica</b>.</li>
-        <li><b>Definito dall'ingegnere TOLI</b> lo sceglie solo l'ingegnere, quando il lavoro comprende la progettazione.</li>
-        <li>Se cambi il dato dopo aver dato la fonte (per esempio da REI 60 a REI 120) la fonte non vale più: compare "Il dato è cambiato dopo la fonte" con <b>✓ Vale per il dato nuovo</b>, oppure scegli un'altra fonte.</li>
-        <li>Un dato vuoto o <b>❓ Non noto</b> non chiede la fonte. Ricordati di premere <b>💾 Salva scheda</b>: la fonte si salva con la scheda.</li>
-        <li><b>🔧 Invia a ufficio tecnico</b> e <b>📤 Invia ad Acquisti</b> ti elencano cosa manca, scheda per scheda.</li>
+        <li>Resta il controllo dei <b>dati di legge</b> (classe REI/EI, classe R, minuti, reazione al fuoco, ATEX...) nelle schede già salvate: se un dato compilato non ha la sua fonte, all'invio il gestionale ti elenca cosa manca e il progetto resta in bozza. In quel caso chiedi all'ingegnere (o al titolare) di indicare la fonte nella scheda.</li>
+        <li>Un progetto senza schede non chiede nessuna fonte.</li>
       </ul>
 
-      <div class="info-esempio">
-        <b>Esempio</b><br>Il cliente vuole una porta uguale a quella che c'è, REI 60. Nella scheda Porte e portoni REI scegli Resistenza "REI 60", sotto in <b>📜 Fonte del dato</b> scegli <b>Come l'esistente (foto della targhetta)</b>, premi <b>📎 Foto</b> e fotografa la targhetta sul battente, poi <b>💾 Salva scheda</b>. Senza la foto, all'invio compare "Resistenza al fuoco richiesta: manca la foto della targhetta" e il progetto resta in bozza.
-      </div>
-
       <div class="al2 w">
-        Il blocco lo applica anche il database (aggiornamento sql/79): non si aggira. Finché il database non è aggiornato le fonti non compaiono e il progetto si invia come prima.
+        Prima dell'aggiornamento del database sql/259 la fonte <b>Sopralluogo TOLI</b> la mette il sito appena premi il bottone di invio; dopo la mette il database. Il risultato è lo stesso.
       </div>
 
-      <h4 id="info-rap-29">29. 📋 Blocco comune e invio: cosa ferma il progetto e cosa no</h4>
+      <h4 id="info-rap-29">29. 📤 Invio del progetto: cosa serve</h4>
 
       <p>
-        Alla visita, in cima al tab <b>📝 Rilievi tecnici</b> del progetto trovi il riquadro <b>📋 Blocco comune</b>: sono le 6 domande del primo contatto, una volta per progetto, qualunque lavorazione sia. Premi <b>📋 Compila il blocco comune</b> (dopo: <b>✏️ Modifica il blocco comune</b>), scrivi quello che sai e premi <b>💾 Salva scheda</b>.
+        Per inviare il progetto servono solo: <b>titolo</b>, <b>tipologia</b>, <b>descrizione</b> e almeno un <b>allegato</b> (foto, PDF, planimetria). Poi premi <b>🔧 Invia a ufficio tecnico</b> (all'ingegnere) o <b>📤 Invia ad Acquisti</b>.
       </p>
 
       <ul>
-        <li><b>Referente in cantiere e telefono</b>: chi vi apre e vi segue sul posto (proposto dalla scheda del cliente, modificabile).</li>
-        <li><b>Chi decide</b>: a chi va presentato il preventivo (nome e ruolo).</li>
-        <li><b>Perché si fa il lavoro</b>: si sceglie dalla lista (prescrizione dei Vigili del Fuoco, SCIA o progetto antincendio, verbale ASL, assicurazione, valutazione dei rischi, verifica periodica, altro documento) oppure <b>Richiesta spontanea del cliente</b>. Se c'è un documento scrivi numero, data ed ente.</li>
-        <li><b>Entro quando</b>: la data (anche la scadenza della SCIA del cliente) e, dalla lista, perché entro quella data.</li>
-        <li><b>Accessi</b> (badge, chiavi, mezzi, permessi) e <b>orari</b> in cui si può lavorare.</li>
-        <li>Sono tutte <b>facoltative</b>: non fermano l'invio. Quando il preventivo è accettato e nasce la commessa, referente, telefono, accessi e orari vanno da soli nella scheda del cantiere (poi si cambiano lì).</li>
+        <li>Senza allegato il gestionale non invia: "Non puoi inviare un progetto senza almeno un allegato".</li>
+        <li>Se il progetto ha già delle schede salvate, all'invio il gestionale controlla ancora i dati che servono al prezzo, le fonti dei dati di legge e le foto di quelle schede, e ti elenca cosa manca: in quel caso chiedi all'ingegnere.</li>
+        <li>Un progetto senza schede parte con i soli titolo, tipologia, descrizione e allegati, come prima.</li>
       </ul>
 
+      <div class="info-esempio">
+        <b>Esempio</b><br>Sostituzione di 6 estintori: Titolo "Estintori magazzino", Tipologia "Estintori", Descrizione "6 estintori a polvere 6 kg scaduti, piano terra e soppalco", allega 2 foto, <b>Salva</b>, poi <b>📤 Invia ad Acquisti</b> e conferma.
+      </div>
+
+
+      <h4 id="info-rap-30">30. 📷 Foto e video del progetto</h4>
+
       <p>
-        Quando premi <b>🔧 Invia a ufficio tecnico</b> o <b>📤 Invia ad Acquisti</b> il gestionale controlla SOLO i dati che servono a calcolare il preventivo (quelli con la <b>*</b> rossa nelle schede). Il progetto non parte se uno di questi è:
+        Le foto le carichi nella finestra del progetto (<b>+ Nuovo progetto</b> o <b>Modifica</b>), campo degli allegati: dal telefono si apre la fotocamera.
       </p>
 
       <ul>
-        <li><b>vuoto</b> (se le misure le hai scritte in tutte le posizioni P-xx della scheda, vanno bene lì);</li>
-        <li><b>❓ Non noto</b> in una richiesta <b>Definitiva</b> (nella richiesta <b>Indicativa</b> il "non noto" è ammesso);</li>
-        <li>scritto o scelto come <b>"da verificare"</b>, <b>"da definire"</b>, con un <b>"?"</b> o con <b>"xx"</b> (anche nei menu: per esempio "Classe superiore / da definire" per la resistenza al fuoco).</li>
+        <li>Le foto grandi si rimpiccioliscono da sole. PDF, planimetrie e DWG fino a 10 MB.</li>
+        <li>Video mp4 o mov fino a <b>50 MB</b> (registra in 720p, massimo 2 minuti), se il database è aggiornato (sql/82-foto-video).</li>
+        <li><b>La stessa foto non vale due volte</b>: se scegli di nuovo un file già tra quelli del progetto il gestionale lo salta e te lo dice.</li>
+        <li>Le foto richieste dalle schede di rilievo (foto d'insieme, video del luogo) le gestisce l'ingegnere nelle sue schede.</li>
       </ul>
-
-      <p>
-        Il gestionale ti elenca scheda per scheda cosa completare. Un dato <b>facoltativo</b> vuoto, o con scritto "da verificare", non ferma niente.
-      </p>
-
-      <div class="info-esempio">
-        <b>Esempio</b><br>Nella scheda Porte e portoni REI hai scritto larghezza 90, altezza 210, ma nel campo Quantità hai messo "xx" perché il cliente doveva contarle. Premi <b>📤 Invia ad Acquisti</b>: compare "Porte e portoni REI – Quantità: c'è «xx»: scrivi il dato preciso". Chiami il cliente, scrivi 4, <b>💾 Salva scheda</b> e invii. Se il cliente non lo sa proprio, scegli <b>Tipo di richiesta: Indicativa</b> e segna la quantità <b>❓ Non noto</b>.
-      </div>
-
-      <div class="al2 w">
-        Il blocco dei dati del prezzo lo applica il sito da subito e, con l'aggiornamento del database sql/82, anche il database (non si aggira). Il riquadro <b>📋 Blocco comune</b> compare solo dopo l'aggiornamento sql/82.
-      </div>
-
-
-      <h4 id="info-rap-30">30. 📷 Foto e video della scheda: quante, il video e "non fotografabile"</h4>
-
-      <p>
-        In fondo alla scheda di rilievo (<b>📝 Rilievi tecnici</b> → <b>📝 Compila la scheda</b>) c'è il riquadro <b>📷 Foto e video</b>: sono le foto e i video che il catalogo chiede per quella lavorazione (per partire: <b>2 foto d'insieme</b> del luogo dei lavori in ogni scheda e <b>1 video</b> per porte REI, compartimentazione, vernice intumescente, rilevazione incendi e spegnimento). Accanto a ognuno vedi quanti ne hai (<b>1 di 2</b>) e cosa manca.
-      </p>
-
-      <ul>
-        <li><b>📷 Scatta o scegli le foto</b>: dal telefono si apre la fotocamera. Le foto grandi si rimpiccioliscono da sole, non serve fare niente.</li>
-        <li><b>🎥 Registra o scegli il video</b>: mp4 o mov fino a <b>50 MB</b>. <b>Registra in 720p, massimo 2 minuti</b> (sull'iPhone: Impostazioni → Fotocamera → Registra video → 720p). Un video di 40 MB si carica, oltre 50 MB no.</li>
-        <li>I file vanno subito tra i file del progetto, ma restano legati alla scheda solo quando premi <b>💾 Salva scheda</b>. <b>✖</b> toglie il file dalla voce (resta tra i file del progetto), <b>👁 Apri</b> lo guarda.</li>
-        <li><b>La stessa foto non vale due volte</b>: il gestionale riconosce il file (anche se lo scegli di nuovo dalla galleria) e lo rifiuta se è già nel progetto, in un'altra voce o in un'altra posizione P-xx. Ogni porta, ogni attraversamento ha la sua foto.</li>
-        <li>Se la foto o il video non si possono fare, scegli il motivo in <b>🚫 Non fotografabile</b> / <b>🚫 Video impossibile</b>: il cliente non autorizza, area riservata, punto non raggiungibile in sicurezza, opera ancora da realizzare, nessun sopralluogo (rilievo dai documenti), oppure <b>Altro</b> scrivendo il motivo nella nota.</li>
-        <li>Con la fonte del rilievo <b>Misure dichiarate dal cliente</b> foto e video non sono obbligatori.</li>
-      </ul>
-
-      <p>
-        Quando premi <b>🔧 Invia a ufficio tecnico</b> o <b>📤 Invia ad Acquisti</b>, se manca una foto o il video (e non c'è il motivo) il gestionale ti elenca cosa manca, scheda per scheda, e il progetto non parte.
-      </p>
-
-      <div class="info-esempio">
-        <b>Esempio</b><br>Sopralluogo per 4 porte REI in un'azienda alimentare: fai le 2 foto d'insieme del corridoio con <b>📷 Scatta o scegli le foto</b>, ma nel reparto produzione non si può filmare. Nel video scegli <b>🚫 Video impossibile: Area riservata</b> e scrivi "reparto produzione, vietato filmare". <b>💾 Salva scheda</b> e <b>📤 Invia ad Acquisti</b>: parte. Se per sbaglio scegli due volte la stessa foto dalla galleria, il gestionale ti dice "è già tra i file del progetto".
-      </div>
-
-      <div class="al2 w">
-        Il riquadro, il controllo delle foto doppie e i video compaiono dopo l'aggiornamento del database sql/82-foto-video. Prima tutto resta come oggi (foto e PDF fino a 10 MB).
-      </div>
 
       <h4 id="info-rap-31">31. 📴 Senza rete: app installata e cose da inviare</h4>
 
       <p>
-        Il gestionale si installa sul telefono come un'app e funziona anche senza campo per il lavoro che fai dal cliente: la <b>scheda di rilievo</b> con le sue <b>foto</b>. Quello che salvi senza rete resta sul telefono e parte da solo appena torna la rete.
+        Il gestionale si installa sul telefono come un'app e funziona anche senza campo per il lavoro che fai dal cliente: le <b>posizioni P-xx</b> delle schede già salvate. Quello che salvi senza rete resta sul telefono e parte da solo appena torna la rete.
       </p>
 
       <ul>
         <li><b>Installa l'app</b> sul telefono: su <b>iPhone</b> in Safari tocca <b>Condividi</b> ⬆️ → <b>Aggiungi alla schermata Home</b> e apri Toli Fire dall'icona (al primo accesso da Safari il gestionale te lo ricorda: <b>Ho capito</b>); su <b>Android</b> in Chrome menu ⋮ → <b>Installa app</b> (o <b>Aggiungi a schermata Home</b>).</li>
         <li>Senza campo (modalità aereo, cantiere interrato) il gestionale si apre lo stesso, se sul telefono avevi già fatto l'accesso: in cima compare la barra gialla <b>📴 Senza rete</b> e quello che hai già aperto si vede com'era l'ultima volta. Le pagine mai aperte restano vuote finché non torna la rete.</li>
-        <li>Nella scheda di rilievo (<b>📝 Compila una scheda di rilievo</b>) senza rete puoi caricare le foto e i video del riquadro <b>📷 Foto e video</b> e i file della <b>📜 Fonte del dato</b>, e premere <b>💾 Salva scheda</b>: tutto resta sul telefono. Sul tab della scheda compare <b>📤</b> e in cima <b>📤 Salvata sul telefono, non ancora inviata</b>; chiudendo e riaprendo la scheda i dati ci sono.</li>
+        <li>Senza rete si salvano sul telefono le <b>posizioni P-xx</b> delle schede già salvate (le schede di rilievo e le loro foto le compila l'ingegnere): partono da sole appena torna la rete.</li>
         <li>Quando torna la rete parte tutto da solo, nell'ordine giusto (prima le foto, poi la scheda che le usa) e <b>una volta sola</b>: ogni scheda e ogni foto ha un codice nato sul telefono, se l'invio si interrompe e riparte non si creano doppioni. Arriva il messaggio <b>📤 Inviate N cose salvate sul telefono</b>.</li>
         <li>Senza rete si salvano anche le <b>posizioni P-xx</b> (<b>💾 Salva</b> della posizione: nell'elenco <b>📤 Nuova (da inviare)</b>, il codice P-xx arriva con la rete), ma NON le loro foto, i file della finestra del progetto, l'invio del progetto e il resto del gestionale: il gestionale lo dice ("senza rete qui non si carica"). Falli quando torna il campo.</li>
         <li>Nel menu, accanto alla campanella, <b>📴</b> vuol dire senza rete; <b>📤</b> con un numero = cose salvate sul telefono e <b>non ancora inviate</b>. Toccandolo si apre <b>📤 Salvato sul telefono, da inviare</b>: ogni riga dice cosa è e quando l'hai salvata (<b>⏳ Non ancora inviato</b>). Quando torna la rete partono da sole (non serve tenere aperta la finestra); <b>📤 Invia ora</b> le manda subito.</li>
@@ -3295,7 +3238,7 @@
       </ul>
 
       <div class="info-esempio">
-        <b>Esempio</b><br>Sei nel locale tecnico interrato senza campo: apri la porta REI, scatti 3 foto in <b>📷 Foto e video</b>, scrivi le misure e premi <b>💾 Salva scheda</b>. Nel menu vedi <b>📴 4</b>. Risalito in strada il telefono ritrova la rete: compare <b>📤 Inviate 4 cose salvate sul telefono</b> e il 📤 sparisce. Ora puoi inviare il progetto.
+        <b>Esempio</b><br>Sei nel locale tecnico interrato senza campo: nella scheda già salvata correggi la P-03 (larghezza 100) e premi <b>💾 Salva</b>. Nel menu vedi <b>📴 1</b>. Risalito in strada il telefono ritrova la rete: compare <b>posizione arrivata</b> e il 📤 sparisce. Ora puoi inviare il progetto.
       </div>
 
       <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
@@ -3309,7 +3252,7 @@
       </p>
 
       <ul>
-        <li>Prima di partire, con la rete, apri il progetto e il tab <b>📝 Rilievi tecnici</b> (e la scheda che compilerai): così è sul telefono con i menu del catalogo.</li>
+        <li>Prima di partire, con la rete, apri il progetto e il tab <b>📝 Rilievi tecnici</b>: così è sul telefono con i menu del catalogo.</li>
         <li>Senza rete (barra gialla <b>📴 Senza rete</b>) apri il progetto dalla pagina <b>Progetti</b> come sempre: lo vedi com'era l'ultima volta che l'hai aperto con la rete.</li>
         <li>Nel riquadro <b>📍 Posizioni</b> premi <b>+ Aggiungi posizione</b>: ubicazione, quantità, misure e i menu della lavorazione funzionano come con la rete. <b>💾 Salva</b> la tiene sul telefono: nell'elenco compare <b>📤 Nuova (da inviare)</b> e nel menu <b>📴</b> con il numero.</li>
         <li>Quando torna la rete parte da sola: arriva il messaggio <b>posizione arrivata come P-07</b> e nell'elenco compare il codice vero. Il codice P-xx lo dà sempre il gestionale, mai il telefono: due colleghi senza rete non prendono lo stesso numero.</li>
@@ -3323,25 +3266,20 @@
 
       <div class="al2 w">Il progetto si invia solo con la rete e quando nel menu non c'è più 📤: prima devono arrivare schede, foto e posizioni.</div>
 
-      <h4 id="info-rap-33">33. 🚦 Invii un progetto: decide il gestionale chi lo prepara</h4>
+      <h4 id="info-rap-33">33. 🔧 / 📤 Due modi di inviare il progetto: scegli tu</h4>
 
       <p>
-        Quando il titolare ha acceso le <b>regole di smistamento</b>, nelle pagine <b>Progetti</b> e nella scheda cliente non ci sono più <b>🔧 Invia a ufficio tecnico</b> e <b>📤 Invia ad Acquisti</b>: c'è un solo bottone, <b>📤 Invia il progetto</b>. Il gestionale guarda ogni scheda di rilievo e decide dove va.
+        Dalla pagina <b>Progetti</b> o dalla scheda cliente il progetto in bozza o da integrare ha due bottoni, come prima:
       </p>
 
       <ul>
-        <li>Premi <b>📤 Invia il progetto</b>: prima ti controlla fonti, dati del prezzo e foto come sempre, poi ti mostra <b>dove va ogni scheda e perché</b>: 🟢 ad Acquisti (preventivo subito) oppure 🟡 all'ingegnere (per esempio "Vernice intumescente: spessori a calcolo interno"). Confermi con <b>OK</b>.</li>
-        <li>Se tutte le schede sono verdi il progetto va ad Acquisti come prima. Se ce n'è almeno una gialla il progetto è <b>In verifica tecnica</b>, ma le schede verdi Acquisti le prepara già: il <b>preventivo resta uno solo</b>.</li>
-        <li><b>Lavoro grande</b>: sopra la soglia (30.000 € di importo stimato) tutto il progetto va all'ingegnere da solo. Nella finestra del progetto, sotto <b>Importo stimato</b>, lo leggi già mentre scrivi.</li>
-        <li>Un progetto senza schede di rilievo va all'ingegnere: le compila lui.</li>
-        <li>Se l'ingegnere o Acquisti ti rimandano il progetto (da integrare), al nuovo invio lo smistamento si rifà da capo.</li>
+        <li><b>🔧 Invia a ufficio tecnico</b>: va all'ingegnere (lavori grandi, dubbi tecnici, classi di resistenza da definire). L'ingegnere compila le schede e poi lo passa ad Acquisti.</li>
+        <li><b>📤 Invia ad Acquisti</b>: lavori semplici, Acquisti prepara subito il preventivo.</li>
+        <li>Sopra la soglia del "lavoro grande" (importo stimato) compare un avviso giallo: valuta l'ingegnere. Decidi tu.</li>
+        <li>Se l'ingegnere o Acquisti ti rimandano il progetto (da integrare), completi e invii di nuovo.</li>
       </ul>
 
-      <div class="info-esempio">
-        <b>Esempio</b><br>Progetto "Magazzino Rossi" con la scheda <b>Porte e portoni REI</b> (3 porte REI 60 a battente singolo, 90 × 210) e la scheda <b>Vernice intumescente</b> (travi R60). Premi <b>📤 Invia il progetto</b>: "🟢 Porte e portoni REI → ad Acquisti", "🟡 Vernice intumescente → all'ingegnere". OK: Acquisti trova le porte in <b>Da preventivare</b>, l'ingegnere la vernice in <b>Verifiche tecniche</b>.
-      </div>
-
-      <div class="al2 w">Non c'è più il modo di scegliere tu: se il gestionale manda all'ingegnere una scheda che secondo te è standard, dillo al titolare (le regole le cambia lui). Il database rifiuta l'invio fatto in un altro modo.</div>
+      <div class="al2 w">Se il titolare riaccende le <b>regole di smistamento</b>, al posto dei due bottoni compare <b>📤 Invia il progetto</b> e decide il gestionale dove va ogni scheda.</div>
 
       <h4 id="info-rap-34">34. 🏷️ Il cliente chiede uno sconto sul preventivo</h4>
 
@@ -5862,7 +5800,7 @@
         <li>Ogni riga: codice o nome della lavorazione (vuoti = quella della riga sopra), famiglia e documento finale, etichetta e codice del campo, tipo (numero, menu, sì/no, testo, foto), unità, valori del menu separati da <b>;</b>, minimo e massimo, chi lo compila, normativo, serve al prezzo, per posizione, <b>uso a valle</b> (obbligatorio), ordine.</li>
         <li><b>📥 Importa da foglio</b> e scegli il file: si apre l'<b>anteprima</b> con quello che nasce e quello che c'è già. Con anche un solo errore (l'anteprima dice la riga e il motivo) non si importa nulla: correggi il foglio e ricaricalo.</li>
         <li><b>📥 Importa</b>: le lavorazioni nuove nascono spente; in quelle già nel catalogo si aggiungono solo i campi nuovi, i campi con lo stesso codice non cambiano. In una lavorazione già <b>attiva</b> i campi nuovi arrivano "tolti", a meno di spuntare "rendi subito visibili".</li>
-        <li>Poi apri la lavorazione nel catalogo, controlla campi e menu e premi <b>✅ Attiva</b>: da quel momento il rappresentante la trova in <b>📝 Compila una scheda di rilievo</b>. Ogni campo importato resta nel <b>📒 Registro delle modifiche</b> con chi l'ha caricato.</li>
+        <li>Poi apri la lavorazione nel catalogo, controlla campi e menu e premi <b>✅ Attiva</b>: da quel momento ingegnere e titolare la trovano in <b>📝 Compila una scheda di rilievo</b> (il rappresentante dall'11/11 non compila le schede). Ogni campo importato resta nel <b>📒 Registro delle modifiche</b> con chi l'ha caricato.</li>
       </ul>
 
       <div class="info-esempio">
@@ -7326,7 +7264,7 @@
 
       <ul>
         <li>La trovi già compilata quando il progetto ti arriva: <b>🚪 Compila porte REI</b> (o la scheda del tipo) nella verifica tecnica, oppure nella scheda progetto, tab <b>📝 Rilievi tecnici</b>.</li>
-        <li>Anche tu puoi usarla: tab <b>📝 Rilievi tecnici</b> → <b>📝 Compila una scheda di rilievo</b> → <b>Lavorazione</b> → <b>📝 Compila la scheda</b>. Per te i campi <b>🎓</b> (livello ingegnere, es. "Indicazioni per preventivo e posa") sono modificabili; per il rappresentante sono in sola lettura.</li>
+        <li>Anche tu puoi usarla: tab <b>📝 Rilievi tecnici</b> → <b>📝 Compila una scheda di rilievo</b> → <b>Lavorazione</b> → <b>📝 Compila la scheda</b>. Per te i campi <b>🎓</b> (livello ingegnere, es. "Indicazioni per preventivo e posa") sono modificabili; il rappresentante dall'11/11 non compila più le schede (le vede in sola lettura nel tab): le schede nuove le compili tu.</li>
         <li><b>Tipo di richiesta</b> <b>Indicativa</b>: alcuni dati possono essere "Non noto (da chiedere al cliente)"; vanno chiariti prima del preventivo definitivo.</li>
         <li>In più trovi <b>Indirizzo dei lavori</b>, <b>Referente sul posto</b> e <b>Telefono del referente</b>, presi dalla scheda del cliente.</li>
         <li>Quale dato è obbligatorio (<b>*</b>, solo quelli che servono al preventivo), quale è di livello ingegnere, unità e minimo/massimo si cambiano dal <b>📚 Catalogo lavorazioni</b>.</li>
@@ -7367,7 +7305,7 @@
       <h4 id="info-ing-22">22. 📜 Fonte del rilievo e fonte dei dati normativi</h4>
 
       <p>
-        Ogni dato di legge di una scheda (i campi segnati <b>📜 normativo</b> nel <b>📚 Catalogo lavorazioni</b>: classe REI/EI, classe R, minuti, reazione al fuoco, ATEX...) ha la sua fonte, e il progetto ha la sua <b>fonte del rilievo</b>. Il gestionale non calcola i requisiti: registra da dove viene il dato. Senza fonte il rappresentante non invia il progetto.
+        Ogni dato di legge di una scheda (i campi segnati <b>📜 normativo</b> nel <b>📚 Catalogo lavorazioni</b>: classe REI/EI, classe R, minuti, reazione al fuoco, ATEX...) ha la sua fonte, e il progetto ha la sua <b>fonte del rilievo</b>. Il gestionale non calcola i requisiti: registra da dove viene il dato. Una fonte del dato mancante ferma l'invio del progetto; la fonte del rilievo mancante no: all'invio il gestionale scrive <b>Sopralluogo TOLI</b> (sql/259), tu la puoi cambiare.
       </p>
 
       <ul>
