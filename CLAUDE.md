@@ -343,8 +343,8 @@ né cambia le schede gialle) e permissive progetti_tecnici_schede_lettura_
 smistamento e progetti_tecnici_allegati_lettura_smistamento (Acquisti legge
 schede verdi, blocco comune e file del progetto ancora in verifica tecnica).
 progetti_tecnici.stato: valori invariati. Matrice: 20 righe nuove.
-Dopo sql/84 (F15.14 migrazione dei progetti e preventivi aperti, T2, DA
-ESEGUIRE: backup, anteprima in fondo al file con l'elenco a Toli, "CONFERMATO
+Dopo sql/84 (F15.14 migrazione dei progetti e preventivi aperti, T2, ESEGUITO
+l'11/11 dal server MCP (backup pre84, controllo in regola: 1 scheda all'ingegnere, 15 verificate, Da preventivare 3 invariato); era: backup, anteprima in fondo al file con l'elenco a Toli, "CONFERMATO
 DA TOLI: sql/84", file (un solo blocco, senza parole di cancellazione, server
 MCP), controllo in fondo; richiede 83): nessuna tabella, colonna, funzione o
 policy nuova (matrice invariata). Solo dati: progetti_tecnici_schede.
@@ -1738,7 +1738,7 @@ SMISTAMENTO_SENZA_SQL=1 dopo il rollback); matrice TUTTO OK; rollback
 provato (schema identico). Senza sql/83 o con tutte le regole spente: sito
 come prima, nessun errore.
 Dopo sql/84 (F15.14 migrazione dei progetti e preventivi aperti allo
-smistamento automatico, decisione di Toli T2, DA ESEGUIRE; richiede 83, si
+smistamento automatico, decisione di Toli T2, ESEGUITO l'11/11 (backup pre84, controllo in regola); richiede 83, si
 ferma senza): nessuna RPC, nessuna tabella, funzione o policy nuova; NESSUN
 cambio nel sito (js invariati). ORDINE: backup (sql/BACKUP.md), ANTEPRIMA in
 fondo al file (pg_temp.anteprima_84_progetti: un progetto aperto per riga
