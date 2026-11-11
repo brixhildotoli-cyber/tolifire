@@ -2822,6 +2822,28 @@ nota_integrazione come "Richiedi integrazione". In "Da preventivare" (js/17)
 il progetto tornato con un preventivo in bozza compare con "Preventivo n. X
 in bozza" e "🧾 Riprendi preventivo", che apre la bozza.
 
+PDF delle schede tecniche dal preventivo (richiesta di Erika dell'11/11,
+js/71-pdf-schede-tecniche.js, NESSUN SQL; caricato dopo js/70 e prima di
+js/19): nel tab "📝 Rilievi dell’ingegnere" di preventivo-detail (barra
+pvd-pdf-schede sopra pvd-schede-content; renderSchedePreventivo AVVOLTA,
+js/18 non toccato) "📄 Scarica le schede tecniche (PDF)" per Acquisti e
+titolare (informatico compreso); progetto senza schede = "nessuna scheda".
+PDF (jsPDF + autotable, intestazione TOLI FIRE come l'ordine di js/27):
+cliente, progetto, preventivo n., data; ogni scheda con titoloSchedaRilievo,
+dati in tabella con etichettaCampoTecnico/valoreSchedaTecnica (pareti con
+testoPareteCartongesso) nell'ordine del catalogo; posizioni P-xx non tolte
+(ubicazione, quantità, misure, campi per posizione non di livello ingegnere).
+Si scarica e basta: Schede_tecniche_preventivo_<numero>_<cliente>.pdf.
+SCELTE: dati dell'INGEGNERE (scheda.dati), non la copia di Acquisti; fuori
+dal PDF blocco comune, foto/video e campi foto, note_calcolo, note_tecniche e
+ogni campo livello ingegnere del catalogo, fonti_normative, sede_id, note
+delle posizioni. Guide info-com-9, info-tit-3. Prova
+test/pdf-schede-tecniche.spec.js (database locale: Acquisti e titolare,
+porte REI ×2, estintori, compartimentazione con pareti, blocco comune, P-01,
+P-02 e una tolta; testo del PDF con etichette e valori, senza note interne,
+foto, fonti, blocco comune; regole di smistamento spente e rimesse come
+erano); smoke TUTTO OK.
+
 Passo 5, esito del cliente (F4.1, sql/22-esito-preventivo da eseguire):
 il rappresentante (o il titolare) segna il preventivo "Accettato dal
 cliente" (allegato obbligatorio: preventivo firmato o mail di
