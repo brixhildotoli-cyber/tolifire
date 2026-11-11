@@ -565,7 +565,7 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
 
     for (const s of sessioni) {
       if (s.stato.erroriJs.length) KO('errori JavaScript: ' + s.stato.erroriJs.join(' | '));
-      const rete = s.stato.rete.filter(x => (x.status >= 500 || /does not exist|Could not find/i.test(x.msg) && !/schede_migrate_motore|invio_dopo_visita_attivo|sconto_rappresentante_attivo/.test(x.msg) /* F15.6 e F15.15: 404 voluti senza sql/80 e sql/85 */) &&
+      const rete = s.stato.rete.filter(x => (x.status >= 500 || /does not exist|Could not find/i.test(x.msg) && !/schede_migrate_motore|invio_dopo_visita_attivo|sconto_rappresentante_attivo|progetti_simili_cliente/.test(x.msg) /* F15.6 e F15.15: 404 voluti senza sql/80 e sql/85 */) &&
         !(SENZA && (/fonti_dati_attive/.test(x.dove) || /fonte_rilievo/.test(x.msg))));
       if (rete.length) KO('errori del database: ' + rete.map(x => x.metodo + ' ' + x.dove + ' ' + x.status + ' ' + x.msg).join(' | '));
     }

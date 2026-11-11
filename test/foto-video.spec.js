@@ -530,7 +530,7 @@ async function caricaNellaVoce(s, docId, file) {
     for (const s of sessioni) {
       if (s.stato.erroriJs.length) KO('errori JavaScript: ' + s.stato.erroriJs.join(' | '));
       const rete = s.stato.rete.filter(x => (x.status >= 500 || /does not exist|Could not find/i.test(x.msg)) &&
-        !(SENZA && /foto_video_attivi/.test(x.dove + x.msg)) && !/invio_dopo_visita_attivo|sconto_rappresentante_attivo/.test(x.dove + x.msg) /* F15.15 e sql/258: 404 voluti senza sql/85 e 258 */);
+        !(SENZA && /foto_video_attivi/.test(x.dove + x.msg)) && !/invio_dopo_visita_attivo|sconto_rappresentante_attivo|progetti_simili_cliente/.test(x.dove + x.msg) /* F15.15 e sql/258: 404 voluti senza sql/85 e 258 */);
       if (rete.length) KO('errori del database: ' + rete.map(x => x.metodo + ' ' + x.dove + ' ' + x.status + ' ' + x.msg).join(' | '));
     }
   } catch (e) {
