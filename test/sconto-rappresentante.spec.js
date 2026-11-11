@@ -10,7 +10,8 @@
 //     salva (9.500 € sul totale delle voci) e il PDF nuovo ha "Sconto 5%" e
 //     "Imponibile scontato" ma NON la motivazione;
 //  3. Acquisti e segreteria dalla console non leggono la motivazione e non
-//     scontano; il titolare la legge nella scheda del preventivo, Acquisti
+//     scontano; il rappresentante non cambia da console il totale né il PDF
+//     per il cliente (correzioni A, B, C del controllo); il titolare la legge nella scheda del preventivo, Acquisti
 //     nella scheda vede percentuale e totali ma non la motivazione.
 // Con SCONTO_SENZA_SQL=1 (dopo il ROLLBACK di sql/258): nessun riquadro dello
 // sconto, nessun errore.
@@ -395,8 +396,18 @@ async function apriMieiPreventivi(s) {
         catch (e) { diretto = true; }
         if (!diretto && statoDb().startsWith('30')) KO('3: ' + u.ruolo + ' cambia sconto_perc con un update diretto');
       }
+      // 3b. Console del rappresentante (correzioni A, B, C): il totale e il PDF
+      // per il cliente non si cambiano con un update diretto
+      for (const [corpo, cosa] of [[{ totale_imponibile: 1000 }, 'totale 1.000'],
+                                  [{ preventivo_cliente_pdf_generato_il: new Date(Date.now() + 86400000).toISOString() }, 'PDF collegato a mano']]) {
+        let rif = false;
+        try { await rest('/preventivi?id=eq.' + preventivoId, tokenDi(rap), { metodo: 'PATCH', corpo, headers: { Prefer: 'return=representation' } }); }
+        catch (e) { rif = /42501|non si cambia a mano|non si collega a mano/.test(e.message); }
+        if (!rif) KO('3b: il rappresentante dalla console: ' + cosa + ' non rifiutato');
+      }
+      if (!/^5(\.0+)?\|9500(\.00)?$/.test(statoDb())) KO('3b: dopo le prove del rappresentante ' + statoDb());
       if (!/^5(\.0+)?\|/.test(statoDb())) KO('3: lo sconto è cambiato dopo le prove da console: ' + statoDb());
-      righe.push('3. console di Acquisti e segreteria: motivazione illeggibile, sconto rifiutato (RPC e update diretto)');
+      righe.push('3. console di Acquisti e segreteria: motivazione illeggibile, sconto rifiutato (RPC e update diretto); rappresentante: totale e PDF a mano rifiutati');
 
       // 4. Scheda del preventivo: titolare con la motivazione, Acquisti senza
       for (const [u, deve] of [[tit, true], [com, false]]) {

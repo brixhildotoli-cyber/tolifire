@@ -347,7 +347,9 @@ Dopo sql/258 (sconto del rappresentante sul preventivo, decisioni di Erika
 del 10/11, fuori piano; DA ESEGUIRE: pubblicare il sito, backup, anteprima,
 258-sconto-rappresentante.sql (senza parole di cancellazione, server MCP),
 258-...-REGISTRO-CANCELLAZIONI.sql dall'EDITOR, controllo in fondo al file;
-richiede 07, 10, 22, 25, 67, 71): preventivi_sconti (storico degli sconti con
+richiede 07, 10, 22, 25, 44, 67, 71; si ferma se annulla_leggi_riga o
+motore_leggi_riga sono eseguibili da authenticated/anon, come nel container
+di prova: in produzione no): preventivi_sconti (storico degli sconti con
 la MOTIVAZIONE: lettura SOLO titolare/informatico e il rappresentante che
 l'ha scritta, da_id = utente_effettivo(); Acquisti, segreteria e gli altri
 no, nemmeno da console; la scrive solo applica_sconto_preventivo, non si
@@ -1737,7 +1739,12 @@ controllo_sconto_preventivo = AGGANCIO per F16.1 margine 29% e F16.42 sconti
 degli agenti, oggi null), dati_pdf_preventivo_cliente(p_preventivo)
 (preventivo e voci con il prezzo al cliente, senza costi: il rappresentante
 non legge preventivi_voci), registra_pdf_preventivo_cliente(p_preventivo,
-p_path, p_nome) (<id>/cliente/<file>, file nello Storage se c'è). SCELTA
+p_path, p_nome) (correzione C del controllo dell'11/11: solo
+<id>/cliente/<prefisso>....pdf con il prefisso dello sconto attuale,
+prefisso_pdf_sconto_preventivo(numero, sconto_il) = "Preventivo_<n>_sconto_
+<data e ora UTC dello sconto>_", restituito da dati_pdf_preventivo_cliente
+come prefisso_pdf; con lo Storage il file deve esserci e avere created_at >=
+sconto_il; generato_il = data del caricamento; senza sconto rifiutato). SCELTA
 DICHIARATA: con lo sconto preventivi.totale_imponibile È GIÀ SCONTATO
 (totale_prima_sconto = somma delle voci): commessa (sql/26), anticipo
 (sql/24, 25, 46), calcolo e fattura finale (sql/39, 46),
@@ -1746,11 +1753,28 @@ ridefinizione. Trigger trg_preventivi_00_sconto (BEFORE, primo dei
 preventivi): fuori dalla RPC le colonne dello sconto non si cambiano (42501,
 editor libero); un preventivo nuovo nasce senza sconto; con lo sconto, il
 totale delle voci riscritto (js/18, sql/56) diventa il "prima" e lo sconto si
-rimette. Soglia 3.000 € (D14): aggancio sul posto in
+rimette, anche se il nuovo totale delle voci è uguale al totale scontato di
+prima (confronto con la somma delle voci salvate: correzione D) e con la
+stessa formula della RPC, base arrotondata al centesimo e poi lo sconto
+(correzione E). Correzioni A e B: il RAPPRESENTANTE (anche titolare "come")
+non cambia totale_imponibile con un update diretto, con o senza sconto
+(42501; la policy di sql/10 glielo lasciava fino a 3.000 €), salvo dentro
+salva_preventivo_extra_rappresentante di sql/56 (PG_CONTEXT); né collega a
+mano il PDF per il cliente (preventivo_cliente_pdf_*: solo
+registra_pdf_preventivo_cliente e le RPC di sql/56). Correzione F:
+prezzi_contratto_cliente (sql/44) ridefinita: con lo sconto sul preventivo
+del contratto prezzo_unitario delle voci scontato per voce (prezzo_listino
+= quello delle voci, preventivo.sconto_perc), rollback = versione di sql/44.
+js/18: importoScontatoPreventivo (centesimi interi, formula del database),
+riga "🏷️ Con lo sconto del X%" (imponibile e margine) nell'editor delle
+voci, anticipo controllato sul totale scontato; senza sql/258 (dopo il
+rollback) con sconto_perc > 0 rimasto sui preventivi con l'esito scrive il
+totale già scontato (nota G del -ROLLBACK). Soglia 3.000 € (D14): aggancio sul posto in
 preventivi_blocca_3k_rappresentante (non blocca l'update fatto dentro la RPC,
 segno toli.sconto_preventivo); il resto invariato. Regola storage NUOVA
 preventivi_documenti_cliente_sconto (il rappresentante carica il PDF rifatto
-dei suoi preventivi inviati a lui). Nel sito (js/69-sconto-rappresentante.js,
+dei suoi preventivi inviati a lui, senza PDF esterno del titolare, solo con
+il nome del prefisso dello sconto attuale, .pdf). Nel sito (js/69-sconto-rappresentante.js,
 caricato dopo js/68 e prima di js/19): in "I miei preventivi" (js/13
 segnaposto .sconto-rapp + caricaScontiRappresentante) totale, "🏷️ Applica
 uno sconto" / "✏️ Cambia lo sconto", la propria motivazione, "⚠️ Il PDF non ha
@@ -1777,9 +1801,18 @@ Acquisti rifiutati; motivazione illeggibile ad Acquisti, segreteria,
 contabile, tecnico, altro rappresentante; scritture dirette rifiutate;
 voci risalvate; titolare "come" rappresentante; PDF; anon; preventivo nuovo
 senza sconto; commessa e fattura finale a 9.600 €; anticipo 30% di 9.000 =
-2.700 €; dopo l'esito bloccato); test/sconto-rappresentante.spec.js (Chrome
+2.700 €; dopo l'esito bloccato; correzioni dell'11/11: A 3.200 → 2.880 e
+totale 1.000 da console rifiutato anche "come", B 2.500 senza sconto → 1.200
+rifiutato, note, rinvio sql/57 e rifiuto sql/22 ammessi, C PDF con un altro
+nome, caricato prima dello sconto o collegato a mano rifiutati e regola dei
+file con lo Storage finto, D voci 900 con il 10% → 810, E 3 x 333,335 → 900,01
+uguale tra trigger e RPC e dopo l'esito, F prezzi del contratto al 96%,
+annulla_leggi_riga e motore_leggi_riga revocate come in produzione e
+registro delle azioni senza motivazioni per Acquisti, segreteria, contabile,
+altro rappresentante); test/sconto-rappresentante.spec.js (Chrome
 headless, rappresentante a 390 px: 1,5% e 5% con PDF rifatto e caricato,
-console di Acquisti e segreteria, scheda del titolare e di Acquisti;
+console di Acquisti e segreteria, console del rappresentante con totale e PDF
+a mano rifiutati, scheda del titolare e di Acquisti;
 SCONTO_SENZA_SQL=1 dopo il rollback); matrice TUTTO OK (anche
 MATRICE_AGITO_COME=1; 10 righe nuove); smoke TUTTO OK con e senza sql/258;
 rollback provato (schema identico; i preventivi senza esito tornano al totale

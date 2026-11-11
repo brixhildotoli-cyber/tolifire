@@ -4681,6 +4681,10 @@ let storicoUndoPreventivo = [];
 let vociEliminatePreventivo = [];
 let chiaveModificaPreventivo = '';
 let timerModificaPreventivo = null;
+// sql/258: sconto del rappresentante sul preventivo aperto nell'editor
+// (preventivi.sconto_perc; 0 = nessuno). Serve al margine con lo sconto e,
+// senza sql/258 (dopo il suo rollback), a scrivere il totale già scontato.
+let scontoPreventivoEditor = 0;
 
 // true se nell'editor delle voci ci sono modifiche non ancora salvate
 // (ogni modifica lascia un punto di "Annulla"; il ricaricamento li azzera).
@@ -4821,6 +4825,46 @@ function irHtmlPreventivo(etichetta, contenuto) {
   `;
 }
 
+// sql/258: stessa formula del database, in centesimi interi (niente errori
+// dei numeri con la virgola): round(round(base, 2) * (100 - sconto) / 100, 2).
+function importoScontatoPreventivo(base, sconto) {
+  const b = Number(base || 0);
+  const s = Number(sconto || 0);
+  if (!(s > 0 && s < 100)) return Math.round(b * 100) / 100;
+  const centesimi = Math.round(b * 100);
+  const s100 = Math.round(s * 100);
+  const prodotto = centesimi * (10000 - s100);
+  const arrotondato = prodotto >= 0
+    ? Math.floor((prodotto + 5000) / 10000)
+    : -Math.floor((-prodotto + 5000) / 10000);
+  return arrotondato / 100;
+}
+
+// Totale da scrivere in preventivi.totale_imponibile salvando le voci: con
+// sql/258 la somma delle voci (il database rimette lo sconto); senza sql/258
+// ma con uno sconto rimasto dopo il suo rollback, il totale già scontato
+// (così totale e PDF restano uguali).
+async function totaleDaScrivereConSconto(sommaVoci, sconto) {
+  if (!(Number(sconto) > 0)) return sommaVoci;
+  let conSql = false;
+  try {
+    conSql = typeof verificaScontoRappresentanteDisponibile === 'function' &&
+      await verificaScontoRappresentanteDisponibile();
+  } catch (e) { conSql = false; }
+  return conSql ? sommaVoci : importoScontatoPreventivo(sommaVoci, sconto);
+}
+
+// Riga "con lo sconto" sotto i margini dell'editor (vuota senza sconto).
+function htmlMargineConScontoPreventivo(costo, vendita) {
+  const s = Number(scontoPreventivoEditor || 0);
+  if (!(s > 0)) return '';
+  const scontato = importoScontatoPreventivo(vendita, s);
+  const margine = scontato - costo;
+  const perc = scontato > 0 ? (margine / scontato) * 100 : 0;
+  return `🏷️ Con lo sconto del ${esc(String(s).replace('.', ','))}%: imponibile <b>${euroPreventivo(scontato)}</b>,
+    margine <b>${euroPreventivo(margine)}</b> (${perc.toFixed(1)}%)`;
+}
+
 function totaleVocePreventivo(voce, tipo) {
   const quantita = numeroPreventivo(voce.quantita);
 
@@ -4897,6 +4941,8 @@ function aggiornaRiepilogoVociPreventivo() {
   if (venditaEl) venditaEl.textContent = euroPreventivo(vendita);
   if (margineEl) margineEl.textContent = euroPreventivo(margine);
   if (marginePercEl) marginePercEl.textContent = marginePerc.toFixed(1) + '%';
+  const scontoEl = ge('pvv-margine-sconto');
+  if (scontoEl) scontoEl.innerHTML = htmlMargineConScontoPreventivo(costo, vendita);
 }
 
 function aggiornaCampoVocePreventivo(indice, campo, valore) {
@@ -4965,6 +5011,7 @@ function disegnaVociPreventivo() {
       ${ir('Margine preliminare', euroPreventivo(margine))}
       ${ir('Margine percentuale', marginePerc.toFixed(1) + '%')}
     </div>
+    ${scontoPreventivoEditor > 0 ? `<div class="al2 w" style="margin:-6px 0 14px;font-size:13px">${htmlMargineConScontoPreventivo(costo, vendita)}</div>` : ''}
 
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
       <button class="btn sm p" onclick="aggiungiVocePreventivo()">
@@ -5119,6 +5166,7 @@ function disegnaVociPreventivo() {
         ${irHtmlPreventivo('Margine preliminare', `<span id="pvv-totale-margine">${euroPreventivo(margine)}</span>`)}
         ${irHtmlPreventivo('Margine percentuale', `<span id="pvv-totale-margine-perc">${marginePerc.toFixed(1)}%</span>`)}
       </div>
+      <div id="pvv-margine-sconto" class="${scontoPreventivoEditor > 0 ? 'al2 w' : ''}" style="${scontoPreventivoEditor > 0 ? 'margin-top:10px;font-size:13px' : ''}">${htmlMargineConScontoPreventivo(costo, vendita)}</div>
 
       <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--b)">
   <div style="font-size:14px;font-weight:700;margin-bottom:5px">
@@ -6106,8 +6154,8 @@ async function renderCostiPreventivo() {
     const { data: preventivo } = await db
     .from('preventivi')
     .select(anticipoDisponibile
-      ? 'note,condizioni_pagamento,stato,anticipo_richiesto,anticipo_tipo,anticipo_valore'
-      : 'note,condizioni_pagamento,stato')
+      ? 'note,condizioni_pagamento,stato,sconto_perc,anticipo_richiesto,anticipo_tipo,anticipo_valore'
+      : 'note,condizioni_pagamento,stato,sconto_perc')
     .eq('id', currentPreventivoId)
     .single();
 
@@ -6115,6 +6163,7 @@ async function renderCostiPreventivo() {
   if (preventivo) impostaBloccoVociPreventivo(preventivo.stato);
 
   notePreventivoCliente = preventivo?.note || '';
+  scontoPreventivoEditor = Number(preventivo?.sconto_perc || 0) > 0 ? Number(preventivo.sconto_perc) : 0;
 
   condizioniPagamentoPreventivo =
   preventivo?.condizioni_pagamento || '';
@@ -6216,8 +6265,10 @@ async function eseguiSalvataggioVociPreventivo() {
     return totale + totaleVocePreventivo(voce, 'vendita');
   }, 0);
 
+  // sql/258: con lo sconto l'anticipo si controlla sul totale scontato.
+  const totaleScontatoVoci = importoScontatoPreventivo(totaleImponibile, scontoPreventivoEditor);
   const datiPreventivo = {
-    totale_imponibile: totaleImponibile,
+    totale_imponibile: await totaleDaScrivereConSconto(totaleImponibile, scontoPreventivoEditor),
     note: notePreventivoCliente.trim() || null,
     condizioni_pagamento: condizioniPagamentoPreventivo.trim() || null,
     aggiornato_il: new Date().toISOString()
@@ -6232,7 +6283,7 @@ async function eseguiSalvataggioVociPreventivo() {
       anticipoPreventivoEditor.richiesto,
       anticipoPreventivoEditor.tipo,
       anticipoPreventivoEditor.valore,
-      totaleImponibile,
+      scontoPreventivoEditor > 0 ? totaleScontatoVoci : totaleImponibile,
       true
     );
 
@@ -6454,7 +6505,7 @@ async function generaPreventivoClientePDF(datiEsterni) {
   }
   if (!(scontoPerc > 0 && scontoPerc < 100)) scontoPerc = 0;
   const imponibilePdf = scontoPerc > 0
-    ? Math.round(totaleImponibile * (100 - scontoPerc) + Number.EPSILON) / 100
+    ? importoScontatoPreventivo(totaleImponibile, scontoPerc)
     : totaleImponibile;
 
   const ivaPerc = Number(preventivo.iva_perc ?? 22);
@@ -7178,7 +7229,7 @@ disegnaFooterClausoleSuTutteLePagine();
   }
 
   const datiPdf = {
-    totale_imponibile: totaleImponibile,
+    totale_imponibile: await totaleDaScrivereConSconto(totaleImponibile, scontoPerc),
     preventivo_cliente_pdf_path: storagePath,
     preventivo_cliente_pdf_nome: nomeFile,
     preventivo_cliente_pdf_generato_il: new Date().toISOString()

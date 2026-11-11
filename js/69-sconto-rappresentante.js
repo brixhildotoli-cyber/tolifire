@@ -54,10 +54,12 @@ function euroSconto(valore) {
   return Number(valore || 0).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
 }
 
-// Stessa regola del database: round(prima * (100 - sconto) / 100, 2)
+// Stessa regola del database: round(round(prima, 2) * (100 - sconto) / 100, 2)
+// (importoScontatoPreventivo di js/18, in centesimi interi)
 function totaleScontatoSito(base, sconto) {
+  if (typeof importoScontatoPreventivo === 'function') return importoScontatoPreventivo(base, sconto);
   if (!(sconto > 0)) return Number(base || 0);
-  return Math.round(Number(base || 0) * (100 - sconto) + Number.EPSILON) / 100;
+  return Math.round(Math.round(Number(base || 0) * 100) * (100 - sconto)) / 10000;
 }
 
 function dataOraSconto(iso) {
@@ -278,12 +280,17 @@ async function rifaiPdfScontoPreventivo(preventivoId, senzaAggiornare) {
   const pdf = await generaPreventivoClientePDF({ preventivo: letto.data.preventivo, voci: letto.data.voci || [] });
   if (!pdf || !pdf.blob) { toast('PDF non creato: riprova con "📄 Rifai il PDF"', 'err'); return false; }
 
-  const percorso = preventivoId + '/cliente/' + pdf.nomeFile;
+  // Nome del file legato allo sconto attuale (sql/258: il database accetta
+  // solo "<prefisso dello sconto>....pdf" caricato dopo lo sconto).
+  const prefisso = letto.data.preventivo.prefisso_pdf;
+  if (!prefisso) { toast('PDF non rifatto: il preventivo non ha uno sconto', 'err'); return false; }
+  const nomeFile = prefisso + Date.now() + '.pdf';
+  const percorso = preventivoId + '/cliente/' + nomeFile;
   const up = await db.storage.from('preventivi-documenti').upload(percorso, pdf.blob, { contentType: 'application/pdf', upsert: false });
   if (up.error) { toast('PDF creato ma non salvato: ' + up.error.message, 'err'); return false; }
 
   const reg = await db.rpc('registra_pdf_preventivo_cliente', {
-    p_preventivo: preventivoId, p_path: percorso, p_nome: pdf.nomeFile
+    p_preventivo: preventivoId, p_path: percorso, p_nome: nomeFile
   });
   if (reg.error) { toast('PDF salvato, ma non collegato al preventivo: ' + reg.error.message, 'err'); return false; }
 
