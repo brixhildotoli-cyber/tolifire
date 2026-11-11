@@ -143,11 +143,15 @@ function htmlScontoRappresentante(p) {
       </div>`;
   }
 
-  const avvisoPdf = pdfSenzaSconto(p) ? `
+  // sql/258 (secondo controllo): tolto lo sconto il PDF lo rifà Acquisti.
+  const avvisoPdf = !pdfSenzaSconto(p) ? '' : sconto > 0 ? `
     <div class="al2 w" style="margin-top:8px">
-      ⚠️ Il PDF non ha ancora ${sconto > 0 ? 'lo sconto' : 'il totale senza sconto'}: rifallo prima di mandarlo al cliente.
+      ⚠️ Il PDF non ha ancora lo sconto: rifallo prima di mandarlo al cliente.
       <div style="margin-top:6px"><button class="btn sm p" onclick="rifaiPdfScontoPreventivo('${p.id}')">📄 Rifai il PDF</button></div>
-    </div>` : '';
+    </div>` : `
+    <div class="al2 w" style="margin-top:8px">
+      ⚠️ Hai tolto lo sconto: il PDF ha ancora lo sconto. Non mandarlo al cliente: chiedi ad Acquisti di rifarlo (❓ Fai una domanda).
+    </div>`;
 
   const bottone = p.pdf_esterno_titolare_path
     ? '<div style="font-size:12px;color:var(--m);margin-top:6px">Il PDF l\'ha caricato il titolare: per uno sconto chiedi a lui.</div>'
@@ -249,7 +253,8 @@ async function salvaScontoRappresentante(togli) {
     toast('Sopra il 2% serve la motivazione', 'err');
     return;
   }
-  if (togli && !confirm('Togliere lo sconto? Il preventivo torna a ' + euroSconto(basePreventivoSconto(p)) + ' + IVA e il PDF va rifatto.')) return;
+  if (togli && !confirm('Togliere lo sconto? Il preventivo torna a ' + euroSconto(basePreventivoSconto(p)) + ' + IVA e il PDF va rifatto' +
+      (ROLE === 'titolare' ? '.' : ' da Acquisti.'))) return;
 
   ['scr-salva', 'scr-togli'].forEach(function(x) { if (ge(x)) ge(x).disabled = true; });
   try {
@@ -260,9 +265,10 @@ async function salvaScontoRappresentante(togli) {
     closeM('m-sconto-rappresentante');
     toast(s > 0
       ? 'Sconto ' + testoPercSconto(s) + ' salvato: totale ' + euroSconto(data?.totale_imponibile) + ' + IVA. Rifaccio il PDF...'
-      : 'Sconto tolto. Rifaccio il PDF...', 'ok');
-    if (!p.pdf_esterno_titolare_path) await rifaiPdfScontoPreventivo(id, true);
-    else toast('Il PDF l\'hai caricato tu: ricaricalo con il nuovo totale', 'err');
+      : 'Sconto tolto.', 'ok');
+    if (p.pdf_esterno_titolare_path) toast('Il PDF l\'hai caricato tu: ricaricalo con il nuovo totale', 'err');
+    else if (s > 0 || ROLE === 'titolare') await rifaiPdfScontoPreventivo(id, true);
+    else toast('Sconto tolto: il PDF per il cliente lo rifà Acquisti. Non mandare quello di prima.', 'err');
     await aggiornaDopoScontoPreventivo(id);
   } finally {
     ['scr-salva', 'scr-togli'].forEach(function(x) { if (ge(x)) ge(x).disabled = false; });

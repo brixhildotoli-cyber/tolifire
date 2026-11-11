@@ -1756,7 +1756,19 @@ totale delle voci riscritto (js/18, sql/56) diventa il "prima" e lo sconto si
 rimette, anche se il nuovo totale delle voci è uguale al totale scontato di
 prima (confronto con la somma delle voci salvate: correzione D) e con la
 stessa formula della RPC, base arrotondata al centesimo e poi lo sconto
-(correzione E). Correzioni A e B: il RAPPRESENTANTE (anche titolare "come")
+(correzione E). Secondo controllo (punto 1): il rappresentante (anche titolare
+"come") non cambia preventivi.stato né commerciale_id con un update diretto
+(42501; la policy di sql/10 glielo lasciava fino a 3.000 €: es. bozza di
+Acquisti portata a 'inviato_a_rappresentante' per scontarla), solo con le
+RPC accetta_/rifiuta_preventivo (sql/22),
+rinvia_preventivo_al_commerciale_da_rappresentante (sql/57),
+salva_/invia_preventivo_extra_rappresentante (sql/56), riconosciute con
+PG_CONTEXT; da console crea solo bozze (22023). Punto 3:
+applica_sconto_preventivo vuole almeno una voce e il totale uguale alla
+somma delle voci al centesimo ("Il totale non torna con le voci: lo sistema
+Acquisti"). Punto 2: senza uno sconto in corso (sconto_perc > 0) il
+rappresentante non carica né registra il PDF (tolto lo sconto lo rifà
+Acquisti o il titolare). Correzioni A e B: il RAPPRESENTANTE (anche titolare "come")
 non cambia totale_imponibile con un update diretto, con o senza sconto
 (42501; la policy di sql/10 glielo lasciava fino a 3.000 €), salvo dentro
 salva_preventivo_extra_rappresentante di sql/56 (PG_CONTEXT); né collega a
@@ -1792,7 +1804,13 @@ dell'esito anche per il titolare; lo sconto resta se il preventivo torna in
 bozza (Rinvio ad Acquisti) e si rimette sul nuovo totale; con il PDF esterno
 del titolare lo sconto lo mette lui; nessun avviso al titolare per gli
 sconti; nessun tetto (F16.1, F16.42); il database non blocca l'accettazione
-con un PDF vecchio (solo l'avviso nel sito). Guide info-rap-34, info-tit-32,
+con un PDF vecchio (solo l'avviso nel sito). SCELTE DICHIARATE dopo il secondo controllo: il
+CONTENUTO del PDF non è verificato dal database (solo cartella, nome legato
+allo sconto, data di caricamento, sconto in corso); preventivo cancellato
+(una bozza, dal commerciale autore o dal titolare): lo storico dello sconto
+segue a cascata, ma la motivazione resta nel registro delle azioni (riga
+"cancellazione" di preventivi_sconti, lettura del titolare): così Acquisti
+cancella ancora le sue bozze dopo un rinvio. Guide info-rap-34, info-tit-32,
 info-com-23. Prove: sql/258-sconto-rappresentante-PROVA.sql (solo database di
 prova, nel Postgres locale con -U supabase_admin per lo Storage finto,
 rollback: 1,5% senza motivo, 5% senza motivo rifiutato e con motivo, decimali,
