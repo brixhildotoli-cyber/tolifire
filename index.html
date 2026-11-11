@@ -5919,6 +5919,28 @@
         <b>Esempio</b><br>Nella scheda del preventivo n. 245: "Sconto 5%: totale delle voci 10.000,00 € → imponibile 9.500,00 € (− 500,00 €). Ultimo cambio: Giulio Pistolesi il 10/11/2026 15:20. Motivazione: Cliente storico, la concorrenza offre 9.400 €". La commessa nasce a 9.500 €.
       </div>
 
+      <h4 id="info-tit-33">33. 🚦 Progetti già aperti e smistamento automatico: cosa trovi dopo l'aggiornamento</h4>
+
+      <p>
+        I progetti inviati <b>prima</b> dello smistamento automatico (sezione 31) avevano le schede "non smistate". Con l'aggiornamento del database sql/84 (lo esegue Erika solo dopo la tua conferma, con l'elenco dei progetti e dei preventivi aperti che ti manda prima) ogni scheda dei progetti già in lavorazione prende il suo colore, come se fosse passata dallo smistamento. Lo vedi nel riquadro <b>🚦 Smistamento automatico delle schede</b> del progetto, con il motivo "Inviato prima dello smistamento automatico".
+      </p>
+
+      <ul>
+        <li><b>In verifica tecnica</b>: schede 🟡 <b>all'ingegnere</b>. Quando l'ingegnere approva diventano ✅ e, se Acquisti ha già il preventivo, gli arriva l'avviso 🔔.</li>
+        <li><b>Pronto per il preventivo</b>, oppure <b>da Acquisti</b> dopo essere passato dall'ingegnere: schede ✅ <b>verificate, ad Acquisti</b>. Da Acquisti senza passare dall'ingegnere: 🟢 <b>ad Acquisti</b>.</li>
+        <li><b>Bozza</b> e <b>da integrare</b>: niente cambia, al prossimo <b>📤 Invia il progetto</b> decidono le regole di oggi. <b>In valutazione</b>, <b>approvato</b> e <b>archiviato</b>: niente cambia.</li>
+        <li><b>Lo stato dei progetti non cambia</b> e nessun preventivo cambia: "Da preventivare" di Acquisti ha gli stessi progetti nello stesso ordine (il database lo controlla e, se non torna, non cambia nulla). Sulle carte dei progetti già da Acquisti può comparire la riga <b>🚦 Per te</b> con le lavorazioni.</li>
+        <li>Le regole di smistamento <b>non</b> si riapplicano ai progetti già inviati: restano sulla strada che avevano. Nell'elenco che ricevi prima la colonna "regole di oggi" ti dice solo cosa direbbero le regole adesso.</li>
+        <li>Le schede salvate con il modulo di prima restano <b>📝 Da ricompilare</b> nel motore: si leggono come sempre, i dati che servono al preventivo si controllano solo al prossimo invio.</li>
+        <li>I <b>preventivi già al cliente</b> (inviati o inviati al rappresentante) sono segnati nell'elenco: quando ci sarà lo stato "inviato al cliente" passeranno lì con lo stesso criterio. Oggi restano come sono.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Il progetto "Porte REI capannone B" era dall'ingegnere con un preventivo in bozza che Acquisti gli aveva rimandato. Dopo l'aggiornamento le porte sono 🟡 all'ingegnere: Acquisti non ha più "↩ Rimanda indietro" su quel preventivo (il progetto è dall'ingegnere). L'ingegnere approva, le porte diventano ✅ e Acquisti riceve "L'ingegnere ha verificato Porte e portoni REI... aggiungile al preventivo n. 50".
+      </div>
+
+      <div class="al2 w">Il colore delle schede lo scrive solo il database: nessuno lo cambia da console, nemmeno tu. Se serve tornare indietro, Erika esegue il file di ritorno di sql/84 (le schede tornano "non smistate", i progetti non cambiano). Prima di sql/84 tutto funziona come oggi.</div>
+
       <h4>Regole pratiche</h4>
 
       <ul>

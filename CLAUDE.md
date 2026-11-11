@@ -343,6 +343,17 @@ né cambia le schede gialle) e permissive progetti_tecnici_schede_lettura_
 smistamento e progetti_tecnici_allegati_lettura_smistamento (Acquisti legge
 schede verdi, blocco comune e file del progetto ancora in verifica tecnica).
 progetti_tecnici.stato: valori invariati. Matrice: 20 righe nuove.
+Dopo sql/84 (F15.14 migrazione dei progetti e preventivi aperti, T2, DA
+ESEGUIRE: backup, anteprima in fondo al file con l'elenco a Toli, "CONFERMATO
+DA TOLI: sql/84", file (un solo blocco, senza parole di cancellazione, server
+MCP), controllo in fondo; richiede 83): nessuna tabella, colonna, funzione o
+policy nuova (matrice invariata). Solo dati: progetti_tecnici_schede.
+stato_smistamento (con motivo "Inviato prima dello smistamento automatico: ..."
+e smistamento_il = aggiornato_il del progetto) sulle schede dei progetti mai
+smistati in in_verifica_tecnica (ingegnere), pronto_per_preventivo o passati
+dall'ingegnere secondo progetti_tecnici_storico (verificata), altrimenti
+inviato_a_commerciale/in_preventivazione (acquisti). progetti_tecnici.stato e
+preventivi NON cambiano.
 Dopo sql/258 (sconto del rappresentante sul preventivo, decisioni di Erika
 del 10/11, fuori piano; ESEGUITO l'11/11 dal server MCP + -REGISTRO-CANCELLAZIONI dall'editor (backup pre258, controllo in regola): pubblicare il sito, backup, anteprima,
 258-sconto-rappresentante.sql (senza parole di cancellazione, server MCP),
@@ -1726,6 +1737,60 @@ spengono le regole nella loro transazione; test/smistamento-famiglie.spec.js
 SMISTAMENTO_SENZA_SQL=1 dopo il rollback); matrice TUTTO OK; rollback
 provato (schema identico). Senza sql/83 o con tutte le regole spente: sito
 come prima, nessun errore.
+Dopo sql/84 (F15.14 migrazione dei progetti e preventivi aperti allo
+smistamento automatico, decisione di Toli T2, DA ESEGUIRE; richiede 83, si
+ferma senza): nessuna RPC, nessuna tabella, funzione o policy nuova; NESSUN
+cambio nel sito (js invariati). ORDINE: backup (sql/BACKUP.md), ANTEPRIMA in
+fondo al file (pg_temp.anteprima_84_progetti: un progetto aperto per riga
+bozza/in_verifica_tecnica/da_integrare/inviato_a_commerciale/pronto/
+in_preventivazione con cliente, rappresentante, importo, schede, "da
+ricompilare", cosa_fa_sql84, regole_di_oggi (anteprima_smistamento, solo
+informazione), preventivi; anteprima_84_preventivi: preventivi non chiusi con
+gia_al_cliente = inviato o inviato_a_rappresentante; anteprima_84_conteggi) =
+ELENCO DA MANDARE A TOLI, poi "CONFERMATO DA TOLI: sql/84", file (UN blocco
+DO, senza parole di cancellazione: server MCP; da un utente del sito 42501),
+CONTROLLO pg_temp.controllo_84. Cosa scrive: SOLO
+progetti_tecnici_schede.stato_smistamento/smistamento_motivo/smistamento_il
+(segno set_config toli.smistamento di sql/83) sulle schede non comuni dei
+progetti in in_verifica_tecnica (→ 'ingegnere'), pronto_per_preventivo (→
+'verificata'), inviato_a_commerciale e in_preventivazione (→ 'verificata' se
+l'ultima uscita dalla verifica tecnica nello storico è dopo l'ultima uscita da
+bozza/da integrare/archiviato, altrimenti 'acquisti'), solo se il progetto non
+ha nessuna scheda già smistata; motivo "Inviato prima dello smistamento
+automatico: ..." (è il segno del ROLLBACK), smistamento_il = aggiornato_il (o
+creato_il) del progetto, così l'ordine di "Da preventivare" non cambia. NON
+tocca: progetti_tecnici.stato (inviato_a_commerciale resta: js/17, sql/56,
+sql/57), preventivi, bozza, da integrare, in valutazione, approvato,
+archiviato, blocco comune; le regole non si riapplicano. CONTROLLI DENTRO IL
+FILE (un errore = niente cambiato): nessuno stato fuori dai 9, conteggi per
+stato uguali, "Da preventivare" (regole di js/17 e js/46 con lo smistamento
+attivo) con gli stessi progetti, nessuna scheda verde in verifica tecnica;
+rieseguibile (la seconda volta 0 schede). Effetti: Acquisti legge ora schede e
+file dei progetti pronto_per_preventivo (✅, policy di sql/83); le schede in
+verifica erano già chiuse per lui e restano chiuse; progetto in verifica con
+preventivo in bozza: niente "↩ Rimanda indietro" per Acquisti finché
+l'ingegnere non approva (poi ✅ e avviso smistamento_verificato); nelle carte di
+"Da preventivare" dei progetti già da Acquisti può comparire "🚦 Per te". SCELTE
+DICHIARATE (da confermare da Toli): "flag" dei preventivi già al cliente =
+colonna dell'elenco e criterio scritto nel file (nessuna colonna nuova,
+vincolo T2), lo stato inviato_cliente della fase 7 li prenderà con lo stesso
+criterio; schede "da ricompilare" = avviso già esistente di sql/80-81 e js/56
+(obbligatorie solo al prossimo invio, sql/79 e 82); progetti in verifica con
+preventivo in bozza → 'ingegnere' (non verdi: "Da preventivare" resta uguale).
+ROLLBACK: 84-...-ROLLBACK.sql (un blocco, senza parole di cancellazione):
+schede con il motivo di sql/84 di nuovo non smistate (anche quelle diventate ✅
+dopo), le altre e gli avvisi restano. Guida info-tit-33. Prove:
+sql/84-migrazione-progetti-preventivi-aperti-PROVA.sql (solo database di prova,
+transazione annullata: progetti di prova in verifica, verifica con preventivo
+in bozza, pronto, preventivazione dopo l'ingegnere, ad Acquisti dalla bozza,
+già smistato con sql/83, bozza, in valutazione; anteprima = risultato,
+controllo, letture di Acquisti, rifiuti di rappresentante, Acquisti,
+ingegnere, segreteria, tecnico, titolare e titolare "come" Acquisti,
+riesecuzione senza cambi, approvazione dell'ingegnere con avviso, ROLLBACK);
+test/migrazione-progetti-aperti.spec.js (Chrome headless, database locale:
+"Da preventivare" di Acquisti e del titolare e "Cosa tocca a me" uguali prima
+e dopo, riquadro 🚦 del titolare, console di titolare, Acquisti e ingegnere
+rifiutata, ROLLBACK). Senza sql/84: sito come prima.
 Dopo sql/258 (sconto del rappresentante, decisioni di Erika del 10/11, ESEGUITO l'11/11 (backup pre258, controllo in regola); era DA
 ESEGUIRE; ordine e requisiti nella riga di preventivi_sconti in "Tabelle
 Supabase"): RPC del sito sconto_rappresentante_attivo() (true = il 258 c'è),

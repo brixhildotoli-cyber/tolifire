@@ -168,3 +168,17 @@ sconto-rappresentante.spec.js` (nessun riquadro, nessun errore). La prova
 del database (`sql/258-sconto-rappresentante-PROVA.sql`) nel Postgres
 locale va lanciata con `psql -U supabase_admin` (serve per la tabella
 finta dello Storage, tolta dal rollback).
+
+## Migrazione dei progetti e preventivi aperti (sql/84)
+
+`node migrazione-progetti-aperti.spec.js` (database locale con sql/83 e le
+regole di smistamento attive, sql/84 NON eseguito; `SMOKE_RISULTATI=<cartella>`
+per le schermate, mai nei Download): legge "Da preventivare" di Acquisti e del
+titolare e il conteggio di "Cosa tocca a me" senza sql/84, esegue sql/84 nel
+container, controlla stessi progetti nello stesso ordine e conteggi per stato
+invariati, il riquadro 🚦 del titolare su un progetto in verifica migrato
+(🟡 all'ingegnere, "Inviato prima dello smistamento automatico") e il rifiuto
+della console di titolare, Acquisti e ingegnere; alla fine esegue il ROLLBACK
+di sql/84 (anche se la prova si ferma a metà). Prova del database:
+`sql/84-migrazione-progetti-preventivi-aperti-PROVA.sql` (dalla cartella sql/,
+progetti di prova, tutto in una transazione annullata).
