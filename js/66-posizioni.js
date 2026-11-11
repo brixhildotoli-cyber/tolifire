@@ -336,7 +336,7 @@ async function apriFotoPosizione(i) {
   const a = POSIZIONI.aperta;
   const f = a && a.foto[i];
   if (!f || !f.percorso) return;
-  const { data, error } = await db.storage.from('progetti-tecnici').createSignedUrl(f.percorso, 600);
+  const { data, error } = await firmaFile('progetti-tecnici', f.percorso, 600);
   if (error || !data || !data.signedUrl) { toast('Foto non disponibile' + (error ? ': ' + error.message : ''), 'err'); return; }
   window.open(data.signedUrl, '_blank', 'noopener');
 }

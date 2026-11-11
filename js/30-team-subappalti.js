@@ -618,9 +618,7 @@ function htmlDocumentoTS(d, inVigore) {
 }
 
 async function apriFileDocumentoTS(path) {
-  const { data, error } = await db.storage
-    .from(BUCKET_TEAM_SUBAPPALTI)
-    .createSignedUrl(path, 3600);
+  const { data, error } = await firmaFile(BUCKET_TEAM_SUBAPPALTI, path, 3600);
 
   if (error || !data?.signedUrl) {
     toast('Impossibile aprire il documento: ' + (error?.message || 'file non disponibile'), 'err');

@@ -720,9 +720,7 @@ async function apriPdfPreventivoRappresentante(preventivoId) {
     return;
   }
 
-  const { data: urlData, error: erroreUrl } = await db.storage
-    .from('preventivi-documenti')
-    .createSignedUrl(percorsoPdf, 3600);
+  const { data: urlData, error: erroreUrl } = await firmaFile('preventivi-documenti', percorsoPdf, 3600);
 
   if (erroreUrl || !urlData?.signedUrl) {
     if (nuovaScheda) nuovaScheda.close();

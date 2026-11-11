@@ -721,9 +721,7 @@ async function caricaFileCommessa(commessaId) {
 }
 
 async function scaricaDocumentoCommessa(path) {
-  const { data, error } = await db.storage
-    .from('commesse-documenti')
-    .createSignedUrl(path, 3600);
+  const { data, error } = await firmaFile('commesse-documenti', path, 3600);
 
   if (error || !data?.signedUrl) {
     toast('Impossibile aprire il documento: ' + (error?.message || 'file non disponibile'), 'err');

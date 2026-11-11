@@ -376,7 +376,7 @@ async function apriAllegatoDomanda(id, i) {
   const d = await leggiDomanda(id);
   const a = d && (d.allegati || [])[i];
   if (!a) return;
-  const { data, error } = await db.storage.from('domande-allegati').createSignedUrl(a.percorso, 600);
+  const { data, error } = await firmaFile('domande-allegati', a.percorso, 600);
   if (error || !data) { toast('File non disponibile: ' + ((error && error.message) || ''), 'err'); return; }
   window.open(data.signedUrl, '_blank', 'noopener');
 }

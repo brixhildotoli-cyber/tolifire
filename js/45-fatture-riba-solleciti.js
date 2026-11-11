@@ -1420,7 +1420,7 @@ async function apriCopiaPdfFattura() {
   const f = fatBozza && fatBozza.fattura;
   if (!f || !f.pdf_url) return;
   const finestra = window.open('', '_blank');
-  const { data, error } = await db.storage.from('fatture-pdf').createSignedUrl(f.pdf_url, 300);
+  const { data, error } = await firmaFile('fatture-pdf', f.pdf_url, 300);
   if (error || !data) { if (finestra) finestra.close(); toast('Copia non apribile: ' + ((error && error.message) || 'errore'), 'err'); return; }
   if (finestra) finestra.location.href = data.signedUrl; else window.location.href = data.signedUrl;
 }

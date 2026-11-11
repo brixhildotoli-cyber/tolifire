@@ -35,6 +35,71 @@ const dbPublic=supabase.createClient(SU,SK,{
   global:{headers:{'apikey':SK,'Authorization':'Bearer '+SK,'x-portale-token':PORTALE_TOKEN}}
 });
 
+// Link firmati dei file dello Storage (11/11: ogni firma interroga il
+// database con le regole dello Storage; aprendo più volte una scheda con 21
+// foto si firmavano sempre tutte e il database andava in sovraccarico).
+// Un link per bucket, percorso e nome di download, tenuto in memoria (solo
+// in questa pagina: "Esci" e "Entra come" ricaricano e lo cancellano) finché
+// mancano più di 2 minuti alla scadenza. Stessa risposta di createSignedUrl:
+// { data: { signedUrl }, error }. firmaFileInBlocco firma con UNA richiesta
+// (createSignedUrls) i percorsi che non sono già in memoria e restituisce
+// un oggetto percorso -> link (assente se il file non si firma).
+const FIRME_FILE={link:new Map(),inCorso:new Map(),margineMs:120000};
+function chiaveFirmaFile(bucket,percorso,opzioni){
+  return bucket+'|'+percorso+'|'+((opzioni&&opzioni.download)?String(opzioni.download):'');
+}
+function firmaFileInMemoria(chiave){
+  const x=FIRME_FILE.link.get(chiave);
+  if(x&&x.scade-Date.now()>FIRME_FILE.margineMs)return x.url;
+  if(x)FIRME_FILE.link.delete(chiave);
+  return null;
+}
+function ricordaFirmaFile(chiave,url,secondi){
+  if(url)FIRME_FILE.link.set(chiave,{url:url,scade:Date.now()+Number(secondi||3600)*1000});
+}
+async function firmaFile(bucket,percorso,secondi,opzioni){
+  secondi=Math.max(Number(secondi)||3600,300);
+  if(!percorso)return {data:null,error:{message:'Percorso del file mancante'}};
+  const chiave=chiaveFirmaFile(bucket,percorso,opzioni);
+  const pronto=firmaFileInMemoria(chiave);
+  if(pronto)return {data:{signedUrl:pronto},error:null};
+  if(FIRME_FILE.inCorso.has(chiave))return FIRME_FILE.inCorso.get(chiave);
+  const p=(async function(){
+    try{
+      const r=opzioni?await db.storage.from(bucket).createSignedUrl(percorso,secondi,opzioni)
+                     :await db.storage.from(bucket).createSignedUrl(percorso,secondi);
+      if(!r.error&&r.data&&r.data.signedUrl)ricordaFirmaFile(chiave,r.data.signedUrl,secondi);
+      return r;
+    }catch(e){return {data:null,error:e};}
+    finally{FIRME_FILE.inCorso.delete(chiave);}
+  })();
+  FIRME_FILE.inCorso.set(chiave,p);
+  return p;
+}
+async function firmaFileInBlocco(bucket,percorsi,secondi){
+  secondi=Math.max(Number(secondi)||3600,300);
+  const out={};
+  const mancanti=[];
+  Array.from(new Set((percorsi||[]).filter(Boolean))).forEach(function(p){
+    const u=firmaFileInMemoria(chiaveFirmaFile(bucket,p));
+    if(u)out[p]=u;else mancanti.push(p);
+  });
+  // a blocchi di 100 percorsi per richiesta
+  for(let i=0;i<mancanti.length;i+=100){
+    const blocco=mancanti.slice(i,i+100);
+    try{
+      const {data,error}=await db.storage.from(bucket).createSignedUrls(blocco,secondi);
+      if(error||!Array.isArray(data))continue;
+      data.forEach(function(r){
+        if(!r||r.error||!r.signedUrl||!r.path)return;
+        out[r.path]=r.signedUrl;
+        ricordaFirmaFile(chiaveFirmaFile(bucket,r.path),r.signedUrl,secondi);
+      });
+    }catch(e){/* restano senza link: "File non disponibile" */}
+  }
+  return out;
+}
+
 let ME=null,ROLE=null,CLIS=[],UTENTI=[],ODLS=[],PA=[],PF=[];
 let _pianoAnno=new Date().getFullYear(),_pianoMese=new Date().getMonth()+1;
 let calCicli=[];

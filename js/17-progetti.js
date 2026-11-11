@@ -3191,18 +3191,15 @@ if (btnModifica) {
     ge('pd-file-content').innerHTML =
       '<div class="empty">Nessun allegato disponibile.</div>';
   } else {
-    const fileConLink = await Promise.all(
-      allegati.map(async function(allegato) {
-        const { data } = await db.storage
-          .from('progetti-tecnici')
-          .createSignedUrl(allegato.storage_path, 3600);
-
-        return {
-          ...allegato,
-          url: data?.signedUrl || null
-        };
-      })
+    // 11/11: una sola richiesta per tutti i file, link tenuti in memoria (js/01)
+    const linkAllegati = await firmaFileInBlocco(
+      'progetti-tecnici',
+      allegati.map(function(a) { return a.storage_path; }),
+      3600
     );
+    const fileConLink = allegati.map(function(allegato) {
+      return { ...allegato, url: linkAllegati[allegato.storage_path] || null };
+    });
 
    ge('pd-file-content').innerHTML = `
   <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
@@ -3395,9 +3392,7 @@ async function scaricaTuttiAllegatiProgetto(progettoId) {
   toast('Preparazione di ' + allegati.length + ' download...', 'ok');
 
   for (const file of allegati) {
-    const { data } = await db.storage
-      .from('progetti-tecnici')
-      .createSignedUrl(file.storage_path, 300, {
+    const { data } = await firmaFile('progetti-tecnici', file.storage_path, 300, {
         download: file.nome_file
       });
 

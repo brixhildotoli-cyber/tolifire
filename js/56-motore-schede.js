@@ -1123,7 +1123,7 @@ async function apriFileFonteMotore(codice) {
   const a = FONTI_DATI.allegati.find(function(x) { return x.id === voce.allegato_id; });
   const percorso = (a && a.storage_path) || voce.allegato_percorso;
   if (!percorso) { toast('File non trovato', 'err'); return; }
-  const { data, error } = await db.storage.from('progetti-tecnici').createSignedUrl(percorso, 600);
+  const { data, error } = await firmaFile('progetti-tecnici', percorso, 600);
   if (error || !data || !data.signedUrl) { toast('File non disponibile' + (error ? ': ' + error.message : ''), 'err'); return; }
   window.open(data.signedUrl, '_blank', 'noopener');
 }
@@ -2081,7 +2081,7 @@ async function apriFileFotoVideoMotore(id, i) {
   const x = a && (FONTI_DATI.allegati || []).find(function(y) { return y.id === a.allegato_id; });
   const percorso = (x && x.storage_path) || (a && a.percorso);
   if (!percorso) { toast('File non trovato', 'err'); return; }
-  const { data, error } = await db.storage.from('progetti-tecnici').createSignedUrl(percorso, 600);
+  const { data, error } = await firmaFile('progetti-tecnici', percorso, 600);
   if (error || !data || !data.signedUrl) { toast('File non disponibile' + (error ? ': ' + error.message : ''), 'err'); return; }
   window.open(data.signedUrl, '_blank', 'noopener');
 }

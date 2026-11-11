@@ -1040,7 +1040,7 @@ async function eliminaTicket(id) {
 }
 
 async function scaricaAllegato(path, nomeFile) {
-  var r = await db.storage.from('ticket-allegati').createSignedUrl(path, 3600);
+  var r = await firmaFile('ticket-allegati', path, 3600);
   if(r.error) { toast('Errore download','err'); return; }
   var a = document.createElement('a');
   a.href = r.data.signedUrl; a.download = nomeFile; a.target='_blank';

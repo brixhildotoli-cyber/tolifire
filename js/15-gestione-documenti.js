@@ -225,7 +225,7 @@ async function confermaUploadDoc() {
 
 async function scaricaDocumento(id, path, nomeFile) {
   ricordaPosizionePagina();
-  var r = await db.storage.from('documenti-clienti').createSignedUrl(path, 3600);
+  var r = await firmaFile('documenti-clienti', path, 3600);
   if(r.error) { toast('Errore download: ' + r.error.message, 'err'); return; }
   // Apri in nuova tab
   var a = document.createElement('a');

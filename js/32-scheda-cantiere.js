@@ -440,7 +440,7 @@ function htmlAllegatiCantiere(x) {
 // ── Apertura dei file ───────────────────────────────────────────────
 async function apriFileCantiere(bucket, path) {
   if (!['progetti-tecnici', 'certificati-preventivi', 'commesse-documenti', 'preventivi-documenti'].includes(bucket) || !path) return;
-  const { data, error } = await db.storage.from(bucket).createSignedUrl(path, 3600);
+  const { data, error } = await firmaFile(bucket, path, 3600);
   if (error || !data?.signedUrl) {
     toast('Impossibile aprire il file: ' + (error?.message || 'file non disponibile'), 'err');
     return;

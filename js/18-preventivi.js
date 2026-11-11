@@ -285,18 +285,15 @@ ${ROLE === 'titolare' ? `
       </div>
     `;
   } else {
-    const fileConLink = await Promise.all(
-      allegatiProgetto.map(async function(file) {
-        const { data } = await db.storage
-          .from('progetti-tecnici')
-          .createSignedUrl(file.storage_path, 3600);
-
-        return {
-          ...file,
-          url: data?.signedUrl || null
-        };
-      })
+    // 11/11: una sola richiesta per tutti i file, link tenuti in memoria (js/01)
+    const linkAllegati = await firmaFileInBlocco(
+      'progetti-tecnici',
+      allegatiProgetto.map(function(f) { return f.storage_path; }),
+      3600
     );
+    const fileConLink = allegatiProgetto.map(function(file) {
+      return { ...file, url: linkAllegati[file.storage_path] || null };
+    });
 
     ge('pvd-progetto-content').innerHTML += `
       <div style="font-size:13px;font-weight:700;margin:18px 0 8px">
@@ -4366,9 +4363,7 @@ async function caricaPreventivoRicevutoFornitore(selezioneId) {
 
 async function apriAllegatoPreventivoFornitore(storagePath) {
   ricordaPosizionePagina();
-  const { data, error } = await db.storage
-    .from('preventivi-documenti')
-    .createSignedUrl(storagePath, 3600);
+  const { data, error } = await firmaFile('preventivi-documenti', storagePath, 3600);
 
   if (error || !data?.signedUrl) {
     toast(
@@ -6039,9 +6034,7 @@ async function apriCertificatoPreventivo(certificatoId) {
     return;
   }
 
-  const { data, error: erroreUrl } = await db.storage
-    .from('certificati-preventivi')
-    .createSignedUrl(certificato.storage_path, 300);
+  const { data, error: erroreUrl } = await firmaFile('certificati-preventivi', certificato.storage_path, 300);
 
   if (erroreUrl || !data?.signedUrl) {
     toast(`Impossibile aprire il PDF: ${erroreUrl?.message || ''}`, 'err');
@@ -7731,9 +7724,7 @@ async function unisciPdfAllegatiRichiesta(doc, allegatiPdf) {
   );
 
   for (const file of allegatiPdf) {
-    const { data: urlData, error: erroreUrl } = await db.storage
-      .from('progetti-tecnici')
-      .createSignedUrl(file.storage_path, 600);
+    const { data: urlData, error: erroreUrl } = await firmaFile('progetti-tecnici', file.storage_path, 600);
 
     if (erroreUrl || !urlData?.signedUrl) {
       throw new Error(
@@ -8099,9 +8090,7 @@ if (progetto.materiali_note) {
 
   for (const foto of fotoDaInserire) {
     try {
-      const { data: urlData, error: erroreUrl } = await db.storage
-        .from('progetti-tecnici')
-        .createSignedUrl(foto.storage_path, 3600);
+      const { data: urlData, error: erroreUrl } = await firmaFile('progetti-tecnici', foto.storage_path, 3600);
 
       if (erroreUrl || !urlData?.signedUrl) {
         throw new Error('Foto non disponibile');

@@ -107,6 +107,13 @@ const tokenDi = u => sessione(u).access_token;
 
 // ── Instradamento delle richieste del sito (come smoke.spec.js) ────────
 const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*', 'access-control-expose-headers': 'content-range, content-profile, preference-applied' };
+// Firme in blocco (createSignedUrls, 11/11): un link per percorso
+function firmeInBloccoProva(bucket, corpo) {
+  let paths = [];
+  try { paths = JSON.parse(corpo || '{}').paths || []; } catch (e) { paths = []; }
+  return paths.map(p => ({ path: p, signedURL: '/object/sign/' + bucket + '/' + p + '?token=smoke', error: null }));
+}
+
 function json(status, corpo) { return { status, headers: Object.assign({ 'content-type': 'application/json' }, CORS), body: corpo === undefined ? '' : JSON.stringify(corpo) }; }
 
 async function rispostaLocale(req, url, stato) {
@@ -150,7 +157,7 @@ async function rispostaLocale(req, url, stato) {
     // Locale: nessun file vero. I caricamenti riescono e si contano.
     const m = /^\/storage\/v1\/object\/(list|sign|public|authenticated|info)?\/?(.*)$/.exec(p);
     if (metodo === 'POST' && m && m[1] === 'list') return json(200, []);
-    if (metodo === 'POST' && m && m[1] === 'sign') return json(200, m[2].includes('/') ? { signedURL: '/object/sign/' + m[2] + '?token=smoke' } : []);
+    if (metodo === 'POST' && m && m[1] === 'sign') return json(200, m[2].includes('/') ? { signedURL: '/object/sign/' + m[2] + '?token=smoke' } : firmeInBloccoProva(m[2], req.postData()));
     if ((metodo === 'POST' || metodo === 'PUT') && m && !m[1]) { stato.caricamenti.push(m[2]); return json(200, { Key: m[2], Id: crypto.randomUUID() }); }
     if (metodo === 'DELETE') return json(200, []);
     return json(400, { statusCode: '404', error: 'not_found', message: 'Object not found (smoke test locale)' });
