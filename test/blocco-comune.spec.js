@@ -5,14 +5,17 @@
 // Il "fatto quando" della task:
 //  1. il rappresentante, a 390 px, compila il blocco comune (le 6 domande del
 //     primo contatto, tutte facoltative) e lo ritrova nella scheda progetto;
-//  2. una porta REI senza quantità (campo che serve al prezzo) non si invia:
-//     il sito elenca cosa manca e la console è rifiutata dal database;
-//  3. quantità "xx" e REI "Classe superiore / da definire" fermano l'invio;
+//  2. una porta REI senza quantità (campo che serve al prezzo): dall'11/11
+//     (sql/261) il sito non ferma più il rappresentante; con sql/261 parte
+//     (anche dalla console), senza lo ferma il database e il sito dice solo
+//     "Chiedi all'ingegnere di completare la scheda";
+//  3. quantità "xx" e REI "Classe superiore / da definire": come il punto 2;
 //  4. con la quantità scritta, e un campo facoltativo "da verificare ?", il
 //     progetto si invia ad Acquisti.
 // Con BLOCCO_COMUNE_SENZA_SQL=1 (dopo il ROLLBACK di sql/82): nessun
-// riquadro del blocco comune, il sito ferma lo stesso l'invio (controllo del
-// sito), il database no, nessun errore.
+// riquadro del blocco comune, il rappresentante invia (dall'11/11 il sito non
+// lo ferma, il database senza sql/82 nemmeno), nessun errore.
+// Regole di smistamento spente durante la prova (come dopo sql/260).
 // Alla fine (solo database locale) si tolgono schede e file di prova e il
 // progetto torna com'era.
 // Uso: cd test && node blocco-comune.spec.js   (uscita 0 = TUTTO OK)
@@ -327,6 +330,13 @@ const chiudiScheda = s => s.page.evaluate(() => { if (schedaRilievoAperta) { sch
   const inizio = psql('select now()');
   // F15.9: foto e video obbligatori (sql/82-foto-video) li prova foto-video.spec.js: qui spenti, poi riaccesi
   const docSpenti = psql("update public.lavorazioni_documenti set attivo = false where attivo returning id").split('\n').filter(x => /^\d+$/.test(x));
+  // regole di smistamento spente come in produzione dopo sql/260 (i due bottoni), riaccese alla fine
+  const regoleSpente = psql("select case when to_regclass('public.regole_smistamento') is null then '' else (select coalesce(string_agg(id::text, ','), '') from public.regole_smistamento where attiva) end");
+  if (regoleSpente) psql('update public.regole_smistamento set attiva = false where id in (' + regoleSpente + ')');
+  // sql/261 (richiesta di Erika dell'11/11): il sito non ferma più il
+  // rappresentante; con sql/261 (o senza sql/82) nemmeno il database
+  const con261 = psql("select coalesce((select prosrc like '%sql/261%' from pg_proc where oid = to_regprocedure('public.trg_progetti_tecnici_invio_completo()')), false)") === 't';
+  const libero = SENZA || con261;
   // Allegato (regola di js/17), fonte del rilievo e foto della targhetta (sql/79): qui non si prova la fonte
   psql("update public.progetti_tecnici set fonte_rilievo = 'sopralluogo_toli' where id = " + q(progettoId));
   psql("insert into public.progetti_tecnici_allegati (progetto_id, nome_file, storage_path, mime_type, dimensione, caricato_da) values (" +
@@ -404,16 +414,27 @@ const chiudiScheda = s => s.page.evaluate(() => { if (schedaRilievoAperta) { sch
     }
 
     // 2. Quantità vuota (serve al prezzo): non si invia ------------------------
+    // con sql/261 parte; senza lo ferma il database e il sito dice solo
+    // "chiedi all'ingegnere di completare la scheda"
+    const controllaInvio = (n, cosa, d, statoAtteso) => {
+      if (/: manca|non basta|«xx»|Compila la scheda/.test(d)) KO(n + ': ' + cosa + ': al rappresentante il sito elenca ancora i dati o cita "Compila la scheda": ' + d);
+      const st = statoProgetto();
+      if (libero) {
+        if (st !== statoAtteso) KO(n + ': ' + cosa + ': doveva partire (' + (SENZA ? 'senza sql/82' : 'sql/261') + '): stato ' + st + ', messaggio ' + d);
+        else righe.push(n + '. ' + cosa + ': il rappresentante invia lo stesso (' + st + (SENZA ? ', senza sql/82' : ', sql/261') + ')');
+        psql("update public.progetti_tecnici set stato = 'bozza' where id = " + q(progettoId));
+      } else if (st !== 'bozza' || !/Chiedi all’ingegnere di completare la scheda/.test(d)) KO(n + ': ' + cosa + ': stato ' + st + ', messaggio ' + d);
+      else righe.push(n + '. ' + cosa + ': senza sql/261 il database ferma l\'invio, il sito dice: ' + d.split(' / ').pop().slice(0, 160));
+    };
     const d1 = await inviaE(r, 'inviaProgettoAlCommerciale', progettoId);
-    if (statoProgetto() !== 'bozza' || !/Quantit[^:]*: manca/.test(d1)) KO('2: quantità vuota: stato ' + statoProgetto() + ', messaggio ' + d1);
-    else righe.push('2. quantità vuota: "📤 Invia ad Acquisti" si ferma: ' + d1.replace(/\n+/g, ' ').slice(0, 220));
+    controllaInvio('2', 'quantità vuota', d1, 'inviato_a_commerciale');
     const cons = await r.page.evaluate(async id => {
       const x = await db.from('progetti_tecnici').update({ stato: 'inviato_a_commerciale' }).eq('id', id).select('id');
       return x.error ? 'rifiutato: ' + x.error.message : 'RIUSCITO';
     }, progettoId);
-    if (SENZA) {
-      if (cons !== 'RIUSCITO') KO('senza sql/82: la console doveva inviare (nessun blocco nel database): ' + cons);
-      else righe.push('   senza sql/82: il database non blocca (solo il sito)');
+    if (libero) {
+      if (cons !== 'RIUSCITO') KO((SENZA ? 'senza sql/82' : 'con sql/261') + ': la console doveva inviare (nessun blocco nel database per il rappresentante): ' + cons);
+      else righe.push('   ' + (SENZA ? 'senza sql/82' : 'con sql/261') + ': il database non blocca il rappresentante');
       psql("update public.progetti_tecnici set stato = 'bozza' where id = " + q(progettoId));
     } else if (!/rifiutato: Invio bloccato, dati per il preventivo/.test(cons)) KO('2: console del rappresentante: ' + cons);
     else righe.push('   console del rappresentante, invio diretto: ' + cons.slice(0, 160));
@@ -421,12 +442,10 @@ const chiudiScheda = s => s.page.evaluate(() => { if (schedaRilievoAperta) { sch
     // 3. Quantità "xx" (scritta dall'ingegnere come testo) e "da definire" ------
     psql("update public.progetti_tecnici_schede set dati = dati || '{\"quantita\":\"xx\"}' where progetto_tecnico_id = " + q(progettoId) + " and famiglia = 'porte_rei'");
     const d2 = await inviaE(r, 'inviaProgettoAUfficioTecnico', progettoId);
-    if (statoProgetto() !== 'bozza' || !/«xx»/.test(d2)) KO('3: quantità xx: stato ' + statoProgetto() + ', messaggio ' + d2);
-    else righe.push('3. quantità "xx": "🔧 Invia a ufficio tecnico" si ferma (' + (d2.match(/Quantit[^\n]*/) || [''])[0] + ')');
+    controllaInvio('3', 'quantità "xx"', d2, 'in_verifica_tecnica');
     psql("update public.progetti_tecnici_schede set dati = dati || " + q(JSON.stringify({ quantita: 2, rei: 'classe_superiore', fonti_normative: { rei: { valore: 'classe_superiore', fonte: 'come_esistente', allegato_id: fotoId } } })) + "::jsonb where progetto_tecnico_id = " + q(progettoId) + " and famiglia = 'porte_rei'");
     const d3 = await inviaE(r, 'inviaProgettoAlCommerciale', progettoId);
-    if (statoProgetto() !== 'bozza' || !/da definire» non basta/.test(d3)) KO('3: REI da definire: stato ' + statoProgetto() + ', messaggio ' + d3);
-    else righe.push('   REI "Classe superiore / da definire": si ferma');
+    controllaInvio('3', 'REI "Classe superiore / da definire"', d3, 'inviato_a_commerciale');
     psql("update public.progetti_tecnici_schede set dati = dati || " + q(JSON.stringify({ quantita: null, rei: 'rei_60', fonti_normative: base.fonti_normative })) + "::jsonb where progetto_tecnico_id = " + q(progettoId) + " and famiglia = 'porte_rei'");
 
     // 4. Il rappresentante scrive la quantità; un facoltativo "da verificare": si invia
@@ -459,6 +478,7 @@ const chiudiScheda = s => s.page.evaluate(() => { if (schedaRilievoAperta) { sch
       psql("delete from public.progetti_tecnici_schede where progetto_tecnico_id = " + q(progettoId) + " and creato_il >= " + q(inizio));
       psql("delete from public.progetti_tecnici_allegati where progetto_id = " + q(progettoId) + " and caricato_il >= " + q(inizio));
       if (docSpenti.length) psql('update public.lavorazioni_documenti set attivo = true where id in (' + docSpenti.join(',') + ')');
+      if (regoleSpente) psql('update public.regole_smistamento set attiva = true where id in (' + regoleSpente + ')');
     } catch (e) { console.error('pulizia: ' + e.message); }
   }
   righe.forEach(x => console.log(x));

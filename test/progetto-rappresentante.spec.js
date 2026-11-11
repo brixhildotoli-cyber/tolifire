@@ -14,7 +14,18 @@
 //  3. ci sono i due bottoni "🔧 Invia a ufficio tecnico" e "📤 Invia ad
 //     Acquisti": il primo progetto va all'ingegnere, un secondo progetto
 //     ad Acquisti; la fonte del rilievo diventa "sopralluogo_toli" (se la
-//     colonna c'è, sql/79).
+//     colonna c'è, sql/79), scritta solo DOPO la conferma dell'invio (con
+//     "Annulla" resta vuota);
+//  4. senza allegati il sito non invia ("Non puoi inviare un progetto senza
+//     almeno un allegato"); la barra "🔍 Cerca" della pagina Progetti lascia
+//     visibili solo le schede con le parole scritte;
+//  5. sql/261: l'ingegnere ha una scheda porte REI senza foto, senza dati del
+//     prezzo e con REI 60 senza fonte e fa "Richiedi integrazione" (finestra
+//     Verifica tecnica, salva_esito_verifica); il rappresentante rinvia:
+//     con sql/261 passa (all'ingegnere, poi di nuovo ad Acquisti) senza
+//     nessun elenco; senza sql/261 resta da integrare con il solo messaggio
+//     "Chiedi all'ingegnere di completare la scheda" (niente "📝 Compila la
+//     scheda").
 // Alla fine si tolgono i progetti di prova.
 // Uso: cd test && node progetto-rappresentante.spec.js   (uscita 0 = TUTTO OK)
 'use strict';
@@ -203,7 +214,11 @@ async function preparaPagina(contesto, stato) {
     if (/Failed to load resource/.test(t)) return;
     stato.console.push(t.slice(0, 220));
   });
-  page.on('dialog', d => { stato.dialoghi.push(d.message()); d.accept(d.type() === 'prompt' ? (d.defaultValue() || ETICHETTA) : undefined); });
+  page.on('dialog', d => {
+    stato.dialoghi.push(d.message());
+    if (stato.rifiutaConferma && d.type() === 'confirm') return d.dismiss();
+    d.accept(d.type() === 'prompt' ? (d.defaultValue() || ETICHETTA) : undefined);
+  });
   return page;
 }
 
@@ -327,7 +342,10 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
   const sessioni = [];
   const foto = path.join(CARTELLA_OUT, 'porta.png');
   fs.writeFileSync(foto, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64'));
-  const titoli = [ETICHETTA + ' ' + Date.now() + ' ufficio tecnico', ETICHETTA + ' ' + Date.now() + ' Acquisti'];
+  const marca = 'z' + Date.now();   // parola che c'è solo nei titoli di questa prova
+  const titoli = [ETICHETTA + ' ' + marca + ' ufficio tecnico', ETICHETTA + ' ' + marca + ' Acquisti', ETICHETTA + ' ' + marca + ' senzaallegati'];
+  const con261 = psql("select coalesce((select prosrc like '%sql/261%' from pg_proc where oid = to_regprocedure('public.trg_progetti_tecnici_invio_completo()')), false)") === 't';
+  const ing = utenti.find(u => u.ruolo === 'ingegnere');
   const statoDi = id => psql('select stato || \'|\' || ' + (c79 ? "coalesce(fonte_rilievo, '')" : "''") + ' from public.progetti_tecnici where id = ' + q(id));
 
   async function creaProgetto(r, titolo, n) {
@@ -388,6 +406,16 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
       else righe.push('3. scheda cliente: "🔧 Invia a ufficio tecnico" e "📤 Invia ad Acquisti", niente "📤 Invia il progetto"');
       await r.page.screenshot({ path: path.join(CARTELLA_OUT, '3-bottoni-390.png'), fullPage: true });
 
+      // la fonte del rilievo si scrive solo dopo la conferma: con "Annulla" resta vuota
+      r.stato.dialoghi = [];
+      r.stato.rifiutaConferma = true;
+      await r.page.evaluate(async id => { await inviaProgettoAUfficioTecnico(id); }, id1);
+      await attendiQuiete(r.stato, 1000);
+      r.stato.rifiutaConferma = false;
+      const s0 = statoDi(id1);
+      if (s0 !== 'bozza|') KO('3: con "Annulla" il progetto doveva restare in bozza senza fonte: ' + s0);
+      else righe.push('   con "Annulla" alla conferma: ' + s0 + ' (fonte del rilievo non scritta)');
+
       r.stato.dialoghi = [];
       await r.page.evaluate(async id => { await inviaProgettoAUfficioTecnico(id); }, id1);
       await attendiQuiete(r.stato, 1500);
@@ -407,6 +435,82 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
       else righe.push('   "📤 Invia ad Acquisti": ' + s2);
     }
 
+    // 4. Senza allegati il sito non invia ------------------------------------
+    const id3 = await creaProgetto(r, titoli[2], '5');
+    if (id3) {
+      psql('delete from public.progetti_tecnici_allegati where progetto_id = ' + q(id3));
+      r.stato.dialoghi = [];
+      await r.page.evaluate(async id => { await inviaProgettoAlCommerciale(id); }, id3);
+      await attendiQuiete(r.stato, 1200);
+      const s3 = statoDi(id3);
+      const t3 = await toastTesto(r);
+      if (!/^bozza\|/.test(s3) || !/senza almeno un allegato/.test(t3)) KO('5: senza allegati doveva fermarsi: ' + s3 + ' ' + t3);
+      else righe.push('5. senza allegati: fermato dal sito ("' + t3.trim() + '"), resta ' + s3);
+    }
+
+    // 4b. Barra "🔍 Cerca" della pagina Progetti -----------------------------
+    {
+      await r.page.evaluate(async () => { gotoPage('progetti'); if (typeof loadPaginaProgetti === 'function') await loadPaginaProgetti(); });
+      await attendiQuiete(r.stato, 1500);
+      const cerca = async testo => {
+        await r.page.evaluate(t => { const c = ge('cerca-prev-progetti'); c.value = t; filtraPreventiviPagina('progetti'); }, testo);
+        await attendi(300);
+        return r.page.evaluate(() => {
+          const vis = schedePaginaPreventivi(ge('pg-progetti')).filter(c => c.style.display !== 'none');
+          return { n: vis.length, testi: vis.map(c => c.textContent), esito: (ge('cerca-prev-progetti-esito') || {}).textContent || '' };
+        });
+      };
+      const tutti = await cerca(marca);
+      const uno = await cerca(marca + ' senzaallegati');
+      const nessuno = await cerca(marca + ' parolachenonce');
+      await cerca('');
+      const okTutti = tutti.n === 3 && tutti.testi.every(t => t.includes(marca));
+      const okUno = uno.n === 1 && uno.testi[0].includes(titoli[2]);
+      if (!okTutti || !okUno || nessuno.n !== 0) KO('5b: ricerca nella pagina Progetti: ' + JSON.stringify({ tutti: [tutti.n, tutti.esito], uno: [uno.n, uno.esito], nessuno: [nessuno.n, nessuno.esito] }));
+      else righe.push('5b. 🔍 Cerca in Progetti: "' + marca + '" → ' + tutti.esito + '; con "senzaallegati" → ' + uno.esito + ' (solo quella scheda); parola inesistente → ' + nessuno.esito);
+      await r.page.screenshot({ path: path.join(CARTELLA_OUT, '5b-cerca-progetti-390.png'), fullPage: false });
+    }
+
+    // 5. Ingegnere: scheda senza foto → Richiedi integrazione → rinvio ------
+    if (id1 && ing) {
+      psql("insert into public.progetti_tecnici_schede (progetto_tecnico_id, famiglia, numero, dati, stato) values (" + q(id1) +
+        ", 'porte_rei', 1, '{\"tipo_richiesta\":\"definitiva\",\"rei\":\"rei_60\"}', 'bozza')");
+      const e = await apriSito(browser, url); sessioni.push(e);
+      await e.page.setViewport({ width: 390, height: 844 });
+      await login(e, ing);
+      await e.page.evaluate(async id => { await apriVerificaTecnica(id); }, id1);
+      await attendiQuiete(e.stato, 1200);
+      await e.page.evaluate(() => { ge('mvt-note').value = 'Manca la foto delle porte: rimandala con le misure'; });
+      await e.page.evaluate(async () => { await salvaEsitoVerifica('da_integrare'); });
+      await attendiQuiete(e.stato, 1500);
+      const sI = statoDi(id1);
+      if (!/^da_integrare\|/.test(sI)) KO('6: "Richiedi integrazione" dell\'ingegnere: ' + sI + ' ' + await toastTesto(e));
+      else righe.push('6. ingegnere (scheda porte REI senza foto, prezzo e fonte): "Richiedi integrazione" → ' + sI);
+      await chiudi(e);
+
+      r.stato.dialoghi = [];
+      await r.page.evaluate(async id => { await inviaProgettoAUfficioTecnico(id); }, id1);
+      await attendiQuiete(r.stato, 1500);
+      const sR = statoDi(id1);
+      const dialoghi = testoDialoghi(r);
+      if (/Compila la scheda/.test(dialoghi)) KO('7: al rappresentante si cita ancora "Compila la scheda": ' + dialoghi);
+      if (con261) {
+        if (!/^in_verifica_tecnica\|/.test(sR) || /non si può ancora inviare/.test(dialoghi)) KO('7: con sql/261 il rinvio doveva passare: ' + sR + ' ' + dialoghi + ' ' + await toastTesto(r));
+        else righe.push('7. con sql/261: il rappresentante rinvia all\'ingegnere senza blocchi → ' + sR + ' (dialoghi: ' + dialoghi.slice(0, 90) + ')');
+        psql('update public.progetti_tecnici set stato = \'da_integrare\' where id = ' + q(id1));
+        r.stato.dialoghi = [];
+        await r.page.evaluate(async id => { await inviaProgettoAlCommerciale(id); }, id1);
+        await attendiQuiete(r.stato, 1500);
+        const sA = statoDi(id1);
+        if (!/^inviato_a_commerciale\|/.test(sA)) KO('7: con sql/261 il rinvio ad Acquisti doveva passare: ' + sA + ' ' + testoDialoghi(r) + ' ' + await toastTesto(r));
+        else righe.push('   e da integrare ad Acquisti → ' + sA);
+      } else {
+        if (!/^da_integrare\|/.test(sR) || !/Chiedi all’ingegnere di completare la scheda/.test(dialoghi)) KO('7: senza sql/261 doveva fermarsi con "Chiedi all\'ingegnere": ' + sR + ' ' + dialoghi + ' ' + await toastTesto(r));
+        else righe.push('7. senza sql/261: fermato dal database, messaggio al rappresentante: "' + dialoghi.split(' / ').pop().slice(0, 140) + '"');
+      }
+      await r.page.screenshot({ path: path.join(CARTELLA_OUT, '7-rinvio-390.png'), fullPage: false });
+    } else if (!ing) KO('6: manca un ingegnere attivo');
+
     for (const s of sessioni) {
       if (s.stato.erroriJs.length) KO('errori JavaScript: ' + s.stato.erroriJs.join(' | '));
       const rete = s.stato.rete.filter(x => (x.status >= 500 || /does not exist|Could not find/i.test(x.msg)) &&
@@ -423,6 +527,7 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
     try {
       for (const t of titoli) {
         psql('delete from public.progetti_tecnici_allegati where progetto_id in (select id from public.progetti_tecnici where titolo = ' + q(t) + ')');
+        psql('delete from public.progetti_tecnici_schede where progetto_tecnico_id in (select id from public.progetti_tecnici where titolo = ' + q(t) + ')');
         psql('delete from public.progetti_tecnici where titolo = ' + q(t));
       }
     } catch (e) { console.error('pulizia: ' + e.message); }

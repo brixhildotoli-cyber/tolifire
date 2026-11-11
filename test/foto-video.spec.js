@@ -3,8 +3,10 @@
 // Chrome headless con puppeteer-core, SOLO DATABASE LOCALE
 // (test/locale/avvia-db-locale.sh con sql/77-82 e 82-foto-video + -VINCOLO).
 // Il "fatto quando" della task:
-//  1. rappresentante a 390 px: la porta REI senza foto e video non si invia
-//     (sito e console rifiutati); nella scheda carica 2 foto e un video mp4
+//  1. rappresentante a 390 px: la porta REI senza foto e video. Dall'11/11
+//     (sql/261) il sito non lo ferma: con sql/261 parte (anche da console),
+//     senza lo ferma il database con "Chiedi all'ingegnere di completare la
+//     scheda"; nella scheda carica 2 foto e un video mp4
 //     di 40 MB, salva: nel database le voci con l'impronta SHA-256;
 //  2. la stessa foto su due posizioni P-xx è rifiutata (sito e database);
 //  3. con foto e video il progetto si invia ad Acquisti; la console di
@@ -406,16 +408,26 @@ async function caricaNellaVoce(s, docId, file) {
       if (statoProgetto() !== 'inviato_a_commerciale') KO('senza sql/82-foto-video il progetto non si invia: ' + d + ' ' + await toastTesto(r));
       else righe.push('   il progetto si invia senza foto né video (nessun blocco)');
     } else {
-      // 1. Senza foto e video: non si invia (sito e console)
+      // 1. Senza foto e video. sql/261 (richiesta di Erika dell'11/11): il sito
+      // non ferma più il rappresentante; con sql/261 parte (anche dalla
+      // console), senza sql/261 lo ferma il database e il sito dice solo
+      // "chiedi all'ingegnere di completare la scheda"
+      const con261 = psql("select coalesce((select prosrc like '%sql/261%' from pg_proc where oid = to_regprocedure('public.trg_progetti_tecnici_invio_completo()')), false)") === 't';
       const d0 = await inviaE(r, 'inviaProgettoAlCommerciale', progettoId);
-      if (statoProgetto() !== 'bozza' || !/mancano foto o video/.test(d0)) KO('1: senza foto: stato ' + statoProgetto() + ', messaggio ' + d0);
-      else righe.push('1. senza foto e video "📤 Invia ad Acquisti" si ferma: ' + d0.replace(/\n+/g, ' ').slice(0, 200));
+      if (/mancano foto o video|Compila la scheda/.test(d0)) KO('1: al rappresentante il sito elenca ancora le foto o cita "Compila la scheda": ' + d0);
+      if (con261) {
+        if (statoProgetto() !== 'inviato_a_commerciale') KO('1: con sql/261 senza foto doveva partire: stato ' + statoProgetto() + ', messaggio ' + d0);
+        else righe.push('1. con sql/261: senza foto e video "📤 Invia ad Acquisti" parte (inviato_a_commerciale)');
+        psql("update public.progetti_tecnici set stato = 'bozza' where id = " + q(progettoId));
+      } else if (statoProgetto() !== 'bozza' || !/Chiedi all’ingegnere di completare la scheda/.test(d0)) KO('1: senza foto: stato ' + statoProgetto() + ', messaggio ' + d0);
+      else righe.push('1. senza sql/261: il database ferma l\'invio, il sito dice: ' + d0.split(' / ').pop().slice(0, 200));
       const cons = await r.page.evaluate(async id => {
         const x = await db.from('progetti_tecnici').update({ stato: 'inviato_a_commerciale' }).eq('id', id).select('id');
         return x.error ? 'rifiutato: ' + x.error.message : 'RIUSCITO';
       }, progettoId);
-      if (!/rifiutato: Invio bloccato, foto e video mancanti/.test(cons)) KO('1: console del rappresentante: ' + cons);
-      else righe.push('   console del rappresentante: ' + cons.slice(0, 150));
+      if (con261 ? cons !== 'RIUSCITO' : !/rifiutato: Invio bloccato, foto e video mancanti/.test(cons)) KO('1: console del rappresentante: ' + cons);
+      else righe.push('   console del rappresentante: ' + cons.slice(0, 150) + (con261 ? ' (sql/261)' : ''));
+      psql("update public.progetti_tecnici set stato = 'bozza' where id = " + q(progettoId));
       const senzaImpronta = await r.page.evaluate(async (id, uid) => {
         const x = await db.from('progetti_tecnici_allegati').insert({ progetto_id: id, nome_file: 'console.jpg', storage_path: uid + '/' + id + '/console.jpg', mime_type: 'image/jpeg', dimensione: 10, caricato_da: uid }).select('id');
         return x.error ? 'rifiutato: ' + x.error.message : 'RIUSCITO';

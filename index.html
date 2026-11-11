@@ -1157,6 +1157,11 @@
     </div>
   </div>
 
+  <div class="sb">
+    <input type="search" id="cerca-prev-progetti" placeholder="🔍 Cerca cliente, titolo, lavoro..." oninput="filtraPreventiviPagina('progetti')">
+  </div>
+  <div id="cerca-prev-progetti-esito" style="margin:-6px 0 12px;font-size:13px;color:var(--m)"></div>
+
   <div id="progetti-lista">
     <div class="load">Caricamento...</div>
   </div>
@@ -2823,7 +2828,9 @@
         Se Acquisti o l’ingegnere ti chiedono altri dati, in dashboard
         compare il riquadro arancione <b>🔧 Progetto da integrare: …</b> e il
         progetto ha lo stato <b>Integrazione richiesta</b>. Aprilo, leggi la
-        nota, completa i dati o gli allegati e invialo di nuovo.
+        nota, completa i dati o gli allegati e invialo di nuovo
+        (<b>🔧 Invia a ufficio tecnico</b> o <b>📤 Invia ad Acquisti</b>,
+        scegli tu): le schede dell'ingegnere non ti fermano.
       </p>
 
       <hr class="sep">
@@ -3182,24 +3189,25 @@
       </p>
 
       <ul>
-        <li>Resta il controllo dei <b>dati di legge</b> (classe REI/EI, classe R, minuti, reazione al fuoco, ATEX...) nelle schede già salvate: se un dato compilato non ha la sua fonte, all'invio il gestionale ti elenca cosa manca e il progetto resta in bozza. In quel caso chiedi all'ingegnere (o al titolare) di indicare la fonte nella scheda.</li>
-        <li>Un progetto senza schede non chiede nessuna fonte.</li>
+        <li>Anche le fonti dei <b>dati di legge</b> delle schede (classe REI/EI, classe R, minuti, reazione al fuoco, ATEX...) non fermano il tuo invio: le controlla e le completa l'ingegnere.</li>
+        <li>Un progetto, con o senza schede, non ti chiede nessuna fonte.</li>
       </ul>
 
       <div class="al2 w">
-        Prima dell'aggiornamento del database sql/259 la fonte <b>Sopralluogo TOLI</b> la mette il sito appena premi il bottone di invio; dopo la mette il database. Il risultato è lo stesso.
+        Prima dell'aggiornamento del database sql/259 la fonte <b>Sopralluogo TOLI</b> la mette il sito quando confermi l'invio; dopo la mette il database. Il risultato è lo stesso.
       </div>
 
       <h4 id="info-rap-29">29. 📤 Invio del progetto: cosa serve</h4>
 
       <p>
-        Per inviare il progetto servono solo: <b>titolo</b>, <b>tipologia</b>, <b>descrizione</b> e almeno un <b>allegato</b> (foto, PDF, planimetria). Poi premi <b>🔧 Invia a ufficio tecnico</b> (all'ingegnere) o <b>📤 Invia ad Acquisti</b>.
+        Per inviare il progetto servono solo: <b>titolo</b>, <b>tipologia</b>, <b>descrizione</b> e almeno un <b>allegato</b> (basta una foto; va bene anche un PDF o una planimetria). Poi decidi tu dove mandarlo: <b>🔧 Invia a ufficio tecnico</b> (all'ingegnere) o <b>📤 Invia ad Acquisti</b>. Non ci sono altri blocchi.
       </p>
 
       <ul>
         <li>Senza allegato il gestionale non invia: "Non puoi inviare un progetto senza almeno un allegato".</li>
-        <li>Se il progetto ha già delle schede salvate, all'invio il gestionale controlla ancora i dati che servono al prezzo, le fonti dei dati di legge e le foto di quelle schede, e ti elenca cosa manca: in quel caso chiedi all'ingegnere.</li>
-        <li>Un progetto senza schede parte con i soli titolo, tipologia, descrizione e allegati, come prima.</li>
+        <li>Le schede di rilievo (anche quelle già salvate, anche se l'ingegnere le ha lasciate senza foto, senza i dati del prezzo o senza le fonti) <b>non fermano il tuo invio</b>: i controlli delle schede li fa l'ingegnere.</li>
+        <li>Rimandato indietro dall'ingegnere (<b>Integrazione richiesta</b>, sezione 10)? Completa quello che chiede nella nota e invia di nuovo: anche qui servono solo titolo, tipologia, descrizione e almeno un allegato.</li>
+        <li>Se il database non è ancora aggiornato (sql/261) e una scheda non è completa, all'invio leggi "Il progetto non si può ancora inviare: le schede di rilievo non sono complete. Chiedi all'ingegnere di completare la scheda": chiamalo o scrivigli una domanda (❓) sul progetto.</li>
       </ul>
 
       <div class="info-esempio">
@@ -3216,8 +3224,9 @@
       <ul>
         <li>Le foto grandi si rimpiccioliscono da sole. PDF, planimetrie e DWG fino a 10 MB.</li>
         <li>Video mp4 o mov fino a <b>50 MB</b> (registra in 720p, massimo 2 minuti), se il database è aggiornato (sql/82-foto-video).</li>
+        <li>Per inviare il progetto basta <b>almeno una foto</b> (o un altro allegato).</li>
         <li><b>La stessa foto non vale due volte</b>: se scegli di nuovo un file già tra quelli del progetto il gestionale lo salta e te lo dice.</li>
-        <li>Le foto richieste dalle schede di rilievo (foto d'insieme, video del luogo) le gestisce l'ingegnere nelle sue schede.</li>
+        <li>Le foto richieste dalle schede di rilievo (foto d'insieme, video del luogo) le gestisce l'ingegnere nelle sue schede: se mancano, il tuo invio parte lo stesso.</li>
       </ul>
 
       <h4 id="info-rap-31">31. 📴 Senza rete: app installata e cose da inviare</h4>
@@ -3269,14 +3278,15 @@
       <h4 id="info-rap-33">33. 🔧 / 📤 Due modi di inviare il progetto: scegli tu</h4>
 
       <p>
-        Dalla pagina <b>Progetti</b> o dalla scheda cliente il progetto in bozza o da integrare ha due bottoni, come prima:
+        Dalla pagina <b>Progetti</b> o dalla scheda cliente il progetto in bozza o da integrare ha due bottoni, come prima. <b>Decidi tu</b> dove mandarlo:
       </p>
 
       <ul>
         <li><b>🔧 Invia a ufficio tecnico</b>: va all'ingegnere (lavori grandi, dubbi tecnici, classi di resistenza da definire). L'ingegnere compila le schede e poi lo passa ad Acquisti.</li>
         <li><b>📤 Invia ad Acquisti</b>: lavori semplici, Acquisti prepara subito il preventivo.</li>
         <li>Sopra la soglia del "lavoro grande" (importo stimato) compare un avviso giallo: valuta l'ingegnere. Decidi tu.</li>
-        <li>Se l'ingegnere o Acquisti ti rimandano il progetto (da integrare), completi e invii di nuovo.</li>
+        <li>Se l'ingegnere o Acquisti ti rimandano il progetto (da integrare), completi e invii di nuovo, con lo stesso bottone che scegli tu.</li>
+        <li>Per tutti e due basta almeno un allegato (una foto va bene): nessun altro blocco, nemmeno dalle schede di rilievo.</li>
       </ul>
 
       <div class="al2 w">Se il titolare riaccende le <b>regole di smistamento</b>, al posto dei due bottoni compare <b>📤 Invia il progetto</b> e decide il gestionale dove va ogni scheda.</div>

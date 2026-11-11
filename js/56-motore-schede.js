@@ -707,6 +707,8 @@ function controlloSchedeRilievoPrimaDelSalvataggio(elenco) {
 // Errore del salvataggio da mostrare (le regole di sql/78 hanno già il testo giusto)
 function testoErroreSchedaMotore(error) {
   const m = String((error && error.message) || '');
+  const bloccato = typeof messaggioInvioBloccatoRappresentante === 'function' && messaggioInvioBloccatoRappresentante(error);
+  if (bloccato) return bloccato;
   if (/row-level security|permission denied/i.test(m)) {
     return 'il database non lo permette (il rappresentante compila solo i suoi progetti in bozza o da integrare)';
   }
@@ -1203,37 +1205,58 @@ function htmlFonteDatoScheda(scheda, chiave) {
 
 // Prima di inviare il progetto (js/17, js/67): fonte del rilievo e fonti dei
 // dati normativi (RPC fonti_mancanti_progetto di sql/79). true = si può inviare.
-// sql/259 (richiesta di Erika dell'11/11): il RAPPRESENTANTE (anche "Entra
-// come") non viene fermato dalla fonte del rilievo mancante. Se manca, la
-// mette il sito stesso ('sopralluogo_toli', update del progetto in bozza o da
-// integrare: la policy e il trigger di sql/79 lo permettono al rappresentante)
-// prima dell'invio, così l'invio passa anche con il database di sql/79 senza
-// sql/259; con sql/259 la scrive comunque il database all'invio. Restano i
-// blocchi delle fonti dei DATI NORMATIVI, come prima. Ingegnere e titolare:
-// come prima.
+// sql/261 (richiesta di Erika dell'11/11, come prima del 06/11): il
+// RAPPRESENTANTE (anche "Entra come") non è fermato da nessun controllo delle
+// schede: niente elenco, si invia (lo decide lui: ingegnere o Acquisti; js/17
+// chiede solo almeno un allegato). La fonte del rilievo la scrive
+// preparaInvioRappresentante DOPO la conferma dell'invio. Ingegnere e
+// titolare: come prima.
+// Con le regole di smistamento accese (sql/83, oggi spente da sql/260) l'invio
+// passa da js/67 inviaProgettoConSmistamento, che non si tocca: lì la fonte del
+// rilievo si scrive qui, come prima (senza sql/259 il database la vuole).
 async function controllaFontiPrimaDellInvio(progettoId) {
+  if (ROLE === 'rappresentante') {
+    if (typeof smistamentoAttivoSubito === 'function' && smistamentoAttivoSubito()) return preparaInvioRappresentante(progettoId);
+    return true;
+  }
   if (!(await verificaFontiDatiDisponibili())) return true;
   const { data, error } = await db.rpc('fonti_mancanti_progetto', { p_progetto: progettoId });
   if (error) return true; // il database lo ricontrolla comunque all'invio
-  const rappresentante = ROLE === 'rappresentante';
-  const senzaFonteRilievo = (data || []).some(function(r) { return r.campo === 'fonte_rilievo'; });
-  const problemi = (data || []).filter(function(r) { return !(rappresentante && r.campo === 'fonte_rilievo'); });
+  const problemi = data || [];
   if (problemi.length) {
     const righe = problemi.slice(0, 8).map(function(r) {
       return '- ' + (r.scheda ? r.scheda + ' – ' : '') + r.etichetta + ': ' + r.motivo;
     });
     alert('Il progetto non si può ancora inviare:\n\n' + righe.join('\n') +
       (problemi.length > 8 ? '\n- … e altri ' + (problemi.length - 8) : '') +
-      '\n\n' + (rappresentante ? '' : 'La fonte del rilievo si indica in "Modifica" del progetto o in cima alla scheda di rilievo; ') +
-      (rappresentante ? 'La fonte dei dati normativi si indica' : 'la fonte dei dati normativi') +
-      ' sotto il dato, nella scheda (📝 Rilievi tecnici → 📝 Compila la scheda).');
+      '\n\nLa fonte del rilievo si indica in "Modifica" del progetto o in cima alla scheda di rilievo; ' +
+      'la fonte dei dati normativi sotto il dato, nella scheda (📝 Rilievi tecnici → 📝 Compila la scheda).');
     return false;
   }
-  if (rappresentante && senzaFonteRilievo) {
-    const ok = await mettiFonteRilievoAutomatica(progettoId);
-    if (!ok) return false;
-  }
   return true;
+}
+
+// sql/259 + sql/261: chiamata da js/17 per il rappresentante DOPO la conferma
+// dell'invio (e dopo il controllo dell'allegato), subito prima del cambio di
+// stato. Con sql/79 e la fonte del rilievo ancora vuota la scrive il sito
+// ("Sopralluogo TOLI"), così l'invio passa anche senza sql/259. true = si va
+// avanti.
+async function preparaInvioRappresentante(progettoId) {
+  if (ROLE !== 'rappresentante') return true;
+  if (!(await verificaFontiDatiDisponibili())) return true;
+  return mettiFonteRilievoAutomatica(progettoId);
+}
+
+// Errore dell'invio del rappresentante: senza sql/261 il database lo ferma
+// ancora per le schede (dati normativi senza fonte, dati del prezzo, foto e
+// video). Il rappresentante non apre le schede: gli si dice solo a chi
+// chiedere. null = non è un blocco dell'invio (si mostra l'errore com'è).
+function messaggioInvioBloccatoRappresentante(error) {
+  if (ROLE !== 'rappresentante') return null;
+  const m = String((error && error.message) || '');
+  if (!/Invio bloccato/i.test(m)) return null;
+  return 'Il progetto non si può ancora inviare: le schede di rilievo non sono complete. ' +
+    'Chiedi all’ingegnere di completare la scheda.';
 }
 
 // sql/259: fonte del rilievo messa dal sito per il rappresentante ("Sopralluogo
@@ -1643,7 +1666,9 @@ async function controlliInvioProgetto(progettoId) {
 }
 
 // Prima di inviare il progetto (js/17). true = si può inviare.
+// sql/261: il rappresentante (anche "Entra come") non viene fermato.
 async function controllaDatiPrimaDellInvio(progettoId) {
+  if (ROLE === 'rappresentante') return true;
   let righe = [];
   try { righe = await controlliInvioProgetto(progettoId); } catch (e) { return true; }
   if (!righe || !righe.length) return true;
@@ -2073,6 +2098,7 @@ function problemaFotoVideoMotore() {
 
 // Prima di inviare il progetto (js/17). true = si può inviare.
 async function controllaFotoVideoPrimaDellInvio(progettoId) {
+  if (ROLE === 'rappresentante') return true; // sql/261: il rappresentante non viene fermato
   if (!(await verificaFotoVideoDisponibile())) return true;
   const { data, error } = await db.rpc('foto_video_mancanti_progetto', { p_progetto: progettoId });
   if (error || !data || !data.length) return true; // il database lo ricontrolla comunque all'invio

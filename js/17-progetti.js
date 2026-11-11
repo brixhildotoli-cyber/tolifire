@@ -799,7 +799,9 @@ async function inviaProgettoAUfficioTecnico(progettoId) {
   if (typeof verificaRegoleSmistamentoDisponibili === 'function' && await verificaRegoleSmistamentoDisponibili(true)) {
     return inviaProgettoConSmistamento(progettoId);
   }
-  // F15.5: fonte del rilievo e fonti dei dati normativi (js/56, sql/79)
+  // F15.5: fonte del rilievo e fonti dei dati normativi (js/56, sql/79).
+  // sql/261: i tre controlli qui sotto NON fermano il rappresentante (anche
+  // "Entra come"): per lui solo l'allegato, come prima del 06/11
   if (typeof controllaFontiPrimaDellInvio === 'function' && !(await controllaFontiPrimaDellInvio(progettoId))) {
     return;
   }
@@ -833,6 +835,12 @@ async function inviaProgettoAUfficioTecnico(progettoId) {
     return;
   }
 
+  // sql/259 + sql/261: per il rappresentante, dopo la conferma, la fonte del
+  // rilievo ("Sopralluogo TOLI") se manca; nessun altro controllo delle schede
+  if (typeof preparaInvioRappresentante === 'function' && !(await preparaInvioRappresentante(progettoId))) {
+    return;
+  }
+
   const { error } = await db
     .from('progetti_tecnici')
     .update({
@@ -841,6 +849,12 @@ async function inviaProgettoAUfficioTecnico(progettoId) {
     .eq('id', progettoId);
 
   if (error) {
+    // senza sql/261 il database ferma ancora il rappresentante per le schede
+    const bloccato = typeof messaggioInvioBloccatoRappresentante === 'function' && messaggioInvioBloccatoRappresentante(error);
+    if (bloccato) {
+      alert(bloccato);
+      return;
+    }
     toast('Errore invio: ' + error.message, 'err');
     return;
   }
@@ -993,8 +1007,8 @@ async function mostraFonteRilievoProgetto(progetto) {
   const attive = typeof verificaFontiDatiDisponibili === 'function' && await verificaFontiDatiDisponibili();
   // sql/259 (richiesta di Erika dell'11/11): al rappresentante (anche "Entra
   // come") il campo non si mostra e non si manda: all'invio vale "Sopralluogo
-  // TOLI" (la mette il database con sql/259, prima il sito: js/56
-  // controllaFontiPrimaDellInvio). Ingegnere e titolare come prima.
+  // TOLI" (la mette il database con sql/259, prima il sito dopo la conferma
+  // dell'invio: js/56 preparaInvioRappresentante). Ingegnere e titolare come prima.
   box.style.display = attive && ROLE !== 'rappresentante' ? 'block' : 'none';
   campo.value = attive && progetto && progetto.fonte_rilievo ? progetto.fonte_rilievo : '';
   campo.disabled = !['rappresentante', 'ingegnere', 'titolare'].includes(ROLE);
@@ -1067,7 +1081,8 @@ async function inviaProgettoAlCommerciale(progettoId) {
     }
   }
   // F15.5: fonte del rilievo e fonti dei dati normativi (js/56, sql/79)
-  // (solo l'invio da bozza o da integrare: dopo la verifica dell'ingegnere no)
+  // (solo l'invio da bozza o da integrare: dopo la verifica dell'ingegnere no).
+  // sql/261: i tre controlli NON fermano il rappresentante (anche "Entra come")
   if (typeof controllaFontiPrimaDellInvio === 'function') {
     const { data: attuale } = await db.from('progetti_tecnici').select('stato').eq('id', progettoId).maybeSingle();
     if ((!attuale || ['bozza', 'da_integrare'].includes(attuale.stato)) &&
@@ -1106,6 +1121,12 @@ async function inviaProgettoAlCommerciale(progettoId) {
     return;
   }
 
+  // sql/259 + sql/261: per il rappresentante, dopo la conferma, la fonte del
+  // rilievo ("Sopralluogo TOLI") se manca; nessun altro controllo delle schede
+  if (typeof preparaInvioRappresentante === 'function' && !(await preparaInvioRappresentante(progettoId))) {
+    return;
+  }
+
   const { error } = await db
     .from('progetti_tecnici')
     .update({
@@ -1115,6 +1136,12 @@ aggiornato_il: new Date().toISOString()
     .eq('id', progettoId);
 
   if (error) {
+    // senza sql/261 il database ferma ancora il rappresentante per le schede
+    const bloccato = typeof messaggioInvioBloccatoRappresentante === 'function' && messaggioInvioBloccatoRappresentante(error);
+    if (bloccato) {
+      alert(bloccato);
+      return;
+    }
     toast('Errore invio: ' + error.message, 'err');
     return;
   }

@@ -11001,7 +11001,7 @@ let salvataggioSchedaRilievoInCorso = false;
 // resta visibile se contiene tutte le parole scritte (maiuscole e accenti
 // non contano). Quando un elenco si ricarica il filtro si riapplica da solo.
 // ---------------------------------------------------------------------
-const PAGINE_CERCA_PREVENTIVI = ['preventivi-titolare', 'preventivi', 'preventivi-rapp'];
+const PAGINE_CERCA_PREVENTIVI = ['preventivi-titolare', 'preventivi', 'preventivi-rapp', 'progetti'];
 
 function testoCercaPreventivi(s) {
   return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -11029,8 +11029,11 @@ function filtraPreventiviPagina(pagina) {
   });
   if (esito) {
     const messaggio = !parole.length ? '' :
-      (trovate ? (trovate === 1 ? '1 preventivo trovato' : trovate + ' preventivi trovati')
-               : 'Nessun preventivo con questa ricerca');
+      (pagina === 'progetti'
+        ? (trovate ? (trovate === 1 ? '1 progetto trovato' : trovate + ' progetti trovati')
+                   : 'Nessun progetto con questa ricerca')
+        : (trovate ? (trovate === 1 ? '1 preventivo trovato' : trovate + ' preventivi trovati')
+                   : 'Nessun preventivo con questa ricerca'));
     if (esito.textContent !== messaggio) esito.textContent = messaggio;
   }
 }

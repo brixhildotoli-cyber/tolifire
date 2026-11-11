@@ -1280,7 +1280,9 @@ Dopo sql/79 (F15.5 motore delle schede, parte 2: fonte del rilievo e fonte
 dei dati normativi [NOTA 11/11: con sql/259, DA ESEGUIRE, la fonte del
 rilievo mancante NON blocca più l'invio: la scrive il database
 'sopralluogo_toli'; il rappresentante non vede più il campo, vedi "Dopo
-sql/259"], ESEGUITO il 09/11 (backup pre79, dal server MCP, controllo in regola): backup, anteprima in fondo al file,
+sql/259"; NOTA 11/11: con sql/261, DA ESEGUIRE, il blocco dei dati normativi
+senza fonte NON vale più per il RAPPRESENTANTE (anche "come"), vedi "Dopo
+sql/261"], ESEGUITO il 09/11 (backup pre79, dal server MCP, controllo in regola): backup, anteprima in fondo al file,
 79-motore-schede.sql (senza parole di cancellazione, server MCP), poi il
 controllo in fondo; nessun file -REGISTRO-CANCELLAZIONI (nessuna tabella
 nuova); richiede 07, 71, 75, 77, 78, tutti in produzione, si ferma senza).
@@ -1503,7 +1505,9 @@ lavorazioni; matrice dei permessi TUTTO OK; rollback provato (schema identico
 al backup pre80 + 80; i 49 campi "tolti", le pareti testo "tolto";
 rieseguito il file: catalogo identico). Senza sql/81: le 4 schede di js/18
 come prima, nessun errore.
-Dopo sql/82 (F15.8 blocco comune e controlli di invio, ESEGUITO il 09/11 (backup pre82, dal server MCP, controllo in regola): backup,
+Dopo sql/82 (F15.8 blocco comune e controlli di invio [NOTA 11/11: con sql/261,
+DA ESEGUIRE, il blocco dei dati del prezzo NON vale più per il RAPPRESENTANTE,
+anche "come"; vedi "Dopo sql/261"], ESEGUITO il 09/11 (backup pre82, dal server MCP, controllo in regola): backup,
 anteprima in fondo al file, 82-blocco-comune-controlli-invio.sql (senza parole
 di cancellazione, server MCP), controllo in fondo; nessun file
 -REGISTRO-CANCELLAZIONI (nessuna tabella nuova); richiede 07, 26, 34, 71, 75,
@@ -1564,7 +1568,10 @@ sql/82; rollback provato (schema identico; campi comune "tolti", lavorazione
 spenta; rieseguito il file: campi di nuovo attivi). Senza sql/82: nessun
 riquadro, controlli di invio solo nel sito, nessun errore (una chiamata RPC
 404).
-Dopo sql/82-foto-video (F15.9 foto e video delle schede di rilievo, ESEGUITO
+Dopo sql/82-foto-video (F15.9 foto e video delle schede di rilievo [NOTA 11/11:
+con sql/261, DA ESEGUIRE, il blocco delle foto e dei video all'invio NON vale
+più per il RAPPRESENTANTE, anche "come"; impronta e foto doppie restano; vedi
+"Dopo sql/261"], ESEGUITO
 il 10/11 con il -VINCOLO dall'editor (backup pre82fv, controllo in regola); numero 82 dato dal piano anche a F15.8: il file si chiama sempre
 "sql/82-foto-video"). ORDINE: 1) PUBBLICARE il sito (dopo il file il database
 vuole l'impronta su ogni file nuovo dei progetti: il sito vecchio non la manda,
@@ -2016,6 +2023,78 @@ motore-schede, motore-schede-protezioni, blocco-comune aggiornati (apriMotore
 del rappresentante: riquadro assente, scheda aperta con apriSchedaMotore;
 404 voluti di sql/85 e 258 ignorati); smoke TUTTO OK con e senza sql/259;
 matrice invariata; rollback provato (schema identico con pg_dump).
+Dopo sql/261 (invio del rappresentante libero, richiesta di Erika dell'11/11:
+flusso come prima del 06/11, commit 449208b; numero fuori piano; DA ESEGUIRE:
+backup, anteprima in fondo al file, 261-invio-rappresentante-libero.sql (senza
+parole di cancellazione, server MCP), controllo in fondo; nessun
+-REGISTRO-CANCELLAZIONI, matrice invariata; richiede 07, 71, 79, 82-blocco,
+82-foto-video, si ferma senza; ORDINE CON sql/259 QUALUNQUE: 261 dopo 259
+aggancia la funzione di 259, 259 dopo 261 rimette da solo l'aggancio di 261
+(blocco in fondo a 259 e al suo -ROLLBACK); il sito si pubblica prima o
+dopo). SCELTA b (indicazione di Erika dell'11/11): i tre blocchi dell'invio
+da bozza o da integrare NON scattano quando ruolo_corrente() = 'rappresentante'
+(anche il titolare "Entra come" un rappresentante); per ingegnere, titolare,
+Acquisti e gli altri tutto come prima, la parte dell'ingegnere non cambia.
+I tre blocchi: dati normativi senza fonte (trg_progetti_tecnici_fonti di sql/79
+o 259: AGGANCIO SUL POSTO con pg_get_functiondef + replace, la riga "if tg_op =
+'UPDATE' then" diventa "... and v_ruolo is distinct from 'rappresentante'
+then"; si ferma se il testo non c'è una volta sola), dati del prezzo
+(trg_progetti_tecnici_invio_completo di sql/82) e foto e video
+(trg_progetti_tecnici_invio_foto_video di sql/82-foto-video): create or
+replace con il testo di produzione + la condizione + v_versione 'sql/261',
+commenti delle funzioni aggiornati. La fonte del rilievo la toglie sql/259 (non
+duplicata). Restano: chi scrive fonti e fonte del rilievo, "ingegnere TOLI"
+solo ingegnere e titolare, impronta dei file, foto doppie, tipi dei file,
+controlli dei valori di sql/78, le RPC fonti_mancanti_progetto,
+controlli_invio_progetto, foto_video_mancanti_progetto; smista_progetto di
+sql/83 (regole spente da sql/260) passa dagli stessi trigger: anche lì il
+rappresentante non è fermato. Rollback: le due funzioni con il testo esatto
+del backup 2026-11-11-pre260 e i loro commenti, l'aggancio tolto con il
+replace al contrario (testo esatto di 79 o 259). SITO (vale con e senza
+sql/261): js/56 controllaFontiPrimaDellInvio, controllaDatiPrimaDellInvio,
+controllaFotoVideoPrimaDellInvio restituiscono true per ROLE ===
+'rappresentante' (nessun elenco, nessun blocco; per ingegnere e titolare come
+prima, testi invariati); preparaInvioRappresentante (js/56) scrive la fonte
+del rilievo 'sopralluogo_toli' con mettiFonteRilievoAutomatica DOPO la
+conferma dell'invio e dopo il controllo dell'allegato (js/17
+inviaProgettoAUfficioTecnico e inviaProgettoAlCommerciale; prima la scriveva
+prima della conferma); messaggioInvioBloccatoRappresentante (js/56, usata dagli
+errori dell'invio di js/17 e da testoErroreSchedaMotore, quindi anche da
+js/67): senza sql/261 un 22023 "Invio bloccato..." al rappresentante diventa
+"Il progetto non si può ancora inviare: le schede di rilievo non sono
+complete. Chiedi all'ingegnere di completare la scheda." (niente rimandi a
+"📝 Compila la scheda"). js/67 NON toccato: con le regole accese (l'invio passa da
+inviaProgettoConSmistamento) controllaFontiPrimaDellInvio per il
+rappresentante scrive la fonte del rilievo come prima (prima della conferma
+dello smistamento), così senza sql/259 smista_progetto non si ferma.
+Per il rappresentante l'invio chiede solo titolo, tipologia, descrizione
+(salvaProgetto) e almeno un allegato, come in 449208b. Guide info-rap-10, 28,
+29, 30, 33 (decide lui ingegnere o Acquisti, basta una foto, nessun altro
+blocco); guide dell'ingegnere NON toccate. Prove:
+sql/261-invio-rappresentante-libero-PROVA.sql (solo database di prova,
+rollback: rappresentante e titolare "come" rappresentante da bozza e da
+integrare verso ingegnere e Acquisti con una scheda porte REI senza foto, senza
+dati del prezzo e REI 60 senza fonte; ingegnere "Richiedi integrazione" e
+verso Acquisti con salva_esito_verifica; titolare fermato da ciascuno dei tre
+blocchi; "ingegnere TOLI" del rappresentante, foto doppia, file senza impronta
+rifiutati; fonte del rilievo vuota con e senza 259; editor; smista_progetto con
+le regole accese); 259-PROVA adattato (con 261 il blocco dei dati normativi si
+prova con il titolare); 79-, 82-blocco- e 82-foto-video-PROVA valgono SOLO
+senza sql/261 (si fermano con il messaggio); controllo in fondo a 259
+corretto (con sql/85 c'è trg_progetti_tecnici_appuntamento prima di _fonti: si
+controlla solo che _fonti venga prima di _invio_completo, _invio_foto_video e
+_smistamento); test/progetto-rappresentante.spec.js esteso (ingegnere compila
+senza foto → Richiedi integrazione → il rappresentante rinvia, con e senza
+sql/261; con "Annulla" alla conferma la fonte del rilievo resta vuota;
+senza allegati il sito lo ferma; barra "🔍 Cerca" della pagina Progetti del
+rappresentante: solo le schede con le parole scritte); motore-schede-fonti,
+foto-video, blocco-comune (ora con le regole di smistamento spente come dopo
+sql/260) adattati: riconoscono da soli se sql/261 c'è; tutti TUTTO OK con e
+senza sql/261, smoke TUTTO OK con e senza; matrice uguale con e senza
+sql/261; rollback provato in tutti gli ordini con 259 (schema identico con
+pg_dump). Nello stesso commit: barra "🔍 Cerca" nella pagina Progetti
+(index.html cerca-prev-progetti, js/18 PAGINE_CERCA_PREVENTIVI con 'progetti'
+e il testo "N progetti trovati"), richiesta di Erika dell'11/11.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

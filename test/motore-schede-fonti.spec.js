@@ -5,10 +5,11 @@
 // sql/77, 78 e 79).
 // Il "fatto quando" della task:
 //  1. il rappresentante, a 390 px, compila una porta REI 60 senza fonte: la
-//     scheda si salva, "🔧 Invia a ufficio tecnico" si ferma e dice cosa manca
-//     (solo la fonte del dato: dall'11/11, sql/259, il rappresentante non vede
-//     né sceglie la fonte del rilievo); dalla console l'invio è rifiutato
-//     dal database;
+//     scheda si salva; dall'11/11 (sql/261) il sito non lo ferma più
+//     all'invio: con sql/261 il progetto parte (anche dalla console), senza
+//     sql/261 lo ferma il database e il sito dice solo "Chiedi all'ingegnere
+//     di completare la scheda" (dall'11/11, sql/259, il rappresentante non
+//     vede né sceglie la fonte del rilievo);
 //  2. per la Resistenza al fuoco "Come l'esistente" con la foto della
 //     targhetta: salva e il progetto si invia, la fonte del rilievo diventa da
 //     sola "sopralluogo_toli" (sito, e con sql/259 anche il database);
@@ -407,18 +408,29 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
       else righe.push('   senza sql/79: "Invia a ufficio tecnico" invia come prima (in_verifica_tecnica)');
       psql("update public.progetti_tecnici set stato = 'bozza' where id = " + q(progettoId));
     } else {
+      // sql/261 (richiesta di Erika dell'11/11): il sito non ferma più il
+      // rappresentante; con sql/261 nemmeno il database, senza il database sì
+      // e il sito dice solo "chiedi all'ingegnere di completare la scheda"
+      const con261 = psql("select coalesce((select prosrc like '%sql/261%' from pg_proc where oid = to_regprocedure('public.trg_progetti_tecnici_invio_completo()')), false)") === 't';
       r.stato.dialoghi = [];
       await r.page.evaluate(async id => { await inviaProgettoAUfficioTecnico(id); }, progettoId);
       await attendiQuiete(r.stato, 1200);
       const d1 = testoDialoghi(r);
-      if (statoProgetto() !== 'bozza' || /Fonte del rilievo/.test(d1) || !/Resistenza al fuoco richiesta: senza fonte/.test(d1)) KO('1: invio senza fonte del dato: stato ' + statoProgetto() + ', messaggio ' + d1);
-      else righe.push('   "🔧 Invia a ufficio tecnico" si ferma: ' + d1.replace(/\n+/g, ' ').slice(0, 260));
+      if (/Resistenza al fuoco richiesta: senza fonte|Compila la scheda/.test(d1)) KO('1: al rappresentante il sito elenca ancora le fonti o cita "Compila la scheda": ' + d1);
+      if (con261) {
+        if (statoProgetto() !== 'in_verifica_tecnica') KO('1: con sql/261 l\'invio senza fonte del dato doveva passare: stato ' + statoProgetto() + ', messaggio ' + d1);
+        else righe.push('   con sql/261: "🔧 Invia a ufficio tecnico" invia anche senza fonte del dato (in_verifica_tecnica)');
+        psql("update public.progetti_tecnici set stato = 'bozza' where id = " + q(progettoId));
+      } else if (statoProgetto() !== 'bozza' || !/Chiedi all’ingegnere di completare la scheda/.test(d1)) KO('1: invio senza fonte del dato: stato ' + statoProgetto() + ', messaggio ' + d1);
+      else righe.push('   senza sql/261: il database ferma l\'invio, il sito dice: ' + d1.split(' / ').pop().slice(0, 200));
       const cons = await r.page.evaluate(async id => {
         const x = await db.from('progetti_tecnici').update({ stato: 'in_verifica_tecnica' }).eq('id', id).select('id');
         return x.error ? 'rifiutato: ' + x.error.message : 'RIUSCITO';
       }, progettoId);
-      if (!/rifiutato: Invio bloccato/.test(cons)) KO('1: console del rappresentante, invio senza fonte: ' + cons);
-      else righe.push('   console del rappresentante, invio diretto: ' + cons);
+      if (con261 ? cons !== 'RIUSCITO' : !/rifiutato: Invio bloccato/.test(cons)) KO('1: console del rappresentante, invio senza fonte: ' + cons);
+      else righe.push('   console del rappresentante, invio diretto: ' + cons + (con261 ? ' (sql/261)' : ''));
+      // la fonte del rilievo messa dal sito all'invio si toglie: la parte 2 parte da vuota
+      psql("update public.progetti_tecnici set stato = 'bozza', fonte_rilievo = null where id = " + q(progettoId));
 
       // 2. Fonte del rilievo, "come l'esistente" con la foto ---------------------
       await apriMotore(r);
