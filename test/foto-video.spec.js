@@ -399,7 +399,8 @@ async function caricaNellaVoce(s, docId, file) {
       await r.page.evaluate(() => ge('mp-file-extra').dispatchEvent(new Event('change', { bubbles: true })));
       const acc = await r.page.evaluate(() => ge('mp-file').getAttribute('accept'));
       if (/mp4/.test(acc)) KO('senza sql/82-foto-video il campo accetta i video: ' + acc);
-      await r.page.evaluate(async () => { await salvaProgetto(); });
+      // F15.17: se compare l'avviso del progetto doppio si crea comunque
+    await r.page.evaluate(async () => { const __t = setInterval(() => { const m = document.getElementById('m-progetto-doppione'); if (m && m.classList.contains('on')) { ge('pdp-motivo').value = 'Prova automatica (F15.17)'; ge('pdp-crea').click(); } }, 100); try { await salvaProgetto(); } finally { clearInterval(__t); } });
       await attendiQuiete(r.stato, 2000);
       const n = psql("select count(*) from public.progetti_tecnici_allegati where progetto_id = " + q(progettoId) + " and nome_file = 'foto1.jpg'");
       if (n !== '1') KO('senza sql/82-foto-video: la foto dalla finestra del progetto non è salvata (' + n + ') ' + await toastTesto(r));

@@ -369,6 +369,13 @@ preventivi: sconto_perc (c'era, mai usata: ora lo sconto applicato, vincolo
 0 <= x < 100) e colonne NUOVE totale_prima_sconto, sconto_da,
 sconto_da_nome, sconto_il (lette da chi legge il preventivo; le scrive solo
 la RPC, il trigger trg_preventivi_00_sconto rifiuta le scritture dirette).
+Dopo sql/87 (F15.17 controllo dei progetti doppi, DA ESEGUIRE: backup,
+anteprima in fondo, 87-controllo-duplicati.sql (senza parole di
+cancellazione, server MCP), controllo; richiede 07, 65, 71): nessuna tabella
+nuova, nessuna colonna, nessuna policy, matrice invariata. Il motivo di "Crea
+comunque" va in progetti_tecnici_storico (tipo_evento 'doppione_confermato',
+lo scrive solo la RPC registra_doppione_progetto); avvisi: tipo nuovo
+'progetto_doppione' (al titolare).
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -1801,6 +1808,58 @@ test/migrazione-progetti-aperti.spec.js (Chrome headless, database locale:
 "Da preventivare" di Acquisti e del titolare e "Cosa tocca a me" uguali prima
 e dopo, riquadro 🚦 del titolare, console di titolare, Acquisti e ingegnere
 rifiutata, ROLLBACK). Senza sql/84: sito come prima.
+Dopo sql/87 (F15.17 controllo dei progetti doppi, DA ESEGUIRE con "CONFERMATO
+DA TOLI: sql/87": backup, anteprima in fondo al file, 87-controllo-duplicati.sql
+(senza parole di cancellazione, server MCP), controllo in fondo; nessun
+-REGISTRO-CANCELLAZIONI; richiede 07, 65, 71, tutti in produzione, si ferma
+senza; il sito si pubblica prima o dopo). REGOLA DI ERIKA (11/11): SOLO UN
+AVVISO, mai un blocco; la finestra del progetto resta com'era (titolo,
+tipologia, descrizione, allegati, poi "🔧 Invia a ufficio tecnico" o "📤 Invia
+ad Acquisti"); ingegnere e Acquisti invariati. RPC del sito (solo
+rappresentante, sui clienti che vede, e titolare, anche "Entra come"; gli
+altri 42501): progetti_simili_cliente(p_cliente, p_escludi) (security definer:
+progetti non archiviati dello stesso cliente creati negli ultimi 90 giorni,
+ANCHE di altri rappresentanti: solo id, titolo, tipologia, stato, data, nome
+del rappresentante, mio, apribile = titolare o suo; max 20),
+registra_doppione_progetto(p_progetto, p_esistente, p_motivo) (motivo 3-500,
+progetto nuovo suo (rappresentante) o qualunque (titolare), progetto che c'era
+dello stesso cliente, uno per progetto: riga 'doppione_confermato' nella
+cronologia "Creato anche se lo stesso cliente aveva già il progetto «...» del
+GG/MM/AAAA (di ...). Motivo: ..."; se chi crea è un rappresentante e il
+progetto che c'era è di un ALTRO rappresentante, crea_avviso 'progetto_doppione'
+al ruolo titolare, regola propria, rif = progetto nuovo; risponde
+{registrato, avviso_titolare}). SCELTA (via più semplice): l'avviso al
+titolare è un avviso di sql/65 (campanella e riga "🔔 Avvisi aperti" di Cosa
+tocca a me), nessuna fonte nuova in js/46. Nel sito (js/17, nessun file
+nuovo): salvaProgetto, SOLO per un progetto NUOVO e solo per rappresentante e
+titolare, prima dell'insert chiama controllaProgettoDoppione (finestra
+m-progetto-doppione, id pdp-: elenco con "📂 Apri quello che c'è" sui progetti
+apribili, spiegazione su quelli di un altro rappresentante, motivo
+obbligatorio per "➕ Crea comunque", Annulla = torna alla finestra senza
+salvare); "Apri" chiude la finestra e apre quel progetto (il nuovo non si
+crea, la bozza locale resta); dopo l'insert registraDoppioneProgetto (un
+errore = toast, il progetto resta). Per "Crea comunque" si collega il primo
+progetto di un altro rappresentante, se no il più recente. Cronologia del
+progetto con ⚠️; TIPI_AVVISO di js/58 con ⚠️ Progetto doppio. SCELTE DA
+CONFERMARE DA TOLI: 90 giorni fissi (non una regola); aperto = non archiviato
+(anche approvato); la sede non conta (il progetto non ha sede_id, nasce sulla
+commessa); avviso solo al titolare, non all'altro rappresentante; il
+rappresentante vede titolo, stato e nome dei progetti degli altri
+rappresentanti sullo stesso cliente. Guide info-rap-35, info-tit-34. Prove:
+sql/87-controllo-duplicati-PROVA.sql (solo database di prova, rollback:
+progetto di un altro rappresentante elencato non apribile, vecchio e
+archiviato esclusi, motivo corto, altro cliente, altro rappresentante,
+secondo motivo, insert diretto nella cronologia rifiutati, avviso al titolare
+solo per il progetto di un altro, cliente non suo, ingegnere, Acquisti,
+segreteria, titolare "come" Acquisti, anon rifiutati, titolare senza avviso a
+se stesso, titolare "come" rappresentante); test/progetto-doppio.spec.js
+(Chrome headless, rappresentante a 390 px; DOPPI_SENZA_SQL=1 dopo il
+rollback); progetto-rappresentante e smoke TUTTO OK con sql/87 (smoke anche
+senza); foto-video, motore-schede-fonti e smoke creano comunque se compare
+l'avviso (questi due non rilanciati in F15.17); rollback
+provato (schema identico). Senza sql/87: l'avviso elenca solo i progetti che
+chi crea già legge (rappresentante: i suoi), nota "il motivo non si salva
+ancora", nessun errore (una chiamata RPC 404).
 Dopo sql/258 (sconto del rappresentante, decisioni di Erika del 10/11, ESEGUITO l'11/11 (backup pre258, controllo in regola); era DA
 ESEGUIRE; ordine e requisiti nella riga di preventivi_sconti in "Tabelle
 Supabase"): RPC del sito sconto_rappresentante_attivo() (true = il 258 c'è),

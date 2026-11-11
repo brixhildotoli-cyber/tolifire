@@ -505,7 +505,8 @@ const SALVATAGGI = {
       await input.uploadFile(pdf);
       await page.evaluate(() => ge('mp-file').dispatchEvent(new Event('change', { bubbles: true })));
       const r = await page.evaluate(async t => {
-        await salvaProgetto();
+        // F15.17: se compare l'avviso del progetto doppio si crea comunque
+        { const __t = setInterval(() => { const m = document.getElementById('m-progetto-doppione'); if (m && m.classList.contains('on')) { ge('pdp-motivo').value = 'Prova automatica (F15.17)'; ge('pdp-crea').click(); } }, 100); try { await salvaProgetto(); } finally { clearInterval(__t); } }
         const { data, error } = await db.from('progetti_tecnici').select('id,stato').eq('titolo', t).limit(1);
         if (error) return { errore: 'rilettura: ' + error.message };
         if (!data || !data[0]) return { errore: 'il progetto non risulta salvato' };

@@ -367,7 +367,8 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
       await r.page.select('#mp-fonte-rilievo', 'documenti_cliente');
       const nota = await r.page.evaluate(() => { document.getElementById('mp-fonte-rilievo').value = 'misure_dichiarate'; aggiornaNotaFonteRilievoProgetto(); return document.getElementById('mp-fonte-rilievo-nota').textContent; });
       await r.page.select('#mp-fonte-rilievo', 'documenti_cliente');
-      await r.page.evaluate(async () => { await salvaProgetto(); });
+      // F15.17: se compare l'avviso del progetto doppio si crea comunque
+    await r.page.evaluate(async () => { const __t = setInterval(() => { const m = document.getElementById('m-progetto-doppione'); if (m && m.classList.contains('on')) { ge('pdp-motivo').value = 'Prova automatica (F15.17)'; ge('pdp-crea').click(); } }, 100); try { await salvaProgetto(); } finally { clearInterval(__t); } });
       await attendiQuiete(r.stato, 1500);
       const frM = psql('select coalesce(fonte_rilievo, \'\') from public.progetti_tecnici where id = ' + q(progettoId));
       if (frM !== 'documenti_cliente' || !/Misure fornite dal committente/.test(nota)) KO('1: finestra del progetto, fonte salvata ' + frM + ', nota ' + nota + ' ' + await toastTesto(r));

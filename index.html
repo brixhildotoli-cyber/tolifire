@@ -3312,6 +3312,25 @@
 
       <div class="al2 w">Lo sconto si calcola sempre sul totale delle voci di Acquisti (5% di 10.000 €, non del totale già scontato). Il database rifiuta lo sconto fatto in un altro modo, quello di un altro rappresentante e quello dopo l'esito.</div>
 
+      <h4 id="info-rap-35">35. ⚠️ Crei un progetto e il cliente ne ha già uno aperto</h4>
+
+      <p>
+        Quando premi <b>Salva bozza</b> su un progetto <b>nuovo</b>, il gestionale controlla se lo stesso cliente ha già un progetto aperto (non archiviato) creato negli <b>ultimi 90 giorni</b>, anche di un altro rappresentante. Se c'è, compare la finestra <b>⚠️ Questo cliente ha già un progetto aperto</b> con titolo, tipologia, stato, data e di chi è.
+      </p>
+
+      <ul>
+        <li><b>📂 Apri quello che c'è</b>: il progetto nuovo non si crea e si apre quello esistente (il testo che avevi scritto resta in bozza sul telefono).</li>
+        <li><b>➕ Crea comunque</b>: scrivi il motivo (per esempio "altra sede, lavoro diverso") e il progetto si crea come sempre. Il motivo resta nella <b>Cronologia</b> del progetto nuovo.</li>
+        <li>Se il progetto che c'era è di un <b>altro rappresentante</b> non lo puoi aprire: se crei comunque, il <b>titolare</b> riceve un avviso 🔔 con il tuo motivo.</li>
+        <li><b>Annulla</b> torna alla finestra del progetto senza salvare.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Il 2 novembre hai aperto "Porte REI magazzino" per la Rossi srl. Il 20 il cliente ti chiama per gli estintori della palazzina uffici: al salvataggio compare l'avviso, scrivi "Estintori palazzina uffici, lavoro diverso dalle porte" e premi <b>➕ Crea comunque</b>.
+      </div>
+
+      <div class="al2 i">È solo un avviso: non ferma mai la creazione e la finestra del progetto resta quella di sempre (titolo, tipologia, descrizione, allegati, poi <b>🔧 Invia a ufficio tecnico</b> o <b>📤 Invia ad Acquisti</b>).</div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -5888,6 +5907,24 @@
       </div>
 
       <div class="al2 w">Il colore delle schede lo scrive solo il database: nessuno lo cambia da console, nemmeno tu. Se serve tornare indietro, Erika esegue il file di ritorno di sql/84 (le schede tornano "non smistate", i progetti non cambiano). Prima di sql/84 tutto funziona come oggi.</div>
+
+      <h4 id="info-tit-34">34. ⚠️ Progetti doppi dello stesso cliente</h4>
+
+      <p>
+        Quando un rappresentante (o tu) crea un progetto <b>nuovo</b> per un cliente che negli <b>ultimi 90 giorni</b> ha già un progetto aperto (non archiviato), al <b>Salva bozza</b> compare la finestra <b>⚠️ Questo cliente ha già un progetto aperto</b>: <b>📂 Apri quello che c'è</b> oppure <b>➕ Crea comunque</b> con il motivo. Non blocca mai: è solo un avviso.
+      </p>
+
+      <ul>
+        <li>Il motivo resta nella <b>Cronologia</b> del progetto nuovo ("Creato anche se lo stesso cliente aveva già il progetto ... Motivo: ...").</li>
+        <li>Se il progetto che c'era è di un <b>altro rappresentante</b>, ricevi l'avviso 🔔 <b>Progetto doppio</b> (campanella e <b>Cosa tocca a me</b>): <b>Apri</b> porta al progetto nuovo, <b>✓ Fatto</b> lo chiude. Se il progetto lo crei tu, nessun avviso.</li>
+        <li>La sede non conta: il progetto non ha la sede (la sede si sceglie sulla commessa).</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Giulio crea "Estintori uffici" per la Rossi srl, che ha già "Porte REI magazzino" di Marco del 2 novembre. Giulio scrive "Il cliente mi ha chiamato direttamente per gli uffici" e crea. Tu ricevi: "Progetto doppio: Giulio ... ha creato «Estintori uffici» per Rossi srl, che ha già «Porte REI magazzino» di Marco ...".
+      </div>
+
+      <div class="al2 w">Senza l'aggiornamento del database sql/87 l'avviso mostra solo i progetti che chi crea già vede (per il rappresentante i suoi) e il motivo non si salva. Ingegnere e Acquisti non hanno questo controllo.</div>
 
       <h4>Regole pratiche</h4>
 
@@ -10236,6 +10273,21 @@
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn" onclick="closeM('m-progetto')">Annulla</button>
       <button class="btn p" id="mp-salva" onclick="salvaProgetto()">Salva bozza</button>
+    </div>
+  </div>
+</div>
+
+<!-- F15.17 — PROGETTO DOPPIO (js/17 controllaProgettoDoppione, sql/87): solo avviso, mai blocco -->
+<div class="mbg" id="m-progetto-doppione">
+  <div class="modal" style="max-width:480px">
+    <div class="mh"><span id="pdp-titolo">⚠️ Questo cliente ha già un progetto aperto</span><button class="mx" onclick="closeM('m-progetto-doppione')">✕</button></div>
+    <div style="font-size:13px;margin-bottom:10px">Negli ultimi 90 giorni per questo cliente è già stato aperto un progetto. Controlla che non sia lo stesso lavoro.</div>
+    <div id="pdp-elenco"></div>
+    <div class="f"><label for="pdp-motivo">Se serve davvero un progetto nuovo, scrivi il motivo *</label><textarea id="pdp-motivo" rows="2" maxlength="500" placeholder="Es. altra sede del cliente, lavoro diverso"></textarea></div>
+    <div id="pdp-nota-sql" class="al2 w" style="display:none;font-size:12px">Il motivo non si salva ancora: serve l'aggiornamento del database.</div>
+    <div class="ma">
+      <button class="btn" type="button" onclick="closeM('m-progetto-doppione')">Annulla</button>
+      <button class="btn p" type="button" id="pdp-crea">➕ Crea comunque</button>
     </div>
   </div>
 </div>

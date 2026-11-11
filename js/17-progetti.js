@@ -651,6 +651,16 @@ const authUserId = authData.user.id;
         return;
       }
     } else {
+      // F15.17: lo stesso cliente ha già un progetto aperto negli ultimi 90
+      // giorni? Solo un avviso con la scelta: mai un blocco.
+      const sceltaDoppione = await controllaProgettoDoppione(currentCliId);
+      if (sceltaDoppione && sceltaDoppione.scelta === 'annulla') return;
+      if (sceltaDoppione && sceltaDoppione.scelta === 'apri') {
+        closeM('m-progetto');
+        await openProgettoDetail(sceltaDoppione.id);
+        return;
+      }
+
       payload.cliente_id = currentCliId;
       payload.rappresentante_id = authUserId;
       payload.stato = 'bozza';
@@ -669,6 +679,9 @@ const authUserId = authData.user.id;
       progettoId = data.id;
       // Il progetto ora esiste: la bozza del "nuovo" non deve ricrearlo una seconda volta
       cancellaBozzaProgetto(chiaveBozzaProgetto(null, currentCliId));
+      if (sceltaDoppione && sceltaDoppione.scelta === 'crea') {
+        await registraDoppioneProgetto(progettoId, sceltaDoppione); // F15.17
+      }
     }
 
   // F15.9 (js/56 caricaFileNelProgetto): foto rimpicciolite, impronta del
@@ -3178,7 +3191,8 @@ if (btnModifica) {
         progetto_creato: '✨',
         progetto_modificato: '✏️',
         stato_modificato: '📤',
-        allegato_aggiunto: '📎'
+        allegato_aggiunto: '📎',
+        doppione_confermato: '⚠️' // F15.17
       }[evento.tipo_evento] || '•';
 
       return `
@@ -3845,5 +3859,128 @@ async function caricaAllegatiDaVerifica(progettoId) {
   for (const file of files) {
     const caricato = await caricaFileNelProgetto(progettoId, utenteId, file, {});
     if (!caricato.alleg) throw new Error(caricato.errore);
+  }
+}
+
+// ── F15.17: controllo dei progetti doppi (solo avviso, mai blocco) ─────
+// Alla creazione di un progetto NUOVO (rappresentante e titolare): se lo
+// stesso cliente ha un progetto non archiviato creato negli ultimi 90 giorni
+// la finestra m-progetto-doppione lo mostra con "📂 Apri quello che c'è" o
+// "➕ Crea comunque" con il motivo. Con sql/87 l'elenco comprende anche i
+// progetti degli altri rappresentanti (RPC progetti_simili_cliente) e il
+// motivo si salva nella cronologia (registra_doppione_progetto, che avvisa il
+// titolare se il progetto che c'era è di un altro rappresentante). Senza
+// sql/87: solo i progetti che chi crea già legge, motivo non salvato.
+// La sede non conta: il progetto non ha la sede (nasce sulla commessa).
+const DOPPIONI_PROGETTO = { sql: null, giorni: 90 };
+
+function erroreRpcDoppioniMancante(error) {
+  if (!error) return false;
+  return ['PGRST202', '42883'].includes(error.code) ||
+    /could not find the function|progetti_simili_cliente.*does not exist/i.test(String(error.message || ''));
+}
+
+async function leggiProgettiSimiliCliente(clienteId) {
+  if (DOPPIONI_PROGETTO.sql !== false) {
+    const { data, error } = await db.rpc('progetti_simili_cliente', { p_cliente: clienteId });
+    if (!error) { DOPPIONI_PROGETTO.sql = true; return data || []; }
+    if (!erroreRpcDoppioniMancante(error)) return null; // errore: nessun avviso, si salva come prima
+    DOPPIONI_PROGETTO.sql = false;
+  }
+  const dal = new Date(Date.now() - DOPPIONI_PROGETTO.giorni * 86400000).toISOString();
+  const { data, error } = await db
+    .from('progetti_tecnici')
+    .select('id, titolo, tipologia, stato, creato_il, rappresentante_id')
+    .eq('cliente_id', clienteId)
+    .neq('stato', 'archiviato')
+    .gte('creato_il', dal)
+    .order('creato_il', { ascending: false })
+    .limit(20);
+  if (error) return null;
+  return (data || []).map(function(p) {
+    const mio = !!(typeof ME !== 'undefined' && ME && p.rappresentante_id === ME.id);
+    return Object.assign({}, p, { mio: mio, apribile: true, rappresentante_nome: mio ? null : '' });
+  });
+}
+
+// Risultato: null = nessun avviso (si salva), { scelta: 'apri', id },
+// { scelta: 'crea', esistente, motivo }, { scelta: 'annulla' }
+async function controllaProgettoDoppione(clienteId) {
+  if (!clienteId || !['rappresentante', 'titolare'].includes(ROLE)) return null;
+  if (!ge('m-progetto-doppione')) return null;
+  let simili = null;
+  try { simili = await leggiProgettiSimiliCliente(clienteId); } catch (e) { simili = null; }
+  if (!simili || !simili.length) return null;
+
+  const statoLeggibile = {
+    bozza: 'Bozza', da_integrare: 'Integrazione richiesta', inviato_a_commerciale: 'Inviato ad Acquisti',
+    in_verifica_tecnica: 'In verifica tecnica', in_valutazione: 'In valutazione',
+    pronto_per_preventivo: 'Pronto per preventivo', in_preventivazione: 'In preventivazione', approvato: 'Approvato'
+  };
+  // per "Crea comunque" si collega prima un progetto di un altro rappresentante (lo sa il titolare)
+  const esistente = simili.find(function(p) { return !p.mio; }) || simili[0];
+
+  ge('pdp-titolo').textContent = simili.length === 1
+    ? '⚠️ Questo cliente ha già un progetto aperto'
+    : '⚠️ Questo cliente ha già ' + simili.length + ' progetti aperti';
+  ge('pdp-elenco').innerHTML = simili.map(function(p) {
+    const chi = p.mio ? 'tuo' : (p.rappresentante_nome ? 'di ' + p.rappresentante_nome : 'di un altro rappresentante');
+    const quando = p.creato_il ? new Date(p.creato_il).toLocaleDateString('it-IT') : '';
+    return '<div class="card" style="margin-bottom:8px;padding:10px">' +
+      '<div style="font-weight:600">' + esc(p.titolo || 'Progetto senza titolo') + '</div>' +
+      '<div style="font-size:12px;color:var(--m);margin:2px 0 6px">' +
+        esc([p.tipologia, statoLeggibile[p.stato] || p.stato, quando ? 'creato il ' + quando : '', chi].filter(Boolean).join(' · ')) +
+      '</div>' +
+      (p.apribile
+        ? '<button class="btn sm" type="button" data-pdp-apri="' + esc(p.id) + '">📂 Apri quello che c\'è</button>'
+        : '<div style="font-size:12px;color:var(--m)">È di un altro rappresentante: non lo puoi aprire. Se crei comunque il progetto, il titolare ne viene informato.</div>') +
+      '</div>';
+  }).join('');
+  ge('pdp-nota-sql').style.display = DOPPIONI_PROGETTO.sql === false ? 'block' : 'none';
+  ge('pdp-motivo').value = '';
+
+  return new Promise(function(resolve) {
+    const finestra = ge('m-progetto-doppione');
+    let finito = false;
+    const osserva = new MutationObserver(function() {
+      if (!finestra.classList.contains('on')) chiudi({ scelta: 'annulla' });
+    });
+    function chiudi(esito) {
+      if (finito) return;
+      finito = true;
+      osserva.disconnect();
+      ge('pdp-crea').onclick = null;
+      closeM('m-progetto-doppione');
+      resolve(esito);
+    }
+    ge('pdp-elenco').querySelectorAll('[data-pdp-apri]').forEach(function(b) {
+      b.onclick = function() { chiudi({ scelta: 'apri', id: b.getAttribute('data-pdp-apri') }); };
+    });
+    ge('pdp-crea').onclick = function() {
+      const motivo = String(ge('pdp-motivo').value || '').trim();
+      if (motivo.length < 3) {
+        toast('Scrivi il motivo per cui serve un progetto nuovo', 'err');
+        ge('pdp-motivo').focus();
+        return;
+      }
+      chiudi({ scelta: 'crea', esistente: esistente.id, motivo: motivo.slice(0, 500) });
+    };
+    openM('m-progetto-doppione');
+    osserva.observe(finestra, { attributes: true, attributeFilter: ['class'] });
+    setTimeout(function() { const m = ge('pdp-motivo'); if (m) m.focus(); }, 50);
+  });
+}
+
+// Dopo l'insert: motivo nella cronologia (e avviso al titolare) con sql/87.
+// Un errore qui non ferma nulla: il progetto è già salvato.
+async function registraDoppioneProgetto(progettoId, scelta) {
+  if (!progettoId || !scelta || DOPPIONI_PROGETTO.sql !== true) return;
+  try {
+    const { error } = await db.rpc('registra_doppione_progetto', {
+      p_progetto: progettoId, p_esistente: scelta.esistente, p_motivo: scelta.motivo
+    });
+    if (error) toast('Progetto salvato, ma il motivo non si è salvato: ' + error.message, 'info');
+  } catch (e) {
+    toast('Progetto salvato, ma il motivo non si è salvato', 'info');
   }
 }

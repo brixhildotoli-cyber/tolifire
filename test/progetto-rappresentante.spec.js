@@ -365,7 +365,8 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
     const anteprime = await r.page.evaluate(() => document.querySelectorAll('#mp-file-selezionati img').length);
     if (!anteprime) KO(n + ': manca l\'anteprima della foto scelta nella finestra del progetto');
     await r.page.screenshot({ path: path.join(CARTELLA_OUT, n + '-finestra-progetto-390.png'), fullPage: false });
-    await r.page.evaluate(async () => { await salvaProgetto(); });
+    // F15.17: se compare l'avviso del progetto doppio si crea comunque
+    await r.page.evaluate(async () => { const __t = setInterval(() => { const m = document.getElementById('m-progetto-doppione'); if (m && m.classList.contains('on')) { ge('pdp-motivo').value = 'Prova automatica (F15.17)'; ge('pdp-crea').click(); } }, 100); try { await salvaProgetto(); } finally { clearInterval(__t); } });
     await attendiQuiete(r.stato, 1500);
     const id = psql('select id from public.progetti_tecnici where titolo = ' + q(titolo) + ' limit 1');
     if (!id) { KO(n + ': il progetto non risulta salvato ' + await toastTesto(r)); return null; }

@@ -41,6 +41,7 @@ const TIPI_AVVISO = {
   scadenza: { icona: '⏰', nome: 'Scadenza' },
   scadenza_risalita: { icona: '⬆️', nome: 'Risalita di una scadenza' },
   commessa_passo: { icona: '📁', nome: 'Passo della commessa' },
+  progetto_doppione: { icona: '⚠️', nome: 'Progetto doppio' }, // F15.17, sql/87
   prova: { icona: '🧪', nome: 'Avviso di prova' }
 };
 
