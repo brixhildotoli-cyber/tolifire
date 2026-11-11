@@ -1835,7 +1835,7 @@ async function caricaFileNelProgetto(progettoId, uid, originale, opz) {
   if (up.error) return { errore: originale.name + ': caricamento non riuscito: ' + up.error.message };
   const riga = Object.assign({
     progetto_id: progettoId, nome_file: nome, storage_path: path,
-    mime_type: prep.tipo, dimensione: prep.file.size, caricato_da: uid
+    mime_type: prep.tipo, dimensione: prep.file.size, caricato_da: opz.caricatoDa || uid // caricatoDa: persona di "Entra come" (js/17)
   }, campiImprontaAllegato(prep.impronta));
   const { data, error } = await db.from('progetti_tecnici_allegati').insert(riga)
     .select('id,nome_file,storage_path,mime_type,caricato_il').single();

@@ -658,6 +658,11 @@ async function salvaProgetto() {
     }
 
 const authUserId = authData.user.id;
+    // "Entra come" (F14.18): il progetto e i file sono della persona
+    // impersonata (le policy chiedono rappresentante_id = utente_effettivo()
+    // e caricato_da = get_mio_utente_id()); il percorso nello Storage resta
+    // dell'utente vero (la regola dello Storage guarda auth.uid()).
+    const idPersona = (typeof ENTRA_COME !== 'undefined' && ENTRA_COME && ME && ME.id) ? ME.id : authUserId;
 
     const payload = {
       titolo: titolo,
@@ -735,7 +740,7 @@ const authUserId = authData.user.id;
       }
 
       payload.cliente_id = currentCliId;
-      payload.rappresentante_id = authUserId;
+      payload.rappresentante_id = idPersona;
       payload.stato = 'bozza';
 
       const { data, error } = await db
@@ -752,6 +757,13 @@ const authUserId = authData.user.id;
       progettoId = data.id;
       // Il progetto ora esiste: la bozza del "nuovo" non deve ricrearlo una seconda volta
       cancellaBozzaProgetto(chiaveBozzaProgetto(null, currentCliId));
+      // Le foto passano SUBITO sotto il progetto creato: se la pagina muore
+      // durante il caricamento tornano riaprendo questo progetto, non con
+      // "+ Nuovo progetto" (che ne creerebbe un secondo)
+      if (typeof spostaFotoBozzaProgetto === 'function') {
+        try { await spostaFotoBozzaProgetto(chiaveBozzaProgetto(null, currentCliId), chiaveBozzaProgetto(progettoId, currentCliId)); } catch (e) { console.warn('Foto della bozza:', e && e.message); }
+      }
+      chiaveBozzaProgettoAperta = chiaveBozzaProgetto(progettoId, currentCliId);
       if (sceltaDoppione && sceltaDoppione.scelta === 'crea') {
         await registraDoppioneProgetto(progettoId, sceltaDoppione); // F15.17
       }
@@ -766,7 +778,13 @@ const authUserId = authData.user.id;
   const fileSalvati = [];
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    const caricato = await caricaFileNelProgetto(progettoId, authUserId, file, {});
+    let caricato;
+    try {
+      caricato = await caricaFileNelProgetto(progettoId, authUserId, file, idPersona !== authUserId ? { caricatoDa: idPersona } : {});
+    } catch (e) {
+      caricato = { errore: file.name + ': ' + ((e && e.message) || String(e)) };
+    }
+    if (!caricato) caricato = { errore: file.name + ': caricamento non riuscito' };
     if (caricato.doppione) {
       fileSaltati.push(caricato.errore);
       if (typeof fileProgettoArrivato === 'function') await fileProgettoArrivato(file);

@@ -4,6 +4,10 @@
 // LOCALE (test/locale/avvia-db-locale.sh). Le regole di smistamento si
 // spengono durante la prova (come in produzione dopo sql/260) e si
 // riaccendono alla fine come erano.
+//  0. browser nuovo (nessuna chiave sul telefono): 3 foto scelte IN UN COLPO
+//     SOLO, ricaricamento, "Nuovo progetto": 3 anteprime (prima tornava solo
+//     l'ultima: ogni foto creava la sua chiave); sul telefono niente nome
+//     del file né chiave della bozza in chiaro (impronta SHA-256);
 //  1. rappresentante a 390 px: nuovo progetto sul suo cliente, 3 foto scelte
 //     una alla volta (2 nel campo obbligatorio, 1 negli "altri file"): si
 //     sommano, 3 anteprime, 3 righe CIFRATE sul telefono (IndexedDB
@@ -17,7 +21,9 @@
 //     2 foto restano sul telefono, la finestra diventa "Modifica"; ricaricata
 //     la pagina e riaperto il progetto le 2 foto ci sono; "Salva" = 3 righe,
 //     un solo progetto, telefono vuoto;
-//  5. "Esci" con una foto scelta: avviso, poi telefono vuoto (foto e chiave).
+//  5. "Esci" con una foto scelta: avviso, poi telefono vuoto (foto e chiave);
+//  6. titolare "Entra come" rappresentante: crea il progetto con una foto,
+//     rappresentante_id e caricato_da = il rappresentante (prima rifiutato).
 // Alla fine si tolgono i progetti di prova.
 // Uso: cd test && node foto-bozza-progetto.spec.js   (uscita 0 = TUTTO OK)
 'use strict';
@@ -325,7 +331,7 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
   const regoleSpente = psql("select case when to_regclass('public.regole_smistamento') is null then '' else (select coalesce(string_agg(id::text, ','), '') from public.regole_smistamento where attiva) end");
   if (regoleSpente) psql('update public.regole_smistamento set attiva = false where id in (' + regoleSpente + ')');
   const marca = 'z' + Date.now();
-  const titoli = [ETICHETTA + ' ' + marca + ' ricaricata', ETICHETTA + ' ' + marca + ' a meta'];
+  const titoli = [ETICHETTA + ' ' + marca + ' ricaricata', ETICHETTA + ' ' + marca + ' a meta', ETICHETTA + ' ' + marca + ' un colpo', ETICHETTA + ' ' + marca + ' entra come'];
   const srv = await avviaSito();
   const url = 'http://127.0.0.1:' + srv.address().port + '/index.html';
   const utenti = await rest('/utenti?select=id,email,nome,cognome,ruolo,attivo&attivo=eq.true&order=id', tokenServizio());
@@ -349,7 +355,9 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
     const tutte = await operazioneFotoBozza('foto', 'readonly', st => st.getAll());
     const chiavi = await operazioneFotoBozza('chiavi', 'readonly', st => st.getAll());
     const testi = tutte.map(r => new TextDecoder('latin1').decode(new Uint8Array(r.dati)));
-    return { n: tutte.length, nomi: tutte.map(r => r.nome).sort(), chiaro: testi.some(t => t.includes('TOLIPROVA') || t.includes('PNG')),
+    const nomi = await Promise.all(tutte.map(async r => { try { return spacchettaFotoBozza(await decifraLettura(await chiaveFotoBozza(), 'foto-bozza|' + r.id, r.iv, r.dati)).meta.nome; } catch (e) { return '?'; } }));
+    const campiChiaro = tutte.some(r => 'nome' in r || 'tipo' in r || 'campo' in r || !/^[0-9a-f]{64}$/.test(String(r.bozza)));
+    return { n: tutte.length, nomi: nomi.sort(), campiChiaro, chiaro: testi.some(t => t.includes('TOLIPROVA') || t.includes('PNG')),
       chiavi: chiavi.length, esportabile: chiavi.some(c => c.chiave && c.chiave.extractable) };
   });
   const anteprime = s => s.page.evaluate(() => ({
@@ -391,6 +399,34 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
   }
 
   try {
+    // 0. browser nuovo, 3 foto in un colpo solo
+    {
+      const z = await apriSito(browser, url); sessioni.push(z);
+      await z.page.setViewport({ width: 390, height: 844 });
+      await login(z, rap);
+      await nuovo(z);
+      await compila(z, titoli[2]);
+      const input = await z.page.$('#mp-file');
+      await input.uploadFile(foto[0], foto[1], foto[2]);
+      await z.page.evaluate(() => ge('mp-file').dispatchEvent(new Event('change', { bubbles: true })));
+      await attendiQuiete(z.stato, 300);
+      if (!(await attendiTelefono(z, 3))) KO('0: sul telefono non ci sono 3 foto: ' + JSON.stringify(await telefono(z)));
+      const t0 = await telefono(z);
+      if (t0.chiavi !== 1) KO('0: chiavi sul telefono: ' + t0.chiavi);
+      if (t0.campiChiaro || t0.chiaro) KO('0: sul telefono nome, tipo o chiave della bozza in chiaro');
+      await ricarica(z);
+      z.stato.erroriToast = '';
+      await nuovo(z);
+      const a0 = await anteprime(z);
+      const toast0 = await toastTesto(z);
+      await z.page.screenshot({ path: path.join(CARTELLA_OUT, '0-un-colpo-dopo-ricarica-390.png') });
+      if (a0.img !== 3) KO('0: 3 foto scelte insieme, dopo il ricaricamento ne tornano ' + a0.img + ' ' + toast0);
+      else righe.push('0. browser nuovo, 3 foto scelte in un colpo solo: una sola chiave, sul telefono niente nome né bozza in chiaro; dopo il ricaricamento 3 anteprime (' + t0.nomi.join(', ') + ')');
+      // pulizia: via le foto (non si salva)
+      await z.page.evaluate(async () => { await svuotaTutteFotoBozza(); });
+      await chiudi(z);
+    }
+
     const r = await apriSito(browser, url); sessioni.push(r);
     await r.page.setViewport({ width: 390, height: 844 });
     await login(r, rap);
@@ -493,6 +529,26 @@ const testoDialoghi = s => s.stato.dialoghi.join(' / ');
     if (!/foto scelta per un progetto/.test(r.stato.dialoghi.join(' '))) KO('5: "Esci" senza avviso delle foto scelte: ' + r.stato.dialoghi.join(' / '));
     if (t5 !== '0/0') KO('5: dopo "Esci" sul telefono foto/chiavi: ' + t5);
     else righe.push('5. "Esci" con una foto scelta: avviso, poi sul telefono 0 foto e 0 chiavi');
+
+    // 6. titolare "Entra come" rappresentante
+    const tit = utenti.find(u => u.ruolo === 'titolare');
+    if (tit) {
+      const e = await apriSito(browser, url); sessioni.push(e);
+      await e.page.setViewport({ width: 390, height: 844 });
+      await login(e, tit);
+      await e.page.evaluate(id => { entraCome(id); }, rap.id);
+      await e.page.waitForFunction(() => typeof ENTRA_COME !== 'undefined' && ENTRA_COME && ME && ROLE === 'rappresentante', { timeout: 30000 });
+      await attendiQuiete(e.stato, 1500);
+      await nuovo(e);
+      await compila(e, titoli[3]);
+      await scegli(e, 'mp-file', foto[4]);
+      await salva(e);
+      const id6 = progettoDi(titoli[3]);
+      const chi = id6 ? psql('select p.rappresentante_id || \'|\' || coalesce(string_agg(a.caricato_da::text, \',\'), \'\') from public.progetti_tecnici p left join public.progetti_tecnici_allegati a on a.progetto_id = p.id where p.id = ' + q(id6) + ' group by p.rappresentante_id') : '';
+      if (!id6) KO('6: "Entra come" rappresentante: progetto non creato ' + await toastTesto(e));
+      else if (chi !== rap.id + '|' + rap.id) KO('6: rappresentante_id|caricato_da = ' + chi + ' invece di ' + rap.id);
+      else righe.push('6. titolare "Entra come" rappresentante: progetto creato con la foto, rappresentante_id e caricato_da = il rappresentante');
+    }
 
     for (const s of sessioni) {
       if (s.stato.erroriJs.length) KO('errori JavaScript: ' + s.stato.erroriJs.join(' | '));

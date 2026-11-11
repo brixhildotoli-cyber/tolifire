@@ -2301,16 +2301,25 @@ come prima): i file scelti si SOMMANO (input svuotato dopo la scelta, stessa
 foto non ripetuta), ognuno con la ✖ (togliFileSceltoProgetto); restano sul
 telefono in IndexedDB toli-foto-bozze CIFRATI AES-GCM (cifraLettura e
 decifraLettura di js/57, chiave non esportabile PER PERSONA, non per
-sessione: un nuovo accesso dopo la sessione scaduta non le perde) sotto la
-chiave della bozza (chiaveBozzaProgetto: progetto o "nuovo" del cliente);
+sessione: un nuovo accesso dopo la sessione scaduta non le perde; creata una
+volta sola anche con più foto scelte insieme, FOTO_BOZZA.inCreazione) sotto
+l'impronta SHA-256 della chiave della bozza (chiaveBozzaProgetto: progetto o
+"nuovo" del cliente); nome, tipo e campo del file dentro la parte cifrata;
+una foto che non si decifra si toglie con un toast;
 riaprendo la finestra (apriNuovoProgetto, modificaProgetto,
 apriProgettoDaElenco → apriFileSceltiFinestraProgetto) ricompaiono con
 l'anteprima e la nota "Ho ripreso N file", e salvaProgetto le conta
 (fileSceltiFinestraProgetto). Ogni file arrivato (o già nel progetto) esce
 dal telefono; caricamento fermato a metà (caricamentoProgettoFermato):
-alert con "Salvati (N)" e "Non salvati (N)" con i nomi, i rimasti restano
-scelti e sul telefono, il progetto nuovo resta aperto come "Modifica" (foto
-spostate sotto il progetto, niente secondo progetto). "Esci" (con avviso se
+alert con "Salvati (N)" e "Non salvati (N)" con i nomi (anche se
+caricaFileNelProgetto si ferma con un'eccezione), i rimasti restano scelti e
+sul telefono, il progetto nuovo resta aperto come "Modifica"; le foto passano
+sotto il progetto SUBITO dopo l'insert (se la pagina muore durante il
+caricamento tornano riaprendo quel progetto, niente secondo progetto).
+Corretto nello stesso giro: con "Entra come" rappresentante il titolare non
+creava il progetto (rappresentante_id e caricato_da ora = la persona
+impersonata, opz.caricatoDa di caricaFileNelProgetto in js/56; il percorso
+nello Storage resta dell'utente vero). "Esci" (con avviso se
 ci sono foto) e un'altra persona sul telefono (svuotaCacheDatiOffline
 avvolta) cancellano foto e chiave; righe con utente_id; con "Entra come"
 solo in memoria; dopo 7 giorni si tolgono. LIMITE: la foto che si sta
@@ -2321,7 +2330,8 @@ test/foto-bozza-progetto.spec.js (database locale, rappresentante a 390 px:
 3 foto una alla volta, cifrate; page.reload, riaperto "Nuovo progetto" dello
 stesso cliente con le 3 anteprime, Salva = 3 righe, telefono vuoto; ✖; Storage
 che rifiuta la 2a foto = messaggio, 1 riga, 2 sul telefono, ricarica, Salva =
-3 righe e un solo progetto; Esci = 0 foto e 0 chiavi); progetto-doppio,
+3 righe e un solo progetto; Esci = 0 foto e 0 chiavi; browser nuovo con 3
+foto scelte in un colpo solo = 3 dopo il ricaricamento; "Entra come"); progetto-doppio,
 progetto-rappresentante, smoke TUTTO OK.
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail

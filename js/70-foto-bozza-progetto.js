@@ -15,7 +15,8 @@
 //    F15.12, ma legata alla persona e non alla sessione: un nuovo accesso
 //    dopo la sessione scaduta non le perde), sotto la stessa chiave della
 //    bozza del testo (chiaveBozzaProgetto: progetto, oppure "nuovo" del
-//    cliente);
+//    cliente) scritta come impronta SHA-256; nome, tipo e campo del file sono
+//    dentro la parte cifrata (in chiaro solo id casuale, persona, ordine, data);
 //  - riaprendo la finestra dello stesso progetto (o "Nuovo progetto" dello
 //    stesso cliente) ricompaiono con l'anteprima e contano come scelte;
 //  - si tolgono dal telefono una per una appena arrivano nel progetto (o se
@@ -38,7 +39,7 @@
 //   spostaFotoBozzaProgetto(da, a)    → progetto nuovo creato, foto rimaste
 //   svuotaFotoBozzaProgetto(chiave)   → salvataggio riuscito
 
-const FOTO_BOZZA = { db: null, chiave: null, chiaveDi: '', bozza: null, voci: [], apertura: 0, contatore: 0 };
+const FOTO_BOZZA = { db: null, chiave: null, chiaveDi: '', inCreazione: null, inCreazioneDi: '', bozza: null, voci: [], apertura: 0, contatore: 0 };
 const FOTO_BOZZA_NOME_DB = 'toli-foto-bozze';
 const FOTO_BOZZA_VALIDE_MS = 7 * 24 * 3600 * 1000;
 const FOTO_BOZZA_CAMPI = { 'mp-file': 'obbligatori', 'mp-file-extra': 'extra' };
@@ -49,16 +50,18 @@ function utenteFotoBozza() {
 function fotoBozzaSulTelefono() {
   return !!(window.crypto && window.crypto.subtle && 'indexedDB' in window &&
     typeof codaOfflineAmmessa === 'function' && codaOfflineAmmessa() &&
-    typeof cifraLettura === 'function' && typeof decifraLettura === 'function');
+    typeof cifraLettura === 'function' && typeof decifraLettura === 'function' && typeof improntaLettura === 'function');
 }
 
 // ── IndexedDB ───────────────────────────────────────────────────────
 function apriDbFotoBozza() {
   if (FOTO_BOZZA.db) return FOTO_BOZZA.db;
   FOTO_BOZZA.db = new Promise(function(ok, ko) {
-    const r = indexedDB.open(FOTO_BOZZA_NOME_DB, 1);
+    const r = indexedDB.open(FOTO_BOZZA_NOME_DB, 2);
     r.onupgradeneeded = function() {
       const d = r.result;
+      // Versione 1 (11/11, mai pubblicata): nome e bozza in chiaro, si rifà
+      if (d.objectStoreNames.contains('foto') && r.oldVersion < 2) d.deleteObjectStore('foto');
       if (!d.objectStoreNames.contains('foto')) d.createObjectStore('foto', { keyPath: 'id' }).createIndex('per_bozza', 'bozza');
       if (!d.objectStoreNames.contains('chiavi')) d.createObjectStore('chiavi', { keyPath: 'utente_id' });
     };
@@ -82,20 +85,54 @@ async function operazioneFotoBozza(archivio, modo, fn) {
 }
 
 // Chiave della persona (non esportabile): nasce alla prima foto, sparisce con "Esci"
-async function chiaveFotoBozza() {
+// Una sola creazione alla volta (come LETTURE.inCreazione di js/57): più foto
+// scelte insieme chiedono la chiave in parallelo e devono avere la STESSA
+function chiaveFotoBozza() {
   const u = utenteFotoBozza();
-  if (!u) return null;
-  if (FOTO_BOZZA.chiave && FOTO_BOZZA.chiaveDi === u.id) return FOTO_BOZZA.chiave;
-  let rec = await operazioneFotoBozza('chiavi', 'readonly', function(s) { return s.get(u.id); });
-  if (!rec || !rec.chiave) {
-    // Un'altra persona prima: le sue foto e la sua chiave non servono più
-    await operazioneFotoBozza('foto', 'readwrite', function(s) { return s.clear(); });
-    const chiave = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-    rec = { utente_id: u.id, chiave: chiave, creata_il: Date.now() };
-    await operazioneFotoBozza('chiavi', 'readwrite', function(s) { s.clear(); return s.put(rec); });
-  }
-  FOTO_BOZZA.chiave = rec.chiave; FOTO_BOZZA.chiaveDi = u.id;
-  return rec.chiave;
+  if (!u) return Promise.resolve(null);
+  if (FOTO_BOZZA.chiave && FOTO_BOZZA.chiaveDi === u.id) return Promise.resolve(FOTO_BOZZA.chiave);
+  if (FOTO_BOZZA.inCreazione && FOTO_BOZZA.inCreazioneDi === u.id) return FOTO_BOZZA.inCreazione;
+  FOTO_BOZZA.inCreazioneDi = u.id;
+  FOTO_BOZZA.inCreazione = (async function() {
+    let rec = await operazioneFotoBozza('chiavi', 'readonly', function(s) { return s.get(u.id); });
+    if (!rec || !rec.chiave) {
+      // Un'altra persona prima: le sue foto e la sua chiave non servono più
+      await operazioneFotoBozza('foto', 'readwrite', function(s) { return s.clear(); });
+      const chiave = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+      rec = { utente_id: u.id, chiave: chiave, creata_il: Date.now() };
+      await operazioneFotoBozza('chiavi', 'readwrite', function(s) { s.clear(); return s.put(rec); });
+    }
+    return rec.chiave;
+  })().then(function(k) { FOTO_BOZZA.chiave = k; FOTO_BOZZA.chiaveDi = u.id; return k; })
+    .finally(function() { FOTO_BOZZA.inCreazione = null; FOTO_BOZZA.inCreazioneDi = ''; });
+  return FOTO_BOZZA.inCreazione;
+}
+
+// Chiave della riga della bozza sul telefono: impronta SHA-256 (come F15.12),
+// niente id di progetti o clienti in chiaro
+async function bozzaCifrata(bozza) {
+  const u = utenteFotoBozza();
+  if (!bozza || !u || typeof improntaLettura !== 'function') return null;
+  return improntaLettura('foto-bozza|' + u.id + '|' + bozza);
+}
+
+// Contenuto cifrato = 4 byte di lunghezza + JSON (nome, tipo, campo, data) + file
+async function impacchettaFotoBozza(voce) {
+  const meta = TESTO_CIFRA.encode(JSON.stringify({
+    nome: voce.file.name, tipo: voce.file.type || '', campo: voce.campo, modificato: voce.file.lastModified || Date.now()
+  }));
+  const dati = new Uint8Array(await voce.file.arrayBuffer());
+  const out = new Uint8Array(4 + meta.length + dati.length);
+  new DataView(out.buffer).setUint32(0, meta.length);
+  out.set(meta, 4);
+  out.set(dati, 4 + meta.length);
+  return out.buffer;
+}
+function spacchettaFotoBozza(buf) {
+  const b = new Uint8Array(buf);
+  const n = new DataView(b.buffer, b.byteOffset, b.byteLength).getUint32(0);
+  const meta = JSON.parse(TESTO_DECIFRA.decode(b.subarray(4, 4 + n)));
+  return { meta: meta, dati: b.slice(4 + n) };
 }
 
 async function metteFotoBozzaSulTelefono(voce) {
@@ -103,14 +140,11 @@ async function metteFotoBozzaSulTelefono(voce) {
   const u = utenteFotoBozza();
   try {
     const chiave = await chiaveFotoBozza();
-    if (!chiave) return false;
-    const cif = await cifraLettura(chiave, 'foto-bozza|' + voce.id, await voce.file.arrayBuffer());
+    const bozza = await bozzaCifrata(voce.bozza);
+    if (!chiave || !bozza) return false;
+    const cif = await cifraLettura(chiave, 'foto-bozza|' + voce.id, await impacchettaFotoBozza(voce));
     await operazioneFotoBozza('foto', 'readwrite', function(s) {
-      return s.put({
-        id: voce.id, utente_id: u.id, bozza: voce.bozza, campo: voce.campo, ordine: voce.ordine,
-        nome: voce.file.name, tipo: voce.file.type || '', modificato: voce.file.lastModified || Date.now(),
-        dimensione: voce.file.size, salvata_il: Date.now(), iv: cif.iv, dati: cif.dati
-      });
+      return s.put({ id: voce.id, utente_id: u.id, bozza: bozza, ordine: voce.ordine, salvata_il: Date.now(), iv: cif.iv, dati: cif.dati });
     });
     voce.sulTelefono = true;
     return true;
@@ -131,7 +165,9 @@ async function righeFotoBozza(bozza) {
   if (!u || !('indexedDB' in window)) return [];
   let righe = [];
   try {
-    righe = (await operazioneFotoBozza('foto', 'readonly', function(s) { return s.index('per_bozza').getAll(bozza); })) || [];
+    const k = await bozzaCifrata(bozza);
+    if (!k) return [];
+    righe = (await operazioneFotoBozza('foto', 'readonly', function(s) { return s.index('per_bozza').getAll(k); })) || [];
   } catch (e) { return []; }
   return righe.filter(function(r) { return r.utente_id === u.id; });
 }
@@ -212,12 +248,13 @@ async function spostaFotoBozzaProgetto(da, a) {
     voce.bozza = a;
   }
   if (!('indexedDB' in window)) return;
+  const nuova = await bozzaCifrata(a);
   for (const r of await righeFotoBozza(da)) {
     const resta = FOTO_BOZZA.voci.some(function(x) { return x.id === r.id; });
     try {
       await operazioneFotoBozza('foto', 'readwrite', function(s) {
-        if (!resta) return s.delete(r.id);
-        r.bozza = a;
+        if (!resta || !nuova) return s.delete(r.id);
+        r.bozza = nuova;
         return s.put(r);
       });
     } catch (e) { /* niente */ }
@@ -245,16 +282,23 @@ async function apriFotoBozzaProgetto(chiave) {
   try { chiaveCif = await chiaveFotoBozza(); } catch (e) { chiaveCif = null; }
   if (!chiaveCif) return 0; // telefono non leggibile ora: le foto restano dove sono
   const voci = [];
+  let illeggibili = 0;
   for (const r of righe) {
     if (Date.now() - (r.salvata_il || 0) > FOTO_BOZZA_VALIDE_MS) { await togliFotoBozzaDalTelefono(r.id); continue; }
     try {
-      const dati = await decifraLettura(chiaveCif, 'foto-bozza|' + r.id, r.iv, r.dati);
-      const file = new File([dati], r.nome, { type: r.tipo, lastModified: r.modificato });
-      voci.push({ id: r.id, campo: r.campo, file: file, ordine: r.ordine, bozza: chiave, sulTelefono: true, salvataggio: Promise.resolve(true) });
+      const x = spacchettaFotoBozza(await decifraLettura(chiaveCif, 'foto-bozza|' + r.id, r.iv, r.dati));
+      const file = new File([x.dati], x.meta.nome, { type: x.meta.tipo, lastModified: x.meta.modificato });
+      voci.push({ id: r.id, campo: x.meta.campo === 'extra' ? 'extra' : 'obbligatori', file: file, ordine: r.ordine, bozza: chiave, sulTelefono: true, salvataggio: Promise.resolve(true) });
     } catch (e) {
-      // Chiave cambiata o riga rovinata: la foto non si può più leggere
+      // Chiave cambiata o riga rovinata: la foto non si può più leggere (si dice)
+      illeggibili++;
+      console.warn('Foto della bozza illeggibile:', e && e.message);
       await togliFotoBozzaDalTelefono(r.id);
     }
+  }
+  if (illeggibili) {
+    toast((illeggibili === 1 ? '1 foto scelta prima non si può più leggere' : illeggibili + ' foto scelte prima non si possono più leggere') +
+      ' dal telefono: vanno scelte di nuovo', 'warn');
   }
   if (giro !== FOTO_BOZZA.apertura) return 0; // nel frattempo si è aperta un'altra finestra
   // Se nel frattempo si è scelto qualcosa, le riprese vanno prima
