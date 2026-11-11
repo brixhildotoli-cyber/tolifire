@@ -369,7 +369,7 @@ preventivi: sconto_perc (c'era, mai usata: ora lo sconto applicato, vincolo
 0 <= x < 100) e colonne NUOVE totale_prima_sconto, sconto_da,
 sconto_da_nome, sconto_il (lette da chi legge il preventivo; le scrive solo
 la RPC, il trigger trg_preventivi_00_sconto rifiuta le scritture dirette).
-Dopo sql/87 (F15.17 controllo dei progetti doppi, DA ESEGUIRE: backup,
+Dopo sql/87 (F15.17 controllo dei progetti doppi, ESEGUITO l'11/11 dal server MCP insieme a sql/262 (backup pre87, controllo in regola): backup,
 anteprima in fondo, 87-controllo-duplicati.sql (senza parole di
 cancellazione, server MCP), controllo; richiede 07, 65, 71): nessuna tabella
 nuova, nessuna colonna, nessuna policy, matrice invariata. Il motivo di "Crea
@@ -1808,7 +1808,13 @@ test/migrazione-progetti-aperti.spec.js (Chrome headless, database locale:
 "Da preventivare" di Acquisti e del titolare e "Cosa tocca a me" uguali prima
 e dopo, riquadro 🚦 del titolare, console di titolare, Acquisti e ingegnere
 rifiutata, ROLLBACK). Senza sql/84: sito come prima.
-Dopo sql/87 (F15.17 controllo dei progetti doppi, DA ESEGUIRE con "CONFERMATO
+Dopo sql/262 (richiesta di Erika dell'11/11, ESEGUITO l'11/11 con sql/87, backup
+pre87, controllo in regola): il rappresentante crea e modifica progetti tecnici
+solo per i SUOI clienti anche da console: with check di progetti_rapp_insert e
+progetti_rapp_update con public.cliente_visibile(cliente_id) (alter policy;
+rollback 262-...-ROLLBACK.sql). In produzione 78 progetti dei rappresentanti,
+0 su clienti non loro.
+Dopo sql/87 (F15.17 controllo dei progetti doppi, ESEGUITO l'11/11 (backup pre87); era DA ESEGUIRE con "CONFERMATO
 DA TOLI: sql/87": backup, anteprima in fondo al file, 87-controllo-duplicati.sql
 (senza parole di cancellazione, server MCP), controllo in fondo; nessun
 -REGISTRO-CANCELLAZIONI; richiede 07, 65, 71, tutti in produzione, si ferma
