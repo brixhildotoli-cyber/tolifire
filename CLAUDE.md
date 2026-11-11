@@ -2286,6 +2286,43 @@ si apre, Esci = 0,0,0,0; F capo tecnico: scheda_cantiere_commessa e
 controllo_faldone_commessa senza rete uguali, nuova session_id = letture di
 prima cancellate); coda-offline (A0-A5, B1-B5), posizioni, smoke (9 utenti),
 entra-come, motore-schede TUTTO OK.
+Foto scelte nella finestra del progetto tenute sul telefono (richiesta di
+Erika dell'11/11, js/70-foto-bozza-progetto.js caricato dopo js/69 e prima
+di js/19 + js/17, NESSUN SQL). Causa trovata: sul telefono le foto scelte in
+mp-file / mp-file-extra vivevano solo negli input; si perdevano se la
+pagina si ricaricava aprendo la fotocamera (la bozza di testo tornava, le
+foto no), con un tocco fuori dalla finestra, e SCEGLIENDO DI NUOVO dallo
+stesso campo (l'input sostituiva le foto di prima: una foto alla volta con la
+fotocamera = restava solo l'ultima); apriProgettoDaElenco lasciava le
+anteprime della finestra di prima; un errore a metà del caricamento faceva
+return senza dire cosa era salvato e un progetto NUOVO, ripremendo Salva, si
+ricreava. Ora (stesso flusso, stessi campi e bottoni, allegati obbligatori
+come prima): i file scelti si SOMMANO (input svuotato dopo la scelta, stessa
+foto non ripetuta), ognuno con la ✖ (togliFileSceltoProgetto); restano sul
+telefono in IndexedDB toli-foto-bozze CIFRATI AES-GCM (cifraLettura e
+decifraLettura di js/57, chiave non esportabile PER PERSONA, non per
+sessione: un nuovo accesso dopo la sessione scaduta non le perde) sotto la
+chiave della bozza (chiaveBozzaProgetto: progetto o "nuovo" del cliente);
+riaprendo la finestra (apriNuovoProgetto, modificaProgetto,
+apriProgettoDaElenco → apriFileSceltiFinestraProgetto) ricompaiono con
+l'anteprima e la nota "Ho ripreso N file", e salvaProgetto le conta
+(fileSceltiFinestraProgetto). Ogni file arrivato (o già nel progetto) esce
+dal telefono; caricamento fermato a metà (caricamentoProgettoFermato):
+alert con "Salvati (N)" e "Non salvati (N)" con i nomi, i rimasti restano
+scelti e sul telefono, il progetto nuovo resta aperto come "Modifica" (foto
+spostate sotto il progetto, niente secondo progetto). "Esci" (con avviso se
+ci sono foto) e un'altra persona sul telefono (svuotaCacheDatiOffline
+avvolta) cancellano foto e chiave; righe con utente_id; con "Entra come"
+solo in memoria; dopo 7 giorni si tolgono. LIMITE: la foto che si sta
+scattando quando il telefono ricarica la pagina non arriva mai al sito (va
+rifatta); salvate restano tutte quelle scelte prima. Non toccata la finestra
+della verifica tecnica (mvt-file). Guida info-rap-30. Prova
+test/foto-bozza-progetto.spec.js (database locale, rappresentante a 390 px:
+3 foto una alla volta, cifrate; page.reload, riaperto "Nuovo progetto" dello
+stesso cliente con le 3 anteprime, Salva = 3 righe, telefono vuoto; ✖; Storage
+che rifiuta la 2a foto = messaggio, 1 riga, 2 sul telefono, ricarica, Salva =
+3 righe e un solo progetto; Esci = 0 foto e 0 chiavi); progetto-doppio,
+progetto-rappresentante, smoke TUTTO OK.
 Scheda oggetto comune (F14.16, js/63-scheda-oggetto.js, NESSUN SQL: legge
 solo tabelle che il ruolo già legge). In cima a preventivo-detail
 (pvd-scheda-oggetto, js/18), commessa-detail (cmd-scheda-oggetto, js/26),

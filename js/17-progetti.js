@@ -4,6 +4,20 @@ let allegatiProgettoDati = [];
 let salvataggioProgettoInCorso = false;
 let urlAnteprimaProgetto = [];
 
+// Elenco dei file scelti nella finestra del progetto: con js/70 si sommano,
+// restano sul telefono con la bozza e hanno la ✖; senza, quelli degli input
+function fileSceltiFinestraProgetto(campo) {
+  if (typeof fileSceltiProgetto === 'function') {
+    if (typeof prendiFileSceltiProgetto === 'function') prendiFileSceltiProgetto();
+    return fileSceltiProgetto(campo);
+  }
+  const obbligatori = Array.from(ge('mp-file').files || []);
+  const extra = Array.from(ge('mp-file-extra').files || []);
+  if (campo === 'obbligatori') return obbligatori;
+  if (campo === 'extra') return extra;
+  return [...obbligatori, ...extra];
+}
+
 function anteprimaFileProgetto() {
   const box = ge('mp-file-selezionati');
   if (!box) return;
@@ -13,26 +27,35 @@ function anteprimaFileProgetto() {
   });
   urlAnteprimaProgetto = [];
 
-  const obbligatori = Array.from(ge('mp-file').files || []);
-  const extra = Array.from(ge('mp-file-extra').files || []);
-  const files = [...obbligatori, ...extra];
+  const conElenco = typeof elencoFileSceltiProgetto === 'function';
+  if (conElenco && typeof prendiFileSceltiProgetto === 'function') prendiFileSceltiProgetto();
+  const voci = conElenco
+    ? elencoFileSceltiProgetto()
+    : fileSceltiFinestraProgetto().map(function(file) { return { id: '', file: file }; });
 
-  if (!files.length) {
+  if (!voci.length) {
     box.innerHTML = '';
     return;
   }
 
+  const riprese = conElenco && typeof FOTO_BOZZA !== 'undefined' ? (FOTO_BOZZA.riprese || 0) : 0;
+  const sulTelefono = conElenco && voci.some(function(x) { return x.sulTelefono; });
+
   box.innerHTML = `
     <div style="font-size:12px;font-weight:700;margin-bottom:6px">
-      File pronti da caricare (${files.length})
+      File pronti da caricare (${voci.length})
     </div>
-    ${files.map(function(file) {
-      const immagine = file.type.startsWith('image/');
+    ${riprese ? `<div class="al2 i" id="mp-file-ripresi" style="font-size:12px;margin:0 0 6px">
+      📱 ${riprese === 1 ? 'Ho ripreso 1 file scelto' : 'Ho ripreso ' + riprese + ' file scelti'} prima e tenuti sul telefono: premi Salva per caricarli.
+    </div>` : ''}
+    ${voci.map(function(voce) {
+      const file = voce.file;
+      const immagine = (file.type || '').startsWith('image/');
       const url = URL.createObjectURL(file);
       urlAnteprimaProgetto.push(url);
 
       return `
-        <div style="display:flex;align-items:center;gap:9px;padding:8px 10px;margin-top:6px;background:var(--bg);border-radius:var(--rs)">
+        <div class="mp-file-scelto" data-file-scelto="${esc(voce.id || '')}" style="display:flex;align-items:center;gap:9px;padding:8px 10px;margin-top:6px;background:var(--bg);border-radius:var(--rs)">
           ${
             immagine
               ? `<a href="${url}" target="_blank" rel="noopener">
@@ -46,16 +69,21 @@ function anteprimaFileProgetto() {
               ${esc(file.name)}
             </div>
             <div style="font-size:11px;color:var(--m)">
-              ${(file.size / 1024 / 1024).toFixed(2)} MB
+              ${(file.size / 1024 / 1024).toFixed(2)} MB${voce.campo === 'extra' ? ' · facoltativo' : ''}${voce.sulTelefono ? ' · 📱 sul telefono' : ''}
             </div>
           </div>
 
           <a class="btn sm" href="${url}" target="_blank" rel="noopener">
             Apri
           </a>
+          ${voce.id ? `<button type="button" class="btn sm" title="Togli questo file" aria-label="Togli ${esc(file.name)}"
+            onclick="togliFileSceltoProgetto('${esc(voce.id)}')">✖</button>` : ''}
         </div>
       `;
     }).join('')}
+    ${sulTelefono ? `<div style="font-size:11px;color:var(--m);margin-top:6px">
+      📱 I file scelti restano su questo telefono finché non premi Salva (anche se la pagina si ricarica).
+    </div>` : ''}
   `;
 }
 
@@ -347,8 +375,8 @@ if (
 // Il testo scritto nella finestra del progetto si salva da solo in questo
 // browser mentre si scrive: se la sessione scade o la finestra si chiude,
 // riaprendo lo stesso progetto (o "Nuovo progetto" sullo stesso cliente)
-// il testo torna. Si cancella quando il progetto viene salvato. I file
-// allegati non si possono conservare: vanno riselezionati.
+// il testo torna. Si cancella quando il progetto viene salvato. Le foto e i
+// file scelti li tiene sul telefono js/70 (stessa chiave della bozza).
 const CAMPI_BOZZA_PROGETTO = ['mp-titolo', 'mp-tipologia', 'mp-descrizione', 'mp-materiali', 'mp-importo', 'mp-fonte-rilievo'];
 let chiaveBozzaProgettoAperta = null;
 let timerBozzaProgetto = null;
@@ -449,9 +477,19 @@ function preparaBozzaProgetto(progettoId) {
     nota.innerHTML = '💾 Ho ripreso il testo non salvato del ' +
       esc(quando.toLocaleDateString('it-IT')) + ' alle ' +
       esc(quando.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })) +
-      '. Controllalo e premi Salva. Gli allegati vanno riselezionati. ' +
+      '. Controllalo e premi Salva. ' +
+      (typeof apriFotoBozzaProgetto === 'function' ? '' : 'Gli allegati vanno riselezionati. ') +
       '<a href="#" onclick="scartaBozzaProgetto();return false">Scarta</a>';
   }
+}
+
+// Apertura della finestra: elenco dei file scelti di questa bozza (js/70:
+// anche quelli tenuti sul telefono prima di un ricaricamento della pagina)
+async function apriFileSceltiFinestraProgetto(progettoId) {
+  if (typeof apriFotoBozzaProgetto === 'function') {
+    try { await apriFotoBozzaProgetto(chiaveBozzaProgetto(progettoId, currentCliId)); return; } catch (e) { console.warn('Foto della bozza:', e && e.message); }
+  }
+  anteprimaFileProgetto();
 }
 
 async function apriNuovoProgetto() {
@@ -468,7 +506,7 @@ async function apriNuovoProgetto() {
   ge('mp-materiali').value = '';
   ge('mp-file').value = '';
   ge('mp-file-extra').value = '';
-  anteprimaFileProgetto();
+  await apriFileSceltiFinestraProgetto(null);
 
   await mostraImportoProgetto(null);
   await mostraFonteRilievoProgetto(null);
@@ -497,7 +535,7 @@ async function modificaProgetto(id) {
   ge('mp-materiali').value = progetto.materiali_note || '';
   ge('mp-file').value = '';
   ge('mp-file-extra').value = '';
-  anteprimaFileProgetto();
+  await apriFileSceltiFinestraProgetto(id);
 
   await mostraImportoProgetto(progetto);
   await mostraFonteRilievoProgetto(progetto);
@@ -506,6 +544,41 @@ async function modificaProgetto(id) {
 
   openM('m-progetto');
   if (typeof preparaInputVideoProgetto === 'function') preparaInputVideoProgetto(); // F15.9
+}
+
+// Il caricamento dei file si è fermato a metà (rete, errore di un file):
+// il progetto c'è già. Messaggio con i file salvati e quelli che restano;
+// quelli rimasti restano scelti (e, con js/70, sul telefono). Un progetto
+// NUOVO resta aperto come "Modifica": premendo di nuovo Salva si caricano
+// solo i file rimasti, senza creare un secondo progetto.
+async function caricamentoProgettoFermato(id, progettoId, rimasti, salvati, saltati, errore) {
+  if (!id && progettoId) {
+    ge('mp-id').value = progettoId;
+    ge('mp-titolo-modal').textContent = 'Modifica progetto tecnico';
+    const nuova = chiaveBozzaProgetto(progettoId, currentCliId);
+    if (typeof spostaFotoBozzaProgetto === 'function') {
+      await spostaFotoBozzaProgetto(chiaveBozzaProgetto(null, currentCliId), nuova);
+    }
+    chiaveBozzaProgettoAperta = nuova;
+    try { await loadProgettiCliente(currentCliId); } catch (e) { /* si riprova dopo */ }
+  }
+  anteprimaFileProgetto();
+  const sulTelefono = typeof fotoBozzaSulTelefono === 'function' && fotoBozzaSulTelefono();
+  const righe = [
+    (!id ? 'Il progetto è stato creato, ' : 'Le modifiche sono salvate, ') + 'ma il caricamento dei file si è fermato.',
+    '',
+    'Motivo: ' + (errore || 'errore sconosciuto'),
+    '',
+    'Salvati (' + salvati.length + '):' + (salvati.length ? '\n- ' + salvati.join('\n- ') : ' nessuno'),
+    '',
+    'Non salvati (' + rimasti.length + '):\n- ' + rimasti.map(function(f) { return f.name; }).join('\n- '),
+    '',
+    'I file non salvati restano scelti nella finestra' + (sulTelefono ? ' e su questo telefono' : '') +
+      ': premi di nuovo Salva per caricarli (toglili con ✖ se uno non va bene).'
+  ];
+  if (saltati.length) righe.push('', 'Non caricati perché già tra i file del progetto:\n- ' + saltati.join('\n- '));
+  toast('Caricamento dei file fermato: ' + rimasti.length + ' da rifare', 'err');
+  alert(righe.join('\n'));
 }
 
 async function salvaProgetto() {
@@ -530,8 +603,8 @@ async function salvaProgetto() {
     const tipologia = v('mp-tipologia');
     const descrizione = v('mp-descrizione').trim();
 
-    const filesObbligatori = Array.from(ge('mp-file').files || []);
-    const filesExtra = Array.from(ge('mp-file-extra').files || []);
+    const filesObbligatori = fileSceltiFinestraProgetto('obbligatori');
+    const filesExtra = fileSceltiFinestraProgetto('extra');
     const files = [...filesObbligatori, ...filesExtra];
 
     if (!titolo || !tipologia || !descrizione) {
@@ -685,18 +758,34 @@ const authUserId = authData.user.id;
     }
 
   // F15.9 (js/56 caricaFileNelProgetto): foto rimpicciolite, impronta del
-  // file con sql/82-foto-video; la stessa foto già nel progetto si salta
+  // file con sql/82-foto-video; la stessa foto già nel progetto si salta.
+  // js/70: ogni file arrivato (o già nel progetto) esce dal telefono; se il
+  // caricamento si ferma a metà si dice cosa è salvato e cosa resta, e le
+  // foto rimaste restano scelte (e sul telefono) per il prossimo "Salva".
   const fileSaltati = [];
-  for (const file of files) {
+  const fileSalvati = [];
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
     const caricato = await caricaFileNelProgetto(progettoId, authUserId, file, {});
-    if (caricato.doppione) { fileSaltati.push(caricato.errore); continue; }
+    if (caricato.doppione) {
+      fileSaltati.push(caricato.errore);
+      if (typeof fileProgettoArrivato === 'function') await fileProgettoArrivato(file);
+      continue;
+    }
     if (!caricato.alleg) {
-      toast(caricato.errore, 'err');
+      await caricamentoProgettoFermato(id, progettoId, files.slice(i), fileSalvati, fileSaltati, caricato.errore);
       return;
     }
+    fileSalvati.push(file.name);
+    if (typeof fileProgettoArrivato === 'function') await fileProgettoArrivato(file);
   }
   if (fileSaltati.length) alert('Non caricati (già tra i file del progetto):\n\n- ' + fileSaltati.join('\n- '));
 
+    if (typeof svuotaFotoBozzaProgetto === 'function') {
+      // Le foto del "nuovo progetto" solo se questo era il nuovo progetto
+      if (!id) await svuotaFotoBozzaProgetto(chiaveBozzaProgetto(null, currentCliId));
+      await svuotaFotoBozzaProgetto(chiaveBozzaProgetto(id || progettoId, currentCliId));
+    }
     cancellaBozzaProgetto(chiaveBozzaProgetto(id || null, currentCliId));
     chiaveBozzaProgettoAperta = null;
     closeM('m-progetto');
@@ -3660,10 +3749,13 @@ async function apriProgettoDaElenco(id) {
   ge('mp-materiali').value = progetto.materiali_note || '';
   ge('mp-file').value = '';
   ge('mp-file-extra').value = '';
+  // Prima restavano le anteprime dell'ultima finestra aperta (file non più scelti)
+  await apriFileSceltiFinestraProgetto(progetto.id);
 
   await mostraImportoProgetto(progetto);
   await mostraFonteRilievoProgetto(progetto);
   await caricaAllegatiProgetto(progetto.id);
+  preparaBozzaProgetto(progetto.id);
 
   openM('m-progetto');
   if (typeof preparaInputVideoProgetto === 'function') preparaInputVideoProgetto(); // F15.9
