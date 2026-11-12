@@ -1496,3 +1496,7 @@ body.entra-come-on .avviso-barra,body.entra-come-on .push-invito{bottom:64px}
 .coda-rete .btn{margin-left:6px;vertical-align:middle}
 .nav-coda{background:rgba(255,255,255,.22)}
 .coda-tab{font-size:11px}
+
+/* Ricaricando su una scheda (#/preventivo/...) la dashboard non si vede
+   prima della scheda (js/47 nascondiPagineInApertura). */
+body.pagine-in-apertura .page.on { visibility: hidden; }

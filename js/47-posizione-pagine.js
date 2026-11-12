@@ -552,6 +552,11 @@ Object.keys(SCHEDE_CON_INDIRIZZO).forEach(function(oggetto) {
     const auth = richiesta && richiesta.tipo === 'auth';
     rottaMostrata = null;
     if (auth) registrazioneSospesa = true; else sostituisciIndirizzo = true;
+    // Ricaricando su una scheda o una pagina (es. tornando dal PDF) la
+    // dashboard si carica per prima ma NON si vede: niente lampo della
+    // dashboard prima della scheda (segnalazione di Erika del 12/11).
+    const nascondi = !!(richiesta && (richiesta.tipo === 'rotta' || richiesta.tipo === 'pagina'));
+    if (nascondi) nascondiPagineInApertura(true);
     let risultato;
     try {
       risultato = await bootPrimaPagina.apply(this, arguments);
@@ -580,6 +585,25 @@ Object.keys(SCHEDE_CON_INDIRIZZO).forEach(function(oggetto) {
       }
     }
     rimettiPosizionePrimaDelPdf();
+    if (nascondi) nascondiPagineInApertura(false);
     return risultato;
   };
+})();
+
+// Pagine nascoste mentre si riapre la scheda dell'indirizzo; al massimo
+// 15 secondi, poi si mostrano comunque (una lettura che non risponde).
+let timerPagineInApertura = null;
+function nascondiPagineInApertura(si) {
+  clearTimeout(timerPagineInApertura);
+  document.body.classList.toggle('pagine-in-apertura', !!si);
+  if (si) timerPagineInApertura = setTimeout(function() { nascondiPagineInApertura(false); }, 15000);
+}
+
+// Già al caricamento del sito: con una scheda o una pagina nell'indirizzo
+// la dashboard non compare nemmeno per un attimo prima di boot.
+(function() {
+  try {
+    const r = statoDaIndirizzo(location.hash);
+    if (r && (r.tipo === 'rotta' || r.tipo === 'pagina')) nascondiPagineInApertura(true);
+  } catch (e) {}
 })();
