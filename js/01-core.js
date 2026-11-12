@@ -98,7 +98,9 @@ function chiaveLetturaUguale(metodo,url,opzioni){
   if(opzioni&&opzioni.signal)return '';
   const h=new Headers((opzioni&&opzioni.headers)||undefined);
   return [metodo,url,h.get('authorization')||'',h.get('accept')||'',h.get('prefer')||'',h.get('range')||'',
-    h.get('accept-profile')||'',h.get('content-profile')||'',intestazioneAgitoCome(),corpo].join('\n');
+    h.get('accept-profile')||'',h.get('content-profile')||'',intestazioneAgitoCome(),corpo,
+    // una lettura nata dopo una scrittura non si unisce a una partita prima
+    'scritture:'+FILA_DB.scritture].join('\n');
 }
 // Memoria breve (60 s) delle letture di tabelle che cambiano poco (elenchi
 // di subappaltatori e utenti, regole, festività, catalogo delle lavorazioni,
@@ -132,7 +134,16 @@ function fetchSupabaseInFila(risorsa,opzioni){
   if(!richiestaDaFila(url))return fetchConAgitoCome(risorsa,opzioni);
   FILA_DB.conteggio.richieste++;
   const metodo=String((opzioni&&opzioni.method)||(risorsa&&risorsa.method)||'GET').toUpperCase();
-  if(metodo!=='GET'&&metodo!=='HEAD'&&!richiestaSoloLetturaDb(url))FILA_DB.scritture++;
+  const scrittura=metodo!=='GET'&&metodo!=='HEAD'&&!richiestaSoloLetturaDb(url);
+  if(scrittura){
+    // segnata quando parte e quando finisce: una lettura servita durante una
+    // scrittura lenta non resta in memoria con il dato di prima
+    FILA_DB.scritture++;
+    const fine=function(){FILA_DB.scritture++;};
+    const p=(typeof navigator!=='undefined'&&navigator.onLine===false)?fetchConAgitoCome(risorsa,opzioni):eseguiInFilaDb(risorsa,opzioni);
+    p.then(fine,fine);
+    return p;
+  }
   if(typeof navigator!=='undefined'&&navigator.onLine===false)return fetchConAgitoCome(risorsa,opzioni);
   let chiave='';
   try{chiave=chiaveLetturaUguale(metodo,url,opzioni);}catch(e){chiave='';}

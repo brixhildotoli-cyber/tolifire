@@ -117,7 +117,9 @@ function avviaSito() {
     await fetchSupabaseInFila(B + '/storage/v1/object/sign/b/x.jpg', { method: 'POST', body: '{}', headers: h.headers });
     const s1 = FILA_DB.scritture;
     await fetchSupabaseInFila(B + '/rest/v1/rpc/salva_qualcosa', { method: 'POST', body: '{}', headers: h.headers });
-    prova('letture RPC e firme non contano, le altre RPC sì', s1 === s0 && FILA_DB.scritture === s0 + 1, s0 + ' ' + s1 + ' ' + FILA_DB.scritture);
+    await new Promise(r => setTimeout(r, 0));
+    // una scrittura conta due volte: quando parte e quando finisce
+    prova('letture RPC e firme non contano, le altre RPC sì', s1 === s0 && FILA_DB.scritture === s0 + 2, s0 + ' ' + s1 + ' ' + FILA_DB.scritture);
     // 6. memoria breve delle tabelle quasi fisse
     const q0 = CHIAMATE.length;
     const u1 = await fetchSupabaseInFila(B + '/rest/v1/utenti?select=id', h).then(r => r.json());
