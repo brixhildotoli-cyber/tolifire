@@ -356,7 +356,7 @@ function htmlCampiMotore(lav, d) {
   const indicativa = d.tipo_richiesta === 'indicativa';
   const ingegnere = scriveLivelloIngegnere();
   const campi = campiSchedaMotore(lav);
-  const obbligatori = campi.filter(serveAlPrezzoMotore).length;
+  const obbligatori = campi.filter(serveAlPrezzoMotore).length + gruppiAlmenoUnoMotore(lav).length;
   const sedi = MOTORE_SCHEDE.sedi || [];
   const comune = lav && lav.codice === FAMIGLIA_COMUNE; // F15.8
 
@@ -400,7 +400,7 @@ function htmlCampiMotore(lav, d) {
       </div>
     </div>`;
 
-  const righe = campi.map(function(c) { return htmlCampoMotore(c, d[c.codice], indicativa, ingegnere); }).join('');
+  const righe = campi.map(function(c) { return htmlCampoMotore(c, d[c.codice], indicativa, ingegnere, notaGruppoMotore(lav, c.codice)); }).join('');
 
   return richiesta + luogo + `
     <div class="rap-section">${comune ? 'Chi decide, perché, entro quando, accessi e orari' : 'Dati della lavorazione'}</div>
@@ -411,13 +411,14 @@ function htmlCampiMotore(lav, d) {
   `;
 }
 
-function htmlCampoMotore(c, valore, indicativa, ingegnere) {
+function htmlCampoMotore(c, valore, indicativa, ingegnere, notaGruppo) {
   const id = 'msm-c-' + c.codice;
   const solaLettura = c.livello === 'ingegnere' && !ingegnere;
   const nonNoto = indicativa && !solaLettura && valore === VALORE_NON_NOTO;
   const eraNonNoto = !indicativa && valore === VALORE_NON_NOTO;
   const val = (valore === VALORE_NON_NOTO && !solaLettura) ? '' : valore;
   const etichetta = esc(c.etichetta) + (serveAlPrezzoMotore(c) ? ' <b style="color:var(--r)">*</b>' : '') +
+    (notaGruppo && !serveAlPrezzoMotore(c) ? ' <b style="color:var(--r)">*</b> <span style="font-weight:400;font-size:11px;color:var(--m)">(' + esc(notaGruppo) + ')</span>' : '') +
     (c.livello === 'ingegnere' ? ' <span title="Campo dell’ingegnere">🎓</span>' : '');
   const dis = solaLettura || nonNoto ? ' disabled' : '';
   const nota = solaLettura
@@ -572,9 +573,13 @@ function numeriNonValidiMotore(dati, lav) {
 function obbligatoriMancantiMotore(dati, lav) {
   // F15.8: anche "non noto" nella definitiva e "da verificare", "da definire", "?", "xx"
   const indicativa = dati && dati.tipo_richiesta === 'indicativa';
-  return campiSchedaMotore(lav).filter(function(c) {
+  const mancanti = campiSchedaMotore(lav).filter(function(c) {
     return serveAlPrezzoMotore(c) && !!problemaValoreInvio(dati[c.codice], c, indicativa);
   });
+  gruppiAlmenoUnoMotore(lav).forEach(function(g) { // sql/263
+    if (!gruppoCompilatoMotore(g, dati, indicativa)) mancanti.push({ codice: g.codice, etichetta: g.etichetta });
+  });
+  return mancanti;
 }
 
 // ── F15.4: campi del prezzo, campi dell'ingegnere, plausibilità ─────────
@@ -582,6 +587,34 @@ function obbligatoriMancantiMotore(dati, lav) {
 function serveAlPrezzoMotore(c) {
   if (!c) return false;
   return c.serve_al_prezzo !== undefined && c.serve_al_prezzo !== null ? !!c.serve_al_prezzo : !!c.obbligatorio;
+}
+
+// sql/263: gruppi "basta uno" (gemella del blocco di controlli_invio_progetto).
+// Un gruppo vale solo se nessuno dei suoi campi attivi serve al prezzo da
+// solo: senza sql/263 superficie è ancora obbligatoria e il gruppo non c'è.
+const GRUPPI_ALMENO_UNO_MOTORE = {
+  vernice_intumescente: [{
+    codici: ['numero_elementi', 'sviluppo_lineare', 'superficie'],
+    etichetta: 'Quantità (numero di elementi, sviluppo lineare o superficie)',
+    motivo: 'Indica almeno uno tra numero di elementi, sviluppo lineare e superficie',
+    nota: 'basta uno tra numero di elementi, sviluppo lineare e superficie'
+  }]
+};
+function gruppiAlmenoUnoMotore(lav) {
+  if (!lav) return [];
+  const campi = (lav.lavorazioni_campi || []).filter(function(c) { return c.attivo !== false; });
+  return (GRUPPI_ALMENO_UNO_MOTORE[lav.codice] || []).map(function(g) {
+    const attivi = campi.filter(function(c) { return g.codici.includes(c.codice); })
+      .sort(function(a, b) { return (a.ordine || 0) - (b.ordine || 0); });
+    return Object.assign({}, g, { campi: attivi, codice: attivi.map(function(c) { return c.codice; }).join(',') });
+  }).filter(function(g) { return g.campi.length && !g.campi.some(serveAlPrezzoMotore); });
+}
+function gruppoCompilatoMotore(g, dati, indicativa) {
+  return g.campi.some(function(c) { return !problemaValoreInvio((dati || {})[c.codice], c, indicativa); });
+}
+function notaGruppoMotore(lav, codice) {
+  const g = gruppiAlmenoUnoMotore(lav).find(function(x) { return x.campi.some(function(c) { return c.codice === codice; }); });
+  return g ? g.nota : '';
 }
 
 // Le note interne di tutte le schede di js/18 sono dell'ingegnere (come sql/78)
@@ -1646,6 +1679,13 @@ async function controlliInvioProgettoSito(progettoId) {
       if (m && suePos.length && (vuotoMotore(val) || (Array.isArray(val) && !val.length)) &&
           suePos.every(function(p) { return !problemaValoreInvio(valorePos(p, c.codice), c, indicativa); })) m = '';
       if (m) righe.push({ scheda_id: s.id, scheda: nome, campo: c.codice, etichetta: c.etichetta, motivo: m });
+    });
+    // sql/263: "basta uno" (vuoti tutti nella scheda: almeno uno in ogni posizione attiva)
+    gruppiAlmenoUnoMotore(lav).forEach(function(g) {
+      if (gruppoCompilatoMotore(g, dati, indicativa)) return;
+      const vuotiScheda = g.campi.every(function(c) { const x = dati[c.codice]; return vuotoMotore(x) || (Array.isArray(x) && !x.length); });
+      if (suePos.length && vuotiScheda && suePos.every(function(p) { return gruppoCompilatoMotore(g, p.dati || {}, indicativa); })) return;
+      righe.push({ scheda_id: s.id, scheda: nome, campo: g.codice, etichetta: g.etichetta, motivo: g.motivo });
     });
   });
   return righe;

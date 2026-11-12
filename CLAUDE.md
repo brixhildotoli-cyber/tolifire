@@ -380,6 +380,11 @@ Dopo sql/89 (F15.19 coda dell'ingegnere, VERSIONE RIDOTTA decisa da Erika il
 12/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/89"): nessuna tabella nuova,
 matrice invariata. progetti_tecnici: colonna NUOVA urgente (boolean, default
 false; la cambia SOLO il titolare, trigger trg_progetti_tecnici_urgente).
+Dopo sql/263 (campi vernice e porte REI, richiesta di Erika del 12/11; DA
+ESEGUIRE): nessuna tabella, colonna o policy nuova, matrice invariata.
+lavorazioni_campi (dati): 6 menu nuovi facoltativi, voci in fondo a elemento e
+stato_supporto, etichetta di profilo, superficie non più "serve al prezzo"
+(regola "basta uno" in controlli_invio_progetto, vedi "Dopo sql/263").
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -2218,6 +2223,51 @@ sql/261; rollback provato in tutti gli ordini con 259 (schema identico con
 pg_dump). Nello stesso commit: barra "🔍 Cerca" nella pagina Progetti
 (index.html cerca-prev-progetti, js/18 PAGINE_CERCA_PREVENTIVI con 'progetti'
 e il testo "N progetti trovati"), richiesta di Erika dell'11/11.
+Dopo sql/263 (campi nuovi di vernice intumescente e porte REI, richiesta di
+Erika del 12/11, numero fuori piano; DA ESEGUIRE con "CONFERMATO DA TOLI:
+sql/263": backup, anteprima in fondo al file, 263-campi-vernice-porte-rei.sql
+(senza parole di cancellazione, server MCP), controllo in fondo; nessun
+-REGISTRO-CANCELLAZIONI, matrice invariata; richiede 71, 75, 78, 81,
+82-blocco, si ferma senza; il sito si pubblica prima o dopo). Solo dati del
+catalogo + una funzione: campi NUOVI (menu, facoltativi, base, non per
+posizione) vernice materiale_supporto (5), tipo_protezione (7), rivestimento
+(15), porte REI funzionamento (42), dispositivo_sgancio (44),
+collegato_rilevazione (46, "Da definire" non ferma: non servono al prezzo);
+voci in fondo: elemento + capriata, stato_supporto + legno_grezzo,
+legno_trattato, legno_degradato, calcestruzzo_integro,
+calcestruzzo_da_ripristinare; profilo solo etichetta "Tipo e dimensione della
+sezione (metallo o legno)". QUANTITÀ DELLA VERNICE, "basta uno dei tre":
+superficie serve_al_prezzo = false e controlli_invio_progetto (sql/82)
+ridefinita (testo di produzione backup pre88 + blocco "sql/263"; il file si
+ferma se il corpo in produzione ha un'altra impronta md5) con la regola
+"almeno uno tra numero_elementi, sviluppo_lineare, superficie" (stesse regole
+di problema_valore_invio; vuoti nella scheda e almeno uno in ogni posizione
+attiva = va bene; vale solo se nessuno dei tre serve al prezzo da solo),
+riga campo "numero_elementi,sviluppo_lineare,superficie", motivo "Indica
+almeno uno tra numero di elementi, sviluppo lineare e superficie".
+trg_progetti_tecnici_invio_completo (sql/261) NON toccato: il rappresentante
+resta libero, ingegnere e titolare fermati solo senza nessuno dei tre (blocco
+più stretto di prima), altre lavorazioni invariate. Nel sito (js/56, vale
+anche senza il file: senza sql/263 superficie è ancora obbligatoria e il
+gruppo non scatta) GRUPPI_ALMENO_UNO_MOTORE, gruppiAlmenoUnoMotore,
+gruppoCompilatoMotore (gemelle): "* (basta uno tra ...)" sui tre campi,
+"Per il preventivo mancano: Quantità (...)" in obbligatoriMancantiMotore, riga
+in controlliInvioProgettoSito. Guida info-ing-31 (e info-ing-24). Prove:
+sql/263-campi-vernice-porte-rei-PROVA.sql (solo database di prova, rollback:
+campi e voci, valori vecchi e nuovi del rappresentante e valore inventato
+rifiutato, rappresentante e titolare "come" liberi, titolare fermato senza
+nessuno dei tre e non con il solo numero, non noto definitiva/indicativa, "da
+verificare", posizioni, porte REI con "Da definire" inviata, tutti i progetti
+uguali alla versione di sql/82 tranne il gruppo); test/campi-vernice-porte-
+rei.spec.js (ingegnere a 390 px: legno, capriata, solo numero degli elementi,
+salva e invia; porta REI con sgancio e rilevazione Sì nel preventivo, nella
+copia di Acquisti e nel PDF delle schede; CAMPI_SENZA_SQL=1 dopo il
+rollback); motore-schede, pdf-schede-tecniche, progetto-rappresentante, smoke
+TUTTO OK con e senza; rollback provato (schema identico con pg_dump; i 6 campi
+restano "tolti"). NOTA: 81-PROVA conta 3 obbligatori della vernice: dopo
+sql/263 sono 2 (vale solo prima). SCELTE DICHIARATE: etichetta del profilo
+cambiata solo se è ancora quella di sql/81; il rollback toglie dai menu le 6
+voci anche se fossero state aggiunte a mano.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
