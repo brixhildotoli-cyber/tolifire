@@ -1197,7 +1197,7 @@ registraFonteToccaAMe({
 // progetto apre la sua scheda, altrimenti la pagina Verifiche tecniche
 // (urgenti e più vecchi in alto).
 registraFonteToccaAMe({
-  id: 'verifiche-ferme-titolare', ruoli: ['titolare'], icona: '⏳',
+  id: 'verifiche-ferme-titolare', ruoli: ['titolare'], icona: '⏳', priorita: 6,
   titolo: 'Progetti fermi dall’ingegnere', livello: 'urgente',
   vai: { pagina: 'verifiche-tecniche' },
   conta: async function() {

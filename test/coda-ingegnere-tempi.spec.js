@@ -19,7 +19,6 @@
 // ordine e riga del titolare sì, nessun errore).
 // Alla fine i progetti di prova si tolgono.
 // Uso: cd test && node coda-ingegnere-tempi.spec.js   (uscita 0 = TUTTO OK)
-// Uso: cd test && node integrazioni-promemoria.spec.js   (uscita 0 = TUTTO OK)
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -271,7 +270,7 @@ async function chiudi(s) { if (s.chiuso) return; s.chiuso = true; try { await s.
 const q = s => "'" + String(s).replace(/'/g, "''") + "'";
 
 async function righeTAM(s, ruolo) {
-  await s.page.evaluate(async () => { if (typeof caricaToccaAMe === 'function') await caricaToccaAMe(); });
+  await s.page.evaluate(async () => { if (typeof toccaAMeTutteAperte !== 'undefined') toccaAMeTutteAperte = true; if (typeof caricaToccaAMe === 'function') await caricaToccaAMe(); });
   await attendiQuiete(s.stato, 1500);
   return s.page.evaluate(ruolo => [...document.querySelectorAll('#' + BOX_TOCCA_A_ME[ruolo] + ' .tam-riga')].map(b => ({
     id: b.dataset.fonte, urgente: b.classList.contains('urgente'),
