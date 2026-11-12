@@ -9803,7 +9803,7 @@ function htmlComputoEditorPreventivo() {
         ${tipo}: <b>${esc(c.nome || c.path.split('/').pop())}</b>
       </div>` : `<div style="font-size:12px;color:var(--m);margin-bottom:8px">Nessun computo caricato.</div>`}
     ${puo ? `
-      <input id="pvv-computo-file" type="file" accept=".xlsx,.xls,.csv,.pdf" style="display:none"
+      <input id="pvv-computo-file" type="file" accept=".xlsx,.xls,.csv,.pdf,.numbers" style="display:none"
         onchange="caricaComputoPreventivo(this)">
       <button class="btn bs bsm" type="button" onclick="ge('pvv-computo-file').click()">
         ${c.path ? '🔁 Sostituisci' : '📎 Carica Excel o PDF'}
@@ -9824,6 +9824,7 @@ async function caricaComputoPreventivo(input) {
   if (!file || !currentPreventivoId) return;
   if (!computoPreventivoModificabile()) { toast('Il computo lo carica Acquisti che ha preparato il preventivo o il titolare', 'err'); return; }
   const est = estensioneComputo(file.name);
+  if (est === 'numbers') { toast('Questo è un file di Numbers: in Numbers usa File → Esporta come → Excel e carica il file .xlsx', 'err'); return; }
   if (!COMPUTO_ESTENSIONI.includes(est)) { toast('Il computo deve essere un file Excel (.xlsx, .xls, .csv) o PDF', 'err'); return; }
   if (file.size > COMPUTO_MAX_BYTE) { toast('Il computo supera i 10 MB', 'err'); return; }
   if (file.size === 0) { toast('Il file è vuoto', 'err'); return; }
