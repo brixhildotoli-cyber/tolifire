@@ -4660,6 +4660,11 @@ async function usaQuotazioneFornitoreNelPreventivo(selezioneId) {
 let vociPreventivoDati = [];
 let notePreventivoCliente = '';
 let condizioniPagamentoPreventivo = '';
+// sql/264: "Oggetto" e nota prima della tabella dei prezzi (facoltativi;
+// senza sql/264 il riquadro non compare e non si mandano).
+let oggettoPreventivoEditor = '';
+let notaIntroPreventivoEditor = '';
+let oggettoNotaEditorDisponibile = false;
 // F4.2: dati dell'anticipo nell'editor (solo con sql/24 eseguito).
 let anticipoPreventivoEditor = {
   disponibile: false,
@@ -5162,6 +5167,8 @@ function disegnaVociPreventivo() {
         ${irHtmlPreventivo('Margine percentuale', `<span id="pvv-totale-margine-perc">${marginePerc.toFixed(1)}%</span>`)}
       </div>
       <div id="pvv-margine-sconto" class="${scontoPreventivoEditor > 0 ? 'al2 w' : ''}" style="${scontoPreventivoEditor > 0 ? 'margin-top:10px;font-size:13px' : ''}">${htmlMargineConScontoPreventivo(costo, vendita)}</div>
+
+${htmlOggettoNotaEditorPreventivo()}
 
       <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--b)">
   <div style="font-size:14px;font-weight:700;margin-bottom:5px">
@@ -6143,12 +6150,14 @@ async function renderCostiPreventivo() {
 
   // F4.2: i campi dell'anticipo solo se sql/24 è stato eseguito.
   const anticipoDisponibile = await verificaAnticipoPreventivoDisponibile();
+  const oggettoNotaDisponibile = await verificaOggettoNotaPreventivoDisponibile();
 
     const { data: preventivo } = await db
     .from('preventivi')
-    .select(anticipoDisponibile
+    .select((anticipoDisponibile
       ? 'note,condizioni_pagamento,stato,sconto_perc,anticipo_richiesto,anticipo_tipo,anticipo_valore'
       : 'note,condizioni_pagamento,stato,sconto_perc')
+      + (oggettoNotaDisponibile ? ',oggetto,nota_introduttiva' : ''))
     .eq('id', currentPreventivoId)
     .single();
 
@@ -6156,6 +6165,9 @@ async function renderCostiPreventivo() {
   if (preventivo) impostaBloccoVociPreventivo(preventivo.stato);
 
   notePreventivoCliente = preventivo?.note || '';
+  oggettoNotaEditorDisponibile = oggettoNotaDisponibile && !!preventivo;
+  oggettoPreventivoEditor = preventivo?.oggetto || '';
+  notaIntroPreventivoEditor = preventivo?.nota_introduttiva || '';
   scontoPreventivoEditor = Number(preventivo?.sconto_perc || 0) > 0 ? Number(preventivo.sconto_perc) : 0;
 
   condizioniPagamentoPreventivo =
@@ -6266,6 +6278,23 @@ async function eseguiSalvataggioVociPreventivo() {
     condizioni_pagamento: condizioniPagamentoPreventivo.trim() || null,
     aggiornato_il: new Date().toISOString()
   };
+
+  // sql/264: oggetto e nota prima della tabella dei prezzi (solo se le
+  // colonne ci sono; i limiti sono gli stessi dei vincoli del database).
+  if (oggettoNotaEditorDisponibile) {
+    const oggetto = String(oggettoPreventivoEditor || '').replace(/[\r\n]+/g, ' ').trim();
+    const notaIntro = String(notaIntroPreventivoEditor || '').trim();
+    if (oggetto.length > OGGETTO_PREVENTIVO_MAX) {
+      toast('L\'oggetto è troppo lungo (al massimo ' + OGGETTO_PREVENTIVO_MAX + ' caratteri)', 'err');
+      return false;
+    }
+    if (notaIntro.length > NOTA_INTRO_PREVENTIVO_MAX) {
+      toast('La nota prima della tabella è troppo lunga (al massimo ' + NOTA_INTRO_PREVENTIVO_MAX + ' caratteri)', 'err');
+      return false;
+    }
+    datiPreventivo.oggetto = oggetto || null;
+    datiPreventivo.nota_introduttiva = notaIntro || null;
+  }
 
   // F4.2: anticipo (solo con sql/24 e finché il cliente non ha risposto).
   // Si controlla PRIMA di scrivere le voci: prima le voci nuove venivano
@@ -6431,6 +6460,8 @@ async function generaPreventivoClientePDF(datiEsterni) {
     if (!(await preparaPDF())) return;
   }
 
+  // sql/264: oggetto e nota solo se le colonne ci sono (senza: 400 evitato)
+  const conOggettoNota = !datiEsterni && await verificaOggettoNotaPreventivoDisponibile();
   const [
     preventivoRes,
     vociRes
@@ -6448,6 +6479,7 @@ async function generaPreventivoClientePDF(datiEsterni) {
         note,
         condizioni_pagamento,
         progetto_tecnico_id,
+        ${conOggettoNota ? 'oggetto,nota_introduttiva,' : ''}
         clienti(
           ragione_sociale,
           indirizzo,
@@ -6593,6 +6625,10 @@ async function generaPreventivoClientePDF(datiEsterni) {
     doc.text(indirizzoCliente, margine, y);
     y += 8;
   }
+
+  // sql/264: "Oggetto: ..." in grassetto e la nota, prima della tabella dei
+  // prezzi; solo se compilati (senza i due campi il PDF è come prima).
+  y = scriviOggettoNotaPdfPreventivo(doc, preventivo, margine, y);
 
   doc.autoTable({
 margin: {
@@ -9363,6 +9399,105 @@ async function htmlEsitiRegistratiRappresentante() {
 // =====================================================================
 
 let anticipoPreventivoDisponibile = null;
+
+// sql/264 --------------------------------------------------------------
+const OGGETTO_PREVENTIVO_MAX = 200;
+const NOTA_INTRO_PREVENTIVO_MAX = 2000;
+let oggettoNotaPreventivoDisponibile = null;
+
+// true solo con le colonne oggetto e nota_introduttiva (sql/264). Si legge
+// una riga intera e si guarda se la colonna c'è: così senza sql/264 nessuna
+// richiesta finisce in errore (un 400 "column does not exist" sporcherebbe i
+// controlli degli altri moduli). Nessuna riga leggibile o errore di rete: non
+// si decide ora, si riprova la prossima volta (l'editor si apre su un
+// preventivo che il ruolo legge, quindi una riga c'è).
+async function verificaOggettoNotaPreventivoDisponibile() {
+  if (oggettoNotaPreventivoDisponibile !== null) return oggettoNotaPreventivoDisponibile;
+
+  const { data, error } = await db
+    .from('preventivi')
+    .select('*')
+    .limit(1);
+
+  if (error || !data || !data.length) return false;
+
+  oggettoNotaPreventivoDisponibile = Object.prototype.hasOwnProperty.call(data[0], 'nota_introduttiva');
+  return oggettoNotaPreventivoDisponibile;
+}
+
+function htmlOggettoNotaEditorPreventivo() {
+  if (!oggettoNotaEditorDisponibile) return '';
+  return `
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--b)">
+  <div style="font-size:14px;font-weight:700;margin-bottom:5px">
+    🏷️ Oggetto e nota iniziale
+  </div>
+
+  <div style="font-size:12px;color:var(--m);margin-bottom:10px">
+    Facoltativi. Nel PDF per il cliente vanno dopo i dati del cliente e prima
+    della tabella dei prezzi.
+  </div>
+
+  <label style="font-size:12px;font-weight:600">Oggetto (facoltativo)</label>
+  <input
+    id="pvv-oggetto"
+    type="text"
+    maxlength="${OGGETTO_PREVENTIVO_MAX}"
+    placeholder="Es. Fornitura e posa di porte REI 60 al piano terra"
+    oninput="oggettoPreventivoEditor = this.value"
+    value="${esc(oggettoPreventivoEditor)}"
+  >
+
+  <label style="font-size:12px;font-weight:600;display:block;margin-top:10px">Nota prima della tabella dei prezzi (facoltativa)</label>
+  <textarea
+    id="pvv-nota-introduttiva"
+    rows="3"
+    maxlength="${NOTA_INTRO_PREVENTIVO_MAX}"
+    placeholder="Es. Come da sopralluogo del 10/11, vi proponiamo quanto segue."
+    oninput="notaIntroPreventivoEditor = this.value"
+  >${esc(notaIntroPreventivoEditor)}</textarea>
+</div>
+  `;
+}
+
+// Scrive "Oggetto: ..." (grassetto) e la nota sotto i dati del cliente;
+// restituisce la nuova y. Niente da scrivere = y invariata.
+function scriviOggettoNotaPdfPreventivo(doc, preventivo, margine, y) {
+  const oggetto = String(preventivo?.oggetto || '').replace(/[\r\n]+/g, ' ').trim();
+  const nota = String(preventivo?.nota_introduttiva || '').trim();
+  if (!oggetto && !nota) return y;
+
+  const larghezzaTesto = 178;
+  y += 2;
+  doc.setTextColor(25, 25, 25);
+
+  if (oggetto) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    const righe = doc.splitTextToSize('Oggetto: ' + oggetto, larghezzaTesto);
+    doc.text(righe, margine, y);
+    y += righe.length * 5 + 2;
+  }
+
+  if (nota) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    const righe = doc.splitTextToSize(nota, larghezzaTesto);
+    righe.forEach(function(riga) {
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.text(riga, margine, y);
+      y += 4.5;
+    });
+    y += 2;
+  }
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  return y;
+}
 let anticipoEsitoAttivo = false;
 let anticipoEsitoNonCaricato = false;
 let anticipoEsitoTotale = 0;

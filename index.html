@@ -3520,6 +3520,7 @@
   </p>
 
   <ul>
+    <li>oggetto e nota prima della tabella dei prezzi (facoltativi, vedi il punto 25);</li>
     <li>modalità di pagamento;</li>
     <li>note aggiuntive per il cliente;</li>
     <li>eventuali voci non comprese nella risposta del fornitore.</li>
@@ -3910,6 +3911,24 @@
       <p>
         <b>Richiedi integrazione</b> funziona come prima: scrivi la nota e il progetto torna al rappresentante in <b>Da integrare</b>. Non devi ricordarglielo tu: dopo <b>2 giorni lavorativi</b> il gestionale gli manda un promemoria 🔔 e dopo <b>7 giorni lavorativi</b> avvisa il titolare. Quando il rappresentante lo rimanda, promemoria e avviso si chiudono da soli e il progetto riprende la sua strada (<b>Da preventivare</b> o verifica tecnica).
       </p>
+
+      <h4 id="info-com-25">25. 🏷️ Oggetto e nota prima della tabella dei prezzi</h4>
+
+      <p>
+        Nella tab <b>💶 Preventivo Cliente</b>, sopra <b>💳 Modalità di pagamento</b>, trovi il riquadro <b>🏷️ Oggetto e nota iniziale</b> con due campi <b>facoltativi</b>: <b>Oggetto (facoltativo)</b>, una riga, e <b>Nota prima della tabella dei prezzi (facoltativa)</b>, su più righe. Si salvano con <b>💾 Salva preventivo</b>, come il resto.
+      </p>
+
+      <ul>
+        <li>Nel PDF per il cliente compaiono dopo i dati del cliente e prima della tabella delle voci: <b>Oggetto: ...</b> in grassetto, sotto la nota. Se li lasci vuoti il PDF è come prima.</li>
+        <li>Le <b>📝 Note aggiuntive per il cliente</b> restano dove sono: in fondo al PDF, nella sezione <b>Note</b>.</li>
+        <li>Oggetto al massimo 200 caratteri, nota al massimo 2000. Dopo l'esito del cliente (accettato, rifiutato, in attesa dell'anticipo) non si cambiano più, come le voci: solo il titolare.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Oggetto "Fornitura e posa di porte REI 60 al piano terra", nota "Come da sopralluogo del 10/11 vi proponiamo quanto segue.": premi <b>💾 Salva preventivo</b> e poi <b>Genera PDF cliente</b>; nel PDF leggi le due righe subito sopra la tabella dei prezzi.
+      </div>
+
+      <div class="al2 w">Fino all'aggiornamento del database sql/264 il riquadro non c'è.</div>
 
   <h4>Checklist prima dell’invio</h4>
 
@@ -6055,6 +6074,20 @@
       </div>
 
       <div class="al2 w">Fino all'aggiornamento del database sql/226 l'etichetta e il bottone non ci sono.</div>
+
+      <h4 id="info-tit-39">39. 🏷️ Oggetto e nota prima della tabella dei prezzi</h4>
+
+      <p>
+        Nella tab <b>💶 Preventivo Cliente</b> del preventivo, come Acquisti, trovi il riquadro <b>🏷️ Oggetto e nota iniziale</b>: <b>Oggetto (facoltativo)</b> e <b>Nota prima della tabella dei prezzi (facoltativa)</b>. Nel PDF per il cliente vanno dopo i dati del cliente e prima della tabella: <b>Oggetto: ...</b> in grassetto, sotto la nota. Vuoti = PDF come prima; le <b>Note</b> in fondo non cambiano.
+      </p>
+
+      <ul>
+        <li>Dopo l'esito del cliente oggetto e nota restano fissi per tutti tranne te (e l'informatico), come voci e totale; il registro delle azioni dice chi li ha cambiati e quando.</li>
+        <li>Anche il PDF rifatto dal rappresentante con lo sconto li riporta.</li>
+        <li>Il preventivo integrativo che prepara il rappresentante (lavori extra sotto 3.000 €) per ora non li ha.</li>
+      </ul>
+
+      <div class="al2 w">Fino all'aggiornamento del database sql/264 il riquadro non c'è.</div>
 
       <h4>Regole pratiche</h4>
 

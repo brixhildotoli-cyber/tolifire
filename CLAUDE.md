@@ -401,6 +401,12 @@ propone e chi decide con nomi copiati, motivo del rifiuto, campo nato e suo
 codice; lettura SOLO titolare (informatico) e ingegnere, nessuna scrittura
 diretta: solo le RPC di sql/91; cancellazione bloccata dal
 -REGISTRO-CANCELLAZIONI). Matrice: 10 righe nuove.
+Dopo sql/264 (oggetto e nota del preventivo, richiesta di Erika del 12/11; DA
+ESEGUIRE): nessuna tabella nuova, matrice invariata. preventivi: colonne NUOVE
+oggetto (una riga, max 200, vincolo preventivi_oggetto_check) e
+nota_introduttiva (max 2000, preventivi_nota_introduttiva_check), facoltative;
+le scrive chi oggi scrive il preventivo, dopo l'esito solo il titolare
+(trigger trg_preventivi_oggetto_nota); vedi "Dopo sql/264".
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -2380,6 +2386,48 @@ sql/91, smoke TUTTO OK con e senza; matrice TUTTO OK per la tabella nuova (anche
 MATRICE_AGITO_COME=1); rollback provato (schema identico con pg_dump; i campi
 approvati restano nel catalogo). Senza sql/91: nessun bottone, link o riga,
 nessun errore (una chiamata RPC 404 per titolare e ingegnere).
+Dopo sql/264 (oggetto e nota prima della tabella dei prezzi, richiesta di Erika
+del 12/11, fuori piano; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/264": backup,
+anteprima in fondo al file, 264-preventivo-oggetto-nota.sql (senza parole di
+cancellazione, server MCP), controllo in fondo; nessun -REGISTRO-CANCELLAZIONI;
+richiede 07, 10, 25, 71, 258, si ferma senza; il sito si pubblica prima o dopo).
+preventivi.oggetto e nota_introduttiva (vedi "Tabelle Supabase"). Trigger NUOVO
+trg_preventivi_oggetto_nota (BEFORE INSERT OR UPDATE OF le due colonne: spazi
+tolti, vuoto = null; dopo l'esito, old.stato in_attesa_anticipo, accettato,
+rifiutato, 42501 per ogni utente del sito tranne il titolare, anche "come";
+editor libero). Policy, trigger di sql/25, sql/258 (trg_preventivi_00_sconto) e
+dei 3.000 € NON toccati: prima dell'esito li scrive chi scrive il preventivo
+(Acquisti, titolare, rappresentante sui suoi fino a 3.000 €, come le note). Il
+registro delle azioni li registra da solo. dati_pdf_preventivo_cliente (sql/258)
+ridefinita = testo di produzione + 'oggetto' e 'nota_introduttiva' (permessi
+uguali; rollback = testo esatto, md5 b942ded726b9430606910116963cf4d4). Nel sito
+(js/18, nessun file nuovo): verificaOggettoNotaPreventivoDisponibile (legge
+una riga con select * e guarda se la colonna c'è: nessuna richiesta in errore,
+un 400 "does not exist" faceva fallire smoke e sconto-rappresentante), riquadro "🏷️ Oggetto e nota iniziale" sopra "💳
+Modalità di pagamento" nell'editor di Acquisti e del titolare (pvv-oggetto,
+pvv-nota-introduttiva, htmlOggettoNotaEditorPreventivo), salvati da "💾 Salva
+preventivo" (eseguiSalvataggioVociPreventivo, solo con sql/264); PDF del
+cliente (generaPreventivoClientePDF, anche con datiEsterni di js/69):
+scriviOggettoNotaPdfPreventivo dopo i dati del cliente e prima della tabella,
+"Oggetto: ..." in grassetto e la nota, solo se compilati (vuoti = PDF identico).
+La sezione "Note" in fondo NON cambia. NON FATTO (dichiarato): il preventivo
+integrativo del rappresentante (js/53, salva_preventivo_extra_rappresentante di
+sql/56): servirebbe una firma nuova della RPC o toglierla (drop); il suo PDF resta
+come prima. Guide info-com-25 (e info-com-4), info-tit-39. Prove:
+sql/264-preventivo-oggetto-nota-PROVA.sql (solo database di prova, rollback:
+Acquisti scrive e svuota nella bozza, titolare, insert con i due campi; 201
+caratteri, a capo nell'oggetto, 2001 nella nota rifiutati; rappresentante su
+cliente non suo zero righe, sopra 3.000 € rifiutato, li legge e li trova in
+dati_pdf_preventivo_cliente, altro rappresentante e Acquisti rifiutati; dopo
+accettato/rifiutato/in attesa anticipo Acquisti, rappresentante, titolare
+"come" Acquisti rifiutati, segreteria zero righe, titolare ammesso; registro
+delle azioni); test/preventivo-oggetto-nota.spec.js (Chrome headless, database
+locale: Acquisti compila e salva, PDF con cliente → Oggetto in grassetto →
+nota → prima voce → Note, PDF con datiEsterni, campi vuoti = PDF uguale a
+prima; senza sql/264 nessun campo, PDF uguale, nessuna richiesta in errore);
+sconto-rappresentante e smoke TUTTO OK con e senza sql/264; matrice
+uguale con e senza; rollback provato (schema identico con pg_dump). Senza
+sql/264: nessun campo, nessun errore.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
