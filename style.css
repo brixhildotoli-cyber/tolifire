@@ -96,6 +96,7 @@ input[type="radio"] {
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--g)}
 textarea{resize:vertical;min-height:80px}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fr.fr3{grid-template-columns:1fr 1fr 1fr}
 .btn{padding:9px 16px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;border:0.5px solid var(--bo);background:var(--w);color:var(--t);transition:all .15s;display:inline-flex;align-items:center;gap:6px}
 .btn:hover{background:var(--bg)}.btn.p{background:var(--g);color:white;border-color:var(--g)}.btn.p:hover{background:#0F6E56}.btn.sm{padding:5px 12px;font-size:12px}.btn.warn{background:var(--al);color:var(--a);border-color:#EF9F27}.btn.info{background:var(--bl);color:var(--b);border-color:#378ADD}.btn:disabled{opacity:.5;cursor:not-allowed}
 .sh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:12px;flex-wrap:wrap}
@@ -823,7 +824,8 @@ pre {
   }
 
   /* I campi affiancati diventano verticali */
-  .fr {
+  .fr,
+  .fr.fr3 {
     grid-template-columns: 1fr;
   }
 

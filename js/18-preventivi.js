@@ -4665,6 +4665,8 @@ let condizioniPagamentoPreventivo = '';
 let oggettoPreventivoEditor = '';
 let notaIntroPreventivoEditor = '';
 let oggettoNotaEditorDisponibile = false;
+// sql/265: "Quantità x UM" delle voci (testo libero) nell'editor.
+let quantitaUmEditorDisponibile = false;
 // F4.2: dati dell'anticipo nell'editor (solo con sql/24 eseguito).
 let anticipoPreventivoEditor = {
   disponibile: false,
@@ -5056,7 +5058,7 @@ function disegnaVociPreventivo() {
                   }
                 </div>
 
-                <div class="fr">
+                <div class="fr${quantitaUmEditorDisponibile ? ' fr3' : ''}">
                   <div class="f">
                     <label>Categoria</label>
                     <select onchange="aggiornaCampoVocePreventivo(${indice}, 'categoria', this.value)">
@@ -5078,6 +5080,7 @@ function disegnaVociPreventivo() {
                       oninput="aggiornaCampoVocePreventivo(${indice}, 'unita_misura', this.value)"
                     >
                   </div>
+${htmlQuantitaUmVocePreventivo(voce, indice)}
                 </div>
 
                 <div class="f">
@@ -5092,15 +5095,16 @@ function disegnaVociPreventivo() {
 
                 <div class="fr">
                   <div class="f">
-                    <label>Quantità</label>
+                    <label>Quantità (pz)</label>
                     <input
                       type="text"
                       inputmode="decimal"
                       autocomplete="off"
-                      value="${importoConVirgolaPreventivo(voce.quantita)}"
+                      class="pvv-quantita"
+                      value="${campoNumeroVocePreventivo(voce.quantita)}"
                       oninput="virgolaCampoImportoPreventivo(this); aggiornaCampoVocePreventivo(${indice}, 'quantita', leggiImportoPreventivo(this.value))"
                       onpaste="incollaImportoPreventivo(event, this)"
-                      onblur="this.value = importoConVirgolaPreventivo(leggiImportoPreventivo(this.value))"
+                      onblur="this.value = campoNumeroVocePreventivo(leggiImportoPreventivo(this.value))"
                     >
                   </div>
 
@@ -5110,10 +5114,11 @@ function disegnaVociPreventivo() {
                       type="text"
                       inputmode="decimal"
                       autocomplete="off"
-                      value="${importoConVirgolaPreventivo(voce.costo_unitario, 2)}"
+                      class="pvv-costo"
+                      value="${campoNumeroVocePreventivo(voce.costo_unitario, 2)}"
                       oninput="virgolaCampoImportoPreventivo(this); aggiornaCampoVocePreventivo(${indice}, 'costo_unitario', leggiImportoPreventivo(this.value))"
                       onpaste="incollaImportoPreventivo(event, this)"
-                      onblur="this.value = importoConVirgolaPreventivo(leggiImportoPreventivo(this.value), 2)"
+                      onblur="this.value = campoNumeroVocePreventivo(leggiImportoPreventivo(this.value), 2)"
                     >
                   </div>
                 </div>
@@ -5124,10 +5129,11 @@ function disegnaVociPreventivo() {
                     type="text"
                     inputmode="decimal"
                     autocomplete="off"
-                    value="${importoConVirgolaPreventivo(voce.prezzo_unitario, 2)}"
+                    class="pvv-prezzo"
+                    value="${campoNumeroVocePreventivo(voce.prezzo_unitario, 2)}"
                     oninput="virgolaCampoImportoPreventivo(this); aggiornaCampoVocePreventivo(${indice}, 'prezzo_unitario', leggiImportoPreventivo(this.value))"
                     onpaste="incollaImportoPreventivo(event, this)"
-                    onblur="this.value = importoConVirgolaPreventivo(leggiImportoPreventivo(this.value), 2)"
+                    onblur="this.value = campoNumeroVocePreventivo(leggiImportoPreventivo(this.value), 2)"
                   >
                 </div>
 
@@ -6182,6 +6188,9 @@ async function renderCostiPreventivo() {
   };
 
 vociPreventivoDati = data || [];
+// sql/265: le voci si leggono con select *: se la colonna c'è si vede lì,
+// senza voci si guarda una voce che il ruolo legge (nessuna richiesta in errore).
+quantitaUmEditorDisponibile = await verificaQuantitaUmVociDisponibile(vociPreventivoDati);
 storicoUndoPreventivo = [];
 vociEliminatePreventivo = [];
 chiaveModificaPreventivo = '';
@@ -6199,6 +6208,7 @@ function aggiungiVocePreventivo() {
     descrizione: '',
     unita_misura: 'pz',
     quantita: 1,
+    quantita_um: '',
     costo_unitario: 0,
     prezzo_unitario: 0
   });
@@ -6258,6 +6268,14 @@ async function eseguiSalvataggioVociPreventivo() {
 
   if (vociNonValide) {
     toast('Inserisci una descrizione per ogni voce', 'err');
+    return false;
+  }
+
+  // sql/265: "Quantità x UM" (testo libero, stesso limite del vincolo)
+  if (quantitaUmEditorDisponibile && vociPreventivoDati.some(function(voce) {
+    return testoQuantitaUmVoce(voce.quantita_um).length > QUANTITA_UM_VOCE_MAX;
+  })) {
+    toast('"Quantità x UM" è troppo lunga (al massimo ' + QUANTITA_UM_VOCE_MAX + ' caratteri)', 'err');
     return false;
   }
 
@@ -6345,18 +6363,21 @@ async function eseguiSalvataggioVociPreventivo() {
     const voce = vociDaSalvare[indice];
     if (!voce.id) continue;
 
+    const datiVoce = {
+      categoria: voce.categoria,
+      descrizione: String(voce.descrizione).trim(),
+      unita_misura: voce.unita_misura || 'pz',
+      quantita: numeroPreventivo(voce.quantita),
+      costo_unitario: numeroPreventivo(voce.costo_unitario),
+      prezzo_unitario: numeroPreventivo(voce.prezzo_unitario),
+      ordinamento: indice,
+      aggiornato_il: new Date().toISOString()
+    };
+    if (quantitaUmEditorDisponibile) datiVoce.quantita_um = testoQuantitaUmVoce(voce.quantita_um) || null;
+
     const { error } = await db
       .from('preventivi_voci')
-      .update({
-        categoria: voce.categoria,
-        descrizione: String(voce.descrizione).trim(),
-        unita_misura: voce.unita_misura || 'pz',
-        quantita: numeroPreventivo(voce.quantita),
-        costo_unitario: numeroPreventivo(voce.costo_unitario),
-        prezzo_unitario: numeroPreventivo(voce.prezzo_unitario),
-        ordinamento: indice,
-        aggiornato_il: new Date().toISOString()
-      })
+      .update(datiVoce)
       .eq('id', voce.id)
       .eq('preventivo_id', currentPreventivoId);
 
@@ -6369,7 +6390,7 @@ async function eseguiSalvataggioVociPreventivo() {
   const righe = [];
   vociDaSalvare.forEach(function(voce, indice) {
     if (voce.id) return;
-    righe.push({
+    const riga = {
       preventivo_id: currentPreventivoId,
       categoria: voce.categoria,
       descrizione: String(voce.descrizione).trim(),
@@ -6378,7 +6399,9 @@ async function eseguiSalvataggioVociPreventivo() {
       costo_unitario: numeroPreventivo(voce.costo_unitario),
       prezzo_unitario: numeroPreventivo(voce.prezzo_unitario),
       ordinamento: indice
-    });
+    };
+    if (quantitaUmEditorDisponibile) riga.quantita_um = testoQuantitaUmVoce(voce.quantita_um) || null;
+    righe.push(riga);
   });
 
   if (righe.length) {
@@ -6462,6 +6485,8 @@ async function generaPreventivoClientePDF(datiEsterni) {
 
   // sql/264: oggetto e nota solo se le colonne ci sono (senza: 400 evitato)
   const conOggettoNota = !datiEsterni && await verificaOggettoNotaPreventivoDisponibile();
+  // sql/265: "Quantità x UM" solo se la colonna c'è (senza: 400 evitato)
+  const conQuantitaUm = !datiEsterni && await verificaQuantitaUmVociDisponibile();
   const [
     preventivoRes,
     vociRes
@@ -6491,7 +6516,7 @@ async function generaPreventivoClientePDF(datiEsterni) {
 
     db
       .from('preventivi_voci')
-      .select('descrizione,unita_misura,quantita,prezzo_unitario,ordinamento')
+      .select('descrizione,unita_misura,quantita,' + (conQuantitaUm ? 'quantita_um,' : '') + 'prezzo_unitario,ordinamento')
       .eq('preventivo_id', currentPreventivoId)
       .order('ordinamento')
       .order('creato_il')
@@ -6641,8 +6666,9 @@ margin: {
     startY: y + 4,
     head: [[
       'Descrizione',
-      'Q.tà',
+      'Q.tà (pz)',
       'U.M.',
+      'Q.tà x UM',
       'Prezzo unit.',
       'Totale'
     ]],
@@ -6656,6 +6682,8 @@ margin: {
         voce.descrizione || '—',
         String(quantita),
         voce.unita_misura || 'pz',
+        // sql/265: testo libero così com'è (vuoto se non compilato)
+        testoQuantitaUmVoce(voce.quantita_um),
         euroPreventivo(prezzo),
         euroPreventivo(quantita * prezzo)
       ];
@@ -6671,11 +6699,13 @@ margin: {
       cellPadding: 3
     },
     columnStyles: {
-      0: { cellWidth: 72 },
-      1: { halign: 'right', cellWidth: 18 },
-      2: { cellWidth: 18 },
-      3: { halign: 'right', cellWidth: 34 },
-      4: { halign: 'right', cellWidth: 34 }
+      // 178 mm utili (A4 meno 16 mm per lato), come prima con una colonna in più
+      0: { cellWidth: 58 },
+      1: { halign: 'right', cellWidth: 19 },
+      2: { cellWidth: 14 },
+      3: { halign: 'right', cellWidth: 21 },
+      4: { halign: 'right', cellWidth: 33 },
+      5: { halign: 'right', cellWidth: 33 }
     }
     
   });
@@ -9423,6 +9453,64 @@ async function verificaOggettoNotaPreventivoDisponibile() {
 
   oggettoNotaPreventivoDisponibile = Object.prototype.hasOwnProperty.call(data[0], 'nota_introduttiva');
   return oggettoNotaPreventivoDisponibile;
+}
+
+// sql/265 --------------------------------------------------------------
+// "Quantità x UM" delle voci: testo LIBERO e facoltativo ("2,5", "12 m²",
+// "circa 30"), solo informativo: NESSUN calcolo (il totale della riga resta
+// quantità (pz) × prezzo unitario). Una riga, al massimo 50 caratteri.
+const QUANTITA_UM_VOCE_MAX = 50;
+let quantitaUmVociDisponibile = null;
+
+function testoQuantitaUmVoce(valore) {
+  return String(valore == null ? '' : valore).replace(/[\r\n]+/g, ' ').trim();
+}
+
+// true solo con la colonna preventivi_voci.quantita_um (sql/265). Come
+// verificaOggettoNotaPreventivoDisponibile: si guarda una riga letta con
+// select * (quelle già lette dall'editor, se no una voce che il ruolo legge):
+// nessuna richiesta in errore senza sql/265. Nessuna voce leggibile: non si
+// decide ora (false, si riprova la prossima volta).
+async function verificaQuantitaUmVociDisponibile(righeLette) {
+  if (quantitaUmVociDisponibile !== null) return quantitaUmVociDisponibile;
+
+  let riga = (righeLette || [])[0] || null;
+  if (!riga) {
+    const { data, error } = await db
+      .from('preventivi_voci')
+      .select('*')
+      .limit(1);
+    if (error || !data || !data.length) return false;
+    riga = data[0];
+  }
+
+  quantitaUmVociDisponibile = Object.prototype.hasOwnProperty.call(riga, 'quantita_um');
+  return quantitaUmVociDisponibile;
+}
+
+// Numeri delle voci nei campi dell'editor (richiesta di Erika del 12/11):
+// vuoto o 0 = campo vuoto (non "0,00"); il valore salvato resta 0.
+function campoNumeroVocePreventivo(valore, decimaliMinimi) {
+  return numeroPreventivo(valore) === 0 ? '' : importoConVirgolaPreventivo(valore, decimaliMinimi);
+}
+
+function htmlQuantitaUmVocePreventivo(voce, indice) {
+  if (!quantitaUmEditorDisponibile) return '';
+  return `
+                  <div class="f">
+                  <label>Quantità x UM</label>
+                  <input
+                    type="text"
+                    class="pvv-quantita-um"
+                    maxlength="${QUANTITA_UM_VOCE_MAX}"
+                    autocomplete="off"
+                    value="${esc(voce.quantita_um || '')}"
+                    placeholder="Es. 2,5"
+                    title="Facoltativa, testo libero: solo informativa, non entra nei calcoli"
+                    oninput="aggiornaCampoVocePreventivo(${indice}, 'quantita_um', this.value)"
+                  >
+                </div>
+`;
 }
 
 function htmlOggettoNotaEditorPreventivo() {

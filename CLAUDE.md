@@ -407,6 +407,12 @@ oggetto (una riga, max 200, vincolo preventivi_oggetto_check) e
 nota_introduttiva (max 2000, preventivi_nota_introduttiva_check), facoltative;
 le scrive chi oggi scrive il preventivo, dopo l'esito solo il titolare
 (trigger trg_preventivi_oggetto_nota); vedi "Dopo sql/264".
+Dopo sql/265 ("Quantità x UM" delle voci, richiesta di Erika del 12/11; DA
+ESEGUIRE): nessuna tabella nuova, matrice invariata. preventivi_voci: colonna
+NUOVA quantita_um (testo libero facoltativo, max 50, una riga, vincolo
+preventivi_voci_quantita_um_check; nessun calcolo); la scrive chi oggi scrive
+le voci, dopo l'esito solo il titolare (trigger trg_preventivi_voci_quantita_um);
+vedi "Dopo sql/265".
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -2428,6 +2434,52 @@ prima; senza sql/264 nessun campo, PDF uguale, nessuna richiesta in errore);
 sconto-rappresentante e smoke TUTTO OK con e senza sql/264; matrice
 uguale con e senza; rollback provato (schema identico con pg_dump). Senza
 sql/264: nessun campo, nessun errore.
+Dopo sql/265 ("Quantità x UM" nelle voci del preventivo, richiesta di Erika del
+12/11, fuori piano; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/265": backup,
+anteprima in fondo al file, 265-voci-quantita-um.sql (senza parole di
+cancellazione, server MCP), controllo in fondo; nessun -REGISTRO-CANCELLAZIONI,
+matrice invariata; richiede 07, 25, 71, 258, si ferma senza; ORDINE CON sql/264
+QUALUNQUE; il sito si pubblica prima o dopo). preventivi_voci.quantita_um: TESTO
+LIBERO facoltativo ("rimangono campi liberi": "2,5", "12 m²", "circa 30"), max
+50, una riga (vincolo preventivi_voci_quantita_um_check), NESSUN CALCOLO: il
+totale della riga resta quantita × prezzo_unitario, come costo, margine,
+totali, sconto, commessa e fatture. Trigger NUOVO trg_preventivi_voci_quantita_um
+(BEFORE INSERT OR UPDATE OF quantita_um: spazi tolti, vuoto = null; dopo l'esito
+42501 per ogni utente del sito tranne il titolare, anche "come": serve perché
+trg_preventivi_voci_blocco di sql/25 confronta solo le sue 8 colonne e non si
+tocca). dati_pdf_preventivo_cliente (sql/258 e 264): AGGANCIO SUL POSTO
+(pg_get_functiondef + replace di "'quantita', v.quantita," con in più
+'quantita_um', si ferma se il pezzo non c'è una volta sola); sql/264 e il suo
+-ROLLBACK, se arrivano dopo, rimettono da soli l'aggancio (blocco 4 in fondo);
+il -ROLLBACK di 265 fa il replace al contrario. NON toccate: sql/56 (le voci del
+preventivo integrativo del rappresentante nascono senza, colonna vuota nel
+PDF), scheda_cantiere_commessa, voci_lavori_extra_commessa, prezzi del
+contratto, ordini; nessuna funzione copia le voci tra preventivi. Nel sito
+(js/18): verificaQuantitaUmVociDisponibile (righe lette con select * o una voce
+leggibile: nessuna richiesta in errore senza sql/265), campo "Quantità x UM"
+(.pvv-quantita-um, input di testo, niente virgola automatica) accanto a "Unità
+di misura" (riga a 3 colonne .fr.fr3, sul telefono una), salvato con "💾 Salva
+preventivo" solo con sql/265; "Quantità" diventa "Quantità (pz)"; PDF del
+cliente (generaPreventivoClientePDF, anche con datiEsterni di js/53 e js/69)
+colonne "Q.tà (pz)" e "Q.tà x UM" (testo così com'è, vuota se manca), larghezze
+58/19/14/21/33/33 mm. Nello stesso giro (richiesta di Erika del 12/11, vale
+senza SQL): Quantità (pz), Costo unitario interno e Prezzo unitario cliente a 0
+o vuoti si vedono VUOTI nei campi (campoNumeroVocePreventivo, anche all'uscita
+dal campo); valore salvato, calcoli, totali, margine e PDF come prima (0,00);
+la voce nuova propone ancora quantità 1. Guide info-com-26 (e info-com-4),
+info-tit-40. Prove: sql/265-voci-quantita-um-PROVA.sql (solo database di prova,
+rollback: Acquisti salva '2,5' con spazi tolti, voce nuova, vuoto = null, 50
+caratteri sì, 51 e a capo rifiutati, totale 300 invariato, il rappresentante la
+trova in dati_pdf_preventivo_cliente e un altro no, dopo accettato/rifiutato/in
+attesa anticipo Acquisti e titolare "come" Acquisti rifiutati, riscrittura
+uguale ammessa, titolare ammesso, rappresentante zero righe, registro delle
+azioni); provati gli ordini solo 265, 264 poi 265, 265 poi 264 e i rollback in
+entrambi gli ordini (schema identico con pg_dump); test/voci-quantita-um.spec.js
+(Chrome headless, database locale, con e senza sql/265: campi vuoti invece di
+0,00 anche dopo l'uscita dal campo, voce nuova 1, m³ 3 pz 100 € "2,5" = 300,
+salvate, PDF con le due colonne, voce senza = colonna vuota, dati esterni "12
+m²"); preventivo-oggetto-nota, sconto-rappresentante e smoke TUTTO OK con
+264+265 e senza. Senza sql/265: nessun campo "Quantità x UM", nessun errore.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

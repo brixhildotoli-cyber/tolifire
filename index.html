@@ -3521,6 +3521,7 @@
 
   <ul>
     <li>oggetto e nota prima della tabella dei prezzi (facoltativi, vedi il punto 25);</li>
+    <li>"Quantità x UM" delle voci, se serve (facoltativa e senza calcoli, vedi il punto 26);</li>
     <li>modalità di pagamento;</li>
     <li>note aggiuntive per il cliente;</li>
     <li>eventuali voci non comprese nella risposta del fornitore.</li>
@@ -3929,6 +3930,25 @@
       </div>
 
       <div class="al2 w">Fino all'aggiornamento del database sql/264 il riquadro non c'è.</div>
+
+      <h4 id="info-com-26">26. 📏 Quantità (pz) e "Quantità x UM" nelle voci</h4>
+
+      <p>
+        In ogni voce della tab <b>💶 Preventivo Cliente</b> il campo della quantità si chiama <b>Quantità (pz)</b>: è quello che moltiplica il prezzo, come prima. Accanto a <b>Unità di misura</b> c'è <b>Quantità x UM</b>, un campo <b>libero e facoltativo</b> per scrivere la misura della voce, per esempio i m³ o i m² ("2,5", "12 m²", "circa 30").
+      </p>
+
+      <ul>
+        <li><b>Quantità x UM</b> non entra in nessun calcolo: il totale della riga resta <b>Quantità (pz)</b> × <b>Prezzo unitario cliente</b>. Se non ci sono pezzi, il prezzo della voce lo scrivi tu.</li>
+        <li>Nel PDF per il cliente ci sono due colonne, <b>Q.tà (pz)</b> e <b>Q.tà x UM</b>; la seconda resta vuota se non la compili. Il testo si stampa così come lo scrivi (al massimo 50 caratteri, una riga).</li>
+        <li><b>Quantità (pz)</b>, <b>Costo unitario interno</b> e <b>Prezzo unitario cliente</b> a zero si vedono vuoti (non più "0,00"): un campo vuoto vale 0 come prima; totali, margine e PDF mostrano ancora 0,00.</li>
+        <li>Dopo l'esito del cliente anche <b>Quantità x UM</b> resta fissa come le voci: solo il titolare la cambia.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Voce "Sigillatura EI 120", <b>Unità di misura</b> m³, <b>Quantità x UM</b> 2,5, <b>Quantità (pz)</b> 3, prezzo 100 €: il totale della riga è 300 € e nel PDF leggi 3 sotto <b>Q.tà (pz)</b> e 2,5 sotto <b>Q.tà x UM</b>.
+      </div>
+
+      <div class="al2 w">Fino all'aggiornamento del database sql/265 il campo <b>Quantità x UM</b> non c'è (i campi vuoti invece di 0,00 e le due colonne del PDF ci sono già).</div>
 
   <h4>Checklist prima dell’invio</h4>
 
@@ -6088,6 +6108,20 @@
       </ul>
 
       <div class="al2 w">Fino all'aggiornamento del database sql/264 il riquadro non c'è.</div>
+
+      <h4 id="info-tit-40">40. 📏 Quantità (pz) e "Quantità x UM" nelle voci</h4>
+
+      <p>
+        Nelle voci del preventivo, come Acquisti, la quantità si chiama <b>Quantità (pz)</b> e accanto a <b>Unità di misura</b> c'è <b>Quantità x UM</b>: testo libero e facoltativo (per esempio "2,5" m³), solo informativo. Il totale della riga resta <b>Quantità (pz)</b> × prezzo: costo, margine, sconto, commessa e fatture non cambiano.
+      </p>
+
+      <ul>
+        <li>Nel PDF per il cliente due colonne, <b>Q.tà (pz)</b> e <b>Q.tà x UM</b> (vuota se non compilata); anche nel PDF rifatto dal rappresentante con lo sconto.</li>
+        <li>Quantità, costo e prezzo a zero si vedono vuoti nei campi (valgono 0 come prima).</li>
+        <li>Dopo l'esito del cliente <b>Quantità x UM</b> resta fissa per tutti tranne te (e l'informatico). Il preventivo integrativo del rappresentante per ora non la ha.</li>
+      </ul>
+
+      <div class="al2 w">Fino all'aggiornamento del database sql/265 il campo <b>Quantità x UM</b> non c'è.</div>
 
       <h4>Regole pratiche</h4>
 
