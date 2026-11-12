@@ -11,14 +11,19 @@
 //     nel database computo_path = <id>/computo/<ora>_<nome>, computo_nome;
 //  2. "Genera PDF cliente": la tabella del computo sta DOPO "Oggetto:" e
 //     PRIMA della nota, prima della prima voce; numeri come li dà xlsx;
-//  3. "🔁 Sostituisci" con un PDF di 2 pagine: il file di prima si toglie
-//     dallo Storage; il PDF finale ha le 2 pagine del computo subito dopo
-//     la prima (oggetto e nota), poi la tabella dei prezzi su una pagina
-//     nuova;
+//  3. "🔁 Sostituisci" con un PDF come quello di Erika (A4 orizzontale, una
+//     tabellina di 7 colonne x 7 righe in alto a sinistra, il resto bianco):
+//     il file di prima si toglie dallo Storage; nel PDF finale NESSUNA
+//     pagina a sé del computo (l'immagine solo sulla pagina 1, al massimo
+//     una pagina in più per il contenuto che scorre): sulla pagina 1
+//     "Oggetto:", l'immagine del computo (ritagliata, non più larga di 178 mm
+//     né ingrandita), la nota e subito la tabella dei prezzi; piè di pagina
+//     su tutte le pagine (12/11);
 //  4. "✖ Togli": nel database vuoto, il PDF è uguale (contenuto delle pagine)
 //     a quello senza computo;
 //  5. il rappresentante, con lo sconto (sql/258, js/69 "Rifai il PDF"),
-//     rifà il PDF: il computo c'è;
+//     rifà il PDF con il computo PDF: l'immagine c'è, tra Oggetto e la
+//     prima voce, nessuna pagina a sé;
 //  6. SENZA sql/264 (rilevato da solo, o COMPUTO_SENZA_SQL=1): nessun
 //     riquadro, PDF come prima, nessuna richiesta in errore.
 // Alla fine il preventivo di prova si toglie (solo database locale).
@@ -299,10 +304,12 @@ const OGGETTO = 'Compartimentazione EI 120 al piano terra';
 const NOTA = 'NOTAPROVA-COMPUTO come da computo allegato.';
 const VOCE1 = 'VOCEPROVA-1';
 const VOCE2 = 'VOCEPROVA-2';
+const VOCI_ALTRE = ['VOCEPROVA-3', 'VOCEPROVA-4', 'VOCEPROVA-5', 'VOCEPROVA-6'];
 const XLSX_NOME = 'Computo_misure.xlsx';
 const PDF_NOME = 'Computo_ingegnere.pdf';
 const CELLA = 'Parete corridoio nord';     // testo di una cella dell'Excel
-const PAGINE_PDF = ['COMPUTOPDF-PAGINA-UNO', 'COMPUTOPDF-PAGINA-DUE'];
+// Computo PDF come quello di Erika: tabellina 7 x 7 in alto a sinistra
+const COMPUTO_INTESTAZIONI = ['FATTORE', 'TIPOLOGIA', 'LARGHEZZA', 'ALTEZZA', 'LATI', 'LUNGHEZZA', 'SUP. ESPOSTA MQ'];
 
 function attendiDownload(cartella, prima, ms) {
   return new Promise((ok, ko) => {
@@ -336,6 +343,18 @@ async function generaPdf(s, cartella, azione) {
   return fs.readFileSync(path.join(cartella, nome));
 }
 const testoPdf = buf => buf.toString('latin1').replace(/\\/g, '');
+// Solo il flusso dei contenuti della pagina (dove jsPDF scrive testo e "Do"
+// delle immagini, in ordine di disegno)
+function flussoPagina(t) {
+  const m = t.match(/stream\r?\n[\s\S]*?endstream/g) || [];
+  return m.filter(x => /\bTj\b|\bTJ\b|\bDo\b/.test(x)).join('\n');
+}
+// Larghezza e altezza in mm dell'immagine disegnata (matrice "a 0 0 d e f cm"
+// prima di "/Ix Do", in punti PDF)
+function misuraImmagine(t) {
+  const m = /([\d.]+) 0 0 ([\d.]+) [\d.]+ [\d.]+ cm\s*\/[A-Za-z0-9]+ Do/.exec(flussoPagina(t));
+  return m ? { l: Number(m[1]) * 25.4 / 72, a: Number(m[2]) * 25.4 / 72 } : null;
+}
 // Pagine del PDF (anche dopo pdf-lib): numero e testo di ogni pagina,
 // ricavati nel browser con pdf-lib (una pagina per documento, senza
 // flussi di oggetti, così il testo di jsPDF si legge com'è).
@@ -359,9 +378,10 @@ async function pagineDelPdf(s, buf) {
   }, buf.toString('base64'));
 }
 // File di prova creati nel browser: Excel con xlsx (3 colonne, 5 righe di
-// misure) e PDF di 2 pagine con jsPDF; restituisce i contenuti in base64.
+// misure) e PDF A4 orizzontale con la tabellina 7 x 7 (jsPDF + autoTable);
+// restituisce i contenuti in base64.
 async function creaFileProva(s) {
-  return s.page.evaluate(async (cella, pagine) => {
+  return s.page.evaluate(async (cella, intestazioni) => {
     await caricaLibreriaExcel();
     await preparaPDF();
     const righe = [['Pos.', 'Descrizione', 'Misura (m²)'],
@@ -372,12 +392,19 @@ async function creaFileProva(s) {
     XLSX.utils.book_append_sheet(libro, XLSX.utils.aoa_to_sheet([['FOGLIO-DUE-NON-STAMPATO']]), 'Altro');
     const xlsx = new Uint8Array(XLSX.write(libro, { type: 'array', bookType: 'xlsx' }));
     const { jsPDF } = window.jspdf;
-    const d = new jsPDF();
-    d.text(pagine[0], 20, 30); d.addPage(); d.text(pagine[1], 20, 30);
+    const d = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    d.autoTable({
+      startY: 12, margin: { left: 10 }, tableWidth: 150, theme: 'grid',
+      styles: { fontSize: 7, cellPadding: 1.2 }, headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0] },
+      head: [intestazioni],
+      body: [['1,00', 'IPE 200', '0,10', '0,20', '4', '12,00', '28,80'], ['1,00', 'IPE 240', '0,12', '0,24', '4', '8,50', '24,48'],
+        ['1,20', 'HEA 160', '0,16', '0,15', '3', '6,00', '11,16'], ['1,00', 'HEB 200', '0,20', '0,20', '4', '10,00', '32,00'],
+        ['1,10', 'UPN 120', '0,06', '0,12', '3', '5,00', '4,95'], ['', '', '', '', '', 'TOTALE', '101,39']]
+    });
     const pdf = new Uint8Array(d.output('arraybuffer'));
     const b64 = u => { let t = ''; for (let i = 0; i < u.length; i++) t += String.fromCharCode(u[i]); return btoa(t); };
     return { xlsx: b64(xlsx), pdf: b64(pdf) };
-  }, CELLA, PAGINE_PDF);
+  }, CELLA, COMPUTO_INTESTAZIONI);
 }
 async function scegliFile(s, nome, b64, tipo) {
   await s.page.evaluate((nome, b64, tipo) => {
@@ -419,9 +446,10 @@ const computoDb = id => psql("select coalesce(computo_path, '<null>') || '|' || 
 
   const prevId = psql("insert into public.preventivi (cliente_id, commerciale_id, stato, totale_imponibile, iva_perc) values (" + q(clienteId) + ", " + q(com.id) + ", 'bozza', 1300, 22) returning id").split('\n')[0];
   psql("insert into public.preventivi_voci (preventivo_id, categoria, descrizione, unita_misura, quantita, costo_unitario, prezzo_unitario, ordinamento) values (" +
-    q(prevId) + ", 'materiale', " + q(VOCE1) + ", 'pz', 1, 600, 1000, 1), (" + q(prevId) + ", 'materiale', " + q(VOCE2) + ", 'pz', 2, 80, 150, 2)");
+    q(prevId) + ", 'materiale', " + q(VOCE1) + ", 'pz', 1, 600, 1000, 1), (" + q(prevId) + ", 'materiale', " + q(VOCE2) + ", 'pz', 2, 80, 150, 2)" +
+    VOCI_ALTRE.map((v, i) => ", (" + q(prevId) + ", 'manodopera', " + q(v) + ", 'h', " + (i + 2) + ", 30, 45, " + (i + 3) + ")").join(''));
   if (conSql) psql("update public.preventivi set oggetto = " + q(OGGETTO) + ", nota_introduttiva = " + q(NOTA) + " where id = " + q(prevId));
-  righe.push('preparato: bozza di Acquisti (' + com.email + ') con 2 voci' + (conSql ? ', oggetto e nota' : ''));
+  righe.push('preparato: bozza di Acquisti (' + com.email + ') con 6 voci' + (conSql ? ', oggetto e nota' : ''));
 
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', protocolTimeout: 120000, args: ['--no-first-run', '--disable-features=Translate'] });
   const sessioni = [];
@@ -486,19 +514,27 @@ const computoDb = id => psql("select coalesce(computo_path, '<null>') || '|' || 
         if (!s.stato.tolti.some(x => x.endsWith(vecchio))) KO('Sostituisci: il file Excel di prima non è stato tolto dallo Storage');
         else righe.push('il file Excel di prima tolto dallo Storage');
         const bufP = await generaPdf(s, DOWNLOAD);
+        fs.writeFileSync(path.join(CARTELLA_OUT, 'preventivo-con-computo-pdf.pdf'), bufP);
         const pag = await pagineDelPdf(s, bufP);
-        const p1 = pag[0] || '', p2 = pag[1] || '', p3 = pag[2] || '', p4 = pag[3] || '';
-        const extra = pag.length - pagineBase.length;
-        if (!(p1.includes('Oggetto: ' + OGGETTO) && p1.includes(NOTA) && !p1.includes(VOCE1)
-              && p2.includes(PAGINE_PDF[0]) && p3.includes(PAGINE_PDF[1]) && p4.includes(VOCE1) && (extra === 2 || extra === 3))) {
-          KO('PDF con il computo PDF: ' + JSON.stringify({ pagine: pag.length, base: pagineBase.length, p1oggetto: p1.includes('Oggetto:'), p1nota: p1.includes(NOTA), p1voce: p1.includes(VOCE1), p2: p2.includes(PAGINE_PDF[0]), p3: p3.includes(PAGINE_PDF[1]), p4voce: p4.includes(VOCE1) }));
+        const p1 = pag[0] || '';
+        const fl = flussoPagina(p1);
+        const pO = fl.indexOf('Oggetto: ' + OGGETTO), pI = fl.search(/\/[A-Za-z0-9]+ Do\b/), pN = fl.indexOf(NOTA), pV = fl.indexOf(VOCE1);
+        const img = misuraImmagine(p1);
+        const vociP1 = [VOCE1, VOCE2].concat(VOCI_ALTRE).filter(v => p1.includes(v)).length;
+        const esito = { pagine: pag.length, base: pagineBase.length, oggetto: pO, immagine: pI, nota: pN, voce: pV, immagini: pag.map(t => (flussoPagina(t).match(/\/[A-Za-z0-9]+ Do\b/g) || []).length), img, vociP1 };
+        // nessuna pagina a sé: l'immagine solo sulla pagina 1, le pagine in più
+        // solo per il contenuto che scorre (al massimo una), prezzi subito sotto
+        if (!(pag.length <= pagineBase.length + 1 && pO >= 0 && pI > pO && pN > pI && pV > pN && vociP1 >= 1
+              && esito.immagini[0] === 1 && esito.immagini.slice(1).every(n => n === 0)
+              && img && img.l > 20 && img.l <= 178.5 && img.a < 60)) {
+          KO('PDF con il computo PDF: ' + JSON.stringify(esito));
         } else {
-          righe.push('PDF con il computo PDF: pagina 1 oggetto e nota, pagine 2-3 del computo, pagina 4 la tabella dei prezzi (' + pag.length + ' pagine, ' +
-            pagineBase.length + ' senza computo: le 2 del computo' + (extra === 3 ? ' + 1 perché la tabella dei prezzi riparte su una pagina nuova' : '') + ')');
+          righe.push('PDF con il computo PDF: nessuna pagina a sé (' + pag.length + ' pagine, ' + pagineBase.length + ' senza computo: il resto scorre); pagina 1: "Oggetto:" → immagine del computo ritagliata (' +
+            img.l.toFixed(0) + ' x ' + img.a.toFixed(0) + ' mm) → nota → tabella dei prezzi (' + vociP1 + ' voci su 6 nella pagina 1)');
         }
-        const fondo = pag.slice(3).every(t => /Documento generato il/.test(t)) && /Documento generato il/.test(p1) && !/Documento generato il/.test(p2);
-        if (!fondo) KO('piè di pagina del preventivo non coerente (attesi sulle pagine del preventivo, non su quelle del computo)');
-        else righe.push('piè di pagina "Documento generato il ..." sulle pagine del preventivo, non su quelle del computo');
+        const fondo = pag.every(t => /Documento generato il/.test(t));
+        if (!fondo) KO('piè di pagina "Documento generato il ..." mancante su qualche pagina');
+        else righe.push('piè di pagina "Documento generato il ..." su tutte le pagine');
 
         // 3. Togli
         const daTogliere = dopoPdf.split('|')[0];
@@ -524,9 +560,9 @@ const computoDb = id => psql("select coalesce(computo_path, '<null>') || '|' || 
 
     // 4. rappresentante con lo sconto: rifà il PDF e il computo c'è
     if (conSql && con258) {
-      const percorso = prevId + '/computo/1731400000000_' + XLSX_NOME;
+      const percorso = prevId + '/computo/1731400000000_' + PDF_NOME;
       STORAGE_PSQL.add('preventivi-documenti/' + percorso);
-      psql("update public.preventivi set computo_path = " + q(percorso) + ", computo_nome = " + q(XLSX_NOME) +
+      psql("update public.preventivi set computo_path = " + q(percorso) + ", computo_nome = " + q(PDF_NOME) +
         ", stato = 'inviato_a_rappresentante', inviato_a_rappresentante_il = now() where id = " + q(prevId));
       const r = await apriSito(browser, url); sessioni.push(r);
       const cdp2 = await r.page.target().createCDPSession();
@@ -538,10 +574,13 @@ const computoDb = id => psql("select coalesce(computo_path, '<null>') || '|' || 
         return x.error ? x.error.message : 'ok';
       }, prevId);
       if (sc !== 'ok') KO('sconto del rappresentante: ' + sc);
-      const pdfR = testoPdf(await generaPdf(r, DOWNLOAD, () => r.page.evaluate(async id => { await rifaiPdfScontoPreventivo(id); }, prevId)));
-      const iC = pdfR.indexOf(CELLA), iO = pdfR.indexOf('Oggetto: ' + OGGETTO), iV = pdfR.indexOf(VOCE1), iS = pdfR.indexOf('Sconto 5%');
-      if (iC < 0 || iS < 0 || !(iO < iC && iC < iV)) KO('PDF del rappresentante con lo sconto: ' + JSON.stringify({ oggetto: iO, cella: iC, voce: iV, sconto: iS }));
-      else righe.push('rappresentante (' + rap.email + ', 390 px): "Rifai il PDF" con lo sconto del 5% → il computo c\'è (tra Oggetto e la prima voce)');
+      const bufR = await generaPdf(r, DOWNLOAD, () => r.page.evaluate(async id => { await rifaiPdfScontoPreventivo(id); }, prevId));
+      fs.writeFileSync(path.join(CARTELLA_OUT, 'preventivo-rappresentante-sconto.pdf'), bufR);
+      const pagR = await pagineDelPdf(r, bufR);
+      const flR = flussoPagina(pagR[0] || ''), tuttoR = pagR.join('\n');
+      const iO = flR.indexOf('Oggetto: ' + OGGETTO), iI = flR.search(/\/[A-Za-z0-9]+ Do\b/), iV = flR.indexOf(VOCE1), iS = tuttoR.indexOf('Sconto 5%');
+      if (iI < 0 || iS < 0 || !(iO < iI && iI < iV) || pagR.length > pagineBase.length + 1 || pagR.slice(1).some(t => /\/[A-Za-z0-9]+ Do\b/.test(flussoPagina(t)))) KO('PDF del rappresentante con lo sconto: ' + JSON.stringify({ oggetto: iO, immagine: iI, voce: iV, sconto: iS, pagine: pagR.length, base: pagineBase.length }));
+      else righe.push('rappresentante (' + rap.email + ', 390 px): "Rifai il PDF" con lo sconto del 5% → immagine del computo PDF tra Oggetto e la prima voce, nessuna pagina a sé');
       if (!r.stato.scaricati.some(x => x.endsWith(percorso))) KO('il rappresentante non ha scaricato il computo');
       if (r.stato.erroriJs.length) KO('errori JavaScript (rappresentante): ' + r.stato.erroriJs.join(' | '));
       const reteR = r.stato.rete.filter(x => x.status >= 500 || /does not exist|Could not find|computo/i.test(x.msg));

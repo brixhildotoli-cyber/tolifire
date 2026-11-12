@@ -6674,7 +6674,7 @@ async function generaPreventivoClientePDF(datiEsterni) {
     return;
   }
 
-  // sql/264: computo dell'ingegnere (Excel = tabella, PDF = sue pagine).
+  // sql/264: computo dell'ingegnere (Excel = tabella, PDF = immagini delle pagine).
   // Se non si legge il PDF non si genera: senza il computo sarebbe diverso
   // da quello che Acquisti ha preparato.
   let computo = null;
@@ -6806,21 +6806,16 @@ async function generaPreventivoClientePDF(datiEsterni) {
 
   // sql/264: "Oggetto: ..." in grassetto e la nota, prima della tabella dei
   // prezzi; solo se compilati (senza i due campi il PDF è come prima).
-  // sql/264: computo Excel tra "Oggetto:" e la nota; computo PDF: la tabella
-  // dei prezzi riparte su una pagina nuova e le pagine del computo vanno
-  // dopo quella con oggetto e nota (inserite alla fine con pdf-lib).
-  let paginaPrimaDelComputo = 0;
-  if (computo && computo.tipo === 'excel') {
+  // sql/264: computo tra "Oggetto:" e la nota, nel flusso del preventivo:
+  // Excel = tabella, PDF = pagine disegnate e ritagliate (12/11).
+  if (computo) {
     y = scriviOggettoNotaPdfPreventivo(doc, preventivo, margine, y, function(yy) {
-      return scriviComputoExcelPdfPreventivo(doc, computo, margine, yy);
+      return computo.tipo === 'pdf'
+        ? scriviComputoPdfImmaginiPreventivo(doc, computo, margine, yy)
+        : scriviComputoExcelPdfPreventivo(doc, computo, margine, yy);
     });
   } else {
     y = scriviOggettoNotaPdfPreventivo(doc, preventivo, margine, y);
-  }
-  if (computo && computo.tipo === 'pdf') {
-    paginaPrimaDelComputo = doc.internal.getCurrentPageInfo().pageNumber;
-    doc.addPage();
-    y = 16;
   }
 
   doc.autoTable({
@@ -7424,22 +7419,8 @@ disegnaFooterClausoleSuTutteLePagine();
 
  const nomeFile = `Preventivo_${preventivo.numero}_Toli_Fire_${Date.now()}.pdf`;
 
-  let pdfBlob;
-  if (paginaPrimaDelComputo) {
-    try {
-      pdfBlob = await inserisciPagineComputoPdfPreventivo(doc, computo.byte, paginaPrimaDelComputo);
-    } catch (e) {
-      toast('PDF non generato: pagine del computo non inserite (' + e.message + ')', 'err');
-      return datiEsterni ? null : undefined;
-    }
-  } else {
-    pdfBlob = doc.output('blob');
-  }
-  // senza computo PDF si scarica come sempre; con il computo il file unito
-  const scaricaPdf = function() {
-    if (paginaPrimaDelComputo) scaricaBlobRichiesta(pdfBlob, nomeFile);
-    else doc.save(nomeFile);
-  };
+  const pdfBlob = doc.output('blob');
+  const scaricaPdf = function() { doc.save(nomeFile); };
 
   if (datiEsterni) {
     scaricaPdf();
@@ -9814,8 +9795,8 @@ function htmlComputoEditorPreventivo() {
     <div style="font-size:12px;font-weight:600">📐 Computo (facoltativo)</div>
     <div style="font-size:12px;color:var(--m);margin:3px 0 8px">
       Il computo dell'ingegnere (Excel o PDF, al massimo 10 MB). Nel PDF per il
-      cliente: un Excel diventa una tabella dopo l'oggetto, un PDF entra con le
-      sue pagine dopo la pagina dell'oggetto e della nota.
+      cliente va dopo l'oggetto e prima della nota: un Excel diventa una tabella,
+      un PDF entra come immagine delle sue pagine (margini bianchi tagliati).
     </div>
     ${c.path ? `
       <div id="pvv-computo-nome" style="font-size:13px;margin-bottom:8px">
@@ -9897,20 +9878,15 @@ async function togliComputoPreventivo() {
 }
 
 // Legge il computo per il PDF: { tipo: 'excel', righe, righeTotali,
-// colonne } oppure { tipo: 'pdf', byte }. Errore = eccezione con il motivo.
+// colonne } oppure { tipo: 'pdf', immagini } (12/11: pagine disegnate con
+// pdf.js e ritagliate, vanno nel flusso del preventivo come l'Excel). Errore = eccezione con il motivo.
 async function leggiComputoPerPdfPreventivo(percorso) {
   const { data: blob, error } = await db.storage.from('preventivi-documenti').download(percorso);
   if (error || !blob) throw new Error('il file non si scarica' + (error?.message ? ' (' + error.message + ')' : ''));
   const byte = await blob.arrayBuffer();
 
   if (estensioneComputo(percorso) === 'pdf') {
-    await caricaLibreriaPDFLib();
-    try {
-      await window.PDFLib.PDFDocument.load(byte);
-    } catch (e) {
-      throw new Error('il PDF del computo non si legge (protetto da password o rovinato?)');
-    }
-    return { tipo: 'pdf', byte };
+    return { tipo: 'pdf', immagini: await immaginiComputoPdfPreventivo(byte) };
   }
 
   await caricaLibreriaExcel();
@@ -9983,15 +9959,110 @@ function scriviComputoExcelPdfPreventivo(doc, computo, margine, y) {
   return y + 4;
 }
 
-// Pagine del computo PDF subito dopo la pagina "dopoPagina" (1, 2, ...).
-async function inserisciPagineComputoPdfPreventivo(doc, byte, dopoPagina) {
-  await caricaLibreriaPDFLib();
-  const PdfDocument = window.PDFLib.PDFDocument;
-  const finale = await PdfDocument.load(doc.output('arraybuffer'));
-  const computo = await PdfDocument.load(byte);
-  const pagine = await finale.copyPages(computo, computo.getPageIndices());
-  pagine.forEach(function(pagina, i) { finale.insertPage(dopoPagina + i, pagina); });
-  return new Blob([await finale.save()], { type: 'application/pdf' });
+// Computo PDF (richiesta di Erika del 12/11): ogni pagina disegnata con
+// pdf.js su un canvas (circa 2x, massimo 2000 px di lato), margini bianchi
+// tagliati (riquadro dei pixel non bianchi + un piccolo bordo). Restituisce
+// [{ dati (PNG), larghezzaMm, altezzaMm }] alla scala 1:1 della pagina
+// sorgente; le pagine tutte bianche si saltano. Errore = eccezione col motivo.
+async function immaginiComputoPdfPreventivo(byte) {
+  try {
+    await caricaLibreriaPdfJs();
+  } catch (e) {
+    throw new Error('la libreria per leggere il PDF non si carica (' + e.message + ')');
+  }
+  let pdf;
+  try {
+    pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(byte.slice(0)) }).promise;
+  } catch (e) {
+    throw new Error('il PDF del computo non si legge (protetto da password o rovinato?)');
+  }
+  const MM_PER_PUNTO = 25.4 / 72;
+  const immagini = [];
+  try {
+    for (let n = 1; n <= pdf.numPages; n++) {
+      const pagina = await pdf.getPage(n);
+      const base = pagina.getViewport({ scale: 1 });
+      const scala = Math.min(2, 2000 / Math.max(base.width, base.height));
+      const vista = pagina.getViewport({ scale: scala });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.ceil(vista.width);
+      canvas.height = Math.ceil(vista.height);
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await pagina.render({ canvasContext: ctx, viewport: vista }).promise;
+
+      // riquadro dei pixel non bianchi
+      const px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let x0 = canvas.width, y0 = canvas.height, x1 = -1, y1 = -1;
+      for (let yy = 0; yy < canvas.height; yy++) {
+        const riga = yy * canvas.width * 4;
+        for (let xx = 0; xx < canvas.width; xx++) {
+          const i = riga + xx * 4;
+          if (px[i] < 240 || px[i + 1] < 240 || px[i + 2] < 240) {
+            if (xx < x0) x0 = xx;
+            if (xx > x1) x1 = xx;
+            if (yy < y0) y0 = yy;
+            if (yy > y1) y1 = yy;
+          }
+        }
+      }
+      pagina.cleanup();
+      if (x1 < 0) continue; // pagina bianca
+      const bordo = Math.round(4 * scala); // circa 1,4 mm
+      x0 = Math.max(0, x0 - bordo); y0 = Math.max(0, y0 - bordo);
+      x1 = Math.min(canvas.width - 1, x1 + bordo); y1 = Math.min(canvas.height - 1, y1 + bordo);
+      const w = x1 - x0 + 1, h = y1 - y0 + 1;
+      const taglio = document.createElement('canvas');
+      taglio.width = w; taglio.height = h;
+      taglio.getContext('2d').drawImage(canvas, x0, y0, w, h, 0, 0, w, h);
+      immagini.push({
+        dati: taglio.toDataURL('image/png'),
+        larghezzaMm: (w / scala) * MM_PER_PUNTO,
+        altezzaMm: (h / scala) * MM_PER_PUNTO
+      });
+    }
+  } catch (e) {
+    throw new Error('le pagine del PDF del computo non si disegnano (' + e.message + ')');
+  } finally {
+    try { pdf.destroy(); } catch (e) { /* già chiuso */ }
+  }
+  return immagini;
+}
+
+// Computo PDF nel PDF del preventivo, dopo "Oggetto:" e prima della nota:
+// titolo "Computo" e le immagini una dopo l'altra, larghe al massimo 178 mm
+// (mai ingrandite oltre la scala 1:1); se non c'è posto pagina nuova come le
+// altre del preventivo (y 20, fondo 215 come la tabella dei prezzi); più
+// alta di una pagina = rimpicciolita. Restituisce la nuova y.
+function scriviComputoPdfImmaginiPreventivo(doc, computo, margine, y) {
+  const immagini = (computo && computo.immagini) || [];
+  if (!immagini.length) return y;
+  const larghezzaUtile = 178, cima = 20, fondo = 215;
+  const misure = immagini.map(function(img) {
+    let l = Math.min(img.larghezzaMm, larghezzaUtile);
+    let a = img.altezzaMm * (l / img.larghezzaMm);
+    if (a > fondo - cima) { l = l * ((fondo - cima) / a); a = fondo - cima; }
+    return { l: l, a: a };
+  });
+
+  // il titolo resta con la prima immagine
+  if (y + 6 + misure[0].a > fondo) { doc.addPage(); y = cima; }
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(25, 25, 25);
+  doc.text('Computo', margine, y + 2);
+  y += 5;
+
+  immagini.forEach(function(img, i) {
+    const m = misure[i];
+    if (y + m.a > fondo) { doc.addPage(); y = cima; }
+    doc.addImage(img.dati, 'PNG', margine, y, m.l, m.a, undefined, 'FAST');
+    y += m.a + 3;
+  });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  return y + 3;
 }
 let anticipoEsitoAttivo = false;
 let anticipoEsitoNonCaricato = false;

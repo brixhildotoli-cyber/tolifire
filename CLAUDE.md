@@ -2493,11 +2493,15 @@ nel sito ma PDF fatto; scriviComputoExcelPdfPreventivo (titolo "Computo",
 autoTable a 178 mm, prima riga = intestazione, carattere da 8 a 4,5 secondo le
 colonne, testi puliti con pulisciTestoPDF di js/00) DOPO "Oggetto:" e PRIMA
 della nota (scriviOggettoNotaPdfPreventivo con il parametro
-traOggettoENota). PDF: SCELTA, un solo jsPDF; dopo oggetto e nota addPage
-(la tabella dei prezzi riparte su una pagina nuova), alla fine pdf-lib
-(inserisciPagineComputoPdfPreventivo, come unisciPdfAllegatiRichiesta)
-inserisce le pagine del computo subito dopo la pagina di oggetto e nota;
-scaricato con scaricaBlobRichiesta e caricato in <id>/cliente/ come sempre.
+traOggettoENota). PDF (dal 12/11, segnalazione di Erika): nello STESSO punto
+dell'Excel, ogni pagina disegnata con pdf.js 3.11.174 di cdnjs
+(caricaLibreriaPdfJs di js/00, solo quando serve) su un canvas a circa 2x
+(max 2000 px), margini bianchi tagliati e inserita con doc.addImage
+(immaginiComputoPdfPreventivo, scriviComputoPdfImmaginiPreventivo: larga al
+massimo 178 mm, mai oltre la scala 1:1, pagina nuova come le altre se non c'è
+posto, rimpicciolita se più alta di una pagina), niente pagine a sé né pdf-lib;
+PDF illeggibile o pdf.js non caricato = PDF non generato con il motivo; prova
+test/preventivo-computo.spec.js (A4 orizzontale con tabellina 7 x 7).
 Il piè di pagina del preventivo ("approvazione specifica delle clausole",
 "Documento generato il ...", nessun numero di pagina) resta sulle pagine del
 preventivo, non su quelle del computo. Computo che non si scarica o non si

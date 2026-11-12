@@ -176,6 +176,15 @@ async function caricaLibreriaPDFLib() {
   );
 }
 
+// pdf.js (build UMD) per disegnare le pagine di un PDF su un canvas: serve
+// al computo PDF del preventivo (js/18), caricato solo quando serve.
+const PDFJS_VERSIONE = '3.11.174';
+async function caricaLibreriaPdfJs() {
+  const base = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/' + PDFJS_VERSIONE + '/';
+  await caricaScriptLibreria(base + 'pdf.min.js', () => !!window.pdfjsLib?.getDocument);
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = base + 'pdf.worker.min.js';
+}
+
 function caricaLibreriaExcel() {
   return caricaScriptLibreria(
     'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',

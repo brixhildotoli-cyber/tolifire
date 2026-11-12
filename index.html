@@ -3305,7 +3305,7 @@
         <li>Quando il cliente accetta, segni <b>Accettato dal cliente</b> come sempre: la commessa, l'anticipo e la fattura finale partono dal totale <b>scontato</b>. Dopo l'esito lo sconto non si cambia più.</li>
         <li><b>Togli lo sconto</b> riporta il totale delle voci; il PDF senza sconto però lo rifà <b>Acquisti</b> (tu non puoi): chiediglielo e intanto non mandare quello vecchio. Se il PDF l'ha caricato il titolare, lo sconto lo mette lui.</li>
         <li>Lo sconto si mette solo se il totale torna con le voci di Acquisti; se no il gestionale ti dice "il totale non torna con le voci: lo sistema Acquisti".</li>
-        <li>Se Acquisti ha allegato il <b>📐 computo</b> dell'ingegnere, il PDF rifatto con lo sconto lo comprende (tabella o pagine del computo, come nel PDF di Acquisti).</li>
+        <li>Se Acquisti ha allegato il <b>📐 computo</b> dell'ingegnere, il PDF rifatto con lo sconto lo comprende (tabella o immagine del computo, come nel PDF di Acquisti).</li>
       </ul>
 
       <div class="info-esempio">
@@ -3958,7 +3958,7 @@
 
       <ul>
         <li><b>Excel</b>: nel PDF per il cliente il <b>primo foglio</b> diventa una tabella sotto <b>Oggetto: ...</b> e sopra la nota, prima della tabella dei prezzi. La prima riga fa da intestazione; righe e celle vuote in fondo si tolgono; numeri e date come li legge la libreria Excel (per esempio 12.5). Al massimo 300 righe; con più di 10 colonne il gestionale avvisa che il testo è piccolo, ma il PDF si fa lo stesso.</li>
-        <li><b>PDF</b>: le sue pagine entrano subito dopo la pagina con oggetto e nota; la tabella dei prezzi riparte su una pagina nuova.</li>
+        <li><b>PDF</b>: ogni sua pagina entra come immagine nello stesso punto (sotto <b>Oggetto: ...</b> e sopra la nota), con i margini bianchi tagliati: una tabellina piccola resta piccola, una pagina intera si rimpicciolisce per stare nella pagina; la tabella dei prezzi segue subito sotto.</li>
         <li>Lo carichi tu se hai preparato il preventivo (o il titolare), fino all'esito del cliente; dopo l'esito lo cambia solo il titolare. Se il computo non si riesce a leggere il PDF non si genera e il gestionale ti dice perché.</li>
         <li>Senza computo il PDF è come prima. Il rappresentante lo legge e lo ritrova nel PDF che rifà con lo sconto.</li>
       </ul>
@@ -6147,7 +6147,7 @@
       </p>
 
       <ul>
-        <li>Nel PDF per il cliente: un Excel diventa una tabella (primo foglio, al massimo 300 righe) tra <b>Oggetto: ...</b> e la nota; un PDF entra con le sue pagine subito dopo la pagina con oggetto e nota, e la tabella dei prezzi riparte su una pagina nuova. Il piè di pagina del preventivo resta sulle sue pagine, non su quelle del computo.</li>
+        <li>Nel PDF per il cliente: un Excel diventa una tabella (primo foglio, al massimo 300 righe) tra <b>Oggetto: ...</b> e la nota; un PDF entra nello stesso punto come immagine delle sue pagine, con i margini bianchi tagliati, e la tabella dei prezzi segue subito sotto (niente pagine a sé: intestazione e piè di pagina come le altre pagine del preventivo).</li>
         <li>Lo caricano e lo tolgono Acquisti che ha preparato il preventivo e tu, fino all'esito del cliente; dopo l'esito solo tu (e l'informatico). Lo leggono anche il rappresentante dei preventivi inviati a lui (il PDF rifatto con lo sconto lo comprende); segreteria e tecnici no.</li>
         <li>Il registro delle azioni dice chi ha collegato o tolto il computo e quando.</li>
       </ul>
