@@ -297,12 +297,169 @@ function cambiaMeseAppuntamenti(delta) {
   loadAppuntamentiCommerciali();
 }
 
+// =====================================================================
+// F15.19 (versione ridotta, decisione di Erika del 12/11): coda
+// dell'ingegnere con i GIORNI DI ATTESA e l'URGENZA. Solo informazioni in
+// più: l'ingegnere lavora come prima (stessi bottoni e passaggi).
+// - Data di ingresso in verifica = ultimo passaggio a in_verifica_tecnica
+//   in progetti_tecnici_storico (lo scrive il trigger
+//   registra_storico_progetto_tecnico); se manca, aggiornato_il.
+// - Giorni di attesa = giorniLavorativiTra (js/01, festività di sql/63).
+// - Ordine: urgenti per primi, poi per data di arrivo (il più vecchio in
+//   alto).
+// - Urgente: colonna progetti_tecnici.urgente di sql/89; la cambia SOLO il
+//   titolare (anche dal database). Senza sql/89 (RPC
+//   urgente_progetti_attivo 404) niente badge né bottone, il resto c'è.
+// - Oltre ATTESA_VERIFICA_LIMITE_GG giorni lavorativi: riga del titolare
+//   "⏳ Progetti fermi dall'ingegnere" in Cosa tocca a me (js/46).
+// =====================================================================
+const ATTESA_VERIFICA_LIMITE_GG = 1;
+const URGENZA_PROGETTI = { presente: null };
+
+async function verificaUrgenzaProgettiDisponibile() {
+  if (URGENZA_PROGETTI.presente !== null) return URGENZA_PROGETTI.presente;
+  try {
+    const { data, error } = await db.rpc('urgente_progetti_attivo');
+    if (error) {
+      // funzione assente = sql/89 non eseguito; altri errori (rete): si riprova dopo
+      if (error.code === 'PGRST202' || error.code === '42883' || /could not find the function/i.test(error.message || '')) {
+        URGENZA_PROGETTI.presente = false;
+      }
+      return false;
+    }
+    URGENZA_PROGETTI.presente = data === true;
+  } catch (e) {
+    return false;
+  }
+  return URGENZA_PROGETTI.presente;
+}
+
+// id progetto → data di ingresso in verifica (stringa ISO) per i progetti
+// dati (servono id, aggiornato_il, creato_il).
+async function ingressiVerificaProgetti(progetti) {
+  const esito = {};
+  const elenco = (progetti || []).filter(function(p) { return p && p.id; });
+  elenco.forEach(function(p) { esito[p.id] = p.aggiornato_il || p.creato_il || null; });
+  const ids = elenco.map(function(p) { return p.id; });
+  const trovati = {};
+  for (let i = 0; i < ids.length; i += 100) {
+    const blocco = ids.slice(i, i + 100);
+    try {
+      const { data, error } = await db.from('progetti_tecnici_storico')
+        .select('progetto_id, creato_il')
+        .in('progetto_id', blocco)
+        .eq('stato_successivo', 'in_verifica_tecnica')
+        .or('stato_precedente.is.null,stato_precedente.neq.in_verifica_tecnica')
+        .order('creato_il', { ascending: false })
+        .limit(1000);
+      if (error || !Array.isArray(data)) continue;
+      data.forEach(function(r) {
+        if (!trovati[r.progetto_id]) trovati[r.progetto_id] = r.creato_il;
+      });
+    } catch (e) { /* resta aggiornato_il */ }
+  }
+  Object.keys(trovati).forEach(function(id) { esito[id] = trovati[id]; });
+  return esito;
+}
+
+// Giorni lavorativi dall'ingresso a oggi (0 = arrivato oggi o in un giorno
+// non lavorativo dopo l'ultimo lavorativo); null se la data non c'è.
+function giorniAttesaVerifica(ingresso) {
+  if (!ingresso || typeof giorniLavorativiTra !== 'function') return null;
+  const d = new Date(ingresso);
+  if (isNaN(d)) return null;
+  const n = giorniLavorativiTra(d, new Date());
+  return n === null ? null : Math.max(0, n);
+}
+
+function testoAttesaVerifica(giorni) {
+  if (giorni === null || giorni === undefined) return '';
+  if (giorni < 1) return 'In attesa da meno di 1 giorno lavorativo';
+  return 'In attesa da ' + giorni + (giorni === 1 ? ' giorno lavorativo' : ' giorni lavorativi');
+}
+
+function attesaVerificaOltre(giorni) {
+  return giorni !== null && giorni !== undefined && giorni > ATTESA_VERIFICA_LIMITE_GG;
+}
+
+// Progetti in verifica tecnica con giorni di attesa e urgenza (per js/46).
+// null = lettura non riuscita.
+async function progettiVerificaInAttesa() {
+  const conUrgenza = await verificaUrgenzaProgettiDisponibile();
+  const { data, error } = await db.from('progetti_tecnici')
+    .select('id, aggiornato_il, creato_il' + (conUrgenza ? ', urgente' : ''))
+    .eq('stato', 'in_verifica_tecnica').limit(1000);
+  if (error || !Array.isArray(data)) return null;
+  const ingressi = await ingressiVerificaProgetti(data);
+  return data.map(function(p) {
+    return { id: p.id, ingresso: ingressi[p.id], giorni: giorniAttesaVerifica(ingressi[p.id]), urgente: !!p.urgente };
+  });
+}
+
+function htmlBadgeUrgenteProgetto(progetto) {
+  return progetto && progetto.urgente ? '<span class="bx berr">🚨 Urgente</span>' : '';
+}
+
+// Bottone "🚨 Segna urgente" / "Togli urgente": solo titolare (informatico
+// compreso) e solo con sql/89.
+function htmlBottoneUrgenzaProgetto(progetto) {
+  if (ROLE !== 'titolare' || !progetto || !('urgente' in progetto) || !URGENZA_PROGETTI.presente) return '';
+  return progetto.urgente
+    ? '<button class="btn sm" onclick="cambiaUrgenzaProgetto(\'' + progetto.id + '\', false)">Togli urgente</button>'
+    : '<button class="btn sm" onclick="cambiaUrgenzaProgetto(\'' + progetto.id + '\', true)">🚨 Segna urgente</button>';
+}
+
+async function cambiaUrgenzaProgetto(progettoId, urgente) {
+  if (ROLE !== 'titolare') return;
+  const { data, error } = await db.from('progetti_tecnici')
+    .update({ urgente: !!urgente }).eq('id', progettoId).select('id');
+  if (error) {
+    toast('Urgenza non salvata: ' + error.message, 'err');
+    return;
+  }
+  if (!data || !data.length) {
+    toast('Urgenza non salvata: progetto non trovato', 'err');
+    return;
+  }
+  toast(urgente ? '🚨 Progetto segnato urgente' : 'Urgenza tolta');
+  const pagina = document.querySelector('.page.on')?.id;
+  if (pagina === 'pg-progetto-detail' && typeof openProgettoDetail === 'function') {
+    openProgettoDetail(progettoId);
+  } else {
+    loadVerificheTecniche();
+  }
+}
+
+// Riquadro nella scheda progetto (js/17): badge, attesa e bottone del
+// titolare. Vuoto se non c'è niente da dire.
+async function mostraAttesaUrgenzaProgetto(progetto, contenitoreId) {
+  const box = ge(contenitoreId);
+  if (!box || !progetto) return;
+  await verificaUrgenzaProgettiDisponibile();
+  let attesa = null;
+  if (progetto.stato === 'in_verifica_tecnica') {
+    const ingressi = await ingressiVerificaProgetti([progetto]);
+    attesa = giorniAttesaVerifica(ingressi[progetto.id]);
+  }
+  const badge = htmlBadgeUrgenteProgetto(progetto);
+  const bottone = htmlBottoneUrgenzaProgetto(progetto);
+  const testo = attesa !== null
+    ? '<b style="color:' + (attesaVerificaOltre(attesa) ? 'var(--r)' : 'inherit') + '">⏳ In verifica tecnica: ' +
+      esc(testoAttesaVerifica(attesa).replace(/^In attesa/, 'in attesa')) + '</b>'
+    : '';
+  if (!badge && !bottone && !testo) { box.innerHTML = ''; return; }
+  box.innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;font-size:13px">' +
+    badge + testo + bottone + '</div>';
+}
+
 async function loadVerificheTecniche() {
   const box = ge('verifiche-tecniche-lista');
 
   if (!box) return;
 
   box.innerHTML = '<div class="load">Caricamento progetti...</div>';
+
+  const conUrgenza = await verificaUrgenzaProgettiDisponibile(); // F15.19
 
   const { data, error } = await db
     .from('progetti_tecnici')
@@ -314,6 +471,7 @@ async function loadVerificheTecniche() {
       stato,
       creato_il,
       aggiornato_il,
+      ${conUrgenza ? 'urgente,' : ''}
       clienti(ragione_sociale)
     `)
     .order('aggiornato_il', { ascending: false });
@@ -328,6 +486,18 @@ async function loadVerificheTecniche() {
 
   const daVerificare = progetti.filter(function(progetto) {
     return progetto.stato === 'in_verifica_tecnica';
+  });
+
+  // F15.19: giorni di attesa dall'ingresso in verifica; urgenti per primi,
+  // poi in ordine di arrivo
+  const ingressi = await ingressiVerificaProgetti(daVerificare);
+  daVerificare.forEach(function(progetto) {
+    progetto._ingresso = ingressi[progetto.id] || null;
+    progetto._attesa = giorniAttesaVerifica(progetto._ingresso);
+  });
+  daVerificare.sort(function(a, b) {
+    if (!!a.urgente !== !!b.urgente) return a.urgente ? -1 : 1;
+    return String(a._ingresso || '').localeCompare(String(b._ingresso || ''));
   });
 
   const storico = progetti.filter(function(progetto) {
@@ -394,9 +564,12 @@ async function loadVerificheTecniche() {
             </div>
           </div>
 
-          <span class="bx ${storicoProgetto ? stato.classe : 'bblue'}">
-            ${storicoProgetto ? esc(stato.testo) : 'In verifica tecnica'}
-          </span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start">
+            ${!storicoProgetto ? htmlBadgeUrgenteProgetto(progetto) : ''}
+            <span class="bx ${storicoProgetto ? stato.classe : 'bblue'}">
+              ${storicoProgetto ? esc(stato.testo) : 'In verifica tecnica'}
+            </span>
+          </div>
         </div>
 
         <div style="font-size:13px;white-space:pre-wrap;margin-top:10px">
@@ -405,7 +578,10 @@ async function loadVerificheTecniche() {
 
         <div style="font-size:12px;color:var(--m);margin-top:10px">
           ${storicoProgetto ? 'Ultimo aggiornamento' : 'Ricevuto'}:
-          ${esc(dataItaliana(progetto.aggiornato_il || progetto.creato_il))}
+          ${esc(dataItaliana(storicoProgetto ? (progetto.aggiornato_il || progetto.creato_il) : (progetto._ingresso || progetto.aggiornato_il || progetto.creato_il)))}
+          ${!storicoProgetto && progetto._attesa !== null && progetto._attesa !== undefined ? `
+            · <b style="color:${attesaVerificaOltre(progetto._attesa) ? 'var(--r)' : 'inherit'}">⏳ ${esc(testoAttesaVerifica(progetto._attesa))}</b>
+          ` : ''}
         </div>
 
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
@@ -423,6 +599,7 @@ async function loadVerificheTecniche() {
             >
               🔧 Gestisci verifica
             </button>
+            ${htmlBottoneUrgenzaProgetto(progetto)}
           ` : ''}
         </div>
       </div>

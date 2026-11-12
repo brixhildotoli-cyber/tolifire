@@ -376,6 +376,10 @@ nuova, nessuna colonna, nessuna policy, matrice invariata. Il motivo di "Crea
 comunque" va in progetti_tecnici_storico (tipo_evento 'doppione_confermato',
 lo scrive solo la RPC registra_doppione_progetto); avvisi: tipo nuovo
 'progetto_doppione' (al titolare).
+Dopo sql/89 (F15.19 coda dell'ingegnere, VERSIONE RIDOTTA decisa da Erika il
+12/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/89"): nessuna tabella nuova,
+matrice invariata. progetti_tecnici: colonna NUOVA urgente (boolean, default
+false; la cambia SOLO il titolare, trigger trg_progetti_tecnici_urgente).
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -1902,6 +1906,60 @@ rappresentante a 390 px, titolare, ingegnere e Acquisti a 390 px;
 INTEGRAZIONI_SENZA_SQL=1 senza il file); 64-PROVA accetta 11/12 o 16/12
 secondo l'unità; smoke TUTTO OK senza sql/88. Senza sql/88: avviso al
 titolare dopo 7 giorni di calendario come prima, nessun errore.
+Dopo sql/89 (F15.19 coda dell'ingegnere, tempi e urgenza, VERSIONE RIDOTTA
+decisa da Erika il 12/11: "solo informazioni in più, l'ingegnere lavora come
+oggi"; NON FATTI il controllo a campione 1 su 10 e la colonna
+campione_ingegnere (smistamento spento da sql/260), corsie nuove, cambi a
+bottoni o passaggi di ingegnere e Acquisti; DA ESEGUIRE con "CONFERMATO DA
+TOLI: sql/89": backup, anteprima in fondo al file,
+89-coda-ingegnere-campione-tempi.sql (senza parole di cancellazione, server
+MCP), controllo in fondo; nessun -REGISTRO-CANCELLAZIONI; richiede 07 e 71,
+si ferma senza; il sito si pubblica prima o dopo). Colonna
+progetti_tecnici.urgente (boolean not null default false); trigger
+trg_progetti_tecnici_urgente (BEFORE INSERT OR UPDATE OF urgente, security
+definer): 42501 "Solo il titolare segna o toglie l'urgenza di un progetto"
+per ogni ruolo del sito che non è titolare (informatico compreso nel
+titolare; anche il titolare "Entra come" un altro ruolo e un progetto nuovo
+già urgente), editor libero; chi e quando dal registro delle azioni di
+sql/67 (campo urgente). RPC del sito urgente_progetti_attivo() (true = il 89
+c'è; execute solo authenticated; tra le letture tenute sul telefono di js/57
+perché finisce in _attivo). Nel sito (js/16, js/17, js/46, nessun file
+nuovo): verificaUrgenzaProgettiDisponibile, ingressiVerificaProgetti (data di
+ingresso = ultimo passaggio a in_verifica_tecnica in progetti_tecnici_storico,
+riga con stato_successivo in_verifica_tecnica e stato_precedente diverso; se
+manca aggiornato_il), giorniAttesaVerifica (giorniLavorativiTra di js/01),
+progettiVerificaInAttesa, ATTESA_VERIFICA_LIMITE_GG = 1 (fisso, non una
+regola); pagina Verifiche tecniche: "Ricevuto: <data di ingresso> · ⏳ In
+attesa da N giorni lavorativi" (rosso oltre 1), ordine urgenti poi arrivo (il
+più vecchio in alto), badge "🚨 Urgente", per il titolare "🚨 Segna urgente" /
+"Togli urgente" (cambiaUrgenzaProgetto, update diretto); scheda progetto
+(js/17, riquadro pd-attesa-urgenza, mostraAttesaUrgenzaProgetto): badge,
+attesa se in verifica, bottone del titolare. Cosa tocca a me (js/46): riga
+NUOVA del titolare "⏳ Progetti fermi dall'ingegnere" (rossa, in verifica da
+più di 1 giorno lavorativo; un progetto = la sua scheda, se no Verifiche
+tecniche; anche in ⚖️ Decisioni); riga dell'ingegnere "Verifiche tecniche
+aperte" con la sola nota "di cui N da più di 1 giorno lavorativo · 🚨 N
+urgenti". SCELTA DICHIARATA: avviso al titolare come riga di Cosa tocca a me
+calcolata nel sito (come F15.18), NON una riga del motore delle scadenze
+(servirebbe una fonte nuova in sincronizza_scadenze); niente campanella né
+notifica. SCELTE DA CONFERMARE DA TOLI: 1 giorno lavorativo fisso; l'urgenza
+resta anche quando il progetto esce dalla verifica; un progetto rimandato al
+rappresentante e tornato riparte da zero. Guide info-ing-30, info-tit-36.
+Prove: sql/89-coda-ingegnere-campione-tempi-PROVA.sql (solo database di
+prova, rollback: titolare e informatico segnano e tolgono, registro delle
+azioni; ingegnere, Acquisti, segreteria, rappresentante, titolare "come"
+ingegnere e "come" Acquisti rifiutati 42501; progetto nuovo urgente del
+rappresentante rifiutato, del titolare ammesso; altre modifiche
+dell'ingegnere invariate; editor libero; RPC chiusa ad anon);
+test/coda-ingegnere-tempi.spec.js (Chrome headless, database locale dal
+backup pre88 + sql/88: tre progetti arrivati 5, 2 e 0 giorni lavorativi fa,
+ordine e attesa, "🚨 Segna urgente" del titolare, riga ⏳ uguale al calcolo
+del database con giorni_lavorativi_tra, ingegnere a 390 px con badge e senza
+bottone, console di ingegnere, Acquisti, segreteria e titolare "come"
+ingegnere rifiutate; CODA_SENZA_SQL=1 dopo il rollback); smoke TUTTO OK con
+e senza sql/89; matrice uguale con e senza; rollback provato (schema
+identico con pg_dump). Senza sql/89: attesa, ordine e righe di Cosa tocca a
+me ci sono, niente badge né bottone, nessun errore (una chiamata RPC 404).
 Dopo sql/258 (sconto del rappresentante, decisioni di Erika del 10/11, ESEGUITO l'11/11 (backup pre258, controllo in regola); era DA
 ESEGUIRE; ordine e requisiti nella riga di preventivi_sconti in "Tabelle
 Supabase"): RPC del sito sconto_rappresentante_attivo() (true = il 258 c'è),

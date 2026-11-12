@@ -1173,8 +1173,50 @@ registraFonteToccaAMe({
   id: 'verifiche-tecniche', ruoli: ['ingegnere'], icona: '🔧',
   titolo: 'Verifiche tecniche aperte',
   vai: { pagina: 'verifiche-tecniche' },
-  conta: function() {
-    return numeroTAM(contaTAM('progetti_tecnici').eq('stato', 'in_verifica_tecnica'), 'verifiche tecniche');
+  conta: async function() {
+    const n = await numeroTAM(contaTAM('progetti_tecnici').eq('stato', 'in_verifica_tecnica'), 'verifiche tecniche');
+    if (!n || !funzioneEsiste('progettiVerificaInAttesa')) return n;
+    // F15.19: solo un'informazione in più (nessun obbligo nuovo)
+    let elenco = null;
+    try { elenco = await progettiVerificaInAttesa(); } catch (e) { elenco = null; }
+    if (!elenco) return n;
+    const oltre = elenco.filter(function(p) { return attesaVerificaOltre(p.giorni); }).length;
+    const urgenti = elenco.filter(function(p) { return p.urgente; }).length;
+    const note = [];
+    if (oltre) note.push('di cui ' + oltre + ' da più di ' + ATTESA_VERIFICA_LIMITE_GG + ' giorno lavorativo');
+    if (urgenti) note.push('🚨 ' + urgenti + (urgenti === 1 ? ' urgente' : ' urgenti'));
+    return note.length ? { n: n, nota: note.join(' · ') } : n;
+  }
+});
+
+// F15.19: avviso al titolare, progetti in verifica tecnica da più di 1
+// giorno lavorativo (ingresso dalla cronologia del progetto, js/16). SCELTA
+// DICHIARATA: una riga di Cosa tocca a me calcolata nel sito (come le
+// integrazioni ferme di F15.18), non una riga del motore delle scadenze:
+// nessuna fonte nuova nel database, vale anche senza sql/89. Con un solo
+// progetto apre la sua scheda, altrimenti la pagina Verifiche tecniche
+// (urgenti e più vecchi in alto).
+registraFonteToccaAMe({
+  id: 'verifiche-ferme-titolare', ruoli: ['titolare'], icona: '⏳',
+  titolo: 'Progetti fermi dall’ingegnere', livello: 'urgente',
+  vai: { pagina: 'verifiche-tecniche' },
+  conta: async function() {
+    if (!funzioneEsiste('progettiVerificaInAttesa')) return null;
+    const elenco = await progettiVerificaInAttesa();
+    if (!elenco) return null;
+    const fermi = elenco.filter(function(p) { return attesaVerificaOltre(p.giorni); });
+    if (!fermi.length) return 0;
+    const urgenti = fermi.filter(function(p) { return p.urgente; }).length;
+    const r = {
+      n: fermi.length,
+      nota: 'in verifica tecnica da più di ' + ATTESA_VERIFICA_LIMITE_GG + ' giorno lavorativo' +
+        (urgenti ? ' (🚨 ' + urgenti + (urgenti === 1 ? ' urgente' : ' urgenti') + ')' : '') + ': senti l’ingegnere'
+    };
+    if (fermi.length === 1 && funzioneEsiste('openProgettoDetail')) {
+      const id = fermi[0].id;
+      r.vai = function() { openProgettoDetail(id); };
+    }
+    return r;
   }
 });
 

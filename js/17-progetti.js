@@ -3147,6 +3147,8 @@ if (btnModifica) {
       ) : ''}
     </div>
 
+    <div id="pd-attesa-urgenza"></div>
+
     ${(progettoConSmistamento() ? ['bozza', 'da_integrare'] : ['bozza', 'da_integrare', 'pronto_per_preventivo'])
         .includes(progetto.stato) && progettoSopraSoglia(progetto) ? `
       <div class="al2 w" style="margin-bottom:16px">
@@ -3172,6 +3174,9 @@ if (btnModifica) {
       </div>
     ` : ''}
   `;
+
+  // F15.19: urgenza (sql/89) e giorni di attesa in verifica tecnica (js/16)
+  if (typeof mostraAttesaUrgenzaProgetto === 'function') await mostraAttesaUrgenzaProgetto(progetto, 'pd-attesa-urgenza');
 
   // F14.16: intestazione, "Cosa puoi fare", Collegati e Storico (js/63).
   if (typeof caricaSchedaOggetto === 'function') await caricaSchedaOggetto('progetto', progetto, 'pd-scheda-oggetto');
