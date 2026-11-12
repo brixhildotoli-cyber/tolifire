@@ -297,7 +297,14 @@ const MAX_RIGHE_COLLEGATI = 8;
 
 // Contesto letto una volta per scheda: commessa del preventivo, commesse
 // del progetto... (lo usano più fonti).
-async function commesseDelRecord(oggetto, record, ctx) {
+// Le fonti si leggono insieme (Promise.all): si tiene la PROMESSA, così la
+// lettura parte una volta sola anche se 5 fonti la chiedono nello stesso
+// momento (12/11: prima ogni fonte rifaceva le stesse 2 letture).
+function commesseDelRecord(oggetto, record, ctx) {
+  if (!ctx.commesseInLettura) ctx.commesseInLettura = leggiCommesseDelRecord(oggetto, record, ctx);
+  return ctx.commesseInLettura;
+}
+async function leggiCommesseDelRecord(oggetto, record, ctx) {
   if (ctx.commesse) return ctx.commesse;
   let q = null;
   if (oggetto === 'commessa') ctx.commesse = [record];

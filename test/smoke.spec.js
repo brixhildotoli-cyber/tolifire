@@ -104,6 +104,8 @@ const CHROME = CONF.SMOKE_CHROME || '/Applications/Google Chrome.app/Contents/Ma
 const LARGHEZZA = Number(CONF.SMOKE_LARGHEZZA || 1280);
 const LIMITE_MS = Number(CONF.SMOKE_LIMITE_MINUTI || 10) * 60 * 1000;
 const CARTELLA_OUT = CONF.SMOKE_RISULTATI || path.join(os.tmpdir(), 'toli-smoke');
+const RITARDO_MS = Number(CONF.SMOKE_RITARDO_MS || 0);
+const CONTA = !!CONF.SMOKE_CONTA_RICHIESTE;
 const SOLO = (CONF.SMOKE_SOLO_RUOLI || '').split(',').map(s => s.trim()).filter(Boolean);
 const ETICHETTA = 'SMOKE TEST ' + new Date().toISOString().slice(0, 16).replace('T', ' ');
 
@@ -285,7 +287,11 @@ async function preparaPagina(contesto, stato) {
       return req.continue({ url: nuovo, headers: h });
     }
     stato.inCorso++;
+    // Conteggio delle richieste al database (SMOKE_CONTA_RICHIESTE=1): quante
+    // e quante insieme al massimo. SMOKE_RITARDO_MS simula un database lento.
+    if (req.method() !== 'OPTIONS') { stato.n = (stato.n || 0) + 1; stato.maxInsieme = Math.max(stato.maxInsieme || 0, stato.inCorso); if (CONTA) (stato.percorsi = stato.percorsi || []).push(req.method() + ' ' + url.pathname.replace(/^\/(rest|storage)\/v1/, '') + (req.method() === 'GET' ? url.search.replace(/[0-9a-f]{8}-[0-9a-f-]{27,}/g, ':id') : '')); }
     try {
+      if (RITARDO_MS && req.method() !== 'OPTIONS') await new Promise(r => setTimeout(r, RITARDO_MS));
       const x = await rispostaLocale(req, url, stato);
       if (x.status >= 400 && req.method() !== 'OPTIONS') registraErroreRete(stato, req.method(), url, x.status, x.body);
       await req.respond({ status: x.status, headers: x.headers, body: x.body });
@@ -339,7 +345,9 @@ async function provaRuolo(browser, ruolo, credenziali, url) {
   const stato = { inCorso: 0, deviate: new Set(), ultima: 0, erroriJs: [], console: [], rete: [], bloccate: [], caricamenti: [] };
   const page = await preparaPagina(contesto, stato);
   // Gli errori raccolti da "segno" in poi, divisi tra fallimenti e avvisi.
-  const segno = () => ({ js: stato.erroriJs.length, rete: stato.rete.length, con: stato.console.length });
+  const segno = () => { const x = { js: stato.erroriJs.length, rete: stato.rete.length, con: stato.console.length, n: stato.n || 0 }; stato.maxInsieme = stato.inCorso; return x; };
+  esito.richieste = {};
+  const conta = (s, dove) => { if (CONTA) esito.richieste[dove] = { n: (stato.n || 0) - s.n, insieme: stato.maxInsieme || 0, percorsi: (stato.percorsi || []).slice(s.n) }; };
   function controllaDa(s, dove) {
     stato.erroriJs.slice(s.js).forEach(e => KO(dove + ': errore JavaScript: ' + e));
     stato.rete.slice(s.rete).forEach(e => {
@@ -368,7 +376,7 @@ async function provaRuolo(browser, ruolo, credenziali, url) {
     await attendiQuiete(stato, 800);
     const chi = await page.evaluate(() => ({ ruolo: ME.ruolo, role: ROLE, pagina: document.querySelector('.page.on').id }));
     if (chi.ruolo !== ruolo) KO('login: ruolo ' + chi.ruolo + ' invece di ' + ruolo);
-    controllaDa(s, 'login');
+    conta(s, 'login'); controllaDa(s, 'login');
 
     // 2. PAGINE_RUOLO del sito contro l'elenco atteso
     const delSito = await page.evaluate(() => (PAGINE_RUOLO[ROLE] || []).slice());
@@ -408,7 +416,7 @@ async function provaRuolo(browser, ruolo, credenziali, url) {
       else esito.pagine++;
       if (vista.toastErr) KO('pagina ' + p + ': messaggio di errore "' + vista.toastErr + '"');
       vista.box.forEach(b => { if (/errore|error/i.test(b)) KO('pagina ' + p + ': riquadro di errore "' + b + '"'); });
-      controllaDa(s, p);
+      conta(s, p); controllaDa(s, p);
     }
 
     // 4. Salvataggi di prova delle pagine principali

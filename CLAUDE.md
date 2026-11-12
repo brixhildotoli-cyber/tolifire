@@ -4207,6 +4207,30 @@ righe di ore su 5 commesse) con titolare, informatico e capo tecnico a
 390 e 1280 px; segreteria, tecnico e rappresentante non hanno la pagina;
 totali uguali ai box della scheda commessa e a una somma SQL.
 
+## Richieste al database: fila e memorie brevi (12/11, nessun SQL)
+Produzione sul piano Nano di Supabase (0,5 GB, CPU condivisa): molte
+richieste insieme da un browser fermano il gestionale per tutti. Nel sito
+(js/01, client `db`, global.fetch = fetchSupabaseInFila → fetchConAgitoCome
+→ fetchDatabase di js/57): FILA_DB, al massimo 6 richieste in corso per
+scheda del browser verso /rest, /storage, /functions (non /auth; senza rete
+niente fila); il posto si libera sempre (risposta, errore, interruzione,
+o dopo 30 s); letture identiche in corso nello stesso momento (GET/HEAD e
+RPC di sola lettura RPC_SOLA_LETTURA_DB con lo stesso corpo) = una sola
+richiesta, ognuno la sua copia (Response.clone); memoria di 60 s delle
+tabelle quasi fisse (LETTURE_QUASI_FISSE: subappaltatori, utenti, regole,
+festività, catalogo lavorazioni, motore, fornitore_tipologie, mezzi...),
+annullata da ogni scrittura della stessa scheda (FILA_DB.scritture: ogni
+richiesta non GET tranne firme dei file e RPC di sola lettura). dbPublic
+(portale) non passa dalla fila. js/63 commesseDelRecord tiene la promessa
+(le fonti dei Collegati la chiedevano 5 volte insieme); js/67
+leggiSmistamentoProgetto memoria di 30 s per progetto, annullata dalle
+scritture. Regola: una lettura nuova di dati che cambiano poco può entrare
+in LETTURE_QUASI_FISSE; una RPC nuova di sola lettura va in
+RPC_SOLA_LETTURA_DB (se no conta come scrittura: prudente). Prove:
+test/fila-richieste.spec.js (fetch finto lento, in errore, appeso,
+interrotto); smoke con SMOKE_CONTA_RICHIESTE=1 (richieste per pagina e
+quante insieme, in risultato.json) e SMOKE_RITARDO_MS=150 (database lento).
+
 ## Convenzioni di codice (rispettare SEMPRE)
 - HTML/CSS/JS vanilla. Nessun framework o build tool senza chiederlo.
 - Riutilizzare le helper esistenti: `ge`, `v`, `toast`, `fd`, `openM`,

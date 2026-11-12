@@ -86,6 +86,13 @@ produzione. Sul progetto di prova login, Storage e dati sono veri: i dati
 - `SMOKE_SITO_DIR=<cartella>`: prova una copia del sito invece del
   repository.
 - `SMOKE_CHROME=<percorso>`: Chrome in un'altra posizione.
+- `SMOKE_CONTA_RICHIESTE=1`: in `risultato.json`, per ruolo e pagina, quante
+  richieste al database, quante insieme al massimo e quali (`richieste`).
+- `SMOKE_RITARDO_MS=150`: ogni risposta del database locale arriva dopo 150
+  ms (come un database lento: si vedono le richieste che si accumulano).
+
+Fila delle richieste (js/01, 12/11): `node fila-richieste.spec.js`, senza
+database (fetch finto lento, in errore, appeso, interrotto).
 
 ## Quando si cambia il sito
 

@@ -24,7 +24,135 @@ function fetchConAgitoCome(risorsa,opzioni){
   o.headers=h;
   return fetch(risorsa,o);
 }
-const db=supabase.createClient(SU,SK,{auth:{persistSession:true,autoRefreshToken:true,storage:window.localStorage},global:{fetch:fetchConAgitoCome}});
+// 12/11: FILA delle richieste al database (piano Nano di Supabase: con
+// molte richieste insieme la CPU si satura e il gestionale si ferma per
+// tutti). Per scheda del browser al massimo FILA_DB.max richieste in corso
+// verso /rest, /storage e /functions; le altre aspettano il loro turno, in
+// ordine. Il login e il rinnovo della sessione (/auth) non fanno la fila.
+// Il posto si libera SEMPRE: risposta, errore, interruzione, o comunque dopo
+// FILA_DB.attesaMaxMs (una richiesta appesa non blocca le altre). Senza rete
+// (navigator.onLine false) niente fila: le letture arrivano dal telefono.
+// In più: due LETTURE identiche (GET/HEAD, stesso indirizzo e stesse
+// intestazioni) in corso nello stesso momento diventano una sola richiesta,
+// e ognuna riceve la sua copia della risposta (Response.clone). Stessi dati,
+// meno richieste. FILA_DB.scritture conta le scritture fatte da questa
+// scheda: le memorie brevi dei moduli (es. smistamento di js/67) le usano
+// per non mostrare un dato vecchio dopo un salvataggio.
+const FILA_DB={max:6,inCorso:0,attesa:[],attesaMaxMs:30000,inVolo:new Map(),scritture:0,
+  conteggio:{richieste:0,unite:0,inFila:0,maxInCorso:0}};
+function indirizzoRichiestaDb(risorsa){
+  try{return typeof risorsa==='string'?risorsa:(risorsa&&risorsa.url)||String(risorsa);}catch(e){return '';}
+}
+// POST che non scrivono (firme dei file, RPC di sola lettura): non contano
+// come scritture. Una RPC non in elenco conta come scrittura (prudente).
+const RPC_SOLA_LETTURA_DB=/^([a-z0-9_]+_attiv[oie]|smistamento_progetto|miei_avvisi|schede_migrate_motore|audit_presidi_da_esaminare|impegni_tecnici_dashboard|impegni_squadra_periodo|mie_deleghe_titolare|configurazione_push|stato_dispositivo_push|interventi_tecnici_assenti|assenze_personale|tipi_[a-z_]+|pratiche_aperte_[a-z_]+|importi_extra_commesse|ruolo_corrente|scheda_cantiere_commessa|miei_giorni_cantiere|mie_ore_cantiere|controllo_faldone_commessa|preventivo_firmato_commessa|voci_lavori_extra_commessa|presenti_giornale_commessa|ambito_audit_intervento|prezzi_contratto_cliente|elenco_clienti_presidi_tecnico|fonti_mancanti_progetto|controlli_invio_progetto|foto_video_mancanti_progetto|anteprima_smistamento|offerte_ordinabili_commessa)$/;
+function richiestaSoloLetturaDb(url){
+  if(/\/storage\/v1\/object\/sign\//.test(url))return true;
+  const m=/\/rest\/v1\/rpc\/([a-z0-9_]+)/.exec(url);
+  return !!(m&&RPC_SOLA_LETTURA_DB.test(m[1]));
+}
+function richiestaDaFila(url){return /\/(rest|storage|functions)\/v1\//.test(url);}
+function liberaPostoFilaDb(){
+  const prossimo=FILA_DB.attesa.shift();
+  if(prossimo)prossimo.via();else FILA_DB.inCorso=Math.max(0,FILA_DB.inCorso-1);
+}
+function prendiPostoFilaDb(segnale){
+  if(FILA_DB.inCorso<FILA_DB.max){
+    FILA_DB.inCorso++;
+    if(FILA_DB.inCorso>FILA_DB.conteggio.maxInCorso)FILA_DB.conteggio.maxInCorso=FILA_DB.inCorso;
+    return Promise.resolve();
+  }
+  FILA_DB.conteggio.inFila++;
+  return new Promise(function(ok,ko){
+    const voce={via:function(){if(segnale)segnale.removeEventListener('abort',fuori);ok();}};
+    function fuori(){
+      const i=FILA_DB.attesa.indexOf(voce);
+      if(i>=0)FILA_DB.attesa.splice(i,1);
+      ko(segnale.reason||new DOMException('Richiesta interrotta','AbortError'));
+    }
+    if(segnale){
+      if(segnale.aborted){fuori();return;}
+      segnale.addEventListener('abort',fuori,{once:true});
+    }
+    FILA_DB.attesa.push(voce);
+  });
+}
+async function eseguiInFilaDb(risorsa,opzioni){
+  const segnale=opzioni&&opzioni.signal;
+  await prendiPostoFilaDb(segnale);
+  let libero=false;
+  const libera=function(){if(libero)return;libero=true;clearTimeout(timer);liberaPostoFilaDb();};
+  const timer=setTimeout(libera,FILA_DB.attesaMaxMs);
+  try{return await fetchConAgitoCome(risorsa,opzioni);}
+  finally{libera();}
+}
+function chiaveLetturaUguale(metodo,url,opzioni){
+  let corpo='';
+  if(metodo==='POST'){
+    // RPC di sola lettura con lo stesso corpo (es. le *_attivo all'avvio)
+    if(!/\/rest\/v1\/rpc\//.test(url)||!richiestaSoloLetturaDb(url))return '';
+    corpo=opzioni&&opzioni.body;
+    if(corpo==null)corpo='';
+    if(typeof corpo!=='string')return '';
+  }else if(metodo!=='GET'&&metodo!=='HEAD')return '';
+  if(opzioni&&opzioni.signal)return '';
+  const h=new Headers((opzioni&&opzioni.headers)||undefined);
+  return [metodo,url,h.get('authorization')||'',h.get('accept')||'',h.get('prefer')||'',h.get('range')||'',
+    h.get('accept-profile')||'',h.get('content-profile')||'',intestazioneAgitoCome(),corpo].join('\n');
+}
+// Memoria breve (60 s) delle letture di tabelle che cambiano poco (elenchi
+// di subappaltatori e utenti, regole, festività, catalogo delle lavorazioni,
+// configurazione del motore...): moduli diversi della stessa scheda le
+// rileggevano uguali una dopo l'altra. Solo risposte 200, solo finché questa
+// scheda del browser non scrive nulla (FILA_DB.scritture): dopo un
+// salvataggio si rilegge dal database. Ricaricare la pagina la svuota.
+const LETTURE_QUASI_FISSE={tabelle:/^\/rest\/v1\/(subappaltatori|utenti|regole|regole_scadenze|festivita|lavorazioni|lavorazioni_campi|lavorazioni_documenti|lavorazioni_checklist|motore_oggetti|motore_stati|motore_transizioni|annullabili|fornitore_tipologie|mezzi_attrezzature)$/,
+  durataMs:60000,massimo:150,righe:new Map()};
+function letturaQuasiFissaInMemoria(metodo,url,chiave){
+  if(metodo!=='GET')return null;
+  const x=LETTURE_QUASI_FISSE.righe.get(chiave);
+  if(!x)return null;
+  if(x.scritture!==FILA_DB.scritture||Date.now()-x.il>LETTURE_QUASI_FISSE.durataMs){LETTURE_QUASI_FISSE.righe.delete(chiave);return null;}
+  return x.risposta;
+}
+function ricordaLetturaQuasiFissa(metodo,url,chiave,promessa){
+  if(metodo!=='GET')return;
+  let percorso='';
+  try{percorso=new URL(url,location.href).pathname;}catch(e){return;}
+  if(!LETTURE_QUASI_FISSE.tabelle.test(percorso))return;
+  const voce={risposta:promessa,il:Date.now(),scritture:FILA_DB.scritture};
+  promessa.then(function(r){
+    if(!r||r.status!==200||r.headers.get('x-toli-dal-telefono')){if(LETTURE_QUASI_FISSE.righe.get(chiave)===voce)LETTURE_QUASI_FISSE.righe.delete(chiave);return;}
+    if(LETTURE_QUASI_FISSE.righe.size>=LETTURE_QUASI_FISSE.massimo)LETTURE_QUASI_FISSE.righe.delete(LETTURE_QUASI_FISSE.righe.keys().next().value);
+    LETTURE_QUASI_FISSE.righe.set(chiave,voce);
+  },function(){});
+}
+function fetchSupabaseInFila(risorsa,opzioni){
+  const url=indirizzoRichiestaDb(risorsa);
+  if(!richiestaDaFila(url))return fetchConAgitoCome(risorsa,opzioni);
+  FILA_DB.conteggio.richieste++;
+  const metodo=String((opzioni&&opzioni.method)||(risorsa&&risorsa.method)||'GET').toUpperCase();
+  if(metodo!=='GET'&&metodo!=='HEAD'&&!richiestaSoloLetturaDb(url))FILA_DB.scritture++;
+  if(typeof navigator!=='undefined'&&navigator.onLine===false)return fetchConAgitoCome(risorsa,opzioni);
+  let chiave='';
+  try{chiave=chiaveLetturaUguale(metodo,url,opzioni);}catch(e){chiave='';}
+  if(!chiave)return eseguiInFilaDb(risorsa,opzioni);
+  const tenuta=letturaQuasiFissaInMemoria(metodo,url,chiave);
+  if(tenuta){FILA_DB.conteggio.unite++;return tenuta.then(function(r){return r.clone();});}
+  let comune=FILA_DB.inVolo.get(chiave);
+  if(comune)FILA_DB.conteggio.unite++;
+  else{
+    comune=eseguiInFilaDb(risorsa,opzioni);
+    FILA_DB.inVolo.set(chiave,comune);
+    const via=function(){if(FILA_DB.inVolo.get(chiave)===comune)FILA_DB.inVolo.delete(chiave);};
+    comune.then(via,via);
+    // una lettura appesa non deve trattenere le uguali che arrivano dopo
+    setTimeout(via,FILA_DB.attesaMaxMs);
+    ricordaLetturaQuasiFissa(metodo,url,chiave,comune);
+  }
+  return comune.then(function(r){return r.clone();});
+}
+const db=supabase.createClient(SU,SK,{auth:{persistSession:true,autoRefreshToken:true,storage:window.localStorage},global:{fetch:fetchSupabaseInFila}});
 // Client pubblico per portale cliente (nessun login richiesto).
 // Il codice segreto del link (?portale=<codice>) viaggia nell'intestazione
 // x-portale-token: le policy dello storage lo usano per riconoscere il

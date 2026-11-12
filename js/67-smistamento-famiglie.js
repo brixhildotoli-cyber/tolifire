@@ -182,14 +182,27 @@ async function inviaProgettoConSmistamento(progettoId) {
 }
 
 // ── Stato dello smistamento di un progetto ──────────────────────────────
-async function leggiSmistamentoProgetto(progettoId) {
-  if (SMISTAMENTO.presente === false || !progettoId) return null;
-  const { data, error } = await db.rpc('smistamento_progetto', { p_progetto: progettoId });
-  if (error) {
-    if (erroreFunzioneMancante(error)) SMISTAMENTO.presente = false;
-    return null;
-  }
-  return data || [];
+// 12/11: memoria breve (30 s) per progetto: la RPC è pesante e la chiedevano
+// più riquadri della stessa scheda e ogni progetto di "Da preventivare".
+// Vale solo finché questa scheda del browser non scrive nulla nel database
+// (FILA_DB.scritture di js/01): dopo un salvataggio si rilegge subito.
+const MEMORIA_SMISTAMENTO = { righe: new Map(), durataMs: 30000 };
+function leggiSmistamentoProgetto(progettoId) {
+  if (SMISTAMENTO.presente === false || !progettoId) return Promise.resolve(null);
+  const scritture = typeof FILA_DB !== 'undefined' ? FILA_DB.scritture : null;
+  const x = MEMORIA_SMISTAMENTO.righe.get(progettoId);
+  if (x && scritture !== null && x.scritture === scritture && Date.now() - x.il < MEMORIA_SMISTAMENTO.durataMs) return x.promessa;
+  const promessa = (async function() {
+    const { data, error } = await db.rpc('smistamento_progetto', { p_progetto: progettoId });
+    if (error) {
+      MEMORIA_SMISTAMENTO.righe.delete(progettoId);
+      if (erroreFunzioneMancante(error)) SMISTAMENTO.presente = false;
+      return null;
+    }
+    return data || [];
+  })().catch(function() { MEMORIA_SMISTAMENTO.righe.delete(progettoId); return null; });
+  MEMORIA_SMISTAMENTO.righe.set(progettoId, { promessa: promessa, il: Date.now(), scritture: scritture });
+  return promessa;
 }
 
 // Progetto con schede ancora all'ingegnere (gialle dello smistamento)?
