@@ -5099,7 +5099,7 @@ ${htmlQuantitaUmVocePreventivo(voce, indice)}
 
                 <div class="fr">
                   <div class="f">
-                    <label>Quantità (pz)</label>
+                    <label>Quantità</label>
                     <input
                       type="text"
                       inputmode="decimal"
@@ -6202,7 +6202,8 @@ async function renderCostiPreventivo() {
 vociPreventivoDati = data || [];
 // sql/265: le voci si leggono con select *: se la colonna c'è si vede lì,
 // senza voci si guarda una voce che il ruolo legge (nessuna richiesta in errore).
-quantitaUmEditorDisponibile = await verificaQuantitaUmVociDisponibile(vociPreventivoDati);
+// 12/11 (Erika): campo "Quantità x UM" tolto dal sito, si torna a una sola quantità
+quantitaUmEditorDisponibile = false;
 storicoUndoPreventivo = [];
 vociEliminatePreventivo = [];
 chiaveModificaPreventivo = '';
@@ -6498,7 +6499,7 @@ async function generaPreventivoClientePDF(datiEsterni) {
   // sql/264: oggetto e nota solo se le colonne ci sono (senza: 400 evitato)
   const conOggettoNota = !datiEsterni && await verificaOggettoNotaPreventivoDisponibile();
   // sql/265: "Quantità x UM" solo se la colonna c'è (senza: 400 evitato)
-  const conQuantitaUm = !datiEsterni && await verificaQuantitaUmVociDisponibile();
+  const conQuantitaUm = false; // 12/11: colonna "Q.tà x UM" tolta dal PDF
   // sql/264 (computo): solo se le colonne ci sono (con i dati esterni li
   // porta dati_pdf_preventivo_cliente)
   const conComputo = !datiEsterni && await verificaComputoPreventivoDisponibile();
@@ -6715,9 +6716,8 @@ margin: {
     startY: y + 4,
     head: [[
       'Descrizione',
-      'Q.tà (pz)',
+      'Q.tà',
       'U.M.',
-      'Q.tà x UM',
       'Prezzo unit.',
       'Totale'
     ]],
@@ -6731,8 +6731,6 @@ margin: {
         voce.descrizione || '—',
         String(quantita),
         voce.unita_misura || 'pz',
-        // sql/265: testo libero così com'è (vuoto se non compilato)
-        testoQuantitaUmVoce(voce.quantita_um),
         euroPreventivo(prezzo),
         euroPreventivo(quantita * prezzo)
       ];
@@ -6749,12 +6747,11 @@ margin: {
     },
     columnStyles: {
       // 178 mm utili (A4 meno 16 mm per lato), come prima con una colonna in più
-      0: { cellWidth: 58 },
-      1: { halign: 'right', cellWidth: 19 },
-      2: { cellWidth: 14 },
-      3: { halign: 'right', cellWidth: 21 },
-      4: { halign: 'right', cellWidth: 33 },
-      5: { halign: 'right', cellWidth: 33 }
+      0: { cellWidth: 72 },
+      1: { halign: 'right', cellWidth: 18 },
+      2: { cellWidth: 18 },
+      3: { halign: 'right', cellWidth: 34 },
+      4: { halign: 'right', cellWidth: 34 }
     }
     
   });
