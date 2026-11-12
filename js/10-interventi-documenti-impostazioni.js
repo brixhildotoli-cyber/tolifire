@@ -289,17 +289,67 @@ async function loadTeam(){
   const puoEntrareCome=u=>typeof utenteImpersonabile==='function'&&ROLE_REALE==='titolare'&&!ENTRA_COME&&utenteImpersonabile(ME_REALE,u);
   el.innerHTML=`<table><thead><tr><th>Nome</th><th>Ruolo</th><th>Stato</th><th>Azioni</th></tr></thead><tbody>${data.map(u=>`<tr>
     <td><strong>${esc(u.nome)} ${esc(u.cognome)}</strong><br><span style="font-size:11px;color:var(--m)">${esc(u.email)}</span></td>
-    <td><span class="bx bblue">${esc(etichettaRuolo(u.ruolo))}</span></td>
+    <td><span class="bx bblue">${esc(etichettaRuolo(u.ruolo))}</span>${htmlVenditoreEsterno(u)}</td>
     <td>${statoUtenteTeam(u)}</td>
     <td style="display:flex;gap:6px">
       ${typeof openSchedaDocumenti==='function'&&canAccessPage('scheda-documenti')?`<button class="btn sm" title="Documenti con scadenza (F7.1)" onclick="openSchedaDocumenti('dipendente','${u.id}')">🪪 Documenti</button>`:''}
       ${puoEntrareCome(u)?`<button class="btn sm" title="Vedi il gestionale come lo vede questa persona (F14.17)" onclick="entraCome('${u.id}')">👁️ Entra come</button>`:''}
+      ${puoSegnareVenditoreEsterno(u)?`<button class="btn sm" title="Agente esterno o venditore interno, partita IVA (F15.22)" onclick="apriVenditoreEsterno('${u.id}')">🏷️ Interno/esterno</button>`:''}
       ${RIASSEGNA.disponibili&&RIASSEGNA.pratiche[u.id]?`<button class="btn sm" title="Sposta in blocco le sue pratiche aperte a un collega (F14.21)" onclick="apriRiassegnaPratiche('${u.id}')">🔀 Riassegna</button>`:''}
       <button class="btn sm" onclick="toggleAttivoUtente('${u.id}',${u.attivo})">${u.attivo?'⏸️ Disattiva':'▶️ Riattiva'}</button>
       ${u.id!==ME?.id?`<button class="btn sm" style="color:var(--r)" onclick="eliminaUtente('${u.id}','${esc(u.nome)} ${esc(u.cognome)}')">🗑️</button>`:''}
     </td>
   </tr>`).join('')}</tbody></table>`;
 }
+// ── F15.22 — AGENTE ESTERNO / VENDITORE INTERNO (sql/226) ───────────
+// Solo un'etichetta (decisione E2): stesso ruolo rappresentante, stesse
+// pagine, stessi bottoni, stessi clienti visibili. Le colonne
+// utenti.esterno e partita_iva_venditore le scrive solo il titolare (anche
+// il database: trigger trg_utenti_esterno). Senza sql/226 le colonne non
+// arrivano nella select * del Team: niente etichetta né bottone.
+function venditoreEsternoDisponibile(u){return !!u&&Object.prototype.hasOwnProperty.call(u,'esterno');}
+function htmlVenditoreEsterno(u){
+  if(!venditoreEsternoDisponibile(u)||u.ruolo!=='rappresentante')return '';
+  const piva=u.partita_iva_venditore?`<br><span style="font-size:11px;color:var(--m)">P.IVA ${esc(u.partita_iva_venditore)}</span>`:'';
+  return u.esterno
+    ?` <span class="bx bwarn" title="Stesso ruolo e stessi poteri del venditore interno">Agente esterno</span>${piva}`
+    :` <span class="bx bgray">Venditore interno</span>${piva}`;
+}
+function puoSegnareVenditoreEsterno(u){
+  return ROLE==='titolare'&&venditoreEsternoDisponibile(u)&&u.ruolo==='rappresentante';
+}
+// "IT 012 345 678 90" → "01234567890" (stessa regola del database)
+function normalizzaPartitaIvaVenditore(t){
+  let x=String(t||'').toUpperCase().replace(/[\s.\-]/g,'');
+  if(x.startsWith('IT'))x=x.slice(2);
+  return x;
+}
+function apriVenditoreEsterno(id){
+  const u=(RIASSEGNA.utenti||[]).find(x=>x.id===id);
+  if(!u||!puoSegnareVenditoreEsterno(u)){toast('Solo il titolare segna un venditore come agente esterno o interno','err');return;}
+  ge('vde-id').value=u.id;
+  ge('vde-nome').textContent=((u.nome||'')+' '+(u.cognome||'')).trim();
+  ge('vde-esterno').checked=!!u.esterno;
+  ge('vde-interno').checked=!u.esterno;
+  ge('vde-piva').value=u.partita_iva_venditore||'';
+  openM('m-venditore-esterno');
+}
+async function salvaVenditoreEsterno(){
+  if(ROLE!=='titolare'){toast('Solo il titolare segna un venditore come agente esterno o interno','err');return;}
+  const id=v('vde-id');
+  const piva=normalizzaPartitaIvaVenditore(v('vde-piva'));
+  if(piva&&!/^[0-9]{11}$/.test(piva)){toast('La partita IVA ha 11 cifre (es. 01234567890)','err');ge('vde-piva').focus();return;}
+  const upd={esterno:!!ge('vde-esterno').checked,partita_iva_venditore:piva||null};
+  const btn=ge('vde-salva');btn.disabled=true;
+  const {data,error}=await db.from('utenti').update(upd).eq('id',id).select('id');
+  btn.disabled=false;
+  if(error){toast('Non salvato: '+error.message,'err');return;}
+  if(!data||!data.length){toast('Non salvato: permesso negato','err');return;}
+  closeM('m-venditore-esterno');
+  toast((upd.esterno?'Agente esterno':'Venditore interno')+' salvato ✓','ok');
+  loadTeam();
+}
+
 async function loadImp(){
   const {data}=await db.from('impostazioni').select('*').eq('id',1).maybeSingle();if(!data)return;
   IMPOSTAZIONI=data;

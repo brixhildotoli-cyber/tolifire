@@ -3350,6 +3350,22 @@
 
       <div class="al2 i">I tempi (2 e 7 giorni lavorativi) li decide il titolare nelle <b>Regole</b>. "Richiedi integrazione" e la nota restano come prima.</div>
 
+      <h4 id="info-rap-37">37. 🏷️ "Agente esterno" o "Venditore interno"</h4>
+
+      <p>
+        Il titolare può segnare nel <b>Team</b> se lavori come <b>Agente esterno</b> o come <b>Venditore interno</b>, con la tua partita IVA. È solo un'etichetta per l'anagrafica e il prospetto delle provvigioni: per te non cambia niente.
+      </p>
+
+      <ul>
+        <li>Stesse pagine, stessi bottoni, stessi passaggi: vedi sempre e solo i <b>tuoi</b> clienti, con i loro progetti, preventivi e commesse.</li>
+        <li>Le provvigioni sono le stesse per interni ed esterni.</li>
+        <li>L'etichetta e la partita IVA le cambia solo il titolare: se sono sbagliate, chiediglielo.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Mario lavora a partita IVA per più aziende: il titolare lo segna "Agente esterno". Mario apre <b>Clienti</b> e <b>Progetti</b> e trova esattamente quello che trovava prima.
+      </div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -6021,6 +6037,24 @@
       </div>
 
       <div class="al2 w">Fino all'aggiornamento del database sql/91 la riga e il bottone non ci sono.</div>
+
+      <h4 id="info-tit-38">38. 🏷️ Agenti esterni e venditori interni</h4>
+
+      <p>
+        In <b>Impostazioni</b> &gt; <b>Team</b>, accanto al ruolo di ogni Rappresentante, leggi <b>Venditore interno</b> o <b>Agente esterno</b> (e la partita IVA, se l'hai scritta). Per cambiarli premi <b>🏷️ Interno/esterno</b> sulla sua riga, scegli e premi <b>💾 Salva</b>.
+      </p>
+
+      <ul>
+        <li>È solo un'etichetta (anagrafica e prospetto provvigioni): stesso ruolo rappresentante, stesse pagine e stessi bottoni; l'agente esterno vede solo i suoi clienti, come il venditore interno.</li>
+        <li>La partita IVA è facoltativa: 11 cifre, spazi e "IT" davanti si tolgono da soli.</li>
+        <li>Lo puoi fare solo tu (e l'informatico), anche dal database: il rappresentante non lo cambia nemmeno sulla sua riga e con <b>Entra come</b> viene rifiutato. Il registro delle azioni dice chi e quando.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Su "Mario Rossi" premi <b>🏷️ Interno/esterno</b>, scegli <b>Agente esterno</b>, scrivi "IT 012 345 678 90" e salvi: nel Team leggi "Agente esterno" e sotto "P.IVA 01234567890".
+      </div>
+
+      <div class="al2 w">Fino all'aggiornamento del database sql/226 l'etichetta e il bottone non ci sono.</div>
 
       <h4>Regole pratiche</h4>
 
@@ -10601,6 +10635,35 @@
 
     <div style="font-size:13px;font-weight:600;margin:16px 0 6px">📒 Ultime riassegnazioni</div>
     <div id="rpr-registro"></div>
+  </div>
+</div>
+
+<!-- F15.22 — Agente esterno / venditore interno (js/10 apriVenditoreEsterno, sql/226): solo etichetta -->
+<div class="mbg" id="m-venditore-esterno">
+  <div class="modal" style="max-width:460px">
+    <div class="mh">
+      <span>🏷️ Agente esterno o venditore interno</span>
+      <button class="x" onclick="closeM('m-venditore-esterno')">×</button>
+    </div>
+    <input type="hidden" id="vde-id">
+    <div class="f">
+      <label>Rappresentante</label>
+      <div id="vde-nome" style="font-weight:700"></div>
+    </div>
+    <div class="f">
+      <label>È</label>
+      <label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="radio" name="vde-tipo" id="vde-interno"> Venditore interno</label>
+      <label style="display:flex;gap:6px;align-items:center;font-weight:400"><input type="radio" name="vde-tipo" id="vde-esterno"> Agente esterno</label>
+    </div>
+    <div class="f">
+      <label>Partita IVA (facoltativa)</label>
+      <input id="vde-piva" maxlength="20" inputmode="numeric" placeholder="es. 01234567890">
+    </div>
+    <div class="al2 i" style="margin:0 0 8px">È solo un'etichetta per l'anagrafica e le provvigioni: stesso ruolo, stesse pagine, stessi bottoni e stessi clienti del venditore interno.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <button class="btn" onclick="closeM('m-venditore-esterno')">Annulla</button>
+      <button class="btn p" id="vde-salva" onclick="salvaVenditoreEsterno()">💾 Salva</button>
+    </div>
   </div>
 </div>
 

@@ -376,6 +376,13 @@ nuova, nessuna colonna, nessuna policy, matrice invariata. Il motivo di "Crea
 comunque" va in progetti_tecnici_storico (tipo_evento 'doppione_confermato',
 lo scrive solo la RPC registra_doppione_progetto); avvisi: tipo nuovo
 'progetto_doppione' (al titolare).
+Dopo sql/226 (F15.22 agenti esterni e venditore interno, decisione E2, approvata
+da Erika il 12/11 come SOLA ETICHETTA; DA ESEGUIRE con "CONFERMATO DA TOLI:
+sql/226"): nessuna tabella nuova (matrice invariata). utenti: colonne NUOVE
+esterno (boolean not null default false: Agente esterno / Venditore interno) e
+partita_iva_venditore (facoltativa, 11 cifre, vincolo
+utenti_partita_iva_venditore_check); le scrive SOLO il titolare (trigger
+trg_utenti_esterno), lette da tutti come le altre colonne di utenti.
 Dopo sql/89 (F15.19 coda dell'ingegnere, VERSIONE RIDOTTA decisa da Erika il
 12/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/89"): nessuna tabella nuova,
 matrice invariata. progetti_tecnici: colonna NUOVA urgente (boolean, default
@@ -1920,6 +1927,42 @@ rappresentante a 390 px, titolare, ingegnere e Acquisti a 390 px;
 INTEGRAZIONI_SENZA_SQL=1 senza il file); 64-PROVA accetta 11/12 o 16/12
 secondo l'unità; smoke TUTTO OK senza sql/88. Senza sql/88: avviso al
 titolare dopo 7 giorni di calendario come prima, nessun errore.
+Dopo sql/226 (F15.22 agenti esterni e venditore interno, decisione di Toli E2;
+approvata da Erika il 12/11 come SOLA ETICHETTA: stesso ruolo rappresentante,
+stesse pagine, stessi bottoni, stessi clienti; provvigioni uguali, E12). DA
+ESEGUIRE con "CONFERMATO DA TOLI: sql/226": backup, anteprima in fondo al file,
+226-agenti-esterni-venditore-interno.sql (senza parole di cancellazione, server
+MCP), controllo in fondo; nessun -REGISTRO-CANCELLAZIONI; richiede 07 e 71, si
+ferma senza; il sito si pubblica prima o dopo. Nessuna RPC, nessuna policy
+nuova o cambiata (PAGINE_RUOLO.rappresentante e policy di sql/08 identiche).
+Colonne utenti.esterno (default false = Venditore interno) e
+utenti.partita_iva_venditore (null o 11 cifre; il trigger toglie spazi, punti,
+trattini e "IT", vuota = null). Trigger trg_utenti_esterno (BEFORE INSERT OR
+UPDATE OF esterno, partita_iva_venditore; security definer): solo
+ruolo_corrente() = 'titolare' (informatico compreso), 42501 per gli altri ruoli
+del sito, compreso il rappresentante sulla propria riga (utenti_update gli
+lascia aggiornare sé stesso: telefono come prima) e il titolare "Entra come";
+editor libero. Chi e quando: registro delle azioni di sql/67 (già su utenti).
+SCELTA DICHIARATA: utenti_select è "true" per authenticated, quindi le due
+colonne le leggono tutti gli utenti del sito (come nome, email, telefono).
+Nel sito (js/10, nessun file nuovo; js/17 non toccato): nel Team accanto al
+ruolo dei Rappresentanti "Venditore interno" / "Agente esterno" e la P.IVA
+(htmlVenditoreEsterno), per il titolare "🏷️ Interno/esterno"
+(apriVenditoreEsterno, finestra m-venditore-esterno, id vde-, salvaVenditoreEsterno
+con update diretto; P.IVA controllata anche nel sito). Senza sql/226 le colonne
+non arrivano nella select * del Team: niente etichetta né bottone, nessun
+errore. Guide info-rap-37, info-tit-38. Prove:
+sql/226-agenti-esterni-venditore-interno-PROVA.sql (solo database di prova,
+rollback: titolare e informatico, P.IVA normalizzata e sbagliata 23514,
+registro, rappresentante sulla propria riga 42501 e telefono sì, altro
+rappresentante 0 righe, segreteria, Acquisti, capo tecnico, tecnico, ingegnere,
+contabile 42501, titolare "come" rappresentante e segreteria 42501, insert,
+stessi conteggi di clienti/progetti/preventivi/commesse/trattative da interno
+e da esterno, solo i clienti visibili); test/venditore-esterno.spec.js
+(Chrome headless, rappresentante a 390 px prima e dopo: menu, PAGINE_RUOLO,
+conteggi e bottoni uguali; titolare nel Team; console rifiutate;
+VENDITORE_SENZA_SQL=1 dopo il rollback); smoke TUTTO OK con e senza sql/226;
+matrice invariata; rollback provato (schema identico con pg_dump).
 Dopo sql/89 (F15.19 coda dell'ingegnere, tempi e urgenza, VERSIONE RIDOTTA
 decisa da Erika il 12/11: "solo informazioni in più, l'ingegnere lavora come
 oggi"; NON FATTI il controllo a campione 1 su 10 e la colonna
