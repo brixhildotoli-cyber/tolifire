@@ -6003,6 +6003,25 @@
 
       <div class="al2 w">Fino all'aggiornamento del database sql/89 vedi giorni di attesa e la riga ⏳, ma non il bottone <b>🚨 Segna urgente</b> né il badge.</div>
 
+      <h4 id="info-tit-37">37. 📝 Proposte di campi nuovi dall'ingegnere</h4>
+
+      <p>
+        L'ingegnere può proporre una domanda nuova per una scheda di rilievo. Quando ce ne sono, in <b>Cosa tocca a me</b> compare la riga <b>📝 Proposte di campi da valutare</b>; le ritrovi anche in <b>Impostazioni</b> &gt; <b>📚 Catalogo lavorazioni</b> (bottone <b>📝 Proposte di campi</b>) e nel catalogo sotto la lavorazione.
+      </p>
+
+      <ul>
+        <li>Premi <b>✅ Approva o rifiuta</b>: puoi correggere domanda, codice, tipo, unità, risposte del menu, uso a valle e chi lo compila (<b>Base</b> o <b>Ingegnere</b>).</li>
+        <li><b>✅ Approva e aggiungi</b>: il campo entra nel catalogo <b>facoltativo</b> (non serve al prezzo, non ferma nessun invio), in fondo alla scheda. Le schede aperte da quel momento lo mostrano; quelle già salvate restano come sono.</li>
+        <li><b>✖ Rifiuta</b>: scrivi il motivo, l'ingegnere lo legge nel catalogo.</li>
+        <li>Lo puoi fare solo tu (e l'informatico), anche dal database: con <b>Entra come</b> un altro ruolo viene rifiutato. Se poi il campo non serve più, lo togli dal catalogo con <b>🗑️ Togli il campo</b>.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>L'ingegnere propone "Tipo di specchiatura" per le porte REI con le risposte "Cieca" e "Con vetro". Aggiungi la risposta "Con griglia", lasci "Base" e premi <b>✅ Approva e aggiungi</b>: chi compila la scheda la trova in fondo alla scheda delle porte REI del progetto dopo.
+      </div>
+
+      <div class="al2 w">Fino all'aggiornamento del database sql/91 la riga e il bottone non ci sono.</div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -7580,6 +7599,25 @@
         <b>Esempio</b><br>Capriate in legno da proteggere: Materiale del supporto "Legno", Cosa si protegge "Elemento strutturale", Elemento "Capriata", Stato del supporto "Legno grezzo", Numero elementi 4. Superficie e sviluppo lineare puoi lasciarli vuoti: premi <b>💾 Salva scheda</b> e il progetto si invia.
       </div>
 
+      <h4 id="info-ing-32">32. ➕ Manca una domanda nella scheda: proponi un campo nuovo</h4>
+
+      <p>
+        Se compilando una scheda ti accorgi che manca una domanda (per esempio il tipo di specchiatura delle porte), proponila al titolare. Puoi farlo in due punti: nella scheda di rilievo aperta, con il link <b>➕ Proponi un campo</b> sotto i campi, oppure da <b>📚 Catalogo lavorazioni</b> (pagina <b>Verifiche tecniche</b>) con il bottone <b>➕ Proponi un campo</b> sotto <b>➕ Aggiungi campo</b>.
+      </p>
+
+      <ul>
+        <li>Nella finestra scrivi la <b>Domanda</b>, scegli il <b>Tipo</b> (numero, menu, sì/no, testo), l'unità se serve, le <b>Risposte possibili</b> se è un menu (<b>➕ Aggiungi</b> una alla volta), l'<b>Uso a valle</b> (a cosa serve: preventivo, PDF, dichiarazione) e se vuoi il perché. Poi premi <b>📤 Invia la proposta</b>.</li>
+        <li>Nel catalogo, sotto la lavorazione, vedi le tue proposte: <b>⏳ In attesa del titolare</b>, <b>✅ Approvata</b> (con il codice del campo) o <b>✖ Rifiutata</b> con il motivo.</li>
+        <li>Approvata, la domanda compare in fondo alla scheda da quella che apri dopo. È <b>facoltativa</b>: non ferma l'invio di nessun progetto.</li>
+        <li>Niente cambia nel resto: <b>➕ Aggiungi campo</b> del catalogo resta com'era.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Nella scheda delle porte REI premi <b>➕ Proponi un campo</b>: Domanda "Tipo di specchiatura", Tipo "Menu", risposte "Cieca" e "Con vetro", Uso a valle "Descrizione della porta nel preventivo". Il titolare la approva: al progetto dopo la domanda è in fondo alla scheda delle porte REI.
+      </div>
+
+      <div class="al2 w">Fino all'aggiornamento del database sql/91 il link e il bottone <b>➕ Proponi un campo</b> non ci sono.</div>
+
       <h4>Checklist veloce prima di chiudere la giornata</h4>
 
       <ul>
@@ -8709,6 +8747,55 @@
       <button class="btn" type="button" id="clc-togli" style="margin-right:auto" onclick="togliCampoLavorazione()">🗑️ Togli il campo</button>
       <button class="btn" onclick="closeM('m-campo-lavorazione')">Annulla</button>
       <button class="btn p" type="button" id="clc-salva" onclick="salvaCampoLavorazione()">💾 Salva campo</button>
+    </div>
+  </div>
+</div>
+
+<!-- F15.21 — PROPOSTE DI CAMPI (js/55, sql/91): elenco per titolare e ingegnere; dopo m-catalogo-lavorazioni, così resta sopra -->
+<div class="mbg" id="m-proposte-campi">
+  <div class="modal" style="max-width:700px">
+    <button class="x" onclick="closeM('m-proposte-campi')">×</button>
+    <h3>📝 Proposte di campi</h3>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Campi nuovi delle schede proposti dall'ingegnere. Il titolare li approva (entrano facoltativi, in fondo alla scheda) o li rifiuta con un motivo.</div>
+    <div id="pce-contenuto"></div>
+    <div class="ma"><button class="btn" onclick="closeM('m-proposte-campi')">Chiudi</button></div>
+  </div>
+</div>
+
+<!-- F15.21 — UNA PROPOSTA DI CAMPO (js/55 apriPropostaCampo): proponi (ingegnere) o approva/rifiuta (titolare); dopo m-proposte-campi -->
+<div class="mbg" id="m-proposta-campo">
+  <div class="modal" style="max-width:560px">
+    <button class="x" onclick="closeM('m-proposta-campo')">×</button>
+    <h3 id="pcl-titolo">➕ Proponi un campo</h3>
+    <div class="al2 i" id="pcl-info" style="margin-bottom:8px"></div>
+    <div class="f"><label>Lavorazione (scheda) *</label><select id="pcl-lavorazione"></select></div>
+    <div class="f"><label>Domanda (etichetta del campo) *</label><input id="pcl-etichetta" maxlength="160" oninput="codicePropostaDaEtichetta()" placeholder="Es. Tipo di specchiatura"></div>
+    <div class="fr">
+      <div class="f"><label>Tipo *</label><select id="pcl-tipo" onchange="aggiornaTipoPropostaCampo()"></select></div>
+      <div class="f"><label>Unità di misura</label><input id="pcl-unita" maxlength="20" placeholder="Es. kg, m², pz"></div>
+    </div>
+    <div id="pcl-box-menu">
+      <label style="font-size:12px;font-weight:600">Risposte possibili *</label>
+      <div id="pcl-valori" style="margin:4px 0"></div>
+      <div style="display:flex;gap:6px;align-items:flex-end">
+        <div class="f" style="flex:1 1 auto;margin:0"><label>Nuova risposta</label><input id="pcl-nuovo-valore" maxlength="120" placeholder="Es. Con vetro" onkeydown="if(event.key==='Enter'){event.preventDefault();aggiungiValorePropostaCampo();}"></div>
+        <button class="btn sm" type="button" onclick="aggiungiValorePropostaCampo()">➕ Aggiungi</button>
+      </div>
+    </div>
+    <div class="f"><label>Uso a valle * (quale calcolo o documento lo usa)</label><textarea id="pcl-uso" rows="2" maxlength="500" placeholder="Es. Descrizione della porta nel preventivo"></textarea></div>
+    <div class="f" id="pcl-box-nota"><label>Perché serve (facoltativo)</label><textarea id="pcl-nota" rows="2" maxlength="1000" placeholder="Es. I clienti lo chiedono spesso e oggi finisce nelle note"></textarea></div>
+    <div id="pcl-box-decidi" style="display:none">
+      <div class="fr">
+        <div class="f"><label>Codice (non si cambia più) *</label><input id="pcl-codice" maxlength="41" oninput="this.dataset.toccato='1'" placeholder="Es. tipo_specchiatura"></div>
+        <div class="f"><label>Chi lo compila</label><select id="pcl-livello"><option value="base">Base (venditore)</option><option value="ingegnere">Ingegnere</option></select></div>
+      </div>
+      <div class="f"><label>Motivo (solo per rifiutare)</label><textarea id="pcl-motivo" rows="2" maxlength="500" placeholder="Es. C'è già il campo Note della porta"></textarea></div>
+    </div>
+    <div class="ma">
+      <button class="btn" type="button" id="pcl-rifiuta" style="margin-right:auto;display:none" onclick="rifiutaPropostaCampo()">✖ Rifiuta</button>
+      <button class="btn" onclick="closeM('m-proposta-campo')">Annulla</button>
+      <button class="btn p" type="button" id="pcl-invia" onclick="inviaPropostaCampo()">📤 Invia la proposta</button>
+      <button class="btn p" type="button" id="pcl-approva" style="display:none" onclick="approvaPropostaCampo()">✅ Approva e aggiungi</button>
     </div>
   </div>
 </div>

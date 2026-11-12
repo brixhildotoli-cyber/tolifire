@@ -1089,3 +1089,391 @@ async function scaricaModelloImportLav() {
   XLSX.utils.book_append_sheet(wb, wi, 'Istruzioni');
   XLSX.writeFile(wb, 'Modello_catalogo_lavorazioni.xlsx');
 }
+
+// ── F15.21 — PROPOSTE DI NUOVI CAMPI (sql/91) ──────────────────────────
+// L'ingegnere propone un campo nuovo per una scheda ("➕ Proponi un campo"
+// nel catalogo, sotto "➕ Aggiungi campo", e nella scheda del motore che
+// apre lui); il titolare (informatico compreso) lo approva, correggendo se
+// vuole etichetta, codice, tipo, unità, risposte del menu, uso a valle e chi
+// lo compila, oppure lo rifiuta con un motivo. Approvato, il campo entra nel
+// catalogo FACOLTATIVO (non serve al prezzo: non ferma nessun invio), non
+// normativo, non per posizione, IN FONDO alla lavorazione: lo decide il
+// database (approva_proposta_campo). Le schede aperte dopo lo mostrano.
+// Finestre m-proposta-campo (id pcl-: proposta e decisione) e
+// m-proposte-campi (id pce-: elenco). Riga del titolare "📝 Proposte di campi
+// da valutare" in Cosa tocca a me e conteggio nel riquadro di Impostazioni.
+// Nessun bottone di prima cambia ("➕ Aggiungi campo" resta com'era).
+// Senza sql/91: nessun bottone, nessuna riga, nessun errore (una chiamata RPC
+// 404, solo per titolare e ingegnere).
+
+const PROPOSTE_CAMPI = { disponibili: null, inVerifica: null, elenco: [], letto: 0, modo: '', id: null, lavorazione: '', valori: [], soloAttesa: true };
+const TIPI_PROPOSTA_CAMPO = TIPI_CAMPO_LAV.filter(function(t) { return t.value !== 'foto'; });
+const STATI_PROPOSTA_CAMPO = { in_attesa: '⏳ In attesa del titolare', approvata: '✅ Approvata', rifiutata: '✖ Rifiutata' };
+
+async function verificaProposteCampiDisponibili() {
+  if (ROLE !== 'titolare' && ROLE !== 'ingegnere') return false;
+  if (PROPOSTE_CAMPI.disponibili !== null) return PROPOSTE_CAMPI.disponibili;
+  if (PROPOSTE_CAMPI.inVerifica) return PROPOSTE_CAMPI.inVerifica;
+  PROPOSTE_CAMPI.inVerifica = (async function() {
+    try {
+      const { data, error } = await db.rpc('proposte_campi_attive');
+      PROPOSTE_CAMPI.disponibili = !error && data === true;
+    } catch (e) {
+      PROPOSTE_CAMPI.disponibili = false;
+    } finally {
+      PROPOSTE_CAMPI.inVerifica = null;
+    }
+    return PROPOSTE_CAMPI.disponibili;
+  })();
+  return PROPOSTE_CAMPI.inVerifica;
+}
+
+async function caricaProposteCampi(forza) {
+  if (!(await verificaProposteCampiDisponibili())) return [];
+  if (!forza && PROPOSTE_CAMPI.letto && Date.now() - PROPOSTE_CAMPI.letto < 30000) return PROPOSTE_CAMPI.elenco;
+  const { data, error } = await db.from('lavorazioni_proposte_campi').select('*')
+    .order('proposta_il', { ascending: false }).limit(300);
+  if (error) { console.warn('Proposte di campi:', error.message); return PROPOSTE_CAMPI.elenco; }
+  PROPOSTE_CAMPI.elenco = data || [];
+  PROPOSTE_CAMPI.letto = Date.now();
+  return PROPOSTE_CAMPI.elenco;
+}
+
+function quandoPropostaCampo(t) {
+  if (!t) return '';
+  try { return new Date(t).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return t; }
+}
+
+function nomeLavorazionePropostaCampo(id) {
+  const l = (CATALOGO_LAV.lavorazioni || []).find(function(x) { return Number(x.id) === Number(id); });
+  return l ? l.nome : 'Lavorazione ' + id;
+}
+
+function etichettaTipoPropostaCampo(tipo) {
+  return (TIPI_CAMPO_LAV.find(function(t) { return t.value === tipo; }) || {}).label || tipo;
+}
+
+function htmlRigaPropostaCampo(p, conLavorazione) {
+  const titolare = ROLE === 'titolare';
+  const valori = p.tipo === 'menu' && Array.isArray(p.valori_ammessi)
+    ? '<div style="font-size:12px;margin-top:2px">' + p.valori_ammessi.map(function(x) { return '<span style="display:inline-block;margin:1px 3px 1px 0;padding:1px 7px;border:1px solid var(--bo);border-radius:10px;font-size:11px">' + esc(x.etichetta) + '</span>'; }).join('') + '</div>'
+    : '';
+  const esito = p.stato === 'approvata'
+    ? 'Approvata da ' + esc(p.decisa_da_nome || '') + ' il ' + esc(quandoPropostaCampo(p.decisa_il)) + ' · campo <code>' + esc(p.codice_campo || '') + '</code>'
+    : p.stato === 'rifiutata'
+      ? 'Rifiutata da ' + esc(p.decisa_da_nome || '') + ' il ' + esc(quandoPropostaCampo(p.decisa_il)) + ': <b>' + esc(p.motivo_rifiuto || '') + '</b>'
+      : '';
+  return '<div class="pcl-riga" data-proposta="' + Number(p.id) + '" style="padding:6px 0;border-bottom:1px solid var(--bo);font-size:13px">' +
+    '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between">' +
+      '<div style="flex:1 1 220px"><b>' + esc(p.etichetta) + '</b> <span style="font-size:11px;color:var(--m)">' +
+        (conLavorazione ? esc(nomeLavorazionePropostaCampo(p.lavorazione_id)) + ' · ' : '') + esc(etichettaTipoPropostaCampo(p.tipo)) +
+        (p.unita ? ' · ' + esc(p.unita) : '') + ' · ' + esc(STATI_PROPOSTA_CAMPO[p.stato] || p.stato) + '</span></div>' +
+      (titolare && p.stato === 'in_attesa'
+        ? '<button class="btn sm p" type="button" onclick="apriPropostaCampo(\'decidi\',' + Number(p.id) + ')">✅ Approva o rifiuta</button>' : '') +
+    '</div>' + valori +
+    '<div style="font-size:11px;color:var(--m);margin-top:2px">Uso a valle: ' + esc(p.uso_a_valle || '') + '</div>' +
+    (p.nota ? '<div style="font-size:11px;color:var(--m)">Perché: ' + esc(p.nota) + '</div>' : '') +
+    '<div style="font-size:11px;color:var(--m)">Proposta da ' + esc(p.proposta_da_nome || '') + ' il ' + esc(quandoPropostaCampo(p.proposta_il)) + '</div>' +
+    (esito ? '<div style="font-size:12px;margin-top:2px">' + esito + '</div>' : '') +
+  '</div>';
+}
+
+// Riquadro nel catalogo, sotto "➕ Aggiungi campo" (la riga di prima non cambia)
+async function disegnaProposteCatalogoLav() {
+  const vecchio = ge('cl-proposte');
+  if (vecchio) vecchio.remove();
+  if (!(await verificaProposteCampiDisponibili())) return;
+  const l = lavorazioneCatalogo(CATALOGO_LAV.aperta);
+  const campi = ge('cl-campi');
+  if (!l || !campi || ge('cl-proposte')) return;
+  const elenco = (await caricaProposteCampi()).filter(function(p) { return Number(p.lavorazione_id) === Number(l.id); });
+  if (ge('cl-proposte') || CATALOGO_LAV.aperta !== l.codice) return;
+  const titolare = ROLE === 'titolare';
+  const inAttesa = elenco.filter(function(p) { return p.stato === 'in_attesa'; });
+  const tutte = PROPOSTE_CAMPI.elenco.filter(function(p) { return p.stato === 'in_attesa'; }).length;
+  const mostra = titolare ? inAttesa : elenco.slice(0, 10);
+  let dopo = campi.nextElementSibling;
+  const box = document.createElement('div');
+  box.id = 'cl-proposte';
+  box.style.cssText = 'margin-top:8px';
+  box.innerHTML =
+    (titolare ? '' : '<button class="btn sm" type="button" id="cl-proponi-campo" onclick="apriPropostaCampo(\'proponi\', null, CATALOGO_LAV.aperta)">➕ Proponi un campo</button>' +
+      '<div style="font-size:11px;color:var(--m);margin-top:3px">La proposta va al titolare: se la approva il campo entra facoltativo, in fondo alla scheda.</div>') +
+    (mostra.length || (titolare && tutte)
+      ? '<div style="font-size:12px;font-weight:600;margin-top:8px">📝 ' + (titolare ? 'Proposte di campi da valutare per questa lavorazione (' + inAttesa.length + ')' : 'Proposte per questa lavorazione') + '</div>' +
+        mostra.map(function(p) { return htmlRigaPropostaCampo(p, false); }).join('') +
+        '<button class="btn sm" type="button" style="margin-top:6px" onclick="apriProposteCampi()">📝 Tutte le proposte' + (tutte ? ' (' + tutte + ' in attesa)' : '') + '</button>'
+      : '');
+  if (dopo && /apriCampoLavorazione\(null\)/.test(dopo.getAttribute('onclick') || '')) dopo.insertAdjacentElement('afterend', box);
+  else campi.insertAdjacentElement('afterend', box);
+}
+
+if (typeof disegnaCatalogoLavorazioni === 'function') {
+  const disegnaCatalogoLavorazioniSenzaProposte = disegnaCatalogoLavorazioni;
+  // eslint-disable-next-line no-global-assign
+  disegnaCatalogoLavorazioni = function() {
+    const esito = disegnaCatalogoLavorazioniSenzaProposte.apply(this, arguments);
+    disegnaProposteCatalogoLav().catch(function(e) { console.warn('Proposte di campi:', e); });
+    return esito;
+  };
+}
+
+// Riquadro del titolare in Impostazioni: quante proposte aspettano
+if (typeof mostraCatalogoLavorazioniImpostazioni === 'function') {
+  const mostraCatalogoLavorazioniImpostazioniSenzaProposte = mostraCatalogoLavorazioniImpostazioni;
+  // eslint-disable-next-line no-global-assign
+  mostraCatalogoLavorazioniImpostazioni = async function() {
+    const esito = await mostraCatalogoLavorazioniImpostazioniSenzaProposte.apply(this, arguments);
+    try {
+      const stato = ge('si-catalogo-lav-stato');
+      const vecchia = ge('si-proposte-campi');
+      if (vecchia) vecchia.remove();
+      if (ROLE !== 'titolare' || !stato || !CATALOGO_LAV.disponibili || !(await verificaProposteCampiDisponibili())) return esito;
+      const n = (await caricaProposteCampi(true)).filter(function(p) { return p.stato === 'in_attesa'; }).length;
+      if (ge('si-proposte-campi')) return esito;
+      stato.insertAdjacentHTML('afterend', '<div id="si-proposte-campi" style="font-size:13px;margin:0 0 8px">📝 ' +
+        (n ? '<b>' + n + '</b> ' + (n === 1 ? 'proposta' : 'proposte') + ' di campi da valutare' : 'Nessuna proposta di campi da valutare') +
+        ' <button class="btn sm" type="button" onclick="apriProposteCampi()">📝 Proposte di campi</button></div>');
+    } catch (e) { console.warn('Proposte di campi:', e); }
+    return esito;
+  };
+}
+
+// ── Elenco delle proposte ───────────────────────────────────────────
+async function apriProposteCampi() {
+  if (!(await verificaProposteCampiDisponibili())) { toast('Le proposte di campi non sono ancora attive (serve sql/91)', 'err'); return; }
+  await caricaCatalogoLavorazioni();
+  await caricaProposteCampi(true);
+  PROPOSTE_CAMPI.soloAttesa = PROPOSTE_CAMPI.elenco.some(function(p) { return p.stato === 'in_attesa'; });
+  disegnaProposteCampi();
+  openM('m-proposte-campi');
+}
+
+function filtraProposteCampi(soloAttesa) {
+  PROPOSTE_CAMPI.soloAttesa = !!soloAttesa;
+  disegnaProposteCampi();
+}
+
+function disegnaProposteCampi() {
+  const box = ge('pce-contenuto');
+  if (!box) return;
+  const tutte = PROPOSTE_CAMPI.elenco;
+  const attesa = tutte.filter(function(p) { return p.stato === 'in_attesa'; });
+  const elenco = PROPOSTE_CAMPI.soloAttesa ? attesa : tutte;
+  box.innerHTML =
+    '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">' +
+      '<button class="btn sm' + (PROPOSTE_CAMPI.soloAttesa ? ' p' : '') + '" type="button" onclick="filtraProposteCampi(true)">⏳ Da valutare (' + attesa.length + ')</button>' +
+      '<button class="btn sm' + (PROPOSTE_CAMPI.soloAttesa ? '' : ' p') + '" type="button" onclick="filtraProposteCampi(false)">Tutte (' + tutte.length + ')</button>' +
+    '</div>' +
+    (elenco.length ? elenco.map(function(p) { return htmlRigaPropostaCampo(p, true); }).join('')
+      : '<div style="font-size:13px;color:var(--m)">' + (PROPOSTE_CAMPI.soloAttesa ? 'Nessuna proposta da valutare 🎉' : 'Nessuna proposta.') + '</div>');
+}
+
+// ── Finestra della proposta: "proponi" (ingegnere) o "decidi" (titolare) ──
+async function apriPropostaCampo(modo, id, codiceLav) {
+  if (!(await verificaProposteCampiDisponibili())) { toast('Le proposte di campi non sono ancora attive (serve sql/91)', 'err'); return; }
+  if (modo === 'decidi' && ROLE !== 'titolare') { toast('Le proposte le approva il titolare', 'err'); return; }
+  await caricaCatalogoLavorazioni();
+  const p = modo === 'decidi' ? (await caricaProposteCampi()).find(function(x) { return Number(x.id) === Number(id); }) : null;
+  if (modo === 'decidi' && (!p || p.stato !== 'in_attesa')) { toast('Proposta non trovata o già decisa', 'err'); return; }
+  PROPOSTE_CAMPI.modo = modo;
+  PROPOSTE_CAMPI.id = p ? p.id : null;
+  const lav = p ? (CATALOGO_LAV.lavorazioni || []).find(function(x) { return Number(x.id) === Number(p.lavorazione_id); })
+                : lavorazioneCatalogo(codiceLav || CATALOGO_LAV.aperta || '');
+  PROPOSTE_CAMPI.lavorazione = lav ? lav.codice : '';
+  PROPOSTE_CAMPI.valori = p && Array.isArray(p.valori_ammessi) ? p.valori_ammessi.map(function(x) { return { valore: x.valore, etichetta: x.etichetta }; }) : [];
+  const decidi = modo === 'decidi';
+  ge('pcl-titolo').textContent = decidi ? '📝 Proposta di campo: approva o rifiuta' : '➕ Proponi un campo';
+  ge('pcl-info').innerHTML = decidi
+    ? 'Proposta da <b>' + esc(p.proposta_da_nome || '') + '</b> il ' + esc(quandoPropostaCampo(p.proposta_il)) + (p.nota ? '<br>Perché: ' + esc(p.nota) : '') +
+      '<br>Puoi correggere tutto prima di approvare. Il campo entra <b>facoltativo</b> (non ferma nessun invio), in fondo alla scheda.'
+    : 'La proposta arriva al titolare. Se la approva il campo entra <b>facoltativo</b> (non ferma nessun invio), in fondo alla scheda.';
+  ge('pcl-lavorazione').innerHTML = (CATALOGO_LAV.lavorazioni || []).map(function(l) {
+    return '<option value="' + esc(l.codice) + '"' + (l.codice === PROPOSTE_CAMPI.lavorazione ? ' selected' : '') + '>' + esc(l.nome) + (l.attiva ? '' : ' (spenta)') + '</option>';
+  }).join('');
+  ge('pcl-lavorazione').disabled = decidi;
+  ge('pcl-etichetta').value = p ? p.etichetta : '';
+  ge('pcl-tipo').innerHTML = opzioniHtmlLav(TIPI_PROPOSTA_CAMPO, p ? p.tipo : 'menu');
+  ge('pcl-unita').value = p && p.unita ? p.unita : '';
+  ge('pcl-uso').value = p ? p.uso_a_valle : '';
+  ge('pcl-nota').value = p && p.nota ? p.nota : '';
+  ge('pcl-box-nota').style.display = decidi ? 'none' : '';
+  ge('pcl-box-decidi').style.display = decidi ? '' : 'none';
+  ge('pcl-codice').value = p ? codiceDaTestoLav(p.etichetta) : '';
+  ge('pcl-codice').dataset.toccato = '';
+  ge('pcl-livello').value = 'base';
+  ge('pcl-motivo').value = '';
+  ge('pcl-nuovo-valore').value = '';
+  ge('pcl-invia').style.display = decidi ? 'none' : '';
+  ge('pcl-approva').style.display = decidi ? '' : 'none';
+  ge('pcl-rifiuta').style.display = decidi ? '' : 'none';
+  aggiornaTipoPropostaCampo();
+  disegnaValoriPropostaCampo();
+  openM('m-proposta-campo');
+  setTimeout(function() { ge('pcl-etichetta').focus(); }, 50);
+}
+
+function codicePropostaDaEtichetta() {
+  const cod = ge('pcl-codice');
+  if (cod && !cod.dataset.toccato) cod.value = codiceDaTestoLav(v('pcl-etichetta'));
+}
+
+function aggiornaTipoPropostaCampo() {
+  ge('pcl-box-menu').style.display = v('pcl-tipo') === 'menu' ? '' : 'none';
+}
+
+function disegnaValoriPropostaCampo() {
+  const box = ge('pcl-valori');
+  const valori = PROPOSTE_CAMPI.valori;
+  box.innerHTML = valori.length
+    ? valori.map(function(x, i) {
+        return '<div style="display:flex;gap:6px;align-items:center;padding:3px 0">' +
+          '<input id="pcl-val-' + i + '" maxlength="120" value="' + esc(x.etichetta) + '" style="flex:1 1 auto" oninput="PROPOSTE_CAMPI.valori[' + i + '].etichetta=this.value">' +
+          '<button class="btn sm" type="button" title="Togli" onclick="togliValorePropostaCampo(' + i + ')">✖</button>' +
+        '</div>';
+      }).join('')
+    : '<div style="font-size:12px;color:var(--m)">Nessuna risposta: aggiungine almeno una.</div>';
+}
+
+function aggiungiValorePropostaCampo() {
+  const etichetta = v('pcl-nuovo-valore').trim();
+  if (!etichetta) { toast('Scrivi la risposta da aggiungere', 'err'); return; }
+  const valori = PROPOSTE_CAMPI.valori;
+  if (valori.some(function(x) { return String(x.etichetta).trim().toLowerCase() === etichetta.toLowerCase(); })) { toast('Risposta già nel menu', 'err'); return; }
+  let codice = codiceDaTestoLav(etichetta) || 'valore';
+  const base = codice;
+  for (let n = 2; valori.some(function(x) { return x.valore === codice; }); n++) codice = base.slice(0, 36) + '_' + n;
+  valori.push({ valore: codice, etichetta: etichetta });
+  ge('pcl-nuovo-valore').value = '';
+  disegnaValoriPropostaCampo();
+  ge('pcl-nuovo-valore').focus();
+}
+
+function togliValorePropostaCampo(i) {
+  PROPOSTE_CAMPI.valori.splice(i, 1);
+  disegnaValoriPropostaCampo();
+}
+
+// Dati della finestra controllati come il database (null = c'è un errore)
+function datiFinestraPropostaCampo() {
+  const etichetta = v('pcl-etichetta').trim();
+  const tipo = v('pcl-tipo');
+  const uso = v('pcl-uso').trim();
+  if (!etichetta) { toast('Scrivi la domanda del campo', 'err'); ge('pcl-etichetta').focus(); return null; }
+  if (!TIPI_PROPOSTA_CAMPO.some(function(t) { return t.value === tipo; })) { toast('Scegli il tipo del campo', 'err'); return null; }
+  if (uso.length < 3) { toast('Scrivi l’uso a valle: quale calcolo o documento usa il campo', 'err'); ge('pcl-uso').focus(); return null; }
+  let valori = null;
+  if (tipo === 'menu') {
+    valori = PROPOSTE_CAMPI.valori.map(function(x) { return { valore: x.valore, etichetta: String(x.etichetta || '').trim() }; });
+    if (!valori.length) { toast('Un menu ha almeno una risposta possibile', 'err'); ge('pcl-nuovo-valore').focus(); return null; }
+    if (valori.some(function(x) { return !x.etichetta; })) { toast('Ogni risposta del menu ha un testo', 'err'); return null; }
+    const visti = {};
+    for (const x of valori) {
+      const k = x.etichetta.toLowerCase();
+      if (visti[k]) { toast('La risposta "' + x.etichetta + '" è ripetuta', 'err'); return null; }
+      visti[k] = true;
+    }
+  }
+  return { etichetta: etichetta, tipo: tipo, unita: v('pcl-unita').trim() || null, valori: valori, uso: uso };
+}
+
+function errorePropostaCampo(error) {
+  const m = String((error && error.message) || error || '');
+  if (error && error.code === '42501') return m;
+  return erroreCatalogoLav(error);
+}
+
+async function inviaPropostaCampo() {
+  const d = datiFinestraPropostaCampo();
+  if (!d) return;
+  const codiceLav = v('pcl-lavorazione');
+  const lav = lavorazioneCatalogo(codiceLav);
+  if (!lav) { toast('Scegli la lavorazione', 'err'); return; }
+  if ((lav.lavorazioni_campi || []).some(function(c) { return c.attivo !== false && String(c.etichetta).trim().toLowerCase() === d.etichetta.toLowerCase(); }) &&
+      !confirm('Nella scheda c’è già un campo "' + d.etichetta + '". Proporlo lo stesso?')) return;
+  const { error } = await db.rpc('proponi_campo_lavorazione', {
+    p_lavorazione: codiceLav, p_etichetta: d.etichetta, p_tipo: d.tipo, p_unita: d.unita,
+    p_valori: d.valori, p_uso: d.uso, p_nota: v('pcl-nota').trim() || null
+  });
+  if (error) { toast('Proposta non inviata: ' + errorePropostaCampo(error), 'err'); return; }
+  closeM('m-proposta-campo');
+  toast('Proposta inviata al titolare');
+  await dopoDecisionePropostaCampo();
+}
+
+async function approvaPropostaCampo() {
+  const d = datiFinestraPropostaCampo();
+  if (!d) return;
+  const codice = v('pcl-codice').trim();
+  if (!/^[a-z][a-z0-9_]{0,40}$/.test(codice)) { toast('Codice del campo: lettere minuscole, numeri e _ (es. tipo_specchiatura)', 'err'); ge('pcl-codice').focus(); return; }
+  if (CODICI_RISERVATI_LAV.indexOf(codice) >= 0) { toast('Il codice "' + codice + '" lo usa già il motore delle schede: scegline un altro', 'err'); return; }
+  const lav = lavorazioneCatalogo(PROPOSTE_CAMPI.lavorazione);
+  if (lav && (lav.lavorazioni_campi || []).some(function(c) { return c.codice === codice; })) { toast('Il codice "' + codice + '" c’è già in questa lavorazione: scegline un altro', 'err'); ge('pcl-codice').focus(); return; }
+  const { error } = await db.rpc('approva_proposta_campo', {
+    p_id: PROPOSTE_CAMPI.id, p_etichetta: d.etichetta, p_codice: codice, p_tipo: d.tipo, p_unita: d.unita,
+    p_valori: d.valori, p_uso: d.uso, p_livello: v('pcl-livello') || 'base'
+  });
+  if (error) { toast('Non approvata: ' + errorePropostaCampo(error), 'err'); return; }
+  closeM('m-proposta-campo');
+  toast('Campo aggiunto' + (lav && !lav.attiva ? ' (la lavorazione è spenta: si vede quando la attivi)' : ': compare nelle schede aperte da adesso'));
+  await dopoDecisionePropostaCampo(true);
+}
+
+async function rifiutaPropostaCampo() {
+  const motivo = v('pcl-motivo').trim();
+  if (motivo.length < 3) { toast('Scrivi il motivo del rifiuto', 'err'); ge('pcl-motivo').focus(); return; }
+  if (!confirm('Rifiutare la proposta "' + v('pcl-etichetta').trim() + '"?')) return;
+  const { error } = await db.rpc('rifiuta_proposta_campo', { p_id: PROPOSTE_CAMPI.id, p_motivo: motivo });
+  if (error) { toast('Non rifiutata: ' + errorePropostaCampo(error), 'err'); return; }
+  closeM('m-proposta-campo');
+  toast('Proposta rifiutata');
+  await dopoDecisionePropostaCampo();
+}
+
+async function dopoDecisionePropostaCampo(catalogoCambiato) {
+  await caricaProposteCampi(true);
+  if (catalogoCambiato) await caricaCatalogoLavorazioni(true);
+  if (ge('m-catalogo-lavorazioni') && ge('m-catalogo-lavorazioni').classList.contains('on')) disegnaCatalogoLavorazioni();
+  if (ge('m-proposte-campi') && ge('m-proposte-campi').classList.contains('on')) disegnaProposteCampi();
+  if (ROLE === 'titolare') mostraCatalogoLavorazioniImpostazioni().catch(function() {});
+  if (typeof aggiornaToccaAMePiuTardi === 'function') aggiornaToccaAMePiuTardi();
+}
+
+// Cosa tocca a me del titolare
+if (typeof registraFonteToccaAMe === 'function') {
+  registraFonteToccaAMe({
+    id: 'proposte-campi-titolare', ruoli: ['titolare'], icona: '📝',
+    titolo: 'Proposte di campi da valutare',
+    vai: function() { apriProposteCampi(); },
+    conta: async function() {
+      if (!(await verificaProposteCampiDisponibili())) return null;
+      const n = await numeroTAM(contaTAM('lavorazioni_proposte_campi').eq('stato', 'in_attesa'), 'proposte di campi');
+      if (n === null) return null;
+      return { n: n, nota: 'campi nuovi delle schede proposti dall’ingegnere: approva o rifiuta' };
+    }
+  });
+}
+
+// Link "➕ Proponi un campo" nella scheda del motore aperta dall'ingegnere.
+// js/56 (il motore) è caricato dopo questo file: si aggancia a sito pronto.
+function htmlLinkProponiCampoMotore() {
+  return '<div id="msm-proponi-campo" style="text-align:right;margin:6px 0 0;font-size:12px">' +
+    '<a href="#" onclick="event.preventDefault();apriPropostaCampo(\'proponi\', null, MOTORE_SCHEDE.famiglia)">➕ Proponi un campo</a>' +
+    ' <span style="color:var(--m)">(lo valuta il titolare)</span></div>';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof disegnaSchedaMotore !== 'function') return;
+  const disegnaSchedaMotoreSenzaProposte = disegnaSchedaMotore;
+  // eslint-disable-next-line no-global-assign
+  disegnaSchedaMotore = async function() {
+    const esito = await disegnaSchedaMotoreSenzaProposte.apply(this, arguments);
+    try {
+      if (ROLE === 'ingegnere' && ge('msm-motore') && !ge('msm-proponi-campo') && (await verificaProposteCampiDisponibili())) {
+        const campi = ge('msm-campi');
+        if (campi && !ge('msm-proponi-campo')) campi.insertAdjacentHTML('afterend', htmlLinkProponiCampoMotore());
+      }
+    } catch (e) { console.warn('Proposte di campi:', e); }
+    return esito;
+  };
+});

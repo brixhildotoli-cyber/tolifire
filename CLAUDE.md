@@ -385,6 +385,15 @@ ESEGUIRE): nessuna tabella, colonna o policy nuova, matrice invariata.
 lavorazioni_campi (dati): 6 menu nuovi facoltativi, voci in fondo a elemento e
 stato_supporto, etichetta di profilo, superficie non più "serve al prezzo"
 (regola "basta uno" in controlli_invio_progetto, vedi "Dopo sql/263").
+Dopo sql/91 (F15.21 proposte di nuovi campi, approvata da Erika il 12/11; DA
+ESEGUIRE con "CONFERMATO DA TOLI: sql/91", poi il -REGISTRO-CANCELLAZIONI
+dall'editor; richiede 07, 67, 71, 75): lavorazioni_proposte_campi (proposte
+dell'ingegnere: lavorazione, etichetta, tipo numero/menu/si_no/testo, unità,
+valori del menu, uso a valle, nota, stato in_attesa/approvata/rifiutata, chi
+propone e chi decide con nomi copiati, motivo del rifiuto, campo nato e suo
+codice; lettura SOLO titolare (informatico) e ingegnere, nessuna scrittura
+diretta: solo le RPC di sql/91; cancellazione bloccata dal
+-REGISTRO-CANCELLAZIONI). Matrice: 10 righe nuove.
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -2268,6 +2277,66 @@ restano "tolti"). NOTA: 81-PROVA conta 3 obbligatori della vernice: dopo
 sql/263 sono 2 (vale solo prima). SCELTE DICHIARATE: etichetta del profilo
 cambiata solo se è ancora quella di sql/81; il rollback toglie dai menu le 6
 voci anche se fossero state aggiunte a mano.
+Dopo sql/91 (F15.21 proposte di nuovi campi, approvata da Erika il 12/11 come
+"solo un bottone in più per l'ingegnere più una lista per il titolare"; DA
+ESEGUIRE: backup, anteprima in fondo al file, 91-proposte-nuovi-campi.sql
+(senza parole di cancellazione, server MCP), 91-...-REGISTRO-CANCELLAZIONI.sql
+dall'EDITOR, controllo in fondo al 91; richiede 07, 67, 71, 75, si ferma
+senza; 78 facoltativo; il sito si pubblica prima o dopo). Tabella
+lavorazioni_proposte_campi (vedi "Tabelle Supabase"). RPC del sito:
+proposte_campi_attive() (true = il 91 c'è), proponi_campo_lavorazione(
+p_lavorazione codice, p_etichetta, p_tipo, p_unita, p_valori, p_uso, p_nota)
+(ingegnere e titolare; tipi numero, menu, si_no, testo, NON foto né elenco;
+menu [{"valore","etichetta"}] senza doppioni né per valore né per etichetta;
+uso a valle 3-500; stessa domanda già in attesa nella lavorazione = rifiuto;
+max 30 in attesa per persona), approva_proposta_campo(p_id, p_etichetta,
+p_codice, p_tipo, p_unita, p_valori, p_uso, p_livello) (SOLO titolare, anche
+"Entra come" un altro ruolo = 42501; il titolare corregge tutto; codice nuovo
+nella lavorazione anche tra i tolti, non riservato: stessa lista di
+CODICI_RISERVATI_LAV di js/55; inserisce in lavorazioni_campi FACOLTATIVO
+(obbligatorio false, quindi serve_al_prezzo false con sql/78: non ferma nessun
+invio), livello base o ingegnere a scelta del titolare, non normativo, non per
+posizione, attivo, ordine = il più alto della lavorazione + 10 (max 9999);
+l'inserimento passa dal trigger di sql/75 e scrive il registro del catalogo),
+rifiuta_proposta_campo(p_id, p_motivo) (SOLO titolare, motivo 3-500). Interna
+proposta_campo_controlla. Registro delle azioni sulla tabella. REGOLA DI ERIKA:
+nessun flusso, bottone, obbligo o blocco di prima cambia ("➕ Aggiungi campo"
+del catalogo resta per titolare e ingegnere). Nel sito (js/55 in fondo,
+F15.21; index.html): nel catalogo m-catalogo-lavorazioni, sotto "➕ Aggiungi
+campo", riquadro cl-proposte (disegnaCatalogoLavorazioni avvolta): ingegnere
+"➕ Proponi un campo" (cl-proponi-campo) e le sue proposte con lo stato e il
+motivo del rifiuto; titolare le proposte in attesa della lavorazione con
+"✅ Approva o rifiuta" e "📝 Tutte le proposte"; nella scheda del motore aperta
+dall'INGEGNERE link "➕ Proponi un campo" (msm-proponi-campo, dopo msm-campi;
+disegnaSchedaMotore di js/56 avvolta a DOMContentLoaded perché js/56 è caricato
+dopo js/55); finestre m-proposte-campi (pce-: Da valutare / Tutte) e
+m-proposta-campo (pcl-: modo proponi o decidi: lavorazione, domanda, tipo,
+unità, risposte del menu, uso a valle, perché; per il titolare codice, chi lo
+compila, motivo, "✖ Rifiuta", "✅ Approva e aggiungi"); Impostazioni > 📚
+Catalogo lavorazioni: "📝 N proposte di campi da valutare" (si-proposte-campi,
+mostraCatalogoLavorazioniImpostazioni avvolta); Cosa tocca a me del titolare
+"📝 Proposte di campi da valutare" (fonte proposte-campi-titolare, apre
+l'elenco). NON FATTI (indicazione di Erika): contatore nel report del venerdì
+(non esiste ancora); "obbligatorio" proposto dall'ingegnere (il campo entra
+sempre facoltativo); avviso all'ingegnere dell'esito (lo legge nel catalogo).
+Guide info-ing-32, info-tit-37. Prove: sql/91-proposte-nuovi-campi-PROVA.sql
+(solo database di prova, rollback: proposte di ingegnere e titolare, doppione,
+foto, elenco, menu ripetuto o vuoto, uso a valle vuoto, lavorazione inventata,
+Acquisti, rappresentante, tecnico, titolare "come" Acquisti, anon rifiutati;
+letture per ruolo; insert, update e cancellazione diretti rifiutati;
+approvazione di ingegnere, Acquisti, titolare "come" ingegnere rifiutata,
+codice riservato, già usato, non valido, tipo foto, livello inventato;
+approvato con le correzioni: facoltativo, non al prezzo, base, in fondo,
+registro; livello ingegnere; rifiuto con motivo; cancellazione bloccata anche
+dal proprietario); test/proposte-campi.spec.js (Chrome headless, database
+locale: ingegnere a 390 px dal catalogo e dalla scheda del motore, titolare
+approva e rifiuta, il campo compare in fondo alla scheda senza *, console di
+ingegnere, Acquisti e titolare "come" ingegnere rifiutate;
+PROPOSTE_SENZA_SQL=1 dopo il rollback); catalogo-lavorazioni TUTTO OK con
+sql/91, smoke TUTTO OK con e senza; matrice TUTTO OK per la tabella nuova (anche
+MATRICE_AGITO_COME=1); rollback provato (schema identico con pg_dump; i campi
+approvati restano nel catalogo). Senza sql/91: nessun bottone, link o riga,
+nessun errore (una chiamata RPC 404 per titolare e ingegnere).
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
