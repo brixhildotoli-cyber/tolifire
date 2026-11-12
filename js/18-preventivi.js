@@ -4881,6 +4881,118 @@ function totaleVocePreventivo(voce, tipo) {
   return quantita * numeroPreventivo(voce.prezzo_unitario);
 }
 
+// Unità di misura delle voci come menu (richiesta di Erika del 12/11).
+// Il valore salvato resta il testo in preventivi_voci.unita_misura: i valori
+// di prima che sono chiaramente la stessa unità ("mq", "m2", "corpo", "h"...)
+// si MOSTRANO nella voce del menu, ma si riscrivono solo se si cambia il menu.
+const UNITA_MISURA_VOCI_PREVENTIVO = ['pz', 'm²', 'ml', 'm³', 'kg', 'l', 'ore', 'giorni', 'a corpo'];
+const SINONIMI_UNITA_MISURA_VOCI = {
+  'pz': 'pz', 'pz.': 'pz', 'pezzo': 'pz', 'pezzi': 'pz', 'pc': 'pz', 'pcs': 'pz',
+  'm²': 'm²', 'm2': 'm²', 'mq': 'm²', 'mq.': 'm²', 'm^2': 'm²', 'metri quadri': 'm²', 'metri quadrati': 'm²',
+  'ml': 'ml', 'ml.': 'ml', 'm.l.': 'ml', 'metri lineari': 'ml',
+  'm³': 'm³', 'm3': 'm³', 'mc': 'm³', 'mc.': 'm³', 'm^3': 'm³', 'metri cubi': 'm³',
+  'kg': 'kg', 'kg.': 'kg', 'chilogrammi': 'kg',
+  'l': 'l', 'l.': 'l', 'lt': 'l', 'lt.': 'l', 'litro': 'l', 'litri': 'l',
+  'ore': 'ore', 'ora': 'ore', 'h': 'ore', 'h.': 'ore', 'hr': 'ore',
+  'giorni': 'giorni', 'giorno': 'giorni', 'gg': 'giorni', 'gg.': 'giorni', 'g': 'giorni',
+  'a corpo': 'a corpo', 'corpo': 'a corpo', 'a.c.': 'a corpo'
+};
+
+// Voce del menu per il testo salvato: '' = vuoto ("Scegli…"), null = "Altro".
+function unitaMisuraMenuVoce(testo) {
+  const t = String(testo == null ? '' : testo).trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!t) return '';
+  return SINONIMI_UNITA_MISURA_VOCI[t] || null;
+}
+
+// Valore scelto nel menu per la voce ('', una voce del menu o 'altro').
+function sceltaMenuUnitaVoce(voce) {
+  if (voce._umAltro) return 'altro';
+  const m = unitaMisuraMenuVoce(voce.unita_misura);
+  return m === null ? 'altro' : m;
+}
+
+// "€ al m²", "€ all'ora"... accanto a costo e prezzo (il prezzo è per unità).
+function etichettaEuroUnitaVoce(voce) {
+  const scelta = sceltaMenuUnitaVoce(voce);
+  if (scelta === 'altro') {
+    const t = String(voce.unita_misura || '').trim();
+    return t ? '€ per ' + t : '€';
+  }
+  const testi = { 'pz': '€ al pz', 'm²': '€ al m²', 'ml': '€ al ml', 'm³': '€ al m³', 'kg': '€ al kg',
+    'l': '€ al litro', 'ore': '€ all’ora', 'giorni': '€ al giorno', 'a corpo': '€ a corpo' };
+  return testi[scelta] || '€';
+}
+
+// Quantità bloccata a 1 con "a corpo" (solo se è davvero 1: una voce di
+// prima "a corpo" con un'altra quantità resta modificabile, nulla cambia
+// da solo all'apertura).
+function quantitaACorpoVoce(voce) {
+  return sceltaMenuUnitaVoce(voce) === 'a corpo' && numeroPreventivo(voce.quantita) === 1;
+}
+
+function mancaQuantitaVocePreventivo(voce) {
+  return numeroPreventivo(voce.quantita) === 0 &&
+    (numeroPreventivo(voce.costo_unitario) > 0 || numeroPreventivo(voce.prezzo_unitario) > 0);
+}
+
+function htmlUnitaMisuraVocePreventivo(voce, indice) {
+  const scelta = sceltaMenuUnitaVoce(voce);
+  const opzioni = ['<option value=""' + (scelta === '' ? ' selected' : '') + '>Scegli…</option>']
+    .concat(UNITA_MISURA_VOCI_PREVENTIVO.map(function(u) {
+      return '<option value="' + esc(u) + '"' + (scelta === u ? ' selected' : '') + '>' + esc(u) + '</option>';
+    }))
+    .concat(['<option value="altro"' + (scelta === 'altro' ? ' selected' : '') + '>Altro (scrivi tu)</option>']);
+  return `
+                  <div class="f">
+                    <label>Unità di misura</label>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap">
+                      <select class="pvv-um" style="flex:1 1 120px;min-width:0"
+                        onchange="scegliUnitaMisuraVocePreventivo(${indice}, this.value)">
+                        ${opzioni.join('')}
+                      </select>
+                      ${scelta === 'altro' ? `<input
+                        type="text"
+                        class="pvv-um-altro"
+                        id="pvv-um-altro-${indice}"
+                        style="flex:1 1 120px;min-width:0"
+                        maxlength="20"
+                        autocomplete="off"
+                        value="${esc(voce.unita_misura || '')}"
+                        placeholder="Scrivi l'unità"
+                        oninput="scriviUnitaMisuraAltroVocePreventivo(${indice}, this.value)"
+                      >` : ''}
+                    </div>
+                  </div>`;
+}
+
+function scegliUnitaMisuraVocePreventivo(indice, valore) {
+  const voce = vociPreventivoDati[indice];
+  if (!voce) return;
+  registraStatoUndoPreventivo('um-' + indice + '-' + Date.now());
+  if (valore === 'altro') {
+    voce._umAltro = true;
+    // Si parte vuoti se prima c'era una voce del menu; un testo "altro" resta.
+    if (unitaMisuraMenuVoce(voce.unita_misura) !== null) voce.unita_misura = '';
+  } else {
+    voce._umAltro = false;
+    voce.unita_misura = valore;
+    if (valore === 'a corpo') voce.quantita = 1;
+  }
+  disegnaVociPreventivo();
+  if (valore === 'altro') {
+    const campo = ge('pvv-um-altro-' + indice);
+    if (campo) campo.focus();
+  }
+}
+
+function scriviUnitaMisuraAltroVocePreventivo(indice, valore) {
+  const voce = vociPreventivoDati[indice];
+  if (!voce) return;
+  voce._umAltro = true;
+  aggiornaCampoVocePreventivo(indice, 'unita_misura', valore);
+}
+
 function ricaricoFornituraDaCosto(costoFornitura) {
   const costo = numeroPreventivo(costoFornitura);
 
@@ -4980,6 +5092,14 @@ function aggiornaCampoVocePreventivo(indice, campo, valore) {
   if (venditaRiga) venditaRiga.textContent = euroPreventivo(vendita);
   if (margineRiga) margineRiga.textContent = euroPreventivo(margine);
 
+  const avvisoQuantita = ge('pvv-manca-q-' + indice);
+  if (avvisoQuantita) avvisoQuantita.style.display = mancaQuantitaVocePreventivo(voce) ? '' : 'none';
+  const euro = etichettaEuroUnitaVoce(voce);
+  ['pvv-eu-costo-', 'pvv-eu-prezzo-'].forEach(function(prefisso) {
+    const el = ge(prefisso + indice);
+    if (el) el.textContent = euro;
+  });
+
   aggiornaRiepilogoVociPreventivo();
 }
 
@@ -5075,15 +5195,7 @@ function disegnaVociPreventivo() {
                     </select>
                   </div>
 
-                  <div class="f">
-                    <label>Unità di misura</label>
-                    <input
-                      type="text"
-                      value="${esc(voce.unita_misura || 'pz')}"
-                      placeholder="pz, ora, ml..."
-                      oninput="aggiornaCampoVocePreventivo(${indice}, 'unita_misura', this.value)"
-                    >
-                  </div>
+${htmlUnitaMisuraVocePreventivo(voce, indice)}
 ${htmlQuantitaUmVocePreventivo(voce, indice)}
                 </div>
 
@@ -5106,14 +5218,16 @@ ${htmlQuantitaUmVocePreventivo(voce, indice)}
                       autocomplete="off"
                       class="pvv-quantita"
                       value="${campoNumeroVocePreventivo(voce.quantita)}"
+                      ${quantitaACorpoVoce(voce) ? 'disabled' : ''}
                       oninput="virgolaCampoImportoPreventivo(this); aggiornaCampoVocePreventivo(${indice}, 'quantita', leggiImportoPreventivo(this.value))"
                       onpaste="incollaImportoPreventivo(event, this)"
                       onblur="this.value = campoNumeroVocePreventivo(leggiImportoPreventivo(this.value))"
                     >
+                    ${quantitaACorpoVoce(voce) ? '<div class="pvv-nota-corpo" style="font-size:12px;color:var(--m);margin-top:4px">a corpo: il prezzo è quello di tutta la lavorazione</div>' : ''}
                   </div>
 
                   <div class="f">
-                    <label>Costo unitario interno (€)</label>
+                    <label>Costo unitario interno (<span id="pvv-eu-costo-${indice}">${esc(etichettaEuroUnitaVoce(voce))}</span>)</label>
                     <input
                       type="text"
                       inputmode="decimal"
@@ -5128,7 +5242,7 @@ ${htmlQuantitaUmVocePreventivo(voce, indice)}
                 </div>
 
                 <div class="f">
-                  <label>Prezzo unitario cliente (€)</label>
+                  <label>Prezzo unitario cliente (<span id="pvv-eu-prezzo-${indice}">${esc(etichettaEuroUnitaVoce(voce))}</span>)</label>
                   <input
                     type="text"
                     inputmode="decimal"
@@ -5139,6 +5253,10 @@ ${htmlQuantitaUmVocePreventivo(voce, indice)}
                     onpaste="incollaImportoPreventivo(event, this)"
                     onblur="this.value = campoNumeroVocePreventivo(leggiImportoPreventivo(this.value), 2)"
                   >
+                </div>
+
+                <div id="pvv-manca-q-${indice}" class="pvv-manca-quantita" style="color:var(--r);font-size:13px;font-weight:600;margin:-4px 0 10px;${mancaQuantitaVocePreventivo(voce) ? '' : 'display:none'}">
+                  Manca la quantità: il totale resta 0
                 </div>
 
                 <div class="g2">
