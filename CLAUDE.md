@@ -406,7 +406,14 @@ ESEGUIRE): nessuna tabella nuova, matrice invariata. preventivi: colonne NUOVE
 oggetto (una riga, max 200, vincolo preventivi_oggetto_check) e
 nota_introduttiva (max 2000, preventivi_nota_introduttiva_check), facoltative;
 le scrive chi oggi scrive il preventivo, dopo l'esito solo il titolare
-(trigger trg_preventivi_oggetto_nota); vedi "Dopo sql/264".
+(trigger trg_preventivi_oggetto_nota); colonne NUOVE computo_path
+('<id>/computo/<file>' .xlsx/.xls/.csv/.pdf dello stesso preventivo, vincolo
+preventivi_computo_path_check) e computo_nome (max 255,
+preventivi_computo_nome_check), facoltative: le scrivono solo titolare e
+Acquisti autore, dopo l'esito solo il titolare (stesso trigger). Bucket
+preventivi-documenti: cartella NUOVA <id>/computo/ con 4 regole dei file
+(lettura, caricamento, eliminazione e la restrittiva _dopo_esito); vedi
+"Dopo sql/264".
 Dopo sql/265 ("Quantità x UM" delle voci, richiesta di Erika del 12/11; DA
 ESEGUIRE): nessuna tabella nuova, matrice invariata. preventivi_voci: colonna
 NUOVA quantita_um (testo libero facoltativo, max 50, una riga, vincolo
@@ -2393,9 +2400,11 @@ MATRICE_AGITO_COME=1); rollback provato (schema identico con pg_dump; i campi
 approvati restano nel catalogo). Senza sql/91: nessun bottone, link o riga,
 nessun errore (una chiamata RPC 404 per titolare e ingegnere).
 Dopo sql/264 (oggetto e nota prima della tabella dei prezzi, richiesta di Erika
-del 12/11, fuori piano; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/264": backup,
-anteprima in fondo al file, 264-preventivo-oggetto-nota.sql (senza parole di
-cancellazione, server MCP), controllo in fondo; nessun -REGISTRO-CANCELLAZIONI;
+del 12/11, fuori piano, + computo dell'ingegnere, stessa richiesta del 12/11 nello
+STESSO file; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/264": backup,
+anteprima in fondo al file, 264-preventivo-oggetto-nota.sql DALL'EDITOR SQL (con
+il computo contiene "for delete" nelle regole dei file: il server MCP lo
+rifiuta), controllo in fondo (Claude); nessun -REGISTRO-CANCELLAZIONI;
 richiede 07, 10, 25, 71, 258, si ferma senza; il sito si pubblica prima o dopo).
 preventivi.oggetto e nota_introduttiva (vedi "Tabelle Supabase"). Trigger NUOVO
 trg_preventivi_oggetto_nota (BEFORE INSERT OR UPDATE OF le due colonne: spazi
@@ -2434,6 +2443,85 @@ prima; senza sql/264 nessun campo, PDF uguale, nessuna richiesta in errore);
 sconto-rappresentante e smoke TUTTO OK con e senza sql/264; matrice
 uguale con e senza; rollback provato (schema identico con pg_dump). Senza
 sql/264: nessun campo, nessun errore.
+COMPUTO DELL'INGEGNERE (sql/264 esteso, richiesta di Erika del 12/11):
+preventivi.computo_path e computo_nome (vedi "Tabelle Supabase"). Trigger
+trg_preventivi_oggetto_nota esteso (BEFORE INSERT OR UPDATE OF oggetto,
+nota_introduttiva, computo_path, computo_nome): percorso vuoto = null e nome
+vuoto; nome vuoto con il percorso = nome del file del percorso; il computo lo
+cambiano SOLO il titolare (anche "come") e Acquisti autore (commerciale_id =
+utente_effettivo()): 42501 per gli altri, anche il rappresentante che la
+policy di sql/10 lascia scrivere fino a 3.000 €; percorso di un altro
+preventivo, fuori dalla cartella computo o con un'altra estensione = 22023 (il
+vincolo resta per l'editor); con lo Storage il file deve esserci in
+storage.objects (execute: senza Storage si salta); dopo l'esito solo il
+titolare (42501). dati_pdf_preventivo_cliente con 'computo_path' e
+'computo_nome' (l'aggancio di sql/265 sulle voci invariato, in ogni ordine).
+REGOLE DEI FILE (solo con lo Storage), cartella <id>/computo/ del bucket
+preventivi-documenti: le regole di sql/14 di produzione fanno già leggere
+tutta la cartella del preventivo al titolare e ad Acquisti autore, al
+rappresentante solo la cartella cliente; il caricamento non comprende
+'computo'; l'eliminazione è di titolare e Acquisti autore in ogni stato.
+NUOVE: preventivi_documenti_computo_lettura (titolare, Acquisti autore,
+rappresentante del cliente, del preventivo o del progetto con il preventivo
+inviato_a_rappresentante, inviato, in_attesa_anticipo, accettato, rifiutato,
+scaduto; segreteria, tecnico e gli altri no), _caricamento (titolare e
+Acquisti autore, prima dell'esito, un file .xlsx/.xls/.csv/.pdf direttamente
+nella cartella; niente update: nessuna sovrascrittura), _eliminazione
+(stessi, prima dell'esito; titolare sempre) e _dopo_esito (RESTRITTIVA per
+delete, la PRIMA restrittiva su storage.objects: vale solo per la cartella
+computo del bucket, ogni altro file risponde vero; dopo l'esito il computo lo
+toglie solo il titolare). Rollback: toglie le 4 regole (i file caricati
+restano nel bucket), le due colonne e rimette il resto come prima. Nel sito
+(js/18): verificaOggettoNotaPreventivoDisponibile guarda anche computo_path
+dalla stessa riga (verificaComputoPreventivoDisponibile, nessuna richiesta in
+errore); nell'editor di Acquisti e del titolare, tra Oggetto e nota, il
+riquadro pvv-computo "📐 Computo (facoltativo)" (htmlComputoEditorPreventivo,
+input nascosto pvv-computo-file) con "📎 Carica Excel o PDF", poi "🔁
+Sostituisci" e "✖ Togli" (caricaComputoPreventivo, togliComputoPreventivo):
+SCELTA, il file si carica e si collega SUBITO (upload upsert false in
+<id>/computo/<ora>_<nome>, update delle due colonne, se l'update fallisce il
+file si toglie; sostituendo o togliendo il file di prima si toglie dallo
+Storage), non con "💾 Salva preventivo" (che non manda le due colonne);
+bottoni solo a titolare e Acquisti autore, dopo l'esito solo il titolare
+(bloccaEditorVociPreventivo li nasconde come gli altri). PDF del cliente
+(generaPreventivoClientePDF, anche con datiEsterni di js/69; js/53 non ha
+computo): leggiComputoPerPdfPreventivo (download dal bucket) → Excel: primo
+foglio con XLSX.utils.sheet_to_json raw false (valori formattati della
+libreria: 12.5, non 12,5), righe e celle vuote in fondo tolte, max 300 righe
+(oltre: avviso nel sito e riga in corsivo nel PDF), oltre 10 colonne avviso
+nel sito ma PDF fatto; scriviComputoExcelPdfPreventivo (titolo "Computo",
+autoTable a 178 mm, prima riga = intestazione, carattere da 8 a 4,5 secondo le
+colonne, testi puliti con pulisciTestoPDF di js/00) DOPO "Oggetto:" e PRIMA
+della nota (scriviOggettoNotaPdfPreventivo con il parametro
+traOggettoENota). PDF: SCELTA, un solo jsPDF; dopo oggetto e nota addPage
+(la tabella dei prezzi riparte su una pagina nuova), alla fine pdf-lib
+(inserisciPagineComputoPdfPreventivo, come unisciPdfAllegatiRichiesta)
+inserisce le pagine del computo subito dopo la pagina di oggetto e nota;
+scaricato con scaricaBlobRichiesta e caricato in <id>/cliente/ come sempre.
+Il piè di pagina del preventivo ("approvazione specifica delle clausole",
+"Documento generato il ...", nessun numero di pagina) resta sulle pagine del
+preventivo, non su quelle del computo. Computo che non si scarica o non si
+legge (PDF protetto) = PDF NON generato con il motivo. Senza computo il PDF è
+identico a prima. Guide info-com-27, info-tit-41, riga in info-rap-34. Prove:
+sql/264-preventivo-oggetto-nota-PROVA.sql sezione 6 (con la tabella finta
+storage.objects con RLS creata con -U supabase_admin PRIMA di sql/264, come
+la PROVA di sql/258; lo schema storage dell'immagine locale NON si tocca, alla
+fine si toglie solo la tabella): Acquisti carica e collega, .exe,
+sottocartella, rappresentante e segreteria che caricano rifiutati, percorso di
+un altro preventivo, fuori cartella, .docx, file non caricato rifiutati,
+rappresentante e titolare "come" rappresentante che collegano rifiutati,
+titolare "come" Acquisti ammesso, togli, rappresentante legge il file inviato
+e lo trova in dati_pdf, altro rappresentante, tecnico e segreteria no, dopo
+l'esito Acquisti non cambia, non toglie, non carica, titolare sì, la
+restrittiva non tocca un file fornitori; 102 controlli);
+test/preventivo-computo.spec.js (Chrome headless, database locale, Storage
+finto in memoria: Acquisti carica un Excel generato con xlsx (3 colonne, 5
+righe) → PDF con Oggetto → tabella → nota → prima voce, secondo foglio no;
+Sostituisci con un PDF di 2 pagine → pagine 2 e 3 del computo, prezzi a
+pagina 4, file di prima tolto; Togli → PDF uguale a quello senza computo; il
+rappresentante a 390 px applica il 5% e "Rifai il PDF" con il computo; senza
+sql/264 nessun riquadro, COMPUTO_SENZA_SQL=1); ordini 264, 264+265, 265 poi
+264 e rollback in ogni ordine: schema identico con pg_dump.
 Dopo sql/265 ("Quantità x UM" nelle voci del preventivo, richiesta di Erika del
 12/11, fuori piano; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/265": backup,
 anteprima in fondo al file, 265-voci-quantita-um.sql (senza parole di

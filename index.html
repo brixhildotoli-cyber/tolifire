@@ -3305,6 +3305,7 @@
         <li>Quando il cliente accetta, segni <b>Accettato dal cliente</b> come sempre: la commessa, l'anticipo e la fattura finale partono dal totale <b>scontato</b>. Dopo l'esito lo sconto non si cambia più.</li>
         <li><b>Togli lo sconto</b> riporta il totale delle voci; il PDF senza sconto però lo rifà <b>Acquisti</b> (tu non puoi): chiediglielo e intanto non mandare quello vecchio. Se il PDF l'ha caricato il titolare, lo sconto lo mette lui.</li>
         <li>Lo sconto si mette solo se il totale torna con le voci di Acquisti; se no il gestionale ti dice "il totale non torna con le voci: lo sistema Acquisti".</li>
+        <li>Se Acquisti ha allegato il <b>📐 computo</b> dell'ingegnere, il PDF rifatto con lo sconto lo comprende (tabella o pagine del computo, come nel PDF di Acquisti).</li>
       </ul>
 
       <div class="info-esempio">
@@ -3949,6 +3950,25 @@
       </div>
 
       <div class="al2 w">Fino all'aggiornamento del database sql/265 il campo <b>Quantità x UM</b> non c'è (i campi vuoti invece di 0,00 e le due colonne del PDF ci sono già).</div>
+
+      <h4 id="info-com-27">27. 📐 Il computo dell'ingegnere nel preventivo</h4>
+
+      <p>
+        Nel riquadro <b>🏷️ Oggetto e nota iniziale</b>, tra <b>Oggetto</b> e la nota, c'è <b>📐 Computo (facoltativo)</b>. Con <b>📎 Carica Excel o PDF</b> scegli il file del computo dell'ingegnere (.xlsx, .xls, .csv o .pdf, al massimo 10 MB): si carica e resta salvato con il preventivo <b>subito</b>, senza premere <b>💾 Salva preventivo</b>. Poi trovi <b>🔁 Sostituisci</b> e <b>✖ Togli</b>.
+      </p>
+
+      <ul>
+        <li><b>Excel</b>: nel PDF per il cliente il <b>primo foglio</b> diventa una tabella sotto <b>Oggetto: ...</b> e sopra la nota, prima della tabella dei prezzi. La prima riga fa da intestazione; righe e celle vuote in fondo si tolgono; numeri e date come li legge la libreria Excel (per esempio 12.5). Al massimo 300 righe; con più di 10 colonne il gestionale avvisa che il testo è piccolo, ma il PDF si fa lo stesso.</li>
+        <li><b>PDF</b>: le sue pagine entrano subito dopo la pagina con oggetto e nota; la tabella dei prezzi riparte su una pagina nuova.</li>
+        <li>Lo carichi tu se hai preparato il preventivo (o il titolare), fino all'esito del cliente; dopo l'esito lo cambia solo il titolare. Se il computo non si riesce a leggere il PDF non si genera e il gestionale ti dice perché.</li>
+        <li>Senza computo il PDF è come prima. Il rappresentante lo legge e lo ritrova nel PDF che rifà con lo sconto.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>L'ingegnere ti manda "Computo misure.xlsx" con 3 colonne (posizione, descrizione, m²): <b>📎 Carica Excel o PDF</b>, poi <b>Genera PDF cliente</b>. Il giorno dopo arriva la versione firmata in PDF: <b>🔁 Sostituisci</b>, e nel PDF le sue 2 pagine stanno dopo la prima.
+      </div>
+
+      <div class="al2 w">Fino all'aggiornamento del database sql/264 (con il computo) il riquadro <b>📐 Computo</b> non c'è.</div>
 
   <h4>Checklist prima dell’invio</h4>
 
@@ -6122,6 +6142,20 @@
       </ul>
 
       <div class="al2 w">Fino all'aggiornamento del database sql/265 il campo <b>Quantità x UM</b> non c'è.</div>
+
+      <h4 id="info-tit-41">41. 📐 Il computo dell'ingegnere nel preventivo</h4>
+
+      <p>
+        Come Acquisti, nel riquadro <b>🏷️ Oggetto e nota iniziale</b> trovi <b>📐 Computo (facoltativo)</b> tra <b>Oggetto</b> e la nota: <b>📎 Carica Excel o PDF</b> (.xlsx, .xls, .csv, .pdf, al massimo 10 MB), poi <b>🔁 Sostituisci</b> e <b>✖ Togli</b>. Il file resta salvato con il preventivo appena caricato.
+      </p>
+
+      <ul>
+        <li>Nel PDF per il cliente: un Excel diventa una tabella (primo foglio, al massimo 300 righe) tra <b>Oggetto: ...</b> e la nota; un PDF entra con le sue pagine subito dopo la pagina con oggetto e nota, e la tabella dei prezzi riparte su una pagina nuova. Il piè di pagina del preventivo resta sulle sue pagine, non su quelle del computo.</li>
+        <li>Lo caricano e lo tolgono Acquisti che ha preparato il preventivo e tu, fino all'esito del cliente; dopo l'esito solo tu (e l'informatico). Lo leggono anche il rappresentante dei preventivi inviati a lui (il PDF rifatto con lo sconto lo comprende); segreteria e tecnici no.</li>
+        <li>Il registro delle azioni dice chi ha collegato o tolto il computo e quando.</li>
+      </ul>
+
+      <div class="al2 w">Fino all'aggiornamento del database sql/264 (con il computo) il riquadro <b>📐 Computo</b> non c'è.</div>
 
       <h4>Regole pratiche</h4>
 

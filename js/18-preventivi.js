@@ -4665,6 +4665,10 @@ let condizioniPagamentoPreventivo = '';
 let oggettoPreventivoEditor = '';
 let notaIntroPreventivoEditor = '';
 let oggettoNotaEditorDisponibile = false;
+// sql/264 (computo): file del computo dell'ingegnere nell'editor (solo con
+// le colonne computo_path e computo_nome). commercialeId e stato servono a
+// sapere se chi guarda lo può caricare o togliere.
+let computoEditorPreventivo = { disponibile: false, path: null, nome: null, commercialeId: null, stato: null };
 // sql/265: "Quantità x UM" delle voci (testo libero) nell'editor.
 let quantitaUmEditorDisponibile = false;
 // F4.2: dati dell'anticipo nell'editor (solo con sql/24 eseguito).
@@ -6163,7 +6167,8 @@ async function renderCostiPreventivo() {
     .select((anticipoDisponibile
       ? 'note,condizioni_pagamento,stato,sconto_perc,anticipo_richiesto,anticipo_tipo,anticipo_valore'
       : 'note,condizioni_pagamento,stato,sconto_perc')
-      + (oggettoNotaDisponibile ? ',oggetto,nota_introduttiva' : ''))
+      + (oggettoNotaDisponibile ? ',oggetto,nota_introduttiva' : '')
+      + (computoPreventivoDisponibile === true ? ',computo_path,computo_nome,commerciale_id' : ''))
     .eq('id', currentPreventivoId)
     .single();
 
@@ -6174,6 +6179,13 @@ async function renderCostiPreventivo() {
   oggettoNotaEditorDisponibile = oggettoNotaDisponibile && !!preventivo;
   oggettoPreventivoEditor = preventivo?.oggetto || '';
   notaIntroPreventivoEditor = preventivo?.nota_introduttiva || '';
+  computoEditorPreventivo = {
+    disponibile: computoPreventivoDisponibile === true && !!preventivo,
+    path: preventivo?.computo_path || null,
+    nome: preventivo?.computo_nome || null,
+    commercialeId: preventivo?.commerciale_id || null,
+    stato: preventivo?.stato || null
+  };
   scontoPreventivoEditor = Number(preventivo?.sconto_perc || 0) > 0 ? Number(preventivo.sconto_perc) : 0;
 
   condizioniPagamentoPreventivo =
@@ -6487,6 +6499,9 @@ async function generaPreventivoClientePDF(datiEsterni) {
   const conOggettoNota = !datiEsterni && await verificaOggettoNotaPreventivoDisponibile();
   // sql/265: "Quantità x UM" solo se la colonna c'è (senza: 400 evitato)
   const conQuantitaUm = !datiEsterni && await verificaQuantitaUmVociDisponibile();
+  // sql/264 (computo): solo se le colonne ci sono (con i dati esterni li
+  // porta dati_pdf_preventivo_cliente)
+  const conComputo = !datiEsterni && await verificaComputoPreventivoDisponibile();
   const [
     preventivoRes,
     vociRes
@@ -6505,6 +6520,7 @@ async function generaPreventivoClientePDF(datiEsterni) {
         condizioni_pagamento,
         progetto_tecnico_id,
         ${conOggettoNota ? 'oggetto,nota_introduttiva,' : ''}
+        ${conComputo ? 'computo_path,computo_nome,' : ''}
         clienti(
           ragione_sociale,
           indirizzo,
@@ -6537,6 +6553,24 @@ async function generaPreventivoClientePDF(datiEsterni) {
   if (!voci.length) {
     toast('Salva almeno una voce prima di generare il PDF', 'err');
     return;
+  }
+
+  // sql/264: computo dell'ingegnere (Excel = tabella, PDF = sue pagine).
+  // Se non si legge il PDF non si genera: senza il computo sarebbe diverso
+  // da quello che Acquisti ha preparato.
+  let computo = null;
+  if (preventivo.computo_path) {
+    try {
+      computo = await leggiComputoPerPdfPreventivo(preventivo.computo_path);
+    } catch (e) {
+      toast('PDF non generato: computo «' + (preventivo.computo_nome || preventivo.computo_path.split('/').pop()) + '» non disponibile, ' + e.message, 'err');
+      return datiEsterni ? null : undefined;
+    }
+    if (computo.tipo === 'excel') {
+      if (!computo.righe.length) toast('Il computo Excel è vuoto: nel PDF non c\'è la tabella', 'err');
+      else if (computo.colonne > COMPUTO_AVVISO_COLONNE) toast('Il computo ha ' + computo.colonne + ' colonne: nel PDF il testo è molto piccolo, controlla che si legga', 'err');
+      if (computo.righeTotali > COMPUTO_MAX_RIGHE) toast('Il computo ha ' + computo.righeTotali + ' righe: nel PDF vanno le prime ' + COMPUTO_MAX_RIGHE, 'err');
+    }
   }
 
   const totaleImponibile = voci.reduce(function(totale, voce) {
@@ -6653,7 +6687,22 @@ async function generaPreventivoClientePDF(datiEsterni) {
 
   // sql/264: "Oggetto: ..." in grassetto e la nota, prima della tabella dei
   // prezzi; solo se compilati (senza i due campi il PDF è come prima).
-  y = scriviOggettoNotaPdfPreventivo(doc, preventivo, margine, y);
+  // sql/264: computo Excel tra "Oggetto:" e la nota; computo PDF: la tabella
+  // dei prezzi riparte su una pagina nuova e le pagine del computo vanno
+  // dopo quella con oggetto e nota (inserite alla fine con pdf-lib).
+  let paginaPrimaDelComputo = 0;
+  if (computo && computo.tipo === 'excel') {
+    y = scriviOggettoNotaPdfPreventivo(doc, preventivo, margine, y, function(yy) {
+      return scriviComputoExcelPdfPreventivo(doc, computo, margine, yy);
+    });
+  } else {
+    y = scriviOggettoNotaPdfPreventivo(doc, preventivo, margine, y);
+  }
+  if (computo && computo.tipo === 'pdf') {
+    paginaPrimaDelComputo = doc.internal.getCurrentPageInfo().pageNumber;
+    doc.addPage();
+    y = 16;
+  }
 
   doc.autoTable({
 margin: {
@@ -7260,10 +7309,25 @@ disegnaFooterClausoleSuTutteLePagine();
 
  const nomeFile = `Preventivo_${preventivo.numero}_Toli_Fire_${Date.now()}.pdf`;
 
-  const pdfBlob = doc.output('blob');
+  let pdfBlob;
+  if (paginaPrimaDelComputo) {
+    try {
+      pdfBlob = await inserisciPagineComputoPdfPreventivo(doc, computo.byte, paginaPrimaDelComputo);
+    } catch (e) {
+      toast('PDF non generato: pagine del computo non inserite (' + e.message + ')', 'err');
+      return datiEsterni ? null : undefined;
+    }
+  } else {
+    pdfBlob = doc.output('blob');
+  }
+  // senza computo PDF si scarica come sempre; con il computo il file unito
+  const scaricaPdf = function() {
+    if (paginaPrimaDelComputo) scaricaBlobRichiesta(pdfBlob, nomeFile);
+    else doc.save(nomeFile);
+  };
 
   if (datiEsterni) {
-    doc.save(nomeFile);
+    scaricaPdf();
     return { blob: pdfBlob, nomeFile: nomeFile };
   }
 
@@ -7311,7 +7375,7 @@ disegnaFooterClausoleSuTutteLePagine();
     return;
   }
 
-  doc.save(nomeFile);
+  scaricaPdf();
 
   toast('PDF cliente generato e salvato', 'ok');
 }
@@ -9434,6 +9498,7 @@ let anticipoPreventivoDisponibile = null;
 const OGGETTO_PREVENTIVO_MAX = 200;
 const NOTA_INTRO_PREVENTIVO_MAX = 2000;
 let oggettoNotaPreventivoDisponibile = null;
+let computoPreventivoDisponibile = null;
 
 // true solo con le colonne oggetto e nota_introduttiva (sql/264). Si legge
 // una riga intera e si guarda se la colonna c'è: così senza sql/264 nessuna
@@ -9452,7 +9517,15 @@ async function verificaOggettoNotaPreventivoDisponibile() {
   if (error || !data || !data.length) return false;
 
   oggettoNotaPreventivoDisponibile = Object.prototype.hasOwnProperty.call(data[0], 'nota_introduttiva');
+  // sql/264 (computo, stesso file): dalla stessa riga
+  computoPreventivoDisponibile = Object.prototype.hasOwnProperty.call(data[0], 'computo_path');
   return oggettoNotaPreventivoDisponibile;
+}
+
+// true solo con le colonne computo_path e computo_nome (sql/264).
+async function verificaComputoPreventivoDisponibile() {
+  if (computoPreventivoDisponibile === null) await verificaOggettoNotaPreventivoDisponibile();
+  return computoPreventivoDisponibile === true;
 }
 
 // sql/265 --------------------------------------------------------------
@@ -9535,7 +9608,7 @@ function htmlOggettoNotaEditorPreventivo() {
     oninput="oggettoPreventivoEditor = this.value"
     value="${esc(oggettoPreventivoEditor)}"
   >
-
+${computoEditorPreventivo.disponibile ? '<div id="pvv-computo">' + htmlComputoEditorPreventivo() + '</div>' : ''}
   <label style="font-size:12px;font-weight:600;display:block;margin-top:10px">Nota prima della tabella dei prezzi (facoltativa)</label>
   <textarea
     id="pvv-nota-introduttiva"
@@ -9550,10 +9623,12 @@ function htmlOggettoNotaEditorPreventivo() {
 
 // Scrive "Oggetto: ..." (grassetto) e la nota sotto i dati del cliente;
 // restituisce la nuova y. Niente da scrivere = y invariata.
-function scriviOggettoNotaPdfPreventivo(doc, preventivo, margine, y) {
+// sql/264 (computo): traOggettoENota(y) → nuova y, per la tabella del
+// computo Excel fra "Oggetto:" e la nota; senza è tutto come prima.
+function scriviOggettoNotaPdfPreventivo(doc, preventivo, margine, y, traOggettoENota) {
   const oggetto = String(preventivo?.oggetto || '').replace(/[\r\n]+/g, ' ').trim();
   const nota = String(preventivo?.nota_introduttiva || '').trim();
-  if (!oggetto && !nota) return y;
+  if (!oggetto && !nota && !traOggettoENota) return y;
 
   const larghezzaTesto = 178;
   y += 2;
@@ -9566,6 +9641,8 @@ function scriviOggettoNotaPdfPreventivo(doc, preventivo, margine, y) {
     doc.text(righe, margine, y);
     y += righe.length * 5 + 2;
   }
+
+  if (traOggettoENota) y = traOggettoENota(y);
 
   if (nota) {
     doc.setFont('helvetica', 'normal');
@@ -9585,6 +9662,221 @@ function scriviOggettoNotaPdfPreventivo(doc, preventivo, margine, y) {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   return y;
+}
+// sql/264: computo dell'ingegnere -----------------------------------------
+// Un file Excel (xlsx, xls, csv) o PDF, al massimo 10 MB, nel bucket
+// preventivi-documenti in <id>/computo/<ora>_<nome>. Si carica e si collega
+// SUBITO (non con "💾 Salva preventivo"): così il file e il preventivo non
+// restano mai a metà. Lo caricano e lo tolgono il titolare e Acquisti che
+// ha preparato il preventivo, prima dell'esito (dopo solo il titolare):
+// stesse regole del database (trigger e regole dei file di sql/264).
+// Nel PDF del cliente: Excel = tabella del primo foglio tra "Oggetto:" e la
+// nota; PDF = sue pagine subito dopo la pagina con oggetto e nota.
+const COMPUTO_MAX_BYTE = 10 * 1024 * 1024;
+const COMPUTO_MAX_RIGHE = 300;
+const COMPUTO_AVVISO_COLONNE = 10;
+const COMPUTO_ESTENSIONI = ['xlsx', 'xls', 'csv', 'pdf'];
+
+function estensioneComputo(nome) {
+  const m = /\.([a-z0-9]+)$/i.exec(String(nome || ''));
+  return m ? m[1].toLowerCase() : '';
+}
+
+function computoPreventivoModificabile() {
+  const c = computoEditorPreventivo;
+  if (!c.disponibile) return false;
+  if (ROLE === 'titolare') return true;
+  if (STATI_ESITO_PREVENTIVO.includes(c.stato)) return false;
+  return ROLE === 'commerciale' && !!ME && c.commercialeId === ME.id;
+}
+
+function htmlComputoEditorPreventivo() {
+  const c = computoEditorPreventivo;
+  const puo = computoPreventivoModificabile();
+  const tipo = c.path ? (estensioneComputo(c.path) === 'pdf' ? '📄 PDF' : '📊 Excel') : '';
+  return `
+  <div style="margin-top:12px;padding:10px 12px;border:1px dashed var(--b);border-radius:8px">
+    <div style="font-size:12px;font-weight:600">📐 Computo (facoltativo)</div>
+    <div style="font-size:12px;color:var(--m);margin:3px 0 8px">
+      Il computo dell'ingegnere (Excel o PDF, al massimo 10 MB). Nel PDF per il
+      cliente: un Excel diventa una tabella dopo l'oggetto, un PDF entra con le
+      sue pagine dopo la pagina dell'oggetto e della nota.
+    </div>
+    ${c.path ? `
+      <div id="pvv-computo-nome" style="font-size:13px;margin-bottom:8px">
+        ${tipo}: <b>${esc(c.nome || c.path.split('/').pop())}</b>
+      </div>` : `<div style="font-size:12px;color:var(--m);margin-bottom:8px">Nessun computo caricato.</div>`}
+    ${puo ? `
+      <input id="pvv-computo-file" type="file" accept=".xlsx,.xls,.csv,.pdf" style="display:none"
+        onchange="caricaComputoPreventivo(this)">
+      <button class="btn bs bsm" type="button" onclick="ge('pvv-computo-file').click()">
+        ${c.path ? '🔁 Sostituisci' : '📎 Carica Excel o PDF'}
+      </button>
+      ${c.path ? `<button class="btn bs bsm" type="button" onclick="togliComputoPreventivo()">✖ Togli</button>` : ''}
+    ` : (c.path ? '' : `<div style="font-size:12px;color:var(--m)">Lo carica Acquisti che ha preparato il preventivo o il titolare.</div>`)}
+  </div>`;
+}
+
+function ridisegnaComputoEditorPreventivo() {
+  const box = ge('pvv-computo');
+  if (box) box.innerHTML = htmlComputoEditorPreventivo();
+}
+
+async function caricaComputoPreventivo(input) {
+  const file = input?.files?.[0];
+  if (input) input.value = '';
+  if (!file || !currentPreventivoId) return;
+  if (!computoPreventivoModificabile()) { toast('Il computo lo carica Acquisti che ha preparato il preventivo o il titolare', 'err'); return; }
+  const est = estensioneComputo(file.name);
+  if (!COMPUTO_ESTENSIONI.includes(est)) { toast('Il computo deve essere un file Excel (.xlsx, .xls, .csv) o PDF', 'err'); return; }
+  if (file.size > COMPUTO_MAX_BYTE) { toast('Il computo supera i 10 MB', 'err'); return; }
+  if (file.size === 0) { toast('Il file è vuoto', 'err'); return; }
+
+  const vecchio = computoEditorPreventivo.path;
+  const nomeSicuro = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(-120);
+  const percorso = currentPreventivoId + '/computo/' + Date.now() + '_' + nomeSicuro;
+  const tipi = { pdf: 'application/pdf', csv: 'text/csv', xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+
+  const { error: erroreUpload } = await db.storage
+    .from('preventivi-documenti')
+    .upload(percorso, file, { contentType: tipi[est], upsert: false });
+  if (erroreUpload) { toast('Computo non caricato: ' + erroreUpload.message, 'err'); return; }
+
+  const nome = String(file.name).replace(/[\r\n]+/g, ' ').trim().slice(0, 255);
+  const { error } = await db
+    .from('preventivi')
+    .update({ computo_path: percorso, computo_nome: nome })
+    .eq('id', currentPreventivoId);
+  if (error) {
+    await db.storage.from('preventivi-documenti').remove([percorso]);
+    toast('Computo caricato ma non collegato: ' + error.message, 'err');
+    return;
+  }
+  // il file di prima non serve più (se non si toglie resta solo nella cartella)
+  if (vecchio && vecchio !== percorso) await db.storage.from('preventivi-documenti').remove([vecchio]);
+
+  computoEditorPreventivo.path = percorso;
+  computoEditorPreventivo.nome = nome;
+  ridisegnaComputoEditorPreventivo();
+  toast(vecchio ? 'Computo sostituito' : 'Computo caricato', 'ok');
+}
+
+async function togliComputoPreventivo() {
+  const vecchio = computoEditorPreventivo.path;
+  if (!vecchio || !currentPreventivoId) return;
+  if (!computoPreventivoModificabile()) { toast('Il computo lo toglie Acquisti che ha preparato il preventivo o il titolare', 'err'); return; }
+  if (!confirm('Togliere il computo dal preventivo? Il PDF per il cliente non lo avrà più.')) return;
+
+  const { error } = await db
+    .from('preventivi')
+    .update({ computo_path: null, computo_nome: null })
+    .eq('id', currentPreventivoId);
+  if (error) { toast('Computo non tolto: ' + error.message, 'err'); return; }
+  await db.storage.from('preventivi-documenti').remove([vecchio]);
+
+  computoEditorPreventivo.path = null;
+  computoEditorPreventivo.nome = null;
+  ridisegnaComputoEditorPreventivo();
+  toast('Computo tolto', 'ok');
+}
+
+// Legge il computo per il PDF: { tipo: 'excel', righe, righeTotali,
+// colonne } oppure { tipo: 'pdf', byte }. Errore = eccezione con il motivo.
+async function leggiComputoPerPdfPreventivo(percorso) {
+  const { data: blob, error } = await db.storage.from('preventivi-documenti').download(percorso);
+  if (error || !blob) throw new Error('il file non si scarica' + (error?.message ? ' (' + error.message + ')' : ''));
+  const byte = await blob.arrayBuffer();
+
+  if (estensioneComputo(percorso) === 'pdf') {
+    await caricaLibreriaPDFLib();
+    try {
+      await window.PDFLib.PDFDocument.load(byte);
+    } catch (e) {
+      throw new Error('il PDF del computo non si legge (protetto da password o rovinato?)');
+    }
+    return { tipo: 'pdf', byte };
+  }
+
+  await caricaLibreriaExcel();
+  let righe;
+  try {
+    const libro = XLSX.read(new Uint8Array(byte), { type: 'array' });
+    const foglio = libro.Sheets[libro.SheetNames[0]];
+    // raw false = i valori come li mostra Excel (numeri e date formattati)
+    righe = foglio ? XLSX.utils.sheet_to_json(foglio, { header: 1, raw: false, defval: '', blankrows: true }) : [];
+  } catch (e) {
+    throw new Error('il foglio Excel del computo non si legge');
+  }
+  righe = righe.map(function(riga) {
+    return (riga || []).map(function(cella) { return String(cella == null ? '' : cella).trim(); });
+  });
+  // righe vuote in fondo e celle vuote in fondo a ogni riga: via
+  while (righe.length && righe[righe.length - 1].every(function(c) { return c === ''; })) righe.pop();
+  let colonne = 0;
+  righe.forEach(function(riga) {
+    for (let i = riga.length - 1; i >= 0; i--) {
+      if (riga[i] !== '') { colonne = Math.max(colonne, i + 1); break; }
+    }
+  });
+  righe = righe.map(function(riga) {
+    const r = riga.slice(0, colonne);
+    while (r.length < colonne) r.push('');
+    return r;
+  });
+  const righeTotali = righe.length;
+  return { tipo: 'excel', righe: righe.slice(0, COMPUTO_MAX_RIGHE), righeTotali, colonne };
+}
+
+// Tabella del computo Excel nel PDF (prima riga = intestazione): colonne
+// strette per stare nei 178 mm; restituisce la nuova y.
+function scriviComputoExcelPdfPreventivo(doc, computo, margine, y) {
+  if (!computo || !computo.righe.length || !computo.colonne) return y;
+  const pulisci = typeof pulisciTestoPDF === 'function' ? pulisciTestoPDF : function(t) { return t; };
+  const righe = computo.righe.map(function(r) { return r.map(function(c) { return pulisci(c); }); });
+  const n = computo.colonne;
+  const carattere = n <= 5 ? 8 : n <= 8 ? 7 : n <= 10 ? 6.5 : n <= 14 ? 5.5 : 4.5;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(25, 25, 25);
+  if (y > 240) { doc.addPage(); y = 20; }
+  doc.text('Computo', margine, y + 2);
+
+  doc.autoTable({
+    margin: { top: 18, right: margine, bottom: 82, left: margine },
+    startY: y + 5,
+    tableWidth: 178,
+    head: righe.length > 1 ? [righe[0]] : undefined,
+    body: righe.length > 1 ? righe.slice(1) : righe,
+    theme: 'grid',
+    headStyles: { fillColor: [232, 238, 236], textColor: [25, 25, 25], fontStyle: 'bold' },
+    styles: { fontSize: carattere, cellPadding: 1.4, overflow: 'linebreak' }
+  });
+  y = doc.lastAutoTable.finalY + 4;
+
+  if (computo.righeTotali > computo.righe.length) {
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(8);
+    doc.setTextColor(90, 90, 90);
+    doc.text('Computo: riportate le prime ' + computo.righe.length + ' righe di ' + computo.righeTotali + '.', margine, y + 2);
+    y += 6;
+  }
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(25, 25, 25);
+  return y + 4;
+}
+
+// Pagine del computo PDF subito dopo la pagina "dopoPagina" (1, 2, ...).
+async function inserisciPagineComputoPdfPreventivo(doc, byte, dopoPagina) {
+  await caricaLibreriaPDFLib();
+  const PdfDocument = window.PDFLib.PDFDocument;
+  const finale = await PdfDocument.load(doc.output('arraybuffer'));
+  const computo = await PdfDocument.load(byte);
+  const pagine = await finale.copyPages(computo, computo.getPageIndices());
+  pagine.forEach(function(pagina, i) { finale.insertPage(dopoPagina + i, pagina); });
+  return new Blob([await finale.save()], { type: 'application/pdf' });
 }
 let anticipoEsitoAttivo = false;
 let anticipoEsitoNonCaricato = false;
