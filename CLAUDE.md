@@ -377,23 +377,23 @@ comunque" va in progetti_tecnici_storico (tipo_evento 'doppione_confermato',
 lo scrive solo la RPC registra_doppione_progetto); avvisi: tipo nuovo
 'progetto_doppione' (al titolare).
 Dopo sql/226 (F15.22 agenti esterni e venditore interno, decisione E2, approvata
-da Erika il 12/11 come SOLA ETICHETTA; DA ESEGUIRE con "CONFERMATO DA TOLI:
+da Erika il 12/11 come SOLA ETICHETTA; ESEGUITO il 12/11 (backup pre88-265, controllo in regola) con "CONFERMATO DA TOLI:
 sql/226"): nessuna tabella nuova (matrice invariata). utenti: colonne NUOVE
 esterno (boolean not null default false: Agente esterno / Venditore interno) e
 partita_iva_venditore (facoltativa, 11 cifre, vincolo
 utenti_partita_iva_venditore_check); le scrive SOLO il titolare (trigger
 trg_utenti_esterno), lette da tutti come le altre colonne di utenti.
 Dopo sql/89 (F15.19 coda dell'ingegnere, VERSIONE RIDOTTA decisa da Erika il
-12/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/89"): nessuna tabella nuova,
+12/11; ESEGUITO il 12/11 (backup pre88-265, controllo in regola) con "CONFERMATO DA TOLI: sql/89"): nessuna tabella nuova,
 matrice invariata. progetti_tecnici: colonna NUOVA urgente (boolean, default
 false; la cambia SOLO il titolare, trigger trg_progetti_tecnici_urgente).
-Dopo sql/263 (campi vernice e porte REI, richiesta di Erika del 12/11; DA
-ESEGUIRE): nessuna tabella, colonna o policy nuova, matrice invariata.
+Dopo sql/263 (campi vernice e porte REI, richiesta di Erika del 12/11; ESEGUITO il 12/11 (backup pre88-265, controllo in regola)
+): nessuna tabella, colonna o policy nuova, matrice invariata.
 lavorazioni_campi (dati): 6 menu nuovi facoltativi, voci in fondo a elemento e
 stato_supporto, etichetta di profilo, superficie non più "serve al prezzo"
 (regola "basta uno" in controlli_invio_progetto, vedi "Dopo sql/263").
-Dopo sql/91 (F15.21 proposte di nuovi campi, approvata da Erika il 12/11; DA
-ESEGUIRE con "CONFERMATO DA TOLI: sql/91", poi il -REGISTRO-CANCELLAZIONI
+Dopo sql/91 (F15.21 proposte di nuovi campi, approvata da Erika il 12/11; ESEGUITO il 12/11 (backup pre88-265, controllo in regola)
+con "CONFERMATO DA TOLI: sql/91", poi il -REGISTRO-CANCELLAZIONI
 dall'editor; richiede 07, 67, 71, 75): lavorazioni_proposte_campi (proposte
 dell'ingegnere: lavorazione, etichetta, tipo numero/menu/si_no/testo, unità,
 valori del menu, uso a valle, nota, stato in_attesa/approvata/rifiutata, chi
@@ -401,8 +401,8 @@ propone e chi decide con nomi copiati, motivo del rifiuto, campo nato e suo
 codice; lettura SOLO titolare (informatico) e ingegnere, nessuna scrittura
 diretta: solo le RPC di sql/91; cancellazione bloccata dal
 -REGISTRO-CANCELLAZIONI). Matrice: 10 righe nuove.
-Dopo sql/264 (oggetto e nota del preventivo, richiesta di Erika del 12/11; DA
-ESEGUIRE): nessuna tabella nuova, matrice invariata. preventivi: colonne NUOVE
+Dopo sql/264 (oggetto e nota del preventivo, richiesta di Erika del 12/11; ESEGUITO il 12/11 (backup pre88-265, controllo in regola)
+): nessuna tabella nuova, matrice invariata. preventivi: colonne NUOVE
 oggetto (una riga, max 200, vincolo preventivi_oggetto_check) e
 nota_introduttiva (max 2000, preventivi_nota_introduttiva_check), facoltative;
 le scrive chi oggi scrive il preventivo, dopo l'esito solo il titolare
@@ -414,8 +414,8 @@ Acquisti autore, dopo l'esito solo il titolare (stesso trigger). Bucket
 preventivi-documenti: cartella NUOVA <id>/computo/ con 4 regole dei file
 (lettura, caricamento, eliminazione e la restrittiva _dopo_esito); vedi
 "Dopo sql/264".
-Dopo sql/265 ("Quantità x UM" delle voci, richiesta di Erika del 12/11; DA
-ESEGUIRE): nessuna tabella nuova, matrice invariata. preventivi_voci: colonna
+Dopo sql/265 ("Quantità x UM" delle voci, richiesta di Erika del 12/11; ESEGUITO il 12/11 (backup pre88-265, controllo in regola)
+): nessuna tabella nuova, matrice invariata. preventivi_voci: colonna
 NUOVA quantita_um (testo libero facoltativo, max 50, una riga, vincolo
 preventivi_voci_quantita_um_check; nessun calcolo); la scrive chi oggi scrive
 le voci, dopo l'esito solo il titolare (trigger trg_preventivi_voci_quantita_um);
@@ -1912,7 +1912,7 @@ chi crea già legge (rappresentante: i suoi), nota "il motivo non si salva
 ancora", nessun errore (una chiamata RPC 404).
 Dopo sql/88 (F15.18 promemoria delle integrazioni, VERSIONE RIDOTTA decisa da
 Erika l'11/11: "le funzioni esistenti sono volute, solo miglioramenti, niente
-cambi di flusso"; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/88": backup,
+cambi di flusso"; ESEGUITO il 12/11 (backup pre88-265, controllo in regola) con "CONFERMATO DA TOLI: sql/88": backup,
 anteprima in fondo al file, 88-integrazioni-motivo-promemoria.sql (senza
 parole di cancellazione, server MCP), controllo in fondo; nessun
 -REGISTRO-CANCELLAZIONI; richiede 62 e 64, si ferma senza; 65 per gli avvisi;
@@ -1948,8 +1948,8 @@ secondo l'unità; smoke TUTTO OK senza sql/88. Senza sql/88: avviso al
 titolare dopo 7 giorni di calendario come prima, nessun errore.
 Dopo sql/226 (F15.22 agenti esterni e venditore interno, decisione di Toli E2;
 approvata da Erika il 12/11 come SOLA ETICHETTA: stesso ruolo rappresentante,
-stesse pagine, stessi bottoni, stessi clienti; provvigioni uguali, E12). DA
-ESEGUIRE con "CONFERMATO DA TOLI: sql/226": backup, anteprima in fondo al file,
+stesse pagine, stessi bottoni, stessi clienti; provvigioni uguali, E12). ESEGUITO il 12/11 (backup pre88-265, controllo in regola)
+con "CONFERMATO DA TOLI: sql/226": backup, anteprima in fondo al file,
 226-agenti-esterni-venditore-interno.sql (senza parole di cancellazione, server
 MCP), controllo in fondo; nessun -REGISTRO-CANCELLAZIONI; richiede 07 e 71, si
 ferma senza; il sito si pubblica prima o dopo. Nessuna RPC, nessuna policy
@@ -1986,7 +1986,7 @@ Dopo sql/89 (F15.19 coda dell'ingegnere, tempi e urgenza, VERSIONE RIDOTTA
 decisa da Erika il 12/11: "solo informazioni in più, l'ingegnere lavora come
 oggi"; NON FATTI il controllo a campione 1 su 10 e la colonna
 campione_ingegnere (smistamento spento da sql/260), corsie nuove, cambi a
-bottoni o passaggi di ingegnere e Acquisti; DA ESEGUIRE con "CONFERMATO DA
+bottoni o passaggi di ingegnere e Acquisti; ESEGUITO il 12/11 (backup pre88-265, controllo in regola) con "CONFERMATO DA
 TOLI: sql/89": backup, anteprima in fondo al file,
 89-coda-ingegnere-campione-tempi.sql (senza parole di cancellazione, server
 MCP), controllo in fondo; nessun -REGISTRO-CANCELLAZIONI; richiede 07 e 71,
@@ -2295,7 +2295,7 @@ pg_dump). Nello stesso commit: barra "🔍 Cerca" nella pagina Progetti
 (index.html cerca-prev-progetti, js/18 PAGINE_CERCA_PREVENTIVI con 'progetti'
 e il testo "N progetti trovati"), richiesta di Erika dell'11/11.
 Dopo sql/263 (campi nuovi di vernice intumescente e porte REI, richiesta di
-Erika del 12/11, numero fuori piano; DA ESEGUIRE con "CONFERMATO DA TOLI:
+Erika del 12/11, numero fuori piano; ESEGUITO il 12/11 (backup pre88-265, controllo in regola) con "CONFERMATO DA TOLI:
 sql/263": backup, anteprima in fondo al file, 263-campi-vernice-porte-rei.sql
 (senza parole di cancellazione, server MCP), controllo in fondo; nessun
 -REGISTRO-CANCELLAZIONI, matrice invariata; richiede 71, 75, 78, 81,
@@ -2401,7 +2401,7 @@ approvati restano nel catalogo). Senza sql/91: nessun bottone, link o riga,
 nessun errore (una chiamata RPC 404 per titolare e ingegnere).
 Dopo sql/264 (oggetto e nota prima della tabella dei prezzi, richiesta di Erika
 del 12/11, fuori piano, + computo dell'ingegnere, stessa richiesta del 12/11 nello
-STESSO file; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/264": backup,
+STESSO file; ESEGUITO il 12/11 (backup pre88-265, controllo in regola) con "CONFERMATO DA TOLI: sql/264": backup,
 anteprima in fondo al file, 264-preventivo-oggetto-nota.sql DALL'EDITOR SQL (con
 il computo contiene "for delete" nelle regole dei file: il server MCP lo
 rifiuta), controllo in fondo (Claude); nessun -REGISTRO-CANCELLAZIONI;
@@ -2523,7 +2523,7 @@ rappresentante a 390 px applica il 5% e "Rifai il PDF" con il computo; senza
 sql/264 nessun riquadro, COMPUTO_SENZA_SQL=1); ordini 264, 264+265, 265 poi
 264 e rollback in ogni ordine: schema identico con pg_dump.
 Dopo sql/265 ("Quantità x UM" nelle voci del preventivo, richiesta di Erika del
-12/11, fuori piano; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/265": backup,
+12/11, fuori piano; ESEGUITO il 12/11 (backup pre88-265, controllo in regola) con "CONFERMATO DA TOLI: sql/265": backup,
 anteprima in fondo al file, 265-voci-quantita-um.sql (senza parole di
 cancellazione, server MCP), controllo in fondo; nessun -REGISTRO-CANCELLAZIONI,
 matrice invariata; richiede 07, 25, 71, 258, si ferma senza; ORDINE CON sql/264
