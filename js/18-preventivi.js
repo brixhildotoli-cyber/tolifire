@@ -6219,8 +6219,8 @@ function aggiungiVocePreventivo() {
     _chiave: 'nuova-' + Date.now() + '-' + Math.random().toString(36).slice(2),
     categoria: 'materiale',
     descrizione: '',
-    unita_misura: 'pz',
-    quantita: 1,
+    unita_misura: '',
+    quantita: 0,
     quantita_um: '',
     costo_unitario: 0,
     prezzo_unitario: 0
