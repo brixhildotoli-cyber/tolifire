@@ -1414,9 +1414,20 @@ async function preparaSchedeMigrate() {
   } catch (e) { return false; }
 }
 
+// Lavorazione nata nel catalogo (es. Cartellonistica, 13/11): non ha una scheda
+// scritta a mano in js/18, quindi etichette e menu vengono sempre dal catalogo
+// (preventivo, copia di Acquisti, PDF del fornitore e delle schede tecniche).
+function lavorazioneNuovaCatalogo(famiglia) {
+  if (MOTORE_SCHEDE.disponibile !== true || !famiglia || famiglia === FAMIGLIA_COMUNE) return false;
+  if (Object.prototype.hasOwnProperty.call(SCHEDE_VECCHIE_MOTORE, famiglia)) return false;
+  const lav = typeof lavorazioneCatalogo === 'function' ? lavorazioneCatalogo(famiglia) : null;
+  return !!(lav && campiSchedaMotore(lav).length);
+}
+
 function campoCatalogoMigrato(famiglia, codice) {
   if (!famiglia || !codice) return null;
-  if (!famigliaMigrataMotore(famiglia) && !(famiglia === FAMIGLIA_COMUNE && bloccoComuneAttivo())) return null; // F15.8
+  if (!famigliaMigrataMotore(famiglia) && !(famiglia === FAMIGLIA_COMUNE && bloccoComuneAttivo()) &&
+      !lavorazioneNuovaCatalogo(famiglia)) return null; // F15.8
   const lav = lavorazioneCatalogo(famiglia);
   return ((lav && lav.lavorazioni_campi) || []).find(function(c) { return c.codice === codice; }) || null;
 }
