@@ -5367,6 +5367,13 @@ ${typeof htmlCodiceEnteVocePreventivo === 'function' ? htmlCodiceEnteVocePrevent
       <div id="pvv-margine-sconto" class="${scontoPreventivoEditor > 0 ? 'al2 w' : ''}" style="${scontoPreventivoEditor > 0 ? 'margin-top:10px;font-size:13px' : ''}">${htmlMargineConScontoPreventivo(costo, vendita)}</div>
       <div id="pvv-margine-gruppi">${typeof htmlMargineCategoriePreventivo === 'function' ? htmlMargineCategoriePreventivo(vociPreventivoDati) : ''}</div>
 
+      <div id="pvv-bottoni-fondo" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+        <button class="btn sm p" onclick="aggiungiVocePreventivo(); restaSuiBottoniFondoPreventivo()">+ Aggiungi voce</button>
+        <button class="btn sm info" onclick="applicaRicaricoFornitura(); restaSuiBottoniFondoPreventivo()">
+          📈 Applica ricarico fornitura ${ricaricoFornitura !== null ? '(' + ricaricoFornitura + '%)' : ''}
+        </button>
+      </div>
+
 ${htmlOggettoNotaEditorPreventivo()}
 
       <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--b)">
@@ -6418,6 +6425,15 @@ function aggiungiVocePreventivo() {
   });
 
   disegnaVociPreventivo();
+}
+
+// Bottoni in fondo all'editor (richiesta di Erika del 13/11): dopo il ridisegno
+// la pagina resta sui bottoni in fondo, sotto la voce nuova
+function restaSuiBottoniFondoPreventivo() {
+  setTimeout(function() {
+    const b = ge('pvv-bottoni-fondo');
+    if (b) b.scrollIntoView({ block: 'center' });
+  }, 50);
 }
 
 function rimuoviNuovaVocePreventivo(indice) {
