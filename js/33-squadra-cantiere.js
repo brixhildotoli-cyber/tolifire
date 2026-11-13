@@ -201,7 +201,7 @@ async function caricaSquadraCantiere(commessa) {
   const [rUtenti, rSub, rMezzi, rDoc, rImpegni] = await Promise.all([
     db.from('utenti').select('id, nome, cognome, ruolo, attivo').in('ruolo', ['tecnico', 'capo_tecnico']).order('nome'),
     db.from('subappaltatori').select('id, ragione_sociale, attivo').order('ragione_sociale'),
-    db.from('mezzi_attrezzature').select('id, nome, tipo, targa_matricola, note, attivo').order('nome'),
+    db.from('mezzi_attrezzature').select('*').order('nome'),
     caricaDocumentiSquadra(),
     prossimi.length
       ? db.rpc('impegni_squadra_periodo', {
@@ -600,7 +600,7 @@ function modificaMezzoElenco(id) {
 }
 
 async function ricaricaMezziSquadra() {
-  const { data, error } = await db.from('mezzi_attrezzature').select('id, nome, tipo, targa_matricola, note, attivo').order('nome');
+  const { data, error } = await db.from('mezzi_attrezzature').select('*').order('nome');
   if (error) { toast('Elenco mezzi non letto: ' + error.message, 'err'); return; }
   if (squadraAperta) squadraAperta.mezzi = data || [];
   renderElencoMezzi();

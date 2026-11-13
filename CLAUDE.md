@@ -448,6 +448,15 @@ inviata_fornitore → arrivata | annullata, chi e quando di ogni passo;
 lettura titolare, commerciale, capo_tecnico, segreteria; nessuna scrittura
 diretta, solo le RPC di sql/268); vedi "Dopo sql/268".
 
+Usate dal frontend — mezzi (sql/129, F17.13, DA ESEGUIRE): mezzi_multe
+(multe dei mezzi aziendali: mezzo, data, ora, luogo, verbale, importo,
+notifica, scadenza per comunicare il conducente = notifica o data + 60 giorni
+dal database, conducente con nome copiato, conducente proposto, comunicato il,
+pagata il, importo pagato, addebito azienda/conducente SOLO del titolare con
+chi e quando, nota, annullata con motivo; lettura, inserimento e modifica
+DIRETTI di titolare, segreteria, capo_tecnico, nessuna cancellazione);
+colonne nuove mezzi_attrezzature.fermo_dal e fermo_causa; vedi "Dopo sql/129".
+
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
 è in costruzione, vedi sotto). Dopo sql/45 (F11.1, eseguito il 30/10):
@@ -3013,6 +3022,40 @@ destinazione magazzino (modulo Magazzino). Guide info-com-38, info-tit-51.
 Prove: sql/128-...-PROVA.sql e test/ordini-liberi.spec.js (Acquisti a 390 px
 300 € ordinato con PDF, 3.000 € da approvare, titolare approva, capo tecnico e
 rappresentante): TUTTO OK; smoke TUTTO OK; rollback e riesecuzione provati.
+Dopo sql/129 (F17.13 mezzo fermo e multe, VERSIONE RIDOTTA decisa da Erika il
+13/11: niente scadenze di assicurazione/revisione/bollo/tagliando, niente
+incidenti, niente pagina nuova; conducente proposto solo dalla squadra del
+cantiere. DA ESEGUIRE con "CONFERMATO DA TOLI: sql/129": backup, file (senza
+parole di cancellazione, server MCP), -REGISTRO-CANCELLAZIONI dall'EDITOR,
+controllo in fondo; richiede 07, 35, 67, 71; matrice: 10 righe nuove;
+il sito si pubblica prima o dopo). mezzi_attrezzature: fermo_dal, fermo_causa
+(vincolo mezzi_attrezzature_fermo_check: con la data la causa 3-300), scritte
+dai ruoli di sql/35 con update diretto; registro delle azioni ora anche su
+mezzi_attrezzature. Tabella mezzi_multe (vedi "Tabelle Supabase"); trigger
+trg_mezzi_multe_prima (security definer: ruoli, addebito solo titolare 42501
+anche "come", data non futura e notifica non prima 22023, scadenza, nomi, chi
+e quando; editor libero). RPC mezzi_multe_attive(). Sito
+(js/81-mezzi-fermo-multe.js dopo js/80; js/33 legge i mezzi con select *;
+index.html m-mezzo-fermo id mzf-, m-mezzo-multe id mlt-): nel box della
+squadra della scheda Cantiere "🚐 Mezzi: fermo e multe" (titolare, segreteria,
+capo tecnico; apre l'Elenco mezzi e attrezzature, che prima si apriva solo
+dalla squadra del giorno), su ogni mezzo "🛑 Segna fermo" / "🛑 Fermo" e
+"🧾 Multe", "🧾 Tutte le multe"; nella squadra del giorno il mezzo fermo resta
+sceglibile con l'avviso rosso (solo avviso); la multa propone come conducente
+chi era nella squadra di quel giorno con quel mezzo (commesse_squadra_*, letti
+dai tre ruoli). Cosa tocca a me: segreteria e titolare "Multe: conducente da
+comunicare" (entro 15 giorni o scaduto) e "Multe da pagare", titolare "Multe:
+addebito da decidere". NON FATTO: mezzo sugli interventi di manutenzione,
+targa nella ricerca globale, allegato del verbale. Guide info-seg-27,
+info-ct-29, info-tit-52. Prove: sql/129-...-PROVA.sql (multa del 10/03 →
+09/05, notifica, addebito di segreteria, capo tecnico, titolare "come"
+segreteria rifiutato, tecnico, Acquisti, "come" rappresentante rifiutati,
+cancellazione rifiutata, annullata con motivo, fermo con e senza causa,
+registro) e test/multe-mezzi.spec.js (segreteria a 390 px registra la multa
+con il tecnico proposto, Cosa tocca a me, titolare addebito, capo tecnico a
+390 px fermo e avviso nella squadra, console di tecnico e segreteria
+rifiutate): TUTTO OK; smoke TUTTO OK con e senza; rollback e riesecuzione
+provati.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

@@ -5291,6 +5291,14 @@
       </ul>
       <div class="info-esempio"><b>Esempio</b><br>"Indumenti invernali squadra": 6 giacche alta visibilità taglia L, 12 paia di guanti antitaglio. Invii; il giorno dopo ti arriva "📤 inviata al fornitore", la settimana dopo "📦 arrivato".</div>
 
+      <h4 id="info-ct-29">29. 🛑 Mezzo fermo e multe</h4>
+      <p>
+        Nella finestra <b>Elenco mezzi e attrezzature</b> (dalla squadra del giorno o da <b>🚐 Mezzi: fermo e multe</b> nel box della squadra) ogni mezzo ha <b>🛑 Segna fermo</b>: data e causa (officina, guasto, incidente). Il mezzo fermo resta nell'elenco della squadra con l'avviso rosso "Fermo dal ...": puoi sceglierlo lo stesso, ma controlla prima. Quando torna, <b>✅ Rimetti in servizio</b>.
+      </p>
+      <p>
+        <b>🧾 Multe</b>: puoi registrare una multa come la segreteria; il conducente proposto è chi avevi messo in squadra quel giorno con quel mezzo. Per questo conviene spuntare sempre i mezzi nella squadra del giorno.
+      </p>
+
 
       <h4>Regole pratiche</h4>
 
@@ -6425,6 +6433,12 @@
         Acquisti (e tu) può fare un <b>Ordine libero</b> sulla commessa senza un'offerta scelta, con il preventivo del fornitore allegato. Sopra la soglia <b>soglia_ordine_libero</b> delle Regole (predefinita 2.000 € IVA esclusa) l'ordine aspetta te: lo trovi nella campanella e in "Cosa tocca a me" (<b>Ordini liberi da approvare</b>). Nella scheda della commessa, box Ordini, apri <b>📎 Preventivo del fornitore</b>, poi <b>✅ Approva</b> (l'ordine diventa "ordinato") o <b>✖ Non approvare</b> con il motivo (l'ordine si annulla). Chi l'ha fatto riceve l'avviso.
       </p>
 
+      <h4 id="info-tit-52">52. 🧾 Multe: addebito e mezzi fermi</h4>
+      <p>
+        Segreteria e capo tecnico registrano le multe dei mezzi (box della squadra nella scheda Cantiere, <b>🚐 Mezzi: fermo e multe</b>, poi <b>🧾 Multe</b>; da "Cosa tocca a me" <b>Multe: addebito da decidere</b>). Solo tu scegli l'<b>Addebito</b>: all'azienda o al conducente; restano scritti chi e quando. Il conducente è proposto dalla squadra del cantiere di quel giorno con quel mezzo (gli interventi di manutenzione non hanno il mezzo: lì si sceglie a mano).
+      </p>
+      <p>Un mezzo segnato <b>🛑 fermo</b> compare con l'avviso rosso nella squadra del giorno.</p>
+
 
       <h4>Regole pratiche</h4>
 
@@ -7014,6 +7028,16 @@
 
       <p>
         Nel menu <b>🏛️ Gare</b> trovi le gare con la scadenza e i documenti da preparare (DGUE, garanzia, PassOE, ANAC...). Puoi crearne una (<b>➕ Nuova gara</b>), segnare ogni documento <b>✓ Fatto</b> o <b>Non serve</b> e, quando il titolare ha deciso «Partecipiamo» e i documenti sono pronti, <b>📤 Segna presentata</b>. In <b>Cosa tocca a me</b> la riga rossa <b>Gare in scadenza entro 5 giorni lavorativi</b>.
+      </p>
+
+      <h4 id="info-seg-27">27. 🧾 Multe dei mezzi e mezzo fermo</h4>
+      <p>
+        Arriva una multa per un furgone: apri una commessa, scheda <b>🏗️ Cantiere</b>, box della squadra, <b>🚐 Mezzi: fermo e multe</b>, poi <b>🧾 Multe</b> sul mezzo e <b>➕ Nuova multa</b>. Scrivi la data della multa: il gestionale cerca chi era in squadra quel giorno con quel mezzo e lo <b>propone come conducente</b> (se non c'era un cantiere lo scegli tu). Dopo segni <b>Conducente comunicato il</b> e <b>Pagata il</b>. L'addebito (azienda o conducente) lo decide il titolare.
+      </p>
+      <p class="info-esempio">Esempio: multa del 10/03 sul Ducato, quel giorno in squadra c'era Roberto: è proposto lui; il conducente va comunicato entro il 09/05 (60 giorni dalla notifica o, se non la scrivi, dalla data della multa).</p>
+      <div class="al2 i">In "Cosa tocca a me" trovi <b>Multe: conducente da comunicare</b> (a 15 giorni dalla scadenza o scadute) e <b>Multe da pagare</b>. Una multa sbagliata non si cancella: spunta <b>Annullata</b> con il motivo.</div>
+      <p>
+        Un mezzo in officina: <b>🛑 Segna fermo</b> con la data e la causa; nella squadra del giorno resta sceglibile con l'avviso rosso. Quando torna: <b>✅ Rimetti in servizio</b>.
       </p>
 
 
@@ -9561,6 +9585,72 @@
   </div>
 </div>
 
+<!-- F17.13 — MEZZO FERMO (js/81, solo con sql/129) -->
+<div class="mbg" id="m-mezzo-fermo">
+  <div class="modal" style="max-width:440px">
+    <button class="x" onclick="closeM('m-mezzo-fermo')">×</button>
+    <h3 id="mzf-titolo">🛑 Mezzo fermo</h3>
+    <div style="font-size:12px;color:var(--m);margin-bottom:10px">Un mezzo fermo si può ancora scegliere nella squadra del giorno, ma compare con l'avviso rosso.</div>
+    <input type="hidden" id="mzf-id">
+    <div class="f"><label>Fermo dal *</label><input type="date" id="mzf-dal"></div>
+    <div class="f"><label>Causa *</label><input type="text" id="mzf-causa" maxlength="300" placeholder="es. In officina: frizione, Guasto, Incidente"></div>
+    <div class="ma">
+      <button class="btn" id="mzf-rimetti" onclick="salvaFermoMezzo(true)">✅ Rimetti in servizio</button>
+      <button class="btn p" onclick="salvaFermoMezzo(false)">💾 Segna fermo</button>
+    </div>
+  </div>
+</div>
+
+<!-- F17.13 — MULTE DEI MEZZI (js/81, solo con sql/129) -->
+<div class="mbg" id="m-mezzo-multe">
+  <div class="modal" style="max-width:620px">
+    <button class="x" onclick="closeM('m-mezzo-multe')">×</button>
+    <h3 id="mlt-titolo">🧾 Multe dei mezzi</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+      <button class="btn sm p" onclick="apriMulta(null)">➕ Nuova multa</button>
+      <label style="font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="mlt-mostra-chiuse" onchange="disegnaMulteMezzo()"> Anche chiuse e annullate</label>
+    </div>
+    <div id="mlt-elenco"></div>
+    <div id="mlt-form" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--bo)">
+      <input type="hidden" id="mlt-id">
+      <div class="fr">
+        <div class="f"><label>Mezzo *</label><select id="mlt-mezzo" onchange="proponiConducenteMulta()"></select></div>
+        <div class="f"><label>Data della multa *</label><input type="date" id="mlt-data" onchange="proponiConducenteMulta()"></div>
+      </div>
+      <div class="fr">
+        <div class="f"><label>Ora</label><input type="text" id="mlt-ora" maxlength="10" placeholder="es. 09:40"></div>
+        <div class="f"><label>Luogo</label><input type="text" id="mlt-luogo" maxlength="300"></div>
+      </div>
+      <div class="fr">
+        <div class="f"><label>N. verbale</label><input type="text" id="mlt-verbale" maxlength="60"></div>
+        <div class="f"><label>Importo (€)</label><input type="text" id="mlt-importo" inputmode="decimal" placeholder="es. 42,00"></div>
+      </div>
+      <div class="f"><label>Notificata il</label><input type="date" id="mlt-notifica"></div>
+      <div id="mlt-scadenza" style="font-size:12px;color:var(--m);margin:-4px 0 8px"></div>
+      <div class="f"><label>Conducente</label><select id="mlt-conducente"></select></div>
+      <div id="mlt-proposto" style="font-size:12px;color:var(--m);margin:-4px 0 8px"></div>
+      <div class="fr">
+        <div class="f"><label>Conducente comunicato il</label><input type="date" id="mlt-comunicato"></div>
+        <div class="f"><label>Pagata il</label><input type="date" id="mlt-pagata"></div>
+      </div>
+      <div class="fr">
+        <div class="f"><label>Importo pagato (€)</label><input type="text" id="mlt-pagato" inputmode="decimal"></div>
+        <div class="f"><label>Addebito</label><select id="mlt-addebito"><option value="">Da decidere</option><option value="azienda">All'azienda</option><option value="conducente">Al conducente</option></select><div id="mlt-addebito-nota" style="font-size:11px;color:var(--m)"></div></div>
+      </div>
+      <div class="f"><label>Nota</label><input type="text" id="mlt-nota" maxlength="1000"></div>
+      <div id="mlt-annulla-box" style="margin-bottom:8px">
+        <label style="font-size:13px;display:flex;gap:6px;align-items:center"><input type="checkbox" id="mlt-annullata"> Annullata (es. verbale doppio o archiviato)</label>
+        <input type="text" id="mlt-motivo" maxlength="500" placeholder="Motivo dell'annullamento" style="margin-top:4px">
+      </div>
+      <div class="ma">
+        <button class="btn" onclick="ge('mlt-form').style.display='none'">Annulla</button>
+        <button class="btn p" onclick="salvaMulta()">💾 Salva la multa</button>
+      </div>
+    </div>
+    <div class="ma"><button class="btn" onclick="closeM('m-mezzo-multe')">Chiudi</button></div>
+  </div>
+</div>
+
 <!-- F8.3 — FASE DEL CRONOPROGRAMMA (js/34, solo con sql/36) -->
 <div class="mbg" id="m-fase-cronoprogramma">
   <div class="modal" style="max-width:520px">
@@ -11376,6 +11466,7 @@
 <script defer src="js/78-scadenze-fornitori.js?v=202611131715"></script>
 <script defer src="js/79-affidabilita-fornitori.js?v=202611131715"></script>
 <script defer src="js/80-ordini-liberi.js?v=202611131715"></script>
+<script defer src="js/81-mezzi-fermo-multe.js?v=202611131715"></script>
 <script defer src="js/19-init.js?v=202611131715"></script>
 
 
