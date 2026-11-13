@@ -2857,8 +2857,8 @@ Acquisti, segreteria, tecnico; RICHIESTE_SENZA_SQL=1 dopo il rollback):
 TUTTO OK; matrice TUTTO OK per la tabella nuova (restano gli errori noti di
 fatture*); rollback e riesecuzione provati.
 Dopo sql/269 (cancellare le richieste di acquisto, richiesta di Erika del
-13/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/269" dall'EDITOR: contiene
-"delete"; richiede 268 e il suo -REGISTRO-CANCELLAZIONI): RPC
+13/11; ESEGUITO il 13/11 dall'EDITOR (contiene "delete"; backup pre100,
+controllo in regola); richiede 268 e il suo -REGISTRO-CANCELLAZIONI): RPC
 elimina_richiesta_acquisto(p_id) (titolare e Acquisti qualunque richiesta in
 qualunque stato; capo tecnico solo le sue in 'inviata_acquisti'; altri 42501;
 p_id vuoto = niente, serve al sito per sapere se c'è). La riga si cancella e
