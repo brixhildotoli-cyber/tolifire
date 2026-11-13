@@ -201,3 +201,254 @@ async function preparaPDF() {
     return false;
   }
 }
+// ════════════════════════════════════════════════════════════════════════
+// F16.7 — MOTORE UNICO DEI PDF DA MODELLO (solo per i PDF NUOVI: POS,
+// verbale di consegna, DiCo, moduli...). REGOLA DI ERIKA (13/11): i PDF di
+// prima (preventivo js/18, ordine js/27, dichiarazione js/37, fatture js/45,
+// schede js/71...) NON usano queste funzioni e restano identici.
+// Un modulo nuovo:
+//   registraModelloPdf('codice', { nome, titolo, testi: { chiave: { etichetta,
+//     testo } }, sezioni: [...], leggiDati: async contesto => ({...}),
+//     nomeFile: dati => '...' });
+//   const esito = await generaPdfDaModello('codice', contesto, { scarica: true });
+//   esito = { blob, impronta (SHA-256 del file), revisione, nomeFile, modello }
+// Sezioni (in ordine): { tipo: 'campi', titolo, da: 'chiave dei dati' } =
+// righe [etichetta, valore]; { tipo: 'testo', chiave } = testo fisso del
+// modello (lo cambia il titolare, sql/98: modelli_pdf); { tipo: 'tabella',
+// titolo, colonne: [...], da } = righe dai dati (le "query" le fa
+// leggiDati); { tipo: 'allegati', titolo, da } = elenco di nomi;
+// { tipo: 'firme', etichette: [...] }. I testi fissi arrivano dalla tabella
+// modelli_pdf (js/72 leggiModelloPdf, con la revisione); senza sql/98 dai
+// testi predefiniti del modulo ("predefinito del sito").
+// ════════════════════════════════════════════════════════════════════════
+const TOLI_PDF_AZIENDA = {
+  nome: 'TOLI FIRE',
+  indirizzo: 'Via Bellatalla 62, Ospedaletto — 56121 Pisa',
+  fiscale: 'P.IVA: 02490980501 — amministrazione@toli-fire.com'
+};
+const MODELLI_PDF_SITO = {};
+
+function registraModelloPdf(codice, definizione) {
+  MODELLI_PDF_SITO[codice] = Object.assign({ codice: codice, sezioni: [], testi: {} }, definizione || {});
+  return MODELLI_PDF_SITO[codice];
+}
+
+// Fascia verde con nome, indirizzo e P.IVA (come l'ordine di js/27 e le
+// schede di js/71) e la dicitura a destra. Restituisce la y da cui scrivere.
+function intestazionePdfToli(doc, opz) {
+  opz = opz || {};
+  const larghezza = doc.internal.pageSize.getWidth();
+  const margine = opz.margine || 16;
+  doc.setFillColor(8, 80, 65);
+  doc.rect(0, 0, larghezza, 34, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.setTextColor(255, 255, 255);
+  doc.text(TOLI_PDF_AZIENDA.nome, margine, 16);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text(TOLI_PDF_AZIENDA.indirizzo, margine, 23);
+  doc.text(TOLI_PDF_AZIENDA.fiscale, margine, 28);
+  if (opz.dicitura) {
+    doc.setFontSize(10);
+    doc.text(String(opz.dicitura), larghezza - margine, 16, { align: 'right' });
+  }
+  if (opz.revisione) {
+    doc.setFontSize(8);
+    doc.text(String(opz.revisione), larghezza - margine, 23, { align: 'right' });
+  }
+  doc.setTextColor(25, 25, 25);
+  return 46;
+}
+
+// Piè di pagina su TUTTE le pagine: modello e revisione a sinistra,
+// "Pagina N di M" a destra, data di generazione al centro.
+function piedePdfToli(doc, opz) {
+  opz = opz || {};
+  const larghezza = doc.internal.pageSize.getWidth();
+  const altezza = doc.internal.pageSize.getHeight();
+  const margine = opz.margine || 16;
+  const pagine = doc.getNumberOfPages();
+  const generato = 'Generato il ' + new Date().toLocaleDateString('it-IT');
+  for (let i = 1; i <= pagine; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margine, altezza - 14, larghezza - margine, altezza - 14);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(110, 110, 110);
+    if (opz.sinistra) doc.text(String(opz.sinistra), margine, altezza - 9);
+    doc.text(generato, larghezza / 2, altezza - 9, { align: 'center' });
+    doc.text('Pagina ' + i + ' di ' + pagine, larghezza - margine, altezza - 9, { align: 'right' });
+  }
+  doc.setTextColor(25, 25, 25);
+}
+
+async function improntaSha256(buffer) {
+  const h = await crypto.subtle.digest('SHA-256', buffer);
+  return Array.from(new Uint8Array(h)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+}
+
+function scaricaBlobPdf(blob, nomeFile) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomeFile;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function() { URL.revokeObjectURL(url); }, 30000);
+}
+
+function nomeFilePdfPulito(testo) {
+  return String(testo || 'documento').normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 120) || 'documento';
+}
+
+// Modello pronto per il disegno: struttura del sito + titolo, testi e
+// revisione della tabella (se c'è). riga = riga di modelli_pdf o null.
+function unisciModelloPdf(definizione, riga) {
+  const testi = {};
+  Object.keys(definizione.testi || {}).forEach(function(k) {
+    testi[k] = { etichetta: definizione.testi[k].etichetta || k, testo: definizione.testi[k].testo || '' };
+  });
+  if (riga && Array.isArray(riga.blocchi)) {
+    riga.blocchi.forEach(function(b) {
+      if (b && b.chiave) testi[b.chiave] = { etichetta: b.etichetta || b.chiave, testo: b.testo == null ? '' : String(b.testo) };
+    });
+  }
+  return {
+    codice: definizione.codice,
+    nome: (riga && riga.nome) || definizione.nome || definizione.codice,
+    titolo: (riga && riga.titolo) || definizione.titolo || definizione.nome || definizione.codice,
+    testi: testi,
+    revisione: riga ? riga.revisione : null,
+    aggiornato_il: riga ? riga.aggiornato_il : null,
+    daTabella: !!riga,
+    definizione: definizione
+  };
+}
+
+function testoRevisionePdf(modello) {
+  return 'Modello ' + modello.codice + ' - ' + (modello.revisione ? 'rev. ' + modello.revisione : 'testi predefiniti del sito');
+}
+
+// Disegna il PDF del modello con i dati (nessuna lettura dal database).
+function disegnaPdfDaModello(modello, dati) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const larghezza = doc.internal.pageSize.getWidth();
+  const altezza = doc.internal.pageSize.getHeight();
+  const margine = 16;
+  const larghezzaTesto = larghezza - margine * 2;
+  const fondo = altezza - 20;
+  dati = dati || {};
+  let y = intestazionePdfToli(doc, { margine: margine, dicitura: modello.nome, revisione: modello.revisione ? 'Rev. ' + modello.revisione : '' });
+
+  function spazio(serve) {
+    if (y + serve > fondo) { doc.addPage(); y = 20; }
+  }
+  function titoloSezione(t) {
+    if (!t) return;
+    spazio(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(8, 80, 65);
+    doc.text(String(t), margine, y);
+    doc.setTextColor(25, 25, 25);
+    y += 6;
+  }
+  function paragrafo(testo) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    String(testo).split('\n').forEach(function(capoverso) {
+      const righe = doc.splitTextToSize(capoverso || ' ', larghezzaTesto);
+      righe.forEach(function(r) { spazio(5); doc.text(r, margine, y); y += 5; });
+    });
+    y += 2;
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.text(doc.splitTextToSize(String(modello.titolo), larghezzaTesto - 40), margine, y);
+  doc.setFontSize(10);
+  doc.text('Data: ' + new Date().toLocaleDateString('it-IT'), larghezza - margine, y, { align: 'right' });
+  y += 10;
+
+  (modello.definizione.sezioni || []).forEach(function(s) {
+    if (s.tipo === 'testo') {
+      const t = modello.testi[s.chiave];
+      if (!t || !String(t.testo || '').trim()) return;
+      titoloSezione(s.titolo === undefined ? t.etichetta : s.titolo);
+      paragrafo(t.testo);
+    } else if (s.tipo === 'campi') {
+      const righe = (dati[s.da] || []).filter(function(r) { return r && r[0]; });
+      if (!righe.length) return;
+      titoloSezione(s.titolo);
+      righe.forEach(function(r) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        const val = doc.splitTextToSize(String(r[1] == null || r[1] === '' ? '—' : r[1]), larghezzaTesto - 45);
+        spazio(val.length * 5 + 1);
+        doc.text(String(r[0]), margine, y);
+        doc.setFont('helvetica', 'normal');
+        doc.text(val, margine + 45, y);
+        y += val.length * 5 + 1;
+      });
+      y += 3;
+    } else if (s.tipo === 'tabella') {
+      const righe = dati[s.da] || [];
+      titoloSezione(s.titolo);
+      if (!righe.length) { paragrafo(s.vuota || 'Nessuna riga.'); return; }
+      doc.autoTable({
+        startY: y, margin: { left: margine, right: margine, bottom: 20 },
+        head: [s.colonne || []], body: righe.map(function(r) { return r.map(function(c) { return c == null ? '' : String(c); }); }),
+        styles: { font: 'helvetica', fontSize: 9, cellPadding: 1.8, overflow: 'linebreak' },
+        headStyles: { fillColor: [8, 80, 65], textColor: 255 }
+      });
+      y = doc.lastAutoTable.finalY + 6;
+    } else if (s.tipo === 'allegati') {
+      const elenco = (dati[s.da] || []).filter(Boolean);
+      if (!elenco.length) return;
+      titoloSezione(s.titolo || 'Allegati');
+      elenco.forEach(function(a, i) { paragrafo((i + 1) + '. ' + a); });
+    } else if (s.tipo === 'firme') {
+      const etichette = s.etichette || [];
+      if (!etichette.length) return;
+      spazio(30);
+      y += 6;
+      const passo = larghezzaTesto / etichette.length;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      etichette.forEach(function(e, i) {
+        const x = margine + passo * i;
+        doc.text(String(e), x, y);
+        doc.line(x, y + 16, x + passo - 8, y + 16);
+      });
+      y += 22;
+    }
+  });
+
+  piedePdfToli(doc, { margine: margine, sinistra: TOLI_PDF_AZIENDA.nome + ' - ' + testoRevisionePdf(modello) });
+  return doc;
+}
+
+// Generatore unico: legge il modello (tabella modelli_pdf se c'è, js/72),
+// prende i dati (leggiDati del modulo o il contesto così com'è), disegna,
+// calcola l'impronta SHA-256 del file e, se chiesto, lo scarica.
+async function generaPdfDaModello(codice, contesto, opz) {
+  opz = opz || {};
+  const definizione = MODELLI_PDF_SITO[codice];
+  if (!definizione) throw new Error('Modello del PDF sconosciuto: ' + codice);
+  await caricaLibreriePDF();
+  const riga = typeof leggiModelloPdf === 'function' ? await leggiModelloPdf(codice) : null;
+  const modello = unisciModelloPdf(definizione, riga);
+  const dati = typeof definizione.leggiDati === 'function' ? await definizione.leggiDati(contesto || {}, modello) : (contesto || {});
+  const doc = disegnaPdfDaModello(modello, dati);
+  const buffer = doc.output('arraybuffer');
+  const blob = new Blob([buffer], { type: 'application/pdf' });
+  const impronta = await improntaSha256(buffer);
+  const nomeFile = nomeFilePdfPulito(typeof definizione.nomeFile === 'function' ? definizione.nomeFile(dati, modello) : (modello.nome || codice)) + '.pdf';
+  if (opz.scarica) scaricaBlobPdf(blob, nomeFile);
+  return { blob: blob, impronta: impronta, revisione: modello.revisione, nomeFile: nomeFile, modello: modello };
+}

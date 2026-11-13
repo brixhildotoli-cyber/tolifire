@@ -429,6 +429,14 @@ NUOVO prodotti_catalogo_codice_check (codice non vuoto), trigger NUOVO
 trg_prodotti_catalogo_niente_cancellazione (un prodotto usato in
 ddt_righe.prodotto_id non si cancella dal sito) e trg_registro_azioni; vedi
 "Dopo sql/93".
+Dopo sql/98 (F16.7 motore unico dei PDF da modello; DA ESEGUIRE con
+"CONFERMATO DA TOLI: sql/98": file principale dal server MCP, poi il
+-REGISTRO-CANCELLAZIONI dall'editor): modelli_pdf (modelli dei PDF NUOVI:
+codice fisso, nome, descrizione, titolo, blocchi di testo fissi
+[{"chiave","etichetta","testo"}], revisione data dal database, attivo, chi e
+quando; lettura per tutti gli utenti attivi, nessuna scrittura diretta: solo
+salva_testi_modello_pdf del titolare; i modelli nascono da un file sql/NN;
+cancellazione bloccata dal -REGISTRO-CANCELLAZIONI); vedi "Dopo sql/98".
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -2644,6 +2652,76 @@ rollback); smoke TUTTO OK con e senza sql/93; matrice uguale (errori di
 fatture, fatture_righe, fatture_scadenze già presenti prima); rollback
 provato (schema identico con pg_dump). Senza sql/93: import senza
 cancellazione uguale, nessun errore.
+Dopo sql/98 (F16.7 motore unico dei PDF da modello, REGOLA DI ERIKA del
+13/11: nessun flusso, bottone, obbligo o PDF di oggi cambia; DA ESEGUIRE con
+"CONFERMATO DA TOLI: sql/98": backup, anteprima in fondo al file,
+98-motore-unico-pdf-modello.sql (senza parole di cancellazione, server MCP),
+98-...-REGISTRO-CANCELLAZIONI.sql dall'EDITOR, controllo in fondo al 98;
+richiede 07, 67, 71, si ferma senza; il sito si pubblica prima o dopo).
+Tabella modelli_pdf (vedi "Tabelle Supabase") con il modello di prova
+'prova' (titolo DOCUMENTO DI PROVA, testi premessa e note_finali, rev. 1).
+Trigger trg_modelli_pdf_prima (BEFORE INSERT OR UPDATE, security definer):
+blocchi = elenco di oggetti chiave/etichetta/testo (chiave unica
+^[a-z][a-z0-9_]{0,39}$, testo max 4.000), codice fisso anche dall'editor;
+per gli utenti del sito (utente_effettivo() non vuoto) solo
+ruolo_corrente() = 'titolare' (42501, anche "Entra come"), niente insert,
+chiavi, etichette, nome, descrizione e attivo fissi; revisione +1, chi e
+quando a ogni cambio di titolo o testi (editor = "Editor SQL"), invariata se
+non cambia nulla. RPC del sito: modelli_pdf_attivi() (true = il 98 c'è; il
+sito oggi legge direttamente la tabella), salva_testi_modello_pdf(p_codice,
+p_titolo, p_testi jsonb {chiave: testo}) (SOLO titolare, informatico
+compreso; chiave sconosciuta 22023, modello sconosciuto P0002; spazi in
+fondo tolti; risponde {revisione, cambiato}). Registro delle azioni di
+sql/67 sulla tabella. Matrice: 10 righe nuove (lettura sì per i 9 ruoli,
+nessuna scrittura; anon no). NEL SITO: js/00 (in fondo, F16.7) il motore
+unico SOLO PER I PDF NUOVI (POS, verbale di consegna, DiCo, moduli: i PDF
+di prima non lo usano e restano identici): TOLI_PDF_AZIENDA,
+intestazionePdfToli(doc, {dicitura, revisione}) (fascia verde come js/27 e
+js/71, restituisce la y), piedePdfToli(doc, {sinistra}) (su ogni pagina:
+modello e revisione, "Generato il", "Pagina N di M"), improntaSha256,
+scaricaBlobPdf, registraModelloPdf(codice, {nome, titolo, testi
+predefiniti, sezioni, leggiDati, nomeFile}) (sezioni: campi, testo =
+testo fisso del modello, tabella con colonne e righe dai dati, allegati,
+firme; le "tabelle da query" le fa leggiDati), unisciModelloPdf,
+disegnaPdfDaModello, generaPdfDaModello(codice, contesto, {scarica}) →
+{blob, impronta SHA-256 del file scaricato, revisione, nomeFile, modello}.
+js/72-modelli-pdf.js (caricato prima di js/19): leggiModelliPdf (cache 60
+s; senza sql/98 una lettura 404, poi più nulla), verificaModelliPdfDisponibili,
+leggiModelloPdf (riga attiva per il generatore, null = testi predefiniti del
+sito), modello 'prova' (campi, premessa, tabella dei modelli letta dal
+database, allegati, note finali, firme; stessi testi del file SQL);
+Impostazioni > "🧾 Modelli dei PDF" (si-modelli-pdf-card, loadImp di js/10,
+solo titolare): modelli con revisione e chi/quando, "✏️ Cambia i testi"
+(finestra m-modello-pdf, id mpdf-: titolo e un'area di testo per testo
+fisso, "💾 Salva i testi", "🧪 PDF di prova" con l'impronta mostrata).
+modelli_pdf in LETTURE_QUASI_FISSE di js/01. SCELTE DICHIARATE: in tabella
+solo titolo e testi fissi (la struttura del documento, tabelle e campi è nel
+codice del modulo, come deciso dal piano); nessun modello vero (POS, verbale,
+DiCo) creato ora: li aggiunge il modulo che li usa con il suo sql/NN e i suoi
+testi da far confermare a Toli; l'impronta è del file generato e la
+restituisce il generatore (salvarla è compito del modulo che archivia il
+documento: nessuna tabella dei PDF generati qui); lettura per tutti gli
+utenti attivi (i testi non sono riservati). Guida info-tit-43. Prove:
+sql/98-motore-unico-pdf-modello-PROVA.sql (solo database di prova, rollback:
+letture dei 9 ruoli e anon rifiutato, titolare e informatico salvano con
+revisione, chi e registro, stessi testi = revisione invariata, chiave e
+modello sconosciuti, titolo vuoto, oltre 4.000, Acquisti, rappresentante,
+segreteria, tecnico, ingegnere, titolare "come" Acquisti e anon rifiutati,
+insert/update/cancellazione diretti rifiutati, codice fisso, editor libero
+con "Editor SQL", chiave ripetuta, cancellazione bloccata anche dal
+proprietario); test/modelli-pdf.spec.js (Chrome headless, database locale:
+titolare in Impostazioni scarica il PDF di prova rev. 1 con impronta uguale
+al file, cambia la premessa → rev. 2 e il PDF successivo ha il testo nuovo e
+"Modello prova - rev. 2"; Acquisti a 390 px genera lo stesso PDF ma la
+console gli rifiuta RPC e update; titolare "come" Acquisti rifiutato;
+MODELLI_SENZA_SQL=1 dopo il rollback: "non ancora attivi", PDF con i testi
+predefiniti, un solo 404 della tabella); pdf-schede-tecniche TUTTO OK; smoke
+TUTTO OK con e senza sql/98 (senza: un 404 di modelli_pdf solo per titolare e
+informatico in Impostazioni, come avviso); matrice: nessuna differenza per
+modelli_pdf (restano gli errori già noti di fatture*); rollback provato
+(schema identico con pg_dump). Senza sql/98: riquadro "non ancora attivo",
+PDF di prova con i testi predefiniti, nessun PDF di prima cambia, nessun
+errore.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

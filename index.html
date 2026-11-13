@@ -2552,6 +2552,17 @@
     </div>
     <div id="si-smistamento-elenco"></div>
   </div>
+  <!-- F16.7 — MODELLI DEI PDF (js/72-modelli-pdf.js + js/00, sql/98): solo titolare -->
+  <div class="card" id="si-modelli-pdf-card" style="margin-top:14px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:13px;font-weight:600">🧾 Modelli dei PDF</div>
+      <button class="btn sm" title="Rileggi" onclick="mostraModelliPdfImpostazioni()">↻</button>
+    </div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">I testi fissi dei documenti <b>nuovi</b> del gestionale (POS, verbale di consegna, DiCo... quando arriveranno): li cambi tu, il PDF successivo li riporta con il numero di <b>revisione</b> nuovo. I PDF di oggi (preventivo, ordine, dichiarazione, fatture, schede) non cambiano.</div>
+    <div class="al2 i" id="si-modelli-pdf-stato"></div>
+    <div id="si-modelli-pdf-elenco"></div>
+    <div id="si-modelli-pdf-ultimo" style="display:none;font-size:11px;color:var(--m);word-break:break-all;margin-top:6px"></div>
+  </div>
 </div>
 </div>
 
@@ -6191,6 +6202,25 @@
 
       <div class="al2 i">Con l'aggiornamento del database sql/93 il database impedisce anche due prodotti con lo stesso codice scritto in modo diverso (per esempio "est-ps6" e "EST-PS6"), un codice vuoto e la cancellazione dalla console di un prodotto usato in un DDT; il registro delle azioni dice chi ha cambiato prezzi e prodotti e quando. Senza sql/93 l'import funziona già così.</div>
 
+      <h4 id="info-tit-43">43. 🧾 Cambiare i testi fissi dei documenti nuovi (modelli dei PDF)</h4>
+
+      <p>
+        I documenti <b>nuovi</b> del gestionale (POS, verbale di consegna, DiCo, moduli: arriveranno con le prossime fasi) escono tutti dallo stesso modello: fascia verde TOLI FIRE, titolo, testi fissi, tabelle e campi riempiti dal gestionale, allegati elencati, firme e, in fondo a ogni pagina, il modello con la sua <b>revisione</b> e "Pagina N di M". I testi fissi (premesse, clausole, note) li decidi tu. I PDF di oggi (preventivo, ordine al fornitore, dichiarazione di corretta messa in opera, fatture, schede tecniche) <b>non cambiano</b>.
+      </p>
+
+      <ul>
+        <li>Vai in <b>⚙️ Impostazioni</b> → riquadro <b>🧾 Modelli dei PDF</b>: per ogni modello vedi la revisione, chi l'ha cambiato e quando.</li>
+        <li><b>✏️ Cambia i testi</b>: correggi il titolo del documento e i testi fissi, poi <b>💾 Salva i testi</b>. Il modello passa alla revisione successiva (rev. 1 → rev. 2) e il prossimo PDF riporta i testi nuovi. Se salvi senza cambiare nulla la revisione resta quella.</li>
+        <li><b>🧪 PDF di prova</b>: scarica il documento di prova con una tabella letta dal database, i testi fissi e la revisione. Sotto il riquadro compare l'<b>impronta SHA-256</b> del file: è il "codice" che dice se un PDF è proprio quello generato (un file cambiato anche di una virgola ha un'impronta diversa).</li>
+        <li>Lo puoi fare solo tu (e l'informatico): Acquisti e gli altri ruoli leggono i testi per generare i documenti ma non li cambiano, nemmeno dalla console. Ogni cambio resta nel registro delle azioni con il testo di prima e quello dopo.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Nel modello di prova cambi la premessa in "Documento di prova per il controllo di novembre" e salvi: il riquadro dice <b>rev. 2</b>; con <b>🧪 PDF di prova</b> il file nuovo ha la premessa nuova e in fondo alla pagina "Modello prova - rev. 2".
+      </div>
+
+      <div class="al2 w">Serve l'aggiornamento del database sql/98: prima il riquadro dice "non ancora attivo" e il PDF di prova esce con i testi predefiniti del gestionale ("testi predefiniti del sito" in fondo alla pagina). I modelli nuovi li aggiunge l'informatico con un file del database, insieme al documento che li usa.</div>
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -8797,6 +8827,24 @@
   </div>
 </div>
 
+<!-- F16.7 — TESTI FISSI DI UN MODELLO DEI PDF (js/72-modelli-pdf.js, sql/98) -->
+<div class="mbg" id="m-modello-pdf">
+  <div class="modal" style="max-width:640px">
+    <div class="mh"><span>🧾 Testi del modello</span><button class="mx" onclick="closeM('m-modello-pdf')">✕</button></div>
+    <div id="mpdf-intestazione" style="font-size:12px;color:var(--m);margin-bottom:8px"></div>
+    <input type="hidden" id="mpdf-codice">
+    <div class="f"><label>Titolo del documento *</label><input id="mpdf-titolo" maxlength="160"></div>
+    <div id="mpdf-testi"></div>
+    <div class="al2 i" style="font-size:12px">Salvando, il modello passa alla revisione successiva e il prossimo PDF riporta i testi nuovi. Tabelle, campi e allegati li riempie il gestionale.</div>
+    <div id="mpdf-esito" style="font-size:11px;color:var(--m);word-break:break-all;margin-top:6px"></div>
+    <div class="ma" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+      <button class="btn" type="button" onclick="closeM('m-modello-pdf')">Chiudi</button>
+      <button class="btn" type="button" id="mpdf-prova" onclick="provaPdfModello()">🧪 PDF di prova</button>
+      <button class="btn p" type="button" id="mpdf-salva" onclick="salvaModelloPdf()">💾 Salva i testi</button>
+    </div>
+  </div>
+</div>
+
 <!-- F15.2 — POSIZIONI P-xx DELLE SCHEDE DI RILIEVO (js/66-posizioni.js, sql/76) -->
 <div class="mbg" id="m-posizione">
   <div class="modal" style="max-width:560px">
@@ -11080,6 +11128,7 @@
 <script defer src="js/69-sconto-rappresentante.js?v=202611121732"></script>
 <script defer src="js/70-foto-bozza-progetto.js?v=202611121732"></script>
 <script defer src="js/71-pdf-schede-tecniche.js?v=202611121732"></script>
+<script defer src="js/72-modelli-pdf.js?v=202611121732"></script>
 <script defer src="js/19-init.js?v=202611121732"></script>
 
 

@@ -368,6 +368,8 @@ async function loadImp(){
   if(ge('si-catalogo-lav-card')){if(ROLE!=='titolare')ge('si-catalogo-lav-card').style.display='none';else if(typeof mostraCatalogoLavorazioniImpostazioni==='function')mostraCatalogoLavorazioniImpostazioni().catch(e=>console.warn('Catalogo lavorazioni:',e));}
   // F15.13: regole di smistamento per famiglia (solo titolare; senza sql/83 "non ancora attivo", js/67)
   if(ge('si-smistamento-card')){if(ROLE!=='titolare')ge('si-smistamento-card').style.display='none';else if(typeof mostraRegoleSmistamentoImpostazioni==='function')mostraRegoleSmistamentoImpostazioni().catch(e=>console.warn('Smistamento:',e));}
+  // F16.7: modelli dei PDF nuovi, testi fissi (solo titolare; senza sql/98 "non ancora attivo", js/72)
+  if(ge('si-modelli-pdf-card')){if(ROLE!=='titolare')ge('si-modelli-pdf-card').style.display='none';else if(typeof mostraModelliPdfImpostazioni==='function')mostraModelliPdfImpostazioni().catch(e=>console.warn('Modelli dei PDF:',e));}
   // #nc (nome azienda nella barra) non esiste più dal commit 865b6ba: resta solo il titolo della scheda.
   if(data.ragione_sociale){const nc=ge('nc');if(nc)nc.textContent=data.ragione_sociale.split(' ')[0];document.title=data.ragione_sociale+' — Gestionale';}
   const fs=['ragione_sociale','indirizzo','cap','citta','piva','telefono','email'];const is=['si1','si2','si3','si4','si5','si6','si7'];

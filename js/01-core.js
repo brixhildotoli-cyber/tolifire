@@ -108,7 +108,7 @@ function chiaveLetturaUguale(metodo,url,opzioni){
 // rileggevano uguali una dopo l'altra. Solo risposte 200, solo finché questa
 // scheda del browser non scrive nulla (FILA_DB.scritture): dopo un
 // salvataggio si rilegge dal database. Ricaricare la pagina la svuota.
-const LETTURE_QUASI_FISSE={tabelle:/^\/rest\/v1\/(subappaltatori|utenti|regole|regole_scadenze|festivita|lavorazioni|lavorazioni_campi|lavorazioni_documenti|lavorazioni_checklist|motore_oggetti|motore_stati|motore_transizioni|annullabili|fornitore_tipologie|mezzi_attrezzature)$/,
+const LETTURE_QUASI_FISSE={tabelle:/^\/rest\/v1\/(subappaltatori|utenti|regole|regole_scadenze|festivita|lavorazioni|lavorazioni_campi|lavorazioni_documenti|lavorazioni_checklist|motore_oggetti|motore_stati|motore_transizioni|annullabili|fornitore_tipologie|mezzi_attrezzature|modelli_pdf)$/,
   durataMs:60000,massimo:150,righe:new Map()};
 function letturaQuasiFissaInMemoria(metodo,url,chiave){
   if(metodo!=='GET')return null;
