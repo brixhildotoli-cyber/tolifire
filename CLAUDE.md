@@ -2972,6 +2972,20 @@ giorni lavorativi" (aprono il preventivo sulla scheda Fornitori). Scelte:
 giorni fissi (3, 2, 2), niente motore delle scadenze. Guide info-com-36,
 info-tit-49. Prove: sql/126-...-PROVA.sql e test/scadenze-fornitori.spec.js
 (Acquisti a 390 px, titolare): TUTTO OK.
+Dopo sql/245 (F17.11 affidabilità del fornitore, approvata da Erika il 13/11
+come SOLA INFORMAZIONE: niente motivo obbligatorio né avviso per i "rossi";
+DA ESEGUIRE con "CONFERMATO DA TOLI: sql/245": backup, file (server MCP),
+controllo; richiede 30, 42, 71, 240; nessuna tabella, matrice invariata): RPC
+affidabilita_fornitore(p_fornitore) -> jsonb (solo titolare e commerciale,
+42501 per gli altri anche "come"; ultimi 12 mesi: puntualità 40 = arrivati
+entro arrivo_previsto_iniziale + 3 gg, errori 30 = ordini senza
+arrivo_annullato_il, risposte 15 = richieste inviate da più di 5 giorni con
+risposta; pesi ridistribuiti; meno di 3 ordini = pochi_dati, 70). Sito
+(js/79-affidabilita-fornitori.js, dopo js/78; in RPC_SOLA_LETTURA_DB): badge
+nel riquadro del fornitore del preventivo e sotto il nome nella scheda del
+fornitore (openFornitoreDetail avvolta), cache 2 minuti. Guide info-com-37,
+info-tit-50. Prove: sql/245-...-PROVA.sql (5 ordini = 69, 2 ordini = pochi
+dati, data spostata non conta) e test/affidabilita-fornitori.spec.js: TUTTO OK.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
