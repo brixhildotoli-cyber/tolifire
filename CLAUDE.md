@@ -2856,6 +2856,19 @@ controlli) e test/richieste-acquisto.spec.js (capo tecnico a 390 px,
 Acquisti, segreteria, tecnico; RICHIESTE_SENZA_SQL=1 dopo il rollback):
 TUTTO OK; matrice TUTTO OK per la tabella nuova (restano gli errori noti di
 fatture*); rollback e riesecuzione provati.
+Dopo sql/269 (cancellare le richieste di acquisto, richiesta di Erika del
+13/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/269" dall'EDITOR: contiene
+"delete"; richiede 268 e il suo -REGISTRO-CANCELLAZIONI): RPC
+elimina_richiesta_acquisto(p_id) (titolare e Acquisti qualunque richiesta in
+qualunque stato; capo tecnico solo le sue in 'inviata_acquisti'; altri 42501;
+p_id vuoto = niente, serve al sito per sapere se c'è). La riga si cancella e
+resta nel registro delle azioni; avvisi aperti chiusi "Richiesta
+cancellata"; se cancella un altro, avviso 'richiesta_acquisto_cancellata'
+(senza collegamento) a chi l'aveva chiesta. Delete diretto ancora vietato,
+matrice invariata. Sito (js/74): "🗑️ Cancella" con conferma
+(puoCancellareRichiestaAcquisto, verificaCancellazioneRichiesteAcquisto);
+guide ct-28, com-31, tit-44. Prove: sql/269-...-PROVA.sql (15 controlli) e
+test/richieste-acquisto.spec.js con e senza sql/269: TUTTO OK.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

@@ -10,7 +10,7 @@
 // al capo tecnico (database, sql/268). Finestra m-richiesta-acquisto (id
 // rqa-). Senza sql/268: "non ancora attiva", nessun errore (una chiamata 404).
 
-const RICH_ACQ = { attive: null, elenco: [], filtro: 'aperte', aperta: null, righe: [] };
+const RICH_ACQ = { attive: null, cancellazione: undefined, elenco: [], filtro: 'aperte', aperta: null, righe: [] };
 const RUOLI_RICHIESTE_ACQUISTO = ['titolare', 'commerciale', 'capo_tecnico', 'segreteria'];
 const STATI_RICHIESTA_ACQUISTO = {
   inviata_acquisti: { nome: 'Da prendere in carico', classe: 'bwarn' },
@@ -97,8 +97,41 @@ function nuovaRichiestaAcquisto() {
   openM('m-richiesta-acquisto');
 }
 
+// ── Cancellazione (sql/269, richiesta di Erika del 13/11) ──────────────
+// Titolare e Acquisti qualunque richiesta, il capo tecnico le sue non ancora
+// prese in carico. Senza sql/269 il bottone non compare (la RPC risponde 404).
+function puoCancellareRichiestaAcquisto(r) {
+  if (!r) return false;
+  if (eAcquistiRichiesta()) return true;
+  return ROLE === 'capo_tecnico' && r.stato === 'inviata_acquisti' && typeof ME !== 'undefined' && ME && r.richiesta_da === ME.id;
+}
+
+async function verificaCancellazioneRichiesteAcquisto() {
+  if (RICH_ACQ.cancellazione !== undefined) return RICH_ACQ.cancellazione;
+  try {
+    // p_id vuoto: con sql/269 risponde senza fare niente, senza la funzione 404
+    const { error } = await db.rpc('elimina_richiesta_acquisto', { p_id: null });
+    RICH_ACQ.cancellazione = !error;
+  } catch (e) { RICH_ACQ.cancellazione = false; }
+  return RICH_ACQ.cancellazione;
+}
+
+async function cancellaRichiestaAcquisto() {
+  const r = RICH_ACQ.aperta;
+  if (!r) return;
+  if (!confirm('Cancellare la richiesta ' + r.codice + ' (' + r.oggetto + ')?\n\nSparisce dall’elenco; resta solo nel registro delle azioni.' +
+      (r.richiesta_da && typeof ME !== 'undefined' && ME && r.richiesta_da !== ME.id ? '\nA chi l’ha chiesta arriva un avviso.' : ''))) return;
+  const { error } = await db.rpc('elimina_richiesta_acquisto', { p_id: r.id });
+  if (error) { toast('Non cancellata: ' + error.message, 'err'); return; }
+  closeM('m-richiesta-acquisto');
+  RICH_ACQ.aperta = null;
+  toast('Richiesta ' + r.codice + ' cancellata', 'ok');
+  loadRichiesteAcquisto();
+}
+
 async function apriRichiestaAcquisto(id) {
   if (!(await verificaRichiesteAcquistoDisponibili())) { toast('Le richieste di acquisto non sono ancora attive', 'err'); return; }
+  await verificaCancellazioneRichiesteAcquisto();
   const { data, error } = await db.from('richieste_acquisto').select('*').eq('id', id).maybeSingle();
   if (error || !data) { toast('Richiesta di acquisto non trovata' + (error ? ': ' + error.message : ''), 'err'); return; }
   RICH_ACQ.aperta = data;
@@ -195,6 +228,7 @@ function disegnaRichiestaAcquisto() {
     const annullaCt = ROLE === 'capo_tecnico' && r.stato === 'inviata_acquisti';
     const annullaAcq = eAcquistiRichiesta() && (r.stato === 'inviata_acquisti' || r.stato === 'presa_in_carico');
     if (annullaCt || annullaAcq) b.push('<button type="button" class="btn" style="color:var(--r)" onclick="passoRichiestaAcquisto(\'annulla\')">✖ Annulla la richiesta</button>');
+    if (RICH_ACQ.cancellazione && puoCancellareRichiestaAcquisto(r)) b.push('<button type="button" class="btn" style="color:var(--r)" onclick="cancellaRichiestaAcquisto()">🗑️ Cancella</button>');
   }
   ge('rqa-bottoni').innerHTML = '<button type="button" class="btn" onclick="closeM(\'m-richiesta-acquisto\')">Chiudi</button>' + b.join('');
   const nota = ge('rqa-nota');
@@ -289,6 +323,7 @@ if (typeof TIPI_AVVISO !== 'undefined') {
   TIPI_AVVISO.richiesta_acquisto_inviata = { icona: '📤', nome: 'Richiesta di acquisto inviata al fornitore' };
   TIPI_AVVISO.richiesta_acquisto_arrivata = { icona: '📦', nome: 'Materiale arrivato' };
   TIPI_AVVISO.richiesta_acquisto_annullata = { icona: '✖', nome: 'Richiesta di acquisto annullata' };
+  TIPI_AVVISO.richiesta_acquisto_cancellata = { icona: '🗑️', nome: 'Richiesta di acquisto cancellata' };
 }
 if (typeof OGGETTO_DA_TABELLA_AVVISO !== 'undefined') OGGETTO_DA_TABELLA_AVVISO.richieste_acquisto = 'richiesta_acquisto';
 if (typeof NOME_RECORD_AVVISO !== 'undefined') NOME_RECORD_AVVISO.richieste_acquisto = 'la richiesta di acquisto';

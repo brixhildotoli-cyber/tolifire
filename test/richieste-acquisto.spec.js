@@ -340,6 +340,20 @@ const bottoni = s => s.page.evaluate(() => [...document.querySelectorAll('#rqa-b
       if (avv !== '1') KO('avviso ad Acquisti: ' + avv); else righe.push('avviso ad Acquisti aperto');
       const cons = await s.page.evaluate(async id => { const { error } = await db.from('richieste_acquisto').update({ stato: 'arrivata' }).eq('id', id); return error ? error.code + ' ' + error.message : 'passato'; }, raId);
       if (!/42501|permission/.test(cons)) KO('console capo tecnico: ' + cons); else righe.push('console del capo tecnico: update diretto rifiutato (' + cons.slice(0, 60) + ')');
+      // cancellazione (sql/269): una seconda richiesta del capo tecnico, cancellata da lui
+      if (psql("select to_regprocedure('public.elimina_richiesta_acquisto(uuid)') is not null") === 't') {
+        const id2 = await s.page.evaluate(async o => { const { data } = await db.rpc('salva_richiesta_acquisto', { p_id: null, p_oggetto: o + ' da cancellare', p_note: null, p_righe: [{ descrizione: 'Nastro', quantita: 1 }] }); return data; }, OGGETTO);
+        await s.page.evaluate(id => apriRichiestaAcquisto(id), id2);
+        await attendiQuiete(s.stato, 800);
+        const haCancella = (await bottoni(s)).some(t => /Cancella/.test(t));
+        await bottone(s, 'Cancella');
+        await attendiQuiete(s.stato, 1200);
+        const resta = psql('select count(*) from public.richieste_acquisto where id = ' + q(id2));
+        if (!haCancella || resta !== '0') KO('cancellazione del capo tecnico: bottone ' + haCancella + ', righe rimaste ' + resta);
+        else righe.push('capo tecnico: "🗑️ Cancella" sulla sua richiesta non presa in carico, cancellata');
+        await s.page.evaluate(id => apriRichiestaAcquisto(id), raId);
+        await attendiQuiete(s.stato, 800);
+      }
       await chiudi(s);
 
       // 2. Acquisti
@@ -409,7 +423,7 @@ const bottoni = s => s.page.evaluate(() => [...document.querySelectorAll('#rqa-b
     await chiudi(s);
     for (const x of sessioni) {
       if (x.stato.erroriJs.length) KO('errori JavaScript: ' + x.stato.erroriJs.join(' | '));
-      const rete = x.stato.rete.filter(r => !/sconto_rappresentante_attivo|_attiv[oie]$|stati_fornitore_controlli/.test(r.dove) && !/richieste_acquisto\?id=eq/.test(r.dove) && (r.status >= 500 || /does not exist|Could not find/i.test(r.msg)));
+      const rete = x.stato.rete.filter(r => !/sconto_rappresentante_attivo|_attiv[oie]$|stati_fornitore_controlli|elimina_richiesta_acquisto/.test(r.dove) && !/richieste_acquisto\?id=eq/.test(r.dove) && (r.status >= 500 || /does not exist|Could not find/i.test(r.msg)));
       if (rete.length) KO('errori del database: ' + rete.map(r => r.metodo + ' ' + r.dove + ' ' + r.status + ' ' + r.msg).join(' | '));
     }
   } catch (e) {
