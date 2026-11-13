@@ -2882,6 +2882,30 @@ una categoria sotto il 20% di margine" sui preventivi di Acquisti da
 controllare (preventiviConCategoriaSottoSoglia). F16.12-F16.46 tranne 34, 35,
 47, 48: saltate o rimandate (decisione di Erika del 13/11, note nell'Excel).
 Guide info-com-32, info-tit-45. Prova test/margine-categorie.spec.js: TUTTO OK.
+Dopo sql/112 (F16.34 preventivo a computo del cliente per le gare, versione
+decisa da Erika il 13/11: le righe del computo DIVENTANO le voci, nessuna
+tabella a parte; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/112": backup,
+anteprima in fondo, file (senza parole di cancellazione, server MCP),
+controllo; richiede 07, 25, 71, 258, 265; matrice invariata): colonna
+preventivi_voci.codice_cliente (max 50, una riga; vincolo
+preventivi_voci_codice_cliente_check), trigger
+trg_preventivi_voci_codice_cliente (spazi tolti; dopo l'esito solo il
+titolare, come sql/265), dati_pdf_preventivo_cliente agganciata sul posto
+("'quantita_um', v.quantita_um," + 'codice_cliente'; se 265 o 264 si
+rieseguono o fanno rollback dopo, rifare l'aggancio). Sito
+(js/76-computo-gare.js caricato dopo js/75 + agganci in js/18): "📥 Importa
+computo del cliente" nell'editor delle voci (Excel/CSV max 5 MB, primo
+foglio, intestazione cercata nelle prime 15 righe: Codice, Descrizione, U.M.,
+Quantità con la virgola; righe senza descrizione o quantità saltate e
+elencate; conferma con anteprima; voci nuove categoria 'altro', costo e
+prezzo vuoti, si salvano con "💾 Salva preventivo"); campo "Cod. ente" sulla
+voce solo nei preventivi con almeno un codice
+(verificaCodiceClienteVociDisponibile, select *); PDF del cliente colonna
+"Cod." se una voce ce l'ha (anche con i dati esterni del rappresentante).
+Senza sql/112 il codice va all'inizio della descrizione "[A.01.003] ...".
+Guide info-com-33, info-tit-46. Prove: sql/112-...-PROVA.sql (stessa
+struttura di 265-PROVA) e test/computo-gara.spec.js (Acquisti a 390 px, 20
+righe, con e senza sql/112): TUTTO OK.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

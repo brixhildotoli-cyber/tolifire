@@ -4070,6 +4070,17 @@
       </p>
       <div class="al2 i">È solo un avviso: il PDF per il cliente si fa lo stesso (compare il messaggio con le categorie basse) e il titolare lo vede tra i preventivi da controllare.</div>
 
+      <h4 id="info-com-33">33. 📥 Gare: importare il computo dell'ente</h4>
+
+      <p>
+        Per una gara l'ente manda il computo in Excel (codice, descrizione, unità, quantità). Nell'editor delle voci (<b>💶 Preventivo Cliente</b>) premi <b>📥 Importa computo del cliente</b> e scegli il file: il gestionale trova da solo le colonne nella riga di intestazione (servono almeno "Descrizione" e "Quantità"), ti mostra quante righe aggiunge e quali salta, e le mette come voci nuove in fondo con il <b>Cod. ente</b>, costo e prezzo vuoti.
+      </p>
+      <ul>
+        <li>Compila costo e prezzo di ogni voce (puoi cambiare anche la categoria) e premi <b>💾 Salva preventivo</b>.</li>
+        <li>Nel PDF per il cliente compare la colonna <b>Cod.</b> con i codici dell'ente, nello stesso ordine del computo.</li>
+        <li>Totali, sconto, commessa e fatture funzionano come per ogni preventivo.</li>
+      </ul>
+
 
   <h4>Checklist prima dell’invio</h4>
 
@@ -6320,6 +6331,12 @@
 
       <p>
         In <b>Cosa tocca a me</b> la riga <b>📊 Preventivi con una categoria sotto il 20% di margine</b> conta i preventivi di Acquisti da controllare in cui una categoria di voci (es. la manodopera) ha meno del 20% di margine, anche se il totale va bene. Nel preventivo il riquadro <b>📊 Margine per categoria</b> mostra quale. È solo un avviso (decisione E3): nessun blocco. Soglia fissa al 20%, margine prima della provvigione.
+      </p>
+
+      <h4 id="info-tit-46">46. 📥 Gare: preventivo sul computo dell'ente</h4>
+
+      <p>
+        Nell'editor delle voci <b>📥 Importa computo del cliente</b> trasforma le righe dell'Excel dell'ente (codice, descrizione, unità, quantità) in voci del preventivo con il codice dell'ente; il PDF del cliente ha la colonna <b>Cod.</b>. Il codice si cambia solo prima dell'esito (dopo solo tu).
       </p>
 
 
@@ -11225,6 +11242,7 @@
 <script defer src="js/73-richiesta-fornitore-sezioni.js?v=202611131540"></script>
 <script defer src="js/74-richieste-acquisto.js?v=202611131540"></script>
 <script defer src="js/75-margine-categorie.js?v=202611131540"></script>
+<script defer src="js/76-computo-gare.js?v=202611131540"></script>
 <script defer src="js/19-init.js?v=202611131540"></script>
 
 

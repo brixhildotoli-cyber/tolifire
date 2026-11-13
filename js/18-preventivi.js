@@ -5209,6 +5209,10 @@ function disegnaVociPreventivo() {
         + Aggiungi voce
       </button>
 
+      <button class="btn sm" onclick="apriImportComputoCliente()" title="Excel dell'ente con codice, descrizione, unità e quantità: le righe diventano voci">
+        📥 Importa computo del cliente
+      </button>
+
       <button class="btn sm" onclick="annullaUltimaModificaPreventivo()">
   ↶ Annulla ultima modifica
 </button>
@@ -5263,6 +5267,7 @@ function disegnaVociPreventivo() {
 ${htmlUnitaMisuraVocePreventivo(voce, indice)}
 ${htmlQuantitaUmVocePreventivo(voce, indice)}
                 </div>
+${typeof htmlCodiceEnteVocePreventivo === 'function' ? htmlCodiceEnteVocePreventivo(voce, indice) : ''}
 
                 <div class="f">
                   <label>Descrizione *</label>
@@ -6388,6 +6393,8 @@ vociPreventivoDati = data || [];
 // senza voci si guarda una voce che il ruolo legge (nessuna richiesta in errore).
 // 12/11 (Erika): campo "Quantità x UM" tolto dal sito, si torna a una sola quantità
 quantitaUmEditorDisponibile = false;
+// F16.34 (js/76, sql/112): codice dell'ente nelle voci
+if (typeof verificaCodiceClienteVociDisponibile === 'function') await verificaCodiceClienteVociDisponibile(vociPreventivoDati);
 storicoUndoPreventivo = [];
 vociEliminatePreventivo = [];
 chiaveModificaPreventivo = '';
@@ -6571,6 +6578,7 @@ async function eseguiSalvataggioVociPreventivo() {
       aggiornato_il: new Date().toISOString()
     };
     if (quantitaUmEditorDisponibile) datiVoce.quantita_um = testoQuantitaUmVoce(voce.quantita_um) || null;
+    if (typeof codiceClienteVociDisponibile !== 'undefined' && codiceClienteVociDisponibile === true) datiVoce.codice_cliente = testoCodiceClienteVoce(voce.codice_cliente) || null; // F16.34, sql/112
 
     const { error } = await db
       .from('preventivi_voci')
@@ -6598,6 +6606,7 @@ async function eseguiSalvataggioVociPreventivo() {
       ordinamento: indice
     };
     if (quantitaUmEditorDisponibile) riga.quantita_um = testoQuantitaUmVoce(voce.quantita_um) || null;
+    if (typeof codiceClienteVociDisponibile !== 'undefined' && codiceClienteVociDisponibile === true) riga.codice_cliente = testoCodiceClienteVoce(voce.codice_cliente) || null; // F16.34, sql/112
     righe.push(riga);
   });
 
@@ -6684,6 +6693,9 @@ async function generaPreventivoClientePDF(datiEsterni) {
   const conOggettoNota = !datiEsterni && await verificaOggettoNotaPreventivoDisponibile();
   // sql/265: "Quantità x UM" solo se la colonna c'è (senza: 400 evitato)
   const conQuantitaUm = false; // 12/11: colonna "Q.tà x UM" tolta dal PDF
+  // F16.34 (js/76, sql/112): codice dell'ente nelle voci (colonna "Cod.")
+  const conCodiceEnte = !datiEsterni && typeof verificaCodiceClienteVociDisponibile === 'function'
+    ? await verificaCodiceClienteVociDisponibile() : false;
   // sql/264 (computo): solo se le colonne ci sono (con i dati esterni li
   // porta dati_pdf_preventivo_cliente)
   const conComputo = !datiEsterni && await verificaComputoPreventivoDisponibile();
@@ -6717,7 +6729,7 @@ async function generaPreventivoClientePDF(datiEsterni) {
 
     db
       .from('preventivi_voci')
-      .select('descrizione,unita_misura,quantita,' + (conQuantitaUm ? 'quantita_um,' : '') + 'prezzo_unitario,ordinamento')
+      .select('descrizione,unita_misura,quantita,' + (conQuantitaUm ? 'quantita_um,' : '') + (conCodiceEnte ? 'codice_cliente,' : '') + 'prezzo_unitario,ordinamento')
       .eq('preventivo_id', currentPreventivoId)
       .order('ordinamento')
       .order('creato_il')
@@ -6884,6 +6896,8 @@ async function generaPreventivoClientePDF(datiEsterni) {
     y = scriviOggettoNotaPdfPreventivo(doc, preventivo, margine, y);
   }
 
+  const colonnaCodiceEnte = (voci || []).some(function(v) { return v && String(v.codice_cliente || '').trim(); });
+
   doc.autoTable({
 margin: {
   top: 18,
@@ -6893,26 +6907,27 @@ margin: {
 },
 
     startY: y + 4,
-    head: [[
+    // F16.34: colonna "Cod." (codice dell'ente) solo se una voce ce l'ha
+    head: [(colonnaCodiceEnte ? ['Cod.'] : []).concat([
       'Descrizione',
       'Q.tà',
       'U.M.',
       'Prezzo unit.',
       'Totale'
-    ]],
+    ])],
     
     
     body: voci.map(function(voce) {
       const quantita = numeroPreventivo(voce.quantita);
       const prezzo = numeroPreventivo(voce.prezzo_unitario);
 
-      return [
+      return (colonnaCodiceEnte ? [voce.codice_cliente || ''] : []).concat([
         voce.descrizione || '—',
         String(quantita),
         voce.unita_misura || 'pz',
         euroPreventivo(prezzo),
         euroPreventivo(quantita * prezzo)
-      ];
+      ]);
     }),
     theme: 'grid',
     headStyles: {
@@ -6924,7 +6939,15 @@ margin: {
       fontSize: 8,
       cellPadding: 3
     },
-    columnStyles: {
+    columnStyles: colonnaCodiceEnte ? {
+      // F16.34: con "Cod." la descrizione si stringe (178 mm in tutto)
+      0: { cellWidth: 22 },
+      1: { cellWidth: 56 },
+      2: { halign: 'right', cellWidth: 16 },
+      3: { cellWidth: 16 },
+      4: { halign: 'right', cellWidth: 34 },
+      5: { halign: 'right', cellWidth: 34 }
+    } : {
       // 178 mm utili (A4 meno 16 mm per lato), come prima con una colonna in più
       0: { cellWidth: 72 },
       1: { halign: 'right', cellWidth: 18 },
