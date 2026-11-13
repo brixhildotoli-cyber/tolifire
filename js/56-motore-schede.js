@@ -2181,3 +2181,44 @@ async function controllaFotoVideoPrimaDellInvio(progettoId) {
     'scegli il motivo in «🚫 Non fotografabile» / «🚫 Video impossibile». Video: ' + TESTO_CONSIGLIO_VIDEO);
   return false;
 }
+
+// ── Bottoni della Verifica tecnica per le lavorazioni NUOVE del catalogo ──
+// (richiesta di Erika del 13/11, scheda Cartellonistica). I 7 bottoni scritti
+// in index.html restano com'erano; per ogni altra lavorazione ATTIVA con campi
+// (non il blocco comune) si aggiunge in fondo "Compila <nome>", che apre la
+// scheda del motore come gli altri. Lavorazione spenta o senza sql/75-77:
+// nessun bottone in più. Nessun SQL.
+const ICONE_LAVORAZIONI_VERIFICA = { cartellonistica: '🪧' };
+
+async function aggiungiBottoniLavorazioniVerifica() {
+  const box = ge('mvt-bottoni-schede');
+  if (!box) return;
+  box.querySelectorAll('[data-lav-nuova]').forEach(function(b) { b.remove(); });
+  if (!(await verificaMotoreSchedeDisponibile())) return;
+  if (typeof caricaCatalogoLavorazioni === 'function') {
+    try { await caricaCatalogoLavorazioni(); } catch (e) { return; }
+  }
+  const fisse = Object.keys(SCHEDE_VECCHIE_MOTORE);
+  lavorazioniMotore().filter(function(l) { return fisse.indexOf(l.codice) < 0; }).forEach(function(l) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn sm p';
+    b.dataset.lavNuova = l.codice;
+    b.textContent = (ICONE_LAVORAZIONI_VERIFICA[l.codice] || '📝') + ' Compila ' + String(l.nome || l.codice).toLowerCase();
+    b.onclick = function() {
+      const progettoId = v('mvt-id');
+      if (progettoId) apriSchedaMotore(progettoId, l.codice);
+    };
+    box.appendChild(b);
+  });
+}
+
+if (typeof apriVerificaTecnica === 'function') {
+  const apriVerificaTecnicaSenzaBottoniNuovi = apriVerificaTecnica;
+  // eslint-disable-next-line no-global-assign
+  apriVerificaTecnica = async function() {
+    const esito = await apriVerificaTecnicaSenzaBottoniNuovi.apply(this, arguments);
+    try { await aggiungiBottoniLavorazioniVerifica(); } catch (e) { console.warn('Bottoni delle lavorazioni nuove:', e); }
+    return esito;
+  };
+}
