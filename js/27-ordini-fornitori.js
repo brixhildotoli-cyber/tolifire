@@ -8,8 +8,8 @@
 // commessa (sql/29). Stati: ordinato → confermato → arrivato (più
 // annullato, con motivo).
 // Chi (sql/30): leggono gli ordini i 5 ruoli che leggono la commessa;
-// vedono le offerte, creano, confermano e annullano rappresentante (le
-// sue commesse), commerciale e titolare; segnano "arrivato" anche capo
+// vedono le offerte rappresentante (le sue commesse), commerciale e titolare;
+// creano, confermano e annullano SOLO commerciale e titolare (F17.14, sql/227); segnano "arrivato" anche capo
 // tecnico e segreteria. Lo stato "materiali ordinati" della commessa
 // resta del rappresentante (sql/28): qui viene solo suggerito.
 // Senza sql/30 la scheda mostra "non ancora attivi".
@@ -30,7 +30,11 @@ const ETICHETTE_STATO_ORDINE_FORNITORE = {
   annullato: 'Annullato'
 };
 
-const RUOLI_CREANO_ORDINI = ['titolare', 'commerciale', 'rappresentante'];
+// F17.14 (decisione di Toli E8, sql/227): creano, confermano e annullano SOLO
+// Acquisti e titolare; il rappresentante vede ordini e offerte da ordinare
+// (box Materiali e suggerimento "Materiali ordinati") ma non ordina.
+const RUOLI_CREANO_ORDINI = ['titolare', 'commerciale'];
+const RUOLI_VEDONO_OFFERTE_ORDINI = ['titolare', 'commerciale', 'rappresentante'];
 const RUOLI_ARRIVO_ORDINI = ['titolare', 'commerciale', 'rappresentante', 'capo_tecnico', 'segreteria'];
 // Decisioni 29/10: chi vede i prezzi d'acquisto (ordini, consumabili e noli).
 const RUOLI_VEDONO_PREZZI_ACQUISTO = ['titolare', 'segreteria', 'commerciale', 'rappresentante'];
@@ -182,7 +186,7 @@ async function caricaOrdiniCommessa(commessa) {
       .eq('commessa_id', commessa.id)
       .order('numero', { ascending: true })
   ];
-  const vedeOfferte = RUOLI_CREANO_ORDINI.includes(ROLE);
+  const vedeOfferte = RUOLI_VEDONO_OFFERTE_ORDINI.includes(ROLE);
   if (vedeOfferte) {
     richieste.push(db.rpc('offerte_ordinabili_commessa', { p_commessa_id: commessa.id }));
   }

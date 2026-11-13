@@ -489,7 +489,8 @@ registraFonteToccaAMe({
 });
 
 registraFonteToccaAMe({
-  id: 'commesse-da-ordinare', ruoli: ['rappresentante'], icona: '🛒',
+  // F17.14 (sql/227): ordina Acquisti; il rappresentante segna ancora "Materiali ordinati"
+  id: 'commesse-da-ordinare', ruoli: ['rappresentante', 'commerciale'], icona: '🛒',
   titolo: 'Commesse da ordinare (passo 7)',
   vai: { box: boxCommesseTAM, pagina: 'commesse' },
   conta: function(giro) { return contaCommesseInStatoTAM(giro, 'approvata'); }

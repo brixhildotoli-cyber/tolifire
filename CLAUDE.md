@@ -2935,6 +2935,25 @@ info-com-34, info-seg-26, info-tit-47. Prove: sql/113-...-PROVA.sql (27
 controlli), test/gare.spec.js (Acquisti a 390 px, titolare, segreteria,
 capo tecnico e rappresentante senza pagina; GARE_SENZA_SQL=1): TUTTO OK;
 smoke TUTTO OK (ATTESE con 'gare'); matrice TUTTO OK per la tabella nuova.
+Dopo sql/227 (F17.14 solo Acquisti ordina ai fornitori, decisione di Toli E8
+approvata da Erika il 13/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/227":
+backup, anteprima in fondo, file (senza parole di cancellazione, server MCP),
+controllo; richiede 30, 42, 71; matrice invariata): AGGANCIO SUL POSTO
+(pg_get_functiondef + replace) di crea_ordine_fornitore (verifica_ruolo
+senza 'rappresentante') e cambia_stato_ordine_fornitore (conferma e
+annullamento solo titolare e commerciale, messaggi "Acquisti o il
+titolare"); rollback = replace al contrario (funzioni identiche, md5
+provato). NON cambiano: offerte_ordinabili_commessa (il rappresentante vede
+le offerte da ordinare), lettura degli ordini, "Arrivato", passo "Materiali
+ordinati" della commessa (cambia_stato_commessa: SCELTA del 13/11, lo segna
+ancora il rappresentante; la task proponeva di spostarlo ad Acquisti). Sito:
+js/27 RUOLI_CREANO_ORDINI = titolare, commerciale (+ RUOLI_VEDONO_OFFERTE_ORDINI
+con il rappresentante per offerte e suggerimento), js/29 vede le offerte con
+RUOLI_VEDONO_OFFERTE_ORDINI, js/46 "Commesse da ordinare (passo 7)" anche ad
+Acquisti. Guide info-rap-14 riscritta, info-com-35, info-tit-48. Prova
+sql/227-...-PROVA.sql: rappresentante e titolare "come" rappresentante
+rifiutati (crea, conferma, annulla), Acquisti crea e conferma, titolare
+annulla, il rappresentante legge ordine e offerte: OK.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
