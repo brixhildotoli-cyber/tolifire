@@ -2884,7 +2884,7 @@ controllare (preventiviConCategoriaSottoSoglia). F16.12-F16.46 tranne 34, 35,
 Guide info-com-32, info-tit-45. Prova test/margine-categorie.spec.js: TUTTO OK.
 Dopo sql/112 (F16.34 preventivo a computo del cliente per le gare, versione
 decisa da Erika il 13/11: le righe del computo DIVENTANO le voci, nessuna
-tabella a parte; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/112": backup,
+tabella a parte; ESEGUITO il 13/11 dal server MCP (backup pre112, controllo in regola): backup,
 anteprima in fondo, file (senza parole di cancellazione, server MCP),
 controllo; richiede 07, 25, 71, 258, 265; matrice invariata): colonna
 preventivi_voci.codice_cliente (max 50, una riga; vincolo
@@ -2907,7 +2907,7 @@ Guide info-com-33, info-tit-46. Prove: sql/112-...-PROVA.sql (stessa
 struttura di 265-PROVA) e test/computo-gara.spec.js (Acquisti a 390 px, 20
 righe, con e senza sql/112): TUTTO OK.
 Dopo sql/113 (F16.35 scheda gara, pagina "🏛️ Gare" decisa da Erika il 13/11;
-DA ESEGUIRE con "CONFERMATO DA TOLI: sql/113": backup, anteprima in fondo,
+ESEGUITO il 13/11 con il -REGISTRO-CANCELLAZIONI (backup pre112, controllo in regola): backup, anteprima in fondo,
 113-scheda-gara.sql (senza parole di cancellazione, server MCP),
 113-...-REGISTRO-CANCELLAZIONI.sql dall'EDITOR, controllo in fondo; richiede
 07, 67, 71; matrice: 10 righe nuove). Tabella gare (codice GA-AAAA-NNN dal
