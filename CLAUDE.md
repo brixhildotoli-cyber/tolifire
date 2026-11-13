@@ -2775,6 +2775,36 @@ del 13/11. Guida info-com-29. Prova test/richiesta-fornitore-sezioni.spec.js
 con le sole porte, P-01/P-02, entro il, PREZZO INDICATIVO, condizioni, senza
 note interne né posizione tolta; spunte dopo Salva; tutte spuntate = anche
 gli estintori): TUTTO OK.
+Dopo sql/100 (F16.11 stati del fornitore con controlli, VERSIONE RIDOTTA
+decisa da Erika il 13/11, senza l'offerta per posizione di F16.10; DA
+ESEGUIRE con "CONFERMATO DA TOLI: sql/100": backup, anteprima in fondo,
+100-stati-fornitore-controlli.sql (senza parole di cancellazione, server
+MCP), 100-...-VINCOLO.sql dall'EDITOR (drop e add di
+preventivi_fornitori_stato_check), controllo in fondo; richiede 71; nessuna
+tabella nuova, matrice invariata; il sito si pubblica prima o dopo).
+Trigger trg_preventivi_fornitori_stato (BEFORE INSERT OR UPDATE OF stato,
+security definer): quando lo stato DIVENTA 'risposta_ricevuta' servono
+prezzo_offerto > 0 e almeno una riga in preventivi_fornitori_allegati (22023
+con il testo per l'utente), per ogni utente del sito anche "come"; editor
+libero; le righe già in quello stato non si toccano. 'selezionato' e "Usa
+nel preventivo cliente" come prima. -VINCOLO: stati NUOVI 'rifiutata' ("Il
+fornitore non quota") e 'scaduta' ("Offerta scaduta"): restano nell'elenco
+(solo 'scartato' esce), niente "Usa nel preventivo". RPC
+stati_fornitore_controlli() -> {controlli, stati_nuovi} (in
+RPC_SOLA_LETTURA_DB di js/01). Nel sito (js/18): STATI_FORNITORE,
+verificaStatiFornitore, statiOffertaAmmessi (i 2 stati nel menu solo con il
+-VINCOLO), mancaPerRispostaRicevuta (stesso controllo nel sito, vale anche
+senza sql/100) in salvaDettagliFornitorePreventivo; caricando il PDF
+(caricaPreventivoRicevutoFornitore) lo stato diventa 'risposta_ricevuta' da
+solo SOLO con il prezzo già salvato, se no "PDF caricato: scrivi il prezzo
+offerto...". In produzione al 13/11: 49 da_contattare, 1 risposta_ricevuta
+senza prezzo (resta così). Guida info-com-30. Prove:
+sql/100-...-PROVA.sql (17 controlli: Acquisti, titolare e titolare "come"
+Acquisti senza prezzo/PDF 22023, con prezzo e PDF sì, insert già in
+risposta, scelto come prima, stati nuovi, stato inventato 23514, editor
+libero, permessi); test/stati-fornitore.spec.js (Acquisti a 390 px, con e
+senza sql/100 con STATI_SENZA_SQL=1): TUTTO OK; rollback e riesecuzione
+provati (vincolo identico a prima).
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

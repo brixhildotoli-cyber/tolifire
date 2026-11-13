@@ -3739,6 +3739,8 @@ async function renderFornitoriPreventivo() {
     if (!erroreFile) allegatiProgetto = fileProgetto || [];
   }
 
+  // F16.11 (sql/100): stati "Il fornitore non quota" e "Offerta scaduta"
+  await verificaStatiFornitore();
 
   box.innerHTML = `
     <div class="card">
@@ -3954,6 +3956,8 @@ const bloccoAllegati = !allegatiProgetto.length
                 <option value="risposta_ricevuta" ${s.stato === 'risposta_ricevuta' ? 'selected' : ''}>Risposta ricevuta</option>
                 <option value="selezionato" ${s.stato === 'selezionato' ? 'selected' : ''}>Scelto per il preventivo</option>
                 <option value="scartato" ${s.stato === 'scartato' ? 'selected' : ''}>Scartato</option>
+                ${STATI_FORNITORE.stati_nuovi || s.stato === 'rifiutata' ? `<option value="rifiutata" ${s.stato === 'rifiutata' ? 'selected' : ''}>Il fornitore non quota</option>` : ''}
+                ${STATI_FORNITORE.stati_nuovi || s.stato === 'scaduta' ? `<option value="scaduta" ${s.stato === 'scaduta' ? 'selected' : ''}>Offerta scaduta</option>` : ''}
               </select>
             </div>
 
@@ -4348,16 +4352,27 @@ async function caricaPreventivoRicevutoFornitore(selezioneId) {
     return;
   }
 
-  await db
+  // F16.11: «Risposta ricevuta» da sola solo se il prezzo è già salvato
+  const { data: offertaOra } = await db
     .from('preventivi_fornitori')
-    .update({
-      stato: 'risposta_ricevuta',
-      aggiornato_il: new Date().toISOString()
-    })
+    .select('prezzo_offerto')
     .eq('id', selezioneId)
-    .eq('preventivo_id', currentPreventivoId);
+    .maybeSingle();
 
-  toast('Preventivo del fornitore caricato', 'ok');
+  if (offertaOra && Number(offertaOra.prezzo_offerto) > 0) {
+    await db
+      .from('preventivi_fornitori')
+      .update({
+        stato: 'risposta_ricevuta',
+        aggiornato_il: new Date().toISOString()
+      })
+      .eq('id', selezioneId)
+      .eq('preventivo_id', currentPreventivoId);
+
+    toast('Preventivo del fornitore caricato', 'ok');
+  } else {
+    toast('PDF caricato: scrivi il prezzo offerto, scegli «Risposta ricevuta» e salva.', 'ok');
+  }
   await renderFornitoriPreventivo();
 }
 
@@ -4380,7 +4395,7 @@ async function apriAllegatoPreventivoFornitore(storagePath) {
 }
 
 // F13.5: stati ammessi dal vincolo preventivi_fornitori_stato_check
-// ('rifiutata' e 'scaduta' arriveranno con F16.11).
+// ('rifiutata' e 'scaduta' con F16.11, sql/100 -VINCOLO: vedi statiOffertaAmmessi).
 const STATI_OFFERTA_FORNITORE = [
   'da_contattare',
   'richiesta_inviata',
@@ -4388,6 +4403,44 @@ const STATI_OFFERTA_FORNITORE = [
   'selezionato',
   'scartato'
 ];
+
+// F16.11 (sql/100, versione ridotta decisa da Erika il 13/11): «Risposta
+// ricevuta» solo con il prezzo offerto e il PDF dell'offerta caricato (lo
+// controlla anche il database); stati nuovi "Il fornitore non quota"
+// ('rifiutata') e "Offerta scaduta" ('scaduta') solo con il -VINCOLO.
+// «Scelto» e "Usa nel preventivo cliente" come prima. Il controllo del sito
+// vale anche senza sql/100.
+const STATI_FORNITORE = { letto: false, controlli: false, stati_nuovi: false };
+
+async function verificaStatiFornitore() {
+  if (STATI_FORNITORE.letto) return STATI_FORNITORE;
+  try {
+    const { data, error } = await db.rpc('stati_fornitore_controlli');
+    if (!error && data) {
+      STATI_FORNITORE.controlli = !!data.controlli;
+      STATI_FORNITORE.stati_nuovi = !!data.stati_nuovi;
+    }
+  } catch (e) { /* senza sql/100: stati di prima */ }
+  STATI_FORNITORE.letto = true;
+  return STATI_FORNITORE;
+}
+
+function statiOffertaAmmessi() {
+  return STATI_FORNITORE.stati_nuovi
+    ? STATI_OFFERTA_FORNITORE.concat(['rifiutata', 'scaduta'])
+    : STATI_OFFERTA_FORNITORE;
+}
+
+// Messaggio se l'offerta non può diventare «Risposta ricevuta», '' = va bene
+async function mancaPerRispostaRicevuta(selezioneId, prezzo) {
+  if (!(Number(prezzo) > 0)) return 'Per segnare «Risposta ricevuta» scrivi il prezzo offerto dal fornitore.';
+  const { count, error } = await db
+    .from('preventivi_fornitori_allegati')
+    .select('id', { count: 'exact', head: true })
+    .eq('preventivo_fornitore_id', selezioneId);
+  if (error) return '';
+  return count ? '' : 'Per segnare «Risposta ricevuta» carica il PDF dell’offerta del fornitore (📎 Carica preventivo fornitore).';
+}
 
 // F13.5: prima di segnare 'selezionato' controlla se nel preventivo c'è già
 // un'altra offerta scelta della stessa tipologia (js/27 proporrebbe un
@@ -4444,9 +4497,19 @@ async function salvaDettagliFornitorePreventivo(selezioneId) {
   const prezzo = v('pvf-prezzo-' + selezioneId);
   const stato = v('pvf-stato-' + selezioneId);
 
-  if (!STATI_OFFERTA_FORNITORE.includes(stato)) {
+  await verificaStatiFornitore();
+  if (!statiOffertaAmmessi().includes(stato)) {
     toast('Scegli uno stato valido per l\'offerta', 'err');
     return;
+  }
+
+  // F16.11: «Risposta ricevuta» solo con prezzo e PDF (se lo stato cambia)
+  if (stato === 'risposta_ricevuta') {
+    const { data: prima } = await db.from('preventivi_fornitori').select('stato').eq('id', selezioneId).maybeSingle();
+    if (!prima || prima.stato !== 'risposta_ricevuta') {
+      const manca = await mancaPerRispostaRicevuta(selezioneId, prezzo === '' ? 0 : Number(prezzo));
+      if (manca) { toast(manca, 'err'); return; }
+    }
   }
 
   if (stato === 'selezionato') {
