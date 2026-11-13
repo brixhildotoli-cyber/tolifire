@@ -2722,6 +2722,28 @@ modelli_pdf (restano gli errori già noti di fatture*); rollback provato
 (schema identico con pg_dump). Senza sql/98: riquadro "non ancora attivo",
 PDF di prova con i testi predefiniti, nessun PDF di prima cambia, nessun
 errore.
+Dopo sql/266 (scheda tecnica Cartellonistica, richiesta di Erika del 13/11,
+fuori piano; ESEGUITO il 13/11 dal server MCP, backup 2026-11-13-pre98,
+controllo in regola; rollback 266-...-ROLLBACK.sql = campi tolti e
+lavorazione spenta): solo dati del catalogo, nessuna tabella o policy,
+matrice invariata. Lavorazione 'cartellonistica' (famiglia presidi, ACCESA)
+con 18 campi: tipo_intervento (unico serve al prezzo), materiale_cartelli,
+formato_cartelli, un numero in pz per cartello della legenda delle
+planimetrie (cartello_chiamata_soccorsi, _punto_raccolta, _uscita_emergenza,
+_direzione_esodo, _quadro_elettrico, _sgancio_energia, _divieto_fumo,
+_divieto_fiamme, _estintore, _estintore_carrellato), planimetria_evacuazione
+(al posto di "Voi siete qui") con formato_planimetria e supporto_planimetria,
+altri_cartelli, note_tecniche (ingegnere). Estintori: numero_carrellati_
+esistenti (ordine 25) e numero_carrellati_installare (35), facoltativi; il
+menu "carrellati" resta. Nel sito (js/56, nessun file nuovo):
+ICONE_CARTELLI_MOTORE e iconaCartelloMotore (icona del cartello accanto al
+campo, per codice); aggiungiBottoniLavorazioniVerifica (apriVerificaTecnica
+avvolta): nella Verifica tecnica (contenitore mvt-bottoni-schede di
+index.html) un bottone "Compila ..." per ogni lavorazione ATTIVA del catalogo
+che non è tra le 7 di SCHEDE_VECCHIE_MOTORE né il blocco comune ("🪧 Compila
+cartellonistica"), i 7 bottoni di prima invariati; lavorazioneNuovaCatalogo:
+per queste lavorazioni etichette e valori dei menu dal catalogo anche in
+preventivo, copia di Acquisti e PDF (campoCatalogoMigrato).
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
