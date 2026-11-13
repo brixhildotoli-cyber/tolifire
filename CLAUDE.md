@@ -438,6 +438,16 @@ quando; lettura per tutti gli utenti attivi, nessuna scrittura diretta: solo
 salva_testi_modello_pdf del titolare; i modelli nascono da un file sql/NN;
 cancellazione bloccata dal -REGISTRO-CANCELLAZIONI); vedi "Dopo sql/98".
 
+Usate dal frontend — richieste di acquisto (sql/268, richiesta di Erika del
+13/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/268": file principale dal
+server MCP, poi il -REGISTRO-CANCELLAZIONI dall'editor): richieste_acquisto
+(richiesta di materiale del capo tecnico ad Acquisti: anno, numero, codice
+RA-AAAA-NNN, oggetto, note, righe jsonb [{descrizione, quantita, unita,
+note}] SENZA prezzi né fornitore, stato inviata_acquisti → presa_in_carico →
+inviata_fornitore → arrivata | annullata, chi e quando di ogni passo;
+lettura titolare, commerciale, capo_tecnico, segreteria; nessuna scrittura
+diretta, solo le RPC di sql/268); vedi "Dopo sql/268".
+
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
 è in costruzione, vedi sotto). Dopo sql/45 (F11.1, eseguito il 30/10):
@@ -2805,6 +2815,47 @@ risposta, scelto come prima, stati nuovi, stato inventato 23514, editor
 libero, permessi); test/stati-fornitore.spec.js (Acquisti a 390 px, con e
 senza sql/100 con STATI_SENZA_SQL=1): TUTTO OK; rollback e riesecuzione
 provati (vincolo identico a prima).
+Dopo sql/268 (richieste di acquisto del capo tecnico ad Acquisti, richiesta
+di Erika del 13/11, fuori piano; DA ESEGUIRE con "CONFERMATO DA TOLI:
+sql/268": backup, anteprima in fondo, 268-richieste-acquisto.sql (senza
+parole di cancellazione, server MCP), 268-...-REGISTRO-CANCELLAZIONI.sql
+dall'EDITOR, controllo in fondo; richiede 07, 65, 67, 71; matrice: 10 righe
+nuove; il sito si pubblica prima o dopo). Tabella richieste_acquisto (vedi
+"Tabelle Supabase"). DECISIONI DI ERIKA: niente prezzi, niente fornitore nel
+PDF, passi "Inviata al fornitore" e "Arrivato" con avviso al capo tecnico,
+titolare fa tutto, segreteria sola lettura. RPC del sito:
+richieste_acquisto_attive(), salva_richiesta_acquisto(p_id, p_oggetto,
+p_note, p_righe) (nuova: capo_tecnico e titolare, numero per anno sotto
+pg_advisory_xact_lock, avviso 'richiesta_acquisto' al ruolo commerciale;
+correzione: capo tecnico solo 'inviata_acquisti', commerciale e titolare
+fino alla presa in carico compresa; righe 1-100, quantità > 0 anche con la
+virgola), prendi_in_carico_richiesta_acquisto (commerciale, titolare; chiude
+l'avviso ad Acquisti), segna_richiesta_acquisto_inviata(p_id, p_nota)
+(commerciale, titolare; avviso 'richiesta_acquisto_inviata' a chi l'ha
+chiesta), segna_richiesta_acquisto_arrivata (commerciale, titolare,
+capo_tecnico; avviso 'richiesta_acquisto_arrivata' a chi l'ha chiesta se non
+è lui), annulla_richiesta_acquisto(p_id, p_motivo) (capo tecnico solo
+'inviata_acquisti', commerciale e titolare prima dell'invio; motivo 3-500;
+avviso 'richiesta_acquisto_annullata' al richiedente). Interne
+righe_richiesta_acquisto, chiudi_avvisi_richiesta_acquisto. Nel sito
+(js/74-richieste-acquisto.js, caricato dopo js/73 e prima di js/19): voce
+"🛒 Richieste di acquisto" nel menu di titolare, capo tecnico, segreteria,
+Acquisti e 'richieste-acquisto' in PAGINE_RUOLO; pagina pg-richieste-acquisto
+(Aperte / Tutte, "➕ Nuova richiesta" a capo tecnico e titolare); finestra
+m-richiesta-acquisto (id rqa-: oggetto, note, righe con "+ Aggiungi riga",
+storico chi/quando, bottoni secondo ruolo e stato: Invia ad Acquisti, Salva
+le modifiche, Prendi in carico, Scarica il PDF, Segna inviata al fornitore
+(nota facoltativa), Segna arrivato, Annulla la richiesta (motivo)); PDF con
+il motore unico di js/00 (registraModelloPdf('richiesta_acquisto'): campi,
+testo "premessa", tabella del materiale, note; nessuna riga in modelli_pdf:
+testi predefiniti del sito); avvisi (TIPI_AVVISO, OGGETTO_DA_TABELLA_AVVISO,
+SCHEDE_CON_INDIRIZZO 'richiesta_acquisto' = pagina + finestra); Cosa tocca a
+me di Acquisti "🛒 Richieste di acquisto da gestire". Guide info-ct-28,
+info-com-31, info-seg-25, info-tit-44. Prove: sql/268-...-PROVA.sql (45
+controlli) e test/richieste-acquisto.spec.js (capo tecnico a 390 px,
+Acquisti, segreteria, tecnico; RICHIESTE_SENZA_SQL=1 dopo il rollback):
+TUTTO OK; matrice TUTTO OK per la tabella nuova (restano gli errori noti di
+fatture*); rollback e riesecuzione provati.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
@@ -3295,6 +3346,8 @@ js/02-portale-navigazione.js; controllo in `canAccessPage`):
 - ingegnere: dashboard, calendario-ingegnere, verifiche-tecniche,
   documenti, certificati-ingegnere, progetto-detail, cliente-detail, info,
   + clienti (aggiunta subito dopo la definizione, sola consultazione)
+- dal 13/11 (sql/268, js/74) anche 'richieste-acquisto' (voce "🛒 Richieste di
+  acquisto") per titolare, capo_tecnico, segreteria (sola lettura) e commerciale
 - informatico: come titolare (in js/01-core.js `boot` ROLE diventa
   'titolare', etichetta "Informatico"; lato DB `ruolo_corrente()` in
   sql/07 restituisce 'titolare')

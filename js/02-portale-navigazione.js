@@ -425,12 +425,12 @@ function buildNav() {
 
 // Pagine accessibili per ruolo
 const PAGINE_RUOLO = {
-  titolare:       ['dashboard','calendario','piano-mensile','trattative','preventivi-titolare','preventivo-detail','progetti-da-preventivare','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','progetto-detail','fornitore-detail', 'tecnico','sopralluogo','commesse','commessa-detail','team-subappalti','scheda-documenti','ore-cantiere','decisioni','info'],
-  capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','tecnico','clienti','documenti','cliente-detail','commesse','commessa-detail','team-subappalti','scheda-documenti','ore-cantiere','info'],
-  segreteria:     ['dashboard','calendario','workflow','presidi','interventi','tecnico','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail','commesse','commessa-detail','team-subappalti','scheda-documenti','info'],
+  titolare:       ['dashboard','calendario','piano-mensile','trattative','preventivi-titolare','preventivo-detail','progetti-da-preventivare','presidi','workflow','interventi','clienti','documenti','fatture','catalogo','impostazioni','cliente-detail','progetto-detail','fornitore-detail', 'tecnico','sopralluogo','commesse','commessa-detail','team-subappalti','scheda-documenti','ore-cantiere','decisioni','richieste-acquisto','info'],
+  capo_tecnico:   ['dashboard','calendario','calendario-team','piano-mensile','presidi','interventi','tecnico','clienti','documenti','cliente-detail','commesse','commessa-detail','team-subappalti','scheda-documenti','ore-cantiere','richieste-acquisto','info'],
+  segreteria:     ['dashboard','calendario','workflow','presidi','interventi','tecnico','clienti','documenti','fatture','catalogo','cliente-detail', 'fornitore-detail','commesse','commessa-detail','team-subappalti','scheda-documenti','richieste-acquisto','info'],
   contabile:      ['dashboard','workflow','fatture','documenti','catalogo','info'],
   tecnico:        ['dashboard','calendario-tec','tecnico','presidi','documenti','info'], // presidi: consultazione (js/68, sql/257)
-  commerciale:    ['dashboard','progetti-da-preventivare', 'preventivi', 'fornitori', 'fornitore-detail','preventivo-detail','clienti','documenti','progetto-detail','fatture','catalogo','cliente-detail', 'info','commesse','commessa-detail'],
+  commerciale:    ['dashboard','progetti-da-preventivare', 'preventivi', 'fornitori', 'fornitore-detail','preventivo-detail','clienti','documenti','progetto-detail','fatture','catalogo','cliente-detail', 'richieste-acquisto','info','commesse','commessa-detail'],
   rappresentante: ['dashboard','dashboard-rapp','calendario-appuntamenti','clienti', 'progetti', 'presidi','trattative','preventivi-rapp','cliente-detail','progetto-detail','catalogo', 'info','commesse','commessa-detail'],
   ingegnere:      ['dashboard','calendario-ingegnere','verifiche-tecniche','documenti', 'certificati-ingegnere','progetto-detail','cliente-detail','info'],
   
@@ -557,6 +557,7 @@ function gotoPage(id){
   if(id==='commesse')loadCommesse(); // F5.3, js/26
   if(id==='team-subappalti')loadTeamSubappalti(); // F7.1, js/30
   if(id==='ore-cantiere')loadOreCantiere(); // riepilogo ore, js/49
+  if(id==='richieste-acquisto'&&typeof loadRichiesteAcquisto==='function')loadRichiesteAcquisto(); // richieste di acquisto, js/74 (sql/268)
   if(id==='decisioni'&&typeof loadDecisioni==='function')loadDecisioni(); // F14.7, js/60
   if(id==='preventivazione') loadPreventivazione();
   if(id==='sopralluogo' && ROLE!=='rappresentante' && ROLE!=='titolare'){toast('Accesso non consentito','err');return;}

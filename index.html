@@ -2113,6 +2113,24 @@
 </div>
 
 <!-- ORE CANTIERE: riepilogo ore su tutte le commesse (js/49; dati di sql/37). Titolare e capo tecnico -->
+<div class="page" id="pg-richieste-acquisto">
+  <div class="sh">
+    <div>
+      <div class="st">🛒 Richieste di acquisto</div>
+      <div style="font-size:12px;color:var(--m);margin-top:3px">Il capo tecnico chiede il materiale (magazzino, indumenti, attrezzi...), Acquisti lo prende in carico, lo ordina e segna quando è inviato e quando è arrivato.</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn p" id="rqa-nuova-btn" style="display:none" onclick="nuovaRichiestaAcquisto()">➕ Nuova richiesta</button>
+      <button class="btn" onclick="loadRichiesteAcquisto()" title="Rileggi">↻ Aggiorna</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+    <button class="btn sm p" id="rqa-filtro-aperte" onclick="filtraRichiesteAcquisto('aperte')">Aperte</button>
+    <button class="btn sm" id="rqa-filtro-tutte" onclick="filtraRichiesteAcquisto('tutte')">Tutte</button>
+  </div>
+  <div id="rqa-elenco"></div>
+</div>
+
 <div class="page" id="pg-ore-cantiere">
   <div class="sh">
     <div>
@@ -4032,6 +4050,19 @@
         <b>Esempio</b><br>Il fornitore manda l'offerta per mail: carichi il PDF, scrivi 1.250 nel prezzo, scegli «Risposta ricevuta» e premi <b>Salva dati fornitore</b>. Se invece risponde che non fa quel prodotto, scegli «Il fornitore non quota».
       </div>
 
+      <h4 id="info-com-31">31. 🛒 Richieste di acquisto del capo tecnico</h4>
+
+      <p>
+        Le richieste di materiale del capo tecnico arrivano in <b>🛒 Richieste di acquisto</b> (menu), con un avviso 🔔 e la riga "Richieste di acquisto da gestire" in <b>Cosa tocca a me</b>. Apri la richiesta e:
+      </p>
+      <ul>
+        <li><b>🙋 Prendi in carico</b>: da quel momento il capo tecnico non la cambia più; tu puoi correggere oggetto, note e righe (<b>💾 Salva le modifiche</b>).</li>
+        <li><b>📄 Scarica il PDF</b>: richiesta di acquisto con numero, oggetto e materiale, senza prezzi e senza fornitore; la mandi tu a chi vuoi (fornitore del gestionale o esterno).</li>
+        <li><b>📤 Segna inviata al fornitore</b> (nota facoltativa, es. la consegna prevista) e poi <b>📦 Segna arrivato</b>: a ogni passo il capo tecnico riceve l'avviso.</li>
+        <li>Prima dell'invio la puoi annullare con il motivo (anche a lui arriva l'avviso).</li>
+      </ul>
+
+
   <h4>Checklist prima dell’invio</h4>
 
   <ul>
@@ -5172,6 +5203,19 @@
 
       <div class="al2 w">Giornale, ore, squadra e stati della commessa si salvano solo con la rete.</div>
 
+      <h4 id="info-ct-28">28. 🛒 Richieste di acquisto ad Acquisti</h4>
+
+      <p>
+        Per chiedere materiale (per il magazzino, indumenti per gli operai, attrezzi o qualsiasi altra cosa) apri <b>🛒 Richieste di acquisto</b> dal menu e premi <b>➕ Nuova richiesta</b>: oggetto, note (per chi è, entro quando, dove consegnare) e una riga per ogni cosa con quantità e unità. Con <b>📤 Invia ad Acquisti</b> la richiesta arriva ad Acquisti con un avviso.
+      </p>
+      <ul>
+        <li>Finché Acquisti non la prende in carico la puoi correggere o annullare (con il motivo); dopo, per cambiarla chiedi a loro.</li>
+        <li>Ti arriva un avviso 🔔 quando Acquisti la segna <b>Inviata al fornitore</b> e quando il materiale è <b>Arrivato</b> (l'arrivo lo puoi segnare anche tu con <b>📦 Segna arrivato</b>).</li>
+        <li>Niente prezzi e niente fornitore: li gestisce Acquisti.</li>
+      </ul>
+      <div class="info-esempio"><b>Esempio</b><br>"Indumenti invernali squadra": 6 giacche alta visibilità taglia L, 12 paia di guanti antitaglio. Invii; il giorno dopo ti arriva "📤 inviata al fornitore", la settimana dopo "📦 arrivato".</div>
+
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -6257,6 +6301,13 @@
 
       <div class="al2 w">Serve l'aggiornamento del database sql/98: prima il riquadro dice "non ancora attivo" e il PDF di prova esce con i testi predefiniti del gestionale ("testi predefiniti del sito" in fondo alla pagina). I modelli nuovi li aggiunge l'informatico con un file del database, insieme al documento che li usa.</div>
 
+      <h4 id="info-tit-44">44. 🛒 Richieste di acquisto</h4>
+
+      <p>
+        <b>🛒 Richieste di acquisto</b>: il capo tecnico chiede il materiale (magazzino, indumenti, attrezzi), Acquisti lo prende in carico, scarica il PDF, lo manda al fornitore e segna <b>Inviata al fornitore</b> e <b>Arrivato</b>; il capo tecnico riceve un avviso a ogni passo. Tu puoi fare tutto: creare, correggere, prendere in carico, segnare inviata o arrivata, annullare. La segreteria vede in sola lettura. Niente prezzi: è una richiesta di materiale, non un ordine con importi.
+      </p>
+
+
       <h4>Regole pratiche</h4>
 
       <ul>
@@ -6834,6 +6885,13 @@
       </div>
 
       <div class="al2 w">Su <b>iPhone</b> installa l'app: Safari <b>cancella i dati delle pagine non installate</b> dopo 7 giorni senza usarle, anche le schede e le foto non ancora inviate. Con l'app installata restano finché non partono.</div>
+
+      <h4 id="info-seg-25">25. 🛒 Richieste di acquisto (sola lettura)</h4>
+
+      <p>
+        In <b>🛒 Richieste di acquisto</b> vedi le richieste di materiale del capo tecnico ad Acquisti e a che punto sono (da prendere in carico, presa in carico, inviata al fornitore, arrivato, annullata). Non le cambi: le gestiscono capo tecnico e Acquisti.
+      </p>
+
 
       <h4>Regole pratiche</h4>
 
@@ -8828,6 +8886,22 @@
     <div style="font-size:12px;color:var(--m);margin-bottom:8px">Le ultime 300 modifiche: chi, quando, cosa è cambiato e il motivo.</div>
     <div id="rgr-elenco" style="max-height:60vh;overflow:auto"></div>
     <div class="ma"><button class="btn" onclick="closeM('m-registro-smistamento')">Chiudi</button></div>
+  </div>
+</div>
+
+<!-- RICHIESTA DI ACQUISTO (js/74-richieste-acquisto.js, sql/268) -->
+<div class="mbg" id="m-richiesta-acquisto">
+  <div class="modal" style="max-width:680px">
+    <div class="mh"><span id="rqa-titolo">🛒 Richiesta di acquisto</span><button class="mx" onclick="closeM('m-richiesta-acquisto')">✕</button></div>
+    <div id="rqa-stato" style="margin-bottom:8px"></div>
+    <div class="f"><label>Oggetto *</label><input id="rqa-oggetto" maxlength="200" placeholder="Es. indumenti invernali per la squadra"></div>
+    <div class="f"><label>Note</label><textarea id="rqa-note" rows="2" maxlength="2000" placeholder="Per chi è, entro quando serve, dove consegnare..."></textarea></div>
+    <div style="font-size:13px;font-weight:700;margin:8px 0 6px">Materiale</div>
+    <div id="rqa-righe"></div>
+    <button type="button" class="btn sm" id="rqa-aggiungi" onclick="aggiungiRigaRichiestaAcquisto()">+ Aggiungi riga</button>
+    <div id="rqa-storico" style="font-size:12px;color:var(--m);margin-top:12px;display:grid;gap:3px"></div>
+    <div id="rqa-nota" style="font-size:12px;color:var(--m);margin-top:8px"></div>
+    <div class="ma" id="rqa-bottoni" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"></div>
   </div>
 </div>
 
@@ -11134,6 +11208,7 @@
 <script defer src="js/71-pdf-schede-tecniche.js?v=202611131250"></script>
 <script defer src="js/72-modelli-pdf.js?v=202611131250"></script>
 <script defer src="js/73-richiesta-fornitore-sezioni.js?v=202611131250"></script>
+<script defer src="js/74-richieste-acquisto.js?v=202611131250"></script>
 <script defer src="js/19-init.js?v=202611131250"></script>
 
 

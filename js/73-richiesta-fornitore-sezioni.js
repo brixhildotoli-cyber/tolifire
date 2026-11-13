@@ -50,7 +50,7 @@ function htmlSezioniRichiestaFornitore(selezioneId) {
   const schede = RQ_SEZIONI.schede;
   const spuntata = function(id) { return !scelta.schede || scelta.schede.indexOf(id) >= 0; };
   return `
-    <div data-rq-sezioni="${esc(selezioneId)}" style="margin:14px 0 10px;padding:10px 12px;border:1px solid var(--b);border-radius:8px">
+    <div data-rq-sezioni="${esc(selezioneId)}" style="margin:14px 0 10px;padding:10px 12px;border:1px solid var(--bo);border-radius:8px">
       <div style="font-size:13px;font-weight:700">📑 Schede da mandare a questo fornitore</div>
       ${schede.length ? `
         <div style="font-size:12px;color:var(--m);margin:2px 0 6px">Nel PDF vanno solo le schede spuntate, con le loro posizioni P-xx.</div>
