@@ -27,7 +27,8 @@ const ETICHETTE_STATO_ORDINE_FORNITORE = {
   ordinato: 'Ordinato',
   confermato: 'Confermato dal fornitore',
   arrivato: 'Arrivato',
-  annullato: 'Annullato'
+  annullato: 'Annullato',
+  da_approvare: 'Da approvare (titolare)' // F17.12, sql/128: ordine libero sopra la soglia
 };
 
 // F17.14 (decisione di Toli E8, sql/227): creano, confermano e annullano SOLO
@@ -220,6 +221,7 @@ async function caricaOrdiniCommessa(commessa) {
       <div style="font-size:12px;color:var(--m);margin-bottom:10px">
         Passo 7: si ordina dalle offerte dei fornitori scelte nel preventivo, con la data di arrivo prevista.
       </div>
+      ${typeof htmlBottoneOrdineLibero === 'function' ? htmlBottoneOrdineLibero(commessa) : ''}
       ${vedeOfferte ? htmlOfferteDaOrdinare(commessa, erroreOfferte) : ''}
       ${htmlElencoOrdiniCommessa(commessa)}
     </div>
@@ -310,10 +312,18 @@ function htmlElencoOrdiniCommessa(commessa) {
           (o.arrivo_previsto_iniziale && o.arrivo_previsto_iniziale !== o.arrivo_previsto
             ? ' (promesso all\'ordine ' + fd(o.arrivo_previsto_iniziale) + ')' : '');
       // Il PDF dell'ordine ha i prezzi: non per il capo tecnico.
-      const bottoni = prezzi
+      // F17.12: un ordine libero da approvare non va ancora al fornitore (niente PDF)
+      const bottoni = prezzi && o.stato !== 'da_approvare'
         ? [`<button class="btn sm" onclick="scaricaPdfOrdineFornitore('${esc(o.id)}')">📄 PDF</button>`]
         : [];
-      if (salvaInCartella && o.stato !== 'annullato') {
+      if (o.stato === 'da_approvare' && ROLE === 'titolare') {
+        bottoni.push(`<button class="btn sm p" onclick="approvaOrdineLibero('${esc(o.id)}', true)">✅ Approva</button>`);
+        bottoni.push(`<button class="btn sm" style="color:var(--r)" onclick="approvaOrdineLibero('${esc(o.id)}', false)">✖ Non approvare</button>`);
+      }
+      if (prezzi && o.allegato_path) {
+        bottoni.push(`<button class="btn sm" title="${esc(o.allegato_nome || '')}" onclick="apriAllegatoOrdineLibero('${esc(o.allegato_path)}')">📎 Preventivo del fornitore</button>`);
+      }
+      if (salvaInCartella && o.stato !== 'annullato' && o.stato !== 'da_approvare') {
         bottoni.push(`<button class="btn sm" title="Salva il PDF nella cartella Ordini della commessa" onclick="salvaPdfOrdineInCartella('${esc(o.id)}', this)">💾 Nella cartella</button>`);
       }
       if (puoConfermareOrdineFornitore(commessa, o)) {
@@ -333,7 +343,7 @@ function htmlElencoOrdiniCommessa(commessa) {
         <div style="padding:8px 0;border-bottom:1px solid var(--bo)${o.stato === 'annullato' ? ';opacity:.65' : ''}">
           <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
             <div style="min-width:0;flex:1">
-              <div style="font-weight:700">${esc(o.codice)} · ${esc(o.fornitore_ragione_sociale)} ${badgeStatoOrdineFornitore(o.stato)}</div>
+              <div style="font-weight:700">${esc(o.codice)} · ${esc(o.fornitore_ragione_sociale)} ${badgeStatoOrdineFornitore(o.stato)}${o.origine === 'libero' ? ' <span class="bx bgray">Ordine libero</span>' : ''}</div>
               <div style="font-size:12px;color:var(--m)">
                 ${prezzi ? esc(euroPreventivo(o.importo)) + ' IVA esclusa · ' : ''}ordinato il ${esc(fd(o.data_ordine))} ·
                 <span style="${inRitardo ? 'color:var(--r);font-weight:700' : ''}">${esc(arrivo)}${inRitardo ? ' (in ritardo)' : ''}</span>
@@ -369,6 +379,9 @@ function htmlDettaglioOrdineFornitore(o) {
   if (o.data_arrivo) {
     passaggi.push('Arrivato il ' + fd(o.data_arrivo) + (o.arrivo_registrato_da_nome ? ' (segnato da ' + o.arrivo_registrato_da_nome + ')' : '') +
       (o.nota_arrivo ? ': ' + o.nota_arrivo : ''));
+  }
+  if (o.approvato_il) {
+    passaggi.push('Approvato dal titolare il ' + dataOraEsitoPreventivo(o.approvato_il) + (o.approvato_da_nome ? ' (' + o.approvato_da_nome + ')' : ''));
   }
   if (o.annullato_il) {
     passaggi.push('Annullato il ' + dataOraEsitoPreventivo(o.annullato_il) + (o.annullato_da_nome ? ' da ' + o.annullato_da_nome : '') +

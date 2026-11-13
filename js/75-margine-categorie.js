@@ -5,8 +5,8 @@
 //     servizio, altro): le voci a gruppi di F16.15 e i modelli non si fanno;
 //   - margine = (prezzo cliente - costo interno) / prezzo cliente, PRIMA della
 //     provvigione (la provvigione è dei prezzi di F16.1, rimandati);
-//   - soglia fissa SOGLIA_MARGINE_CATEGORIA = 20 (metterla nelle Regole del
-//     titolare richiede una riga SQL: da fare con i prezzi).
+//   - soglia = regola "soglia_margine_gruppo" delle Regole del titolare
+//     (sql/62, predefinita 20%): la cambia lui da Impostazioni.
 // Dove: riquadro "📊 Margine per categoria" sotto i totali nell'editor delle
 // voci (pvv-margine-gruppi, js/18), righe gialle sotto la soglia; generando
 // il PDF del cliente un avviso (il PDF esce comunque); al titolare la riga di
@@ -14,7 +14,11 @@
 // preventivi di Acquisti da controllare. Ruoli: chi vede l'editor delle voci
 // (Acquisti, titolare).
 
-const SOGLIA_MARGINE_CATEGORIA = 20;
+// Soglia dalle Regole (sql/62: soglia_margine_gruppo, predefinita 20%)
+function sogliaMargineCategoria() {
+  const v = typeof leggiRegolaSubito === 'function' ? Number(leggiRegolaSubito('soglia_margine_gruppo')) : NaN;
+  return isFinite(v) && v >= 0 ? v : 20;
+}
 const NOMI_CATEGORIA_VOCE = { materiale: 'Materiale', manodopera: 'Manodopera', nolo: 'Nolo', trasporto: 'Trasporto', servizio: 'Servizio', altro: 'Altro' };
 
 function margineCategorieVoci(voci) {
@@ -29,7 +33,7 @@ function margineCategorieVoci(voci) {
   return Object.keys(per).map(function(c) {
     const g = per[c];
     g.perc = g.vendita > 0 ? ((g.vendita - g.costo) / g.vendita) * 100 : (g.costo > 0 ? -100 : null);
-    g.sotto = g.perc !== null && g.perc < SOGLIA_MARGINE_CATEGORIA;
+    g.sotto = g.perc !== null && g.perc < sogliaMargineCategoria();
     return g;
   }).filter(function(g) { return g.costo > 0 || g.vendita > 0; })
     .sort(function(a, b) { return (b.vendita - a.vendita); });
@@ -52,7 +56,7 @@ function htmlMargineCategoriePreventivo(voci) {
         '<span>' + (g.sotto ? '⚠️ ' : '') + esc(NOMI_CATEGORIA_VOCE[g.categoria] || g.categoria) + '</span>' +
         '<span>costo ' + euro(g.costo) + ' · cliente ' + euro(g.vendita) + ' · <b>' + (g.perc === null ? '—' : g.perc.toFixed(1) + '%') + '</b></span></div>';
     }).join('') +
-    (sotto.length ? '<div style="font-size:12px;color:#854F0B;margin-top:6px">Sotto il ' + SOGLIA_MARGINE_CATEGORIA + '% di margine: è solo un avviso, il preventivo si può inviare. Il titolare lo vede tra i preventivi da controllare.</div>' : '') +
+    (sotto.length ? '<div style="font-size:12px;color:#854F0B;margin-top:6px">Sotto il ' + sogliaMargineCategoria() + '% di margine: è solo un avviso, il preventivo si può inviare. Il titolare lo vede tra i preventivi da controllare.</div>' : '') +
     '</div>';
 }
 
@@ -71,7 +75,7 @@ if (typeof generaPreventivoClientePDF === 'function') {
       if (!datiEsterni && typeof vociPreventivoDati !== 'undefined' && (ROLE === 'commerciale' || ROLE === 'titolare')) {
         const sotto = categorieSottoSoglia(vociPreventivoDati);
         if (sotto.length) {
-          toast('⚠️ Margine sotto il ' + SOGLIA_MARGINE_CATEGORIA + '% in: ' + sotto.map(function(g) {
+          toast('⚠️ Margine sotto il ' + sogliaMargineCategoria() + '% in: ' + sotto.map(function(g) {
             return (NOMI_CATEGORIA_VOCE[g.categoria] || g.categoria) + ' ' + (g.perc === null ? '' : g.perc.toFixed(1) + '%');
           }).join(', ') + '. Il PDF è fatto; il titolare lo vede tra i preventivi da controllare.', 'err');
         }
@@ -100,7 +104,7 @@ async function preventiviConCategoriaSottoSoglia() {
 if (typeof registraFonteToccaAMe === 'function') {
   registraFonteToccaAMe({
     id: 'preventivi-categoria-sotto-soglia', ruoli: ['titolare'], icona: '📊',
-    titolo: 'Preventivi con una categoria sotto il ' + SOGLIA_MARGINE_CATEGORIA + '% di margine',
+    titolo: 'Preventivi con una categoria sotto il ' + sogliaMargineCategoria() + '% di margine',
     vai: { pagina: 'preventivi-titolare' },
     conta: async function() {
       const elenco = await preventiviConCategoriaSottoSoglia();

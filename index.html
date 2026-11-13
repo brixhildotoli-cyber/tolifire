@@ -4130,6 +4130,14 @@
       </p>
 
 
+      <h4 id="info-com-38">38. ➕ Ordine libero (senza offerta)</h4>
+
+      <p>
+        Quando sulla commessa serve materiale che non è in un'offerta scelta del preventivo, nella scheda della commessa, box <b>🛒 Ordini ai fornitori</b>, premi <b>➕ Ordine libero (senza offerta)</b>: scegli il fornitore dall'anagrafica, scrivi le voci con quantità e prezzo, l'arrivo previsto e allega il preventivo del fornitore (PDF o foto). L'ordine compare in <b>📦 Materiali</b> come gli altri.
+      </p>
+      <p class="info-esempio">Esempio: 10 siliconi REI a 30 € = 300 €: l'ordine nasce "ordinato" e si scarica il PDF da mandare al fornitore.</p>
+      <div class="al2 w">Sopra la soglia (2.000 € IVA esclusa, la cambia il titolare nelle Regole) l'ordine resta <b>Da approvare (titolare)</b>: niente PDF finché il titolare non approva. Se lo rifiuta l'ordine si annulla con il suo motivo e ti arriva l'avviso.</div>
+
   <h4>Checklist prima dell’invio</h4>
 
   <ul>
@@ -6409,6 +6417,12 @@
 
       <p>
         Nel preventivo e nella scheda del fornitore il badge <b>Affidabilità N/100</b> (ultimi 12 mesi: puntualità 40, ritorni da "arrivato" 30, risposte alle richieste 15; con meno di 3 ordini "pochi dati"). Lo vedete tu e Acquisti; non blocca nessuna scelta.
+      </p>
+
+      <h4 id="info-tit-51">51. ➕ Ordini liberi da approvare</h4>
+
+      <p>
+        Acquisti (e tu) può fare un <b>Ordine libero</b> sulla commessa senza un'offerta scelta, con il preventivo del fornitore allegato. Sopra la soglia <b>soglia_ordine_libero</b> delle Regole (predefinita 2.000 € IVA esclusa) l'ordine aspetta te: lo trovi nella campanella e in "Cosa tocca a me" (<b>Ordini liberi da approvare</b>). Nella scheda della commessa, box Ordini, apri <b>📎 Preventivo del fornitore</b>, poi <b>✅ Approva</b> (l'ordine diventa "ordinato") o <b>✖ Non approvare</b> con il motivo (l'ordine si annulla). Chi l'ha fatto riceve l'avviso.
       </p>
 
 
@@ -9775,6 +9789,12 @@
     <h3 id="mof-titolo">🛒 Ordine al fornitore</h3>
     <div id="mof-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:6px"></div>
     <div id="mof-fornitore" class="al2 i" style="margin-bottom:12px"></div>
+    <!-- F17.12 (js/80, sql/128): solo per l'ordine libero -->
+    <div id="mof-libero" style="display:none">
+      <div class="f"><label>Fornitore *</label><select id="mof-libero-fornitore"><option value="">Scegli il fornitore…</option></select></div>
+      <div class="f"><label>Preventivo del fornitore (PDF o foto, facoltativo, va nella cartella "Ordini" della commessa)</label>
+        <input type="file" id="mof-libero-allegato" accept=".pdf,image/*"></div>
+    </div>
 
     <div class="fr">
       <div class="f">
@@ -11355,6 +11375,7 @@
 <script defer src="js/77-gare.js?v=202611131636"></script>
 <script defer src="js/78-scadenze-fornitori.js?v=202611131636"></script>
 <script defer src="js/79-affidabilita-fornitori.js?v=202611131636"></script>
+<script defer src="js/80-ordini-liberi.js?v=202611131636"></script>
 <script defer src="js/19-init.js?v=202611131636"></script>
 
 

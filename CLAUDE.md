@@ -2986,6 +2986,33 @@ nel riquadro del fornitore del preventivo e sotto il nome nella scheda del
 fornitore (openFornitoreDetail avvolta), cache 2 minuti. Guide info-com-37,
 info-tit-50. Prove: sql/245-...-PROVA.sql (5 ordini = 69, 2 ordini = pochi
 dati, data spostata non conta) e test/affidabilita-fornitori.spec.js: TUTTO OK.
+Dopo sql/128 (F17.12 ordini liberi senza offerta, destinazione COMMESSA,
+decisione di Toli D3 approvata da Erika il 13/11; DA ESEGUIRE con "CONFERMATO
+DA TOLI: sql/128": backup, 128-...-VINCOLO.sql dall'EDITOR (drop e add di
+ordini_fornitori_stato_check con 'da_approvare'), poi 128-ordini-liberi-senza-
+offerta.sql (senza parole di cancellazione, server MCP), controllo in fondo;
+richiede 30, 62, 65, 71; matrice invariata): ordini_fornitori colonne origine
+('offerta' | 'libero', default 'offerta'), allegato_path, allegato_nome,
+approvato_da, approvato_da_nome, approvato_il; regola NUOVA soglia_ordine_libero
+(2.000 € IVA esclusa, sopra = approvazione; REGOLE_PREDEFINITE di js/01). RPC
+crea_ordine_libero(commessa, fornitore, data, arrivo, voci, luogo, note,
+allegato_path, allegato_nome) (solo commerciale e titolare, anche "come"; voci
+con prezzo; sopra la soglia stato 'da_approvare' e avviso 'ordine_da_approvare'
+al titolare), approva_ordine_libero(id, approva, motivo) (SOLO titolare: sì =
+'ordinato' con chi/quando, no = 'annullato' con "Non approvato dal titolare:
+..."; avviso 'ordine_libero_esito' a chi l'ha creato), ordini_liberi_attivi().
+Sito (js/80-ordini-liberi.js, dopo js/79, + js/27 e index.html mof-libero):
+"➕ Ordine libero (senza offerta)" nel box Ordini della commessa (Acquisti e
+titolare), stessa finestra m-ordine-fornitore con fornitore dall'anagrafica e
+allegato (cartella "ordini" della commessa, registra_documento_commessa);
+PDF solo se non è da approvare; badge "Ordine libero", "📎 Preventivo del
+fornitore", "✅ Approva" / "✖ Non approvare" del titolare; Cosa tocca a me del
+titolare "Ordini liberi da approvare"; avvisi con rotta 'ordine' (apre la
+commessa). Il capo tecnico vede gli ordini senza prezzi come prima. NON FATTO:
+destinazione magazzino (modulo Magazzino). Guide info-com-38, info-tit-51.
+Prove: sql/128-...-PROVA.sql e test/ordini-liberi.spec.js (Acquisti a 390 px
+300 € ordinato con PDF, 3.000 € da approvare, titolare approva, capo tecnico e
+rappresentante): TUTTO OK; smoke TUTTO OK; rollback e riesecuzione provati.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
