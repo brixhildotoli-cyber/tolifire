@@ -439,8 +439,8 @@ salva_testi_modello_pdf del titolare; i modelli nascono da un file sql/NN;
 cancellazione bloccata dal -REGISTRO-CANCELLAZIONI); vedi "Dopo sql/98".
 
 Usate dal frontend — richieste di acquisto (sql/268, richiesta di Erika del
-13/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/268": file principale dal
-server MCP, poi il -REGISTRO-CANCELLAZIONI dall'editor): richieste_acquisto
+13/11; ESEGUITO il 13/11 con il -REGISTRO-CANCELLAZIONI, backup pre100):
+richieste_acquisto
 (richiesta di materiale del capo tecnico ad Acquisti: anno, numero, codice
 RA-AAAA-NNN, oggetto, note, righe jsonb [{descrizione, quantita, unita,
 note}] SENZA prezzi né fornitore, stato inviata_acquisti → presa_in_carico →
@@ -2786,8 +2786,8 @@ con le sole porte, P-01/P-02, entro il, PREZZO INDICATIVO, condizioni, senza
 note interne né posizione tolta; spunte dopo Salva; tutte spuntate = anche
 gli estintori): TUTTO OK.
 Dopo sql/100 (F16.11 stati del fornitore con controlli, VERSIONE RIDOTTA
-decisa da Erika il 13/11, senza l'offerta per posizione di F16.10; DA
-ESEGUIRE con "CONFERMATO DA TOLI: sql/100": backup, anteprima in fondo,
+decisa da Erika il 13/11, senza l'offerta per posizione di F16.10; ESEGUITO
+il 13/11 con il -VINCOLO (backup pre100, controllo in regola): backup, anteprima in fondo,
 100-stati-fornitore-controlli.sql (senza parole di cancellazione, server
 MCP), 100-...-VINCOLO.sql dall'EDITOR (drop e add di
 preventivi_fornitori_stato_check), controllo in fondo; richiede 71; nessuna
@@ -2816,8 +2816,8 @@ libero, permessi); test/stati-fornitore.spec.js (Acquisti a 390 px, con e
 senza sql/100 con STATI_SENZA_SQL=1): TUTTO OK; rollback e riesecuzione
 provati (vincolo identico a prima).
 Dopo sql/268 (richieste di acquisto del capo tecnico ad Acquisti, richiesta
-di Erika del 13/11, fuori piano; DA ESEGUIRE con "CONFERMATO DA TOLI:
-sql/268": backup, anteprima in fondo, 268-richieste-acquisto.sql (senza
+di Erika del 13/11, fuori piano; ESEGUITO il 13/11 con il
+-REGISTRO-CANCELLAZIONI (backup pre100, controllo in regola): backup, anteprima in fondo, 268-richieste-acquisto.sql (senza
 parole di cancellazione, server MCP), 268-...-REGISTRO-CANCELLAZIONI.sql
 dall'EDITOR, controllo in fondo; richiede 07, 65, 67, 71; matrice: 10 righe
 nuove; il sito si pubblica prima o dopo). Tabella richieste_acquisto (vedi
