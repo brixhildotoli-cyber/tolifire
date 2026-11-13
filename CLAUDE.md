@@ -2906,6 +2906,35 @@ Senza sql/112 il codice va all'inizio della descrizione "[A.01.003] ...".
 Guide info-com-33, info-tit-46. Prove: sql/112-...-PROVA.sql (stessa
 struttura di 265-PROVA) e test/computo-gara.spec.js (Acquisti a 390 px, 20
 righe, con e senza sql/112): TUTTO OK.
+Dopo sql/113 (F16.35 scheda gara, pagina "🏛️ Gare" decisa da Erika il 13/11;
+DA ESEGUIRE con "CONFERMATO DA TOLI: sql/113": backup, anteprima in fondo,
+113-scheda-gara.sql (senza parole di cancellazione, server MCP),
+113-...-REGISTRO-CANCELLAZIONI.sql dall'EDITOR, controllo in fondo; richiede
+07, 67, 71; matrice: 10 righe nuove). Tabella gare (codice GA-AAAA-NNN dal
+database, ente, oggetto, CIG ^[A-Z0-9]{10}$, scadenza_presentazione,
+sopralluogo_obbligatorio e _il, preventivo_id facoltativo, note, checklist
+jsonb [{voce, stato da_fare|fatto|non_serve, nota}] max 40, decisione
+da_decidere|partecipa|non_partecipa con nota e chi/quando, stato
+aperta|presentata|non_presentata|aggiudicata|persa, chi e quando). RLS:
+lettura, inserimento e modifica DIRETTI titolare, commerciale, segreteria;
+nessuna cancellazione. Trigger trg_gare_prima (per gli utenti del sito,
+anche "come"; editor libero): decisione solo titolare (42501); 'presentata'
+solo con decisione 'partecipa' e nessun documento 'da_fare' (22023); da
+presentata solo aggiudicata o persa (salvo titolare); codice, numero, chi
+l'ha creata fissi. RPC gare_attive(). Sito (js/77-gare.js caricato dopo
+js/76): voce "🏛️ Gare" nel menu e 'gare' in PAGINE_RUOLO di titolare,
+segreteria, commerciale; pagina pg-gare (Aperte/Tutte, scadenza in rosso
+entro 5 g lav.), finestra m-gara (id gar-: dati, checklist predefinita
+CHECKLIST_GARA_PREDEFINITA, decisione con i bottoni del titolare, Salva,
+Segna presentata, Non presentata, Aggiudicata, Persa, preventivo collegato
+per numero con "Apri"); Cosa tocca a me "Gare in scadenza entro 5 giorni
+lavorativi" (titolare, Acquisti, segreteria; calcolata nel sito con
+giorniLavorativiTra, SCELTA come F15.18: niente motore delle scadenze) e
+"Gare da decidere" (titolare); SCHEDE_CON_INDIRIZZO 'gara'. Guide
+info-com-34, info-seg-26, info-tit-47. Prove: sql/113-...-PROVA.sql (27
+controlli), test/gare.spec.js (Acquisti a 390 px, titolare, segreteria,
+capo tecnico e rappresentante senza pagina; GARE_SENZA_SQL=1): TUTTO OK;
+smoke TUTTO OK (ATTESE con 'gare'); matrice TUTTO OK per la tabella nuova.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
@@ -3398,6 +3427,8 @@ js/02-portale-navigazione.js; controllo in `canAccessPage`):
   + clienti (aggiunta subito dopo la definizione, sola consultazione)
 - dal 13/11 (sql/268, js/74) anche 'richieste-acquisto' (voce "🛒 Richieste di
   acquisto") per titolare, capo_tecnico, segreteria (sola lettura) e commerciale
+- dal 13/11 (sql/113, js/77) anche 'gare' (voce "🏛️ Gare") per titolare,
+  segreteria e commerciale
 - informatico: come titolare (in js/01-core.js `boot` ROLE diventa
   'titolare', etichetta "Informatico"; lato DB `ruolo_corrente()` in
   sql/07 restituisce 'titolare')

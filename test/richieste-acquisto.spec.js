@@ -434,7 +434,8 @@ const bottoni = s => s.page.evaluate(() => [...document.querySelectorAll('#rqa-b
     srv.close();
     if (raId) {
       try {
-        psql("update public.avvisi set stato = 'annullato', chiuso_il = now(), esito = 'prova' where rif_id = " + q(raId) + " and stato = 'aperto'");
+        // solo database locale: via gli avvisi della prova (altrimenti la matrice dei permessi li trova)
+        psql("delete from public.avvisi where rif_id = " + q(raId) + " or (tipo like 'richiesta_acquisto%' and testo like " + q('%' + OGGETTO + '%') + ")");
       } catch (e) { console.error('pulizia avvisi: ' + e.message); }
     }
   }

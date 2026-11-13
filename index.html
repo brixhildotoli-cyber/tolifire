@@ -2113,6 +2113,24 @@
 </div>
 
 <!-- ORE CANTIERE: riepilogo ore su tutte le commesse (js/49; dati di sql/37). Titolare e capo tecnico -->
+<div class="page" id="pg-gare">
+  <div class="sh">
+    <div>
+      <div class="st">🏛️ Gare</div>
+      <div style="font-size:12px;color:var(--m);margin-top:3px">Gare d'appalto: scadenza, documenti da preparare, decisione del titolare e stato. Il computo dell'ente si importa nel preventivo (📥 Importa computo del cliente).</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn p" id="gar-nuova-btn" style="display:none" onclick="nuovaGara()">➕ Nuova gara</button>
+      <button class="btn" onclick="loadGare()" title="Rileggi">↻ Aggiorna</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+    <button class="btn sm p" id="gar-filtro-aperte" onclick="filtraGare('aperte')">Aperte</button>
+    <button class="btn sm" id="gar-filtro-tutte" onclick="filtraGare('tutte')">Tutte</button>
+  </div>
+  <div id="gar-elenco"></div>
+</div>
+
 <div class="page" id="pg-richieste-acquisto">
   <div class="sh">
     <div>
@@ -4079,6 +4097,18 @@
         <li>Compila costo e prezzo di ogni voce (puoi cambiare anche la categoria) e premi <b>💾 Salva preventivo</b>.</li>
         <li>Nel PDF per il cliente compare la colonna <b>Cod.</b> con i codici dell'ente, nello stesso ordine del computo.</li>
         <li>Totali, sconto, commessa e fatture funzionano come per ogni preventivo.</li>
+      </ul>
+
+      <h4 id="info-com-34">34. 🏛️ Gare: scadenza, documenti e decisione</h4>
+
+      <p>
+        Dal menu <b>🏛️ Gare</b> premi <b>➕ Nuova gara</b>: ente, oggetto, CIG (10 caratteri), scadenza di presentazione, sopralluogo, numero del preventivo collegato e note. Trovi già l'elenco dei documenti da preparare (DGUE, garanzia, PassOE, ANAC, offerte...): per ognuno scegli <b>Da fare</b>, <b>✓ Fatto</b> o <b>Non serve</b>, aggiungi o togli righe e premi <b>💾 Salva</b>.
+      </p>
+      <ul>
+        <li>Se partecipare lo decide il <b>titolare</b>. Senza il suo «Partecipiamo» la gara non si segna <b>📤 Presentata</b>, e serve anche ogni documento fatto o "non serve".</li>
+        <li>Dopo la presentazione: <b>🏆 Aggiudicata</b> o <b>Persa</b>. Se rinunciate: <b>Non presentata</b>.</li>
+        <li>In <b>Cosa tocca a me</b> la riga rossa <b>Gare in scadenza entro 5 giorni lavorativi</b>.</li>
+        <li>Il computo dell'ente lo importi nel preventivo collegato (punto 33).</li>
       </ul>
 
 
@@ -6339,6 +6369,12 @@
         Nell'editor delle voci <b>📥 Importa computo del cliente</b> trasforma le righe dell'Excel dell'ente (codice, descrizione, unità, quantità) in voci del preventivo con il codice dell'ente; il PDF del cliente ha la colonna <b>Cod.</b>. Il codice si cambia solo prima dell'esito (dopo solo tu).
       </p>
 
+      <h4 id="info-tit-47">47. 🏛️ Gare: decidere se partecipare</h4>
+
+      <p>
+        In <b>🏛️ Gare</b> Acquisti e segreteria preparano la gara e i documenti. Tu apri la gara e premi <b>✅ Partecipiamo</b> o <b>✖ Non partecipiamo</b> (con una nota facoltativa); senza il tuo «Partecipiamo» nessuno può segnarla presentata. In <b>Cosa tocca a me</b>: <b>Gare da decidere</b> e <b>Gare in scadenza entro 5 giorni lavorativi</b>. Le gare non si cancellano: si segnano <b>Non presentata</b>.
+      </p>
+
 
       <h4>Regole pratiche</h4>
 
@@ -6922,6 +6958,12 @@
 
       <p>
         In <b>🛒 Richieste di acquisto</b> vedi le richieste di materiale del capo tecnico ad Acquisti e a che punto sono (da prendere in carico, presa in carico, inviata al fornitore, arrivato, annullata). Non le cambi: le gestiscono capo tecnico e Acquisti.
+      </p>
+
+      <h4 id="info-seg-26">26. 🏛️ Gare: i documenti da preparare</h4>
+
+      <p>
+        Nel menu <b>🏛️ Gare</b> trovi le gare con la scadenza e i documenti da preparare (DGUE, garanzia, PassOE, ANAC...). Puoi crearne una (<b>➕ Nuova gara</b>), segnare ogni documento <b>✓ Fatto</b> o <b>Non serve</b> e, quando il titolare ha deciso «Partecipiamo» e i documenti sono pronti, <b>📤 Segna presentata</b>. In <b>Cosa tocca a me</b> la riga rossa <b>Gare in scadenza entro 5 giorni lavorativi</b>.
       </p>
 
 
@@ -8918,6 +8960,37 @@
     <div style="font-size:12px;color:var(--m);margin-bottom:8px">Le ultime 300 modifiche: chi, quando, cosa è cambiato e il motivo.</div>
     <div id="rgr-elenco" style="max-height:60vh;overflow:auto"></div>
     <div class="ma"><button class="btn" onclick="closeM('m-registro-smistamento')">Chiudi</button></div>
+  </div>
+</div>
+
+<!-- GARA (js/77-gare.js, sql/113) -->
+<div class="mbg" id="m-gara">
+  <div class="modal" style="max-width:700px">
+    <div class="mh"><span id="gar-titolo">🏛️ Gara</span><button class="mx" onclick="closeM('m-gara')">✕</button></div>
+    <div id="gar-stato" style="margin-bottom:8px"></div>
+    <div class="fr">
+      <div class="f"><label>Ente *</label><input id="gar-ente" maxlength="200" placeholder="Es. Comune di Pisa"></div>
+      <div class="f"><label>CIG</label><input id="gar-cig" maxlength="10" placeholder="10 caratteri" style="text-transform:uppercase"></div>
+    </div>
+    <div class="f"><label>Oggetto *</label><input id="gar-oggetto" maxlength="500" placeholder="Es. Manutenzione presidi antincendio delle scuole"></div>
+    <div class="fr">
+      <div class="f"><label>Scadenza di presentazione *</label><input id="gar-scadenza" type="datetime-local"></div>
+      <div class="f"><label>Preventivo collegato (n.)</label>
+        <div style="display:flex;gap:6px"><input id="gar-preventivo" inputmode="numeric" placeholder="Es. 131" style="flex:1 1 auto;min-width:0"><button type="button" class="btn sm" id="gar-apri-preventivo" onclick="apriPreventivoGara()">Apri</button></div></div>
+    </div>
+    <div class="fr">
+      <div class="f"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="gar-sopralluogo" style="width:auto"> Sopralluogo obbligatorio</label></div>
+      <div class="f"><label>Sopralluogo il</label><input id="gar-sopralluogo-il" type="datetime-local"></div>
+    </div>
+    <div class="f"><label>Note</label><textarea id="gar-note" rows="2" maxlength="4000"></textarea></div>
+    <div style="font-size:13px;font-weight:700;margin:10px 0 2px">📋 Documenti da preparare</div>
+    <div id="gar-checklist"></div>
+    <button type="button" class="btn sm" id="gar-aggiungi-voce" onclick="aggiungiVoceGara()">+ Aggiungi documento</button>
+    <div style="font-size:13px;font-weight:700;margin:14px 0 4px">⚖️ Decisione del titolare</div>
+    <div id="gar-decisione"></div>
+    <div class="al2 i" style="font-size:12px;margin-top:10px">Per segnare la gara <b>presentata</b> servono la decisione «Partecipiamo» del titolare e ogni documento «fatto» o «non serve».</div>
+    <div id="gar-info" style="font-size:11px;color:var(--m);margin-top:6px"></div>
+    <div class="ma" id="gar-bottoni" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"></div>
   </div>
 </div>
 
@@ -11243,6 +11316,7 @@
 <script defer src="js/74-richieste-acquisto.js?v=202611131540"></script>
 <script defer src="js/75-margine-categorie.js?v=202611131540"></script>
 <script defer src="js/76-computo-gare.js?v=202611131540"></script>
+<script defer src="js/77-gare.js?v=202611131540"></script>
 <script defer src="js/19-init.js?v=202611131540"></script>
 
 
