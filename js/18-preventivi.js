@@ -5124,6 +5124,8 @@ function aggiornaRiepilogoVociPreventivo() {
   if (marginePercEl) marginePercEl.textContent = marginePerc.toFixed(1) + '%';
   const scontoEl = ge('pvv-margine-sconto');
   if (scontoEl) scontoEl.innerHTML = htmlMargineConScontoPreventivo(costo, vendita);
+  // F16.48 (js/75): margine per categoria, avviso giallo sotto il 20%
+  if (typeof aggiornaMargineCategoriePreventivo === 'function') aggiornaMargineCategoriePreventivo();
 }
 
 function aggiornaCampoVocePreventivo(indice, campo, valore) {
@@ -5358,6 +5360,7 @@ ${htmlQuantitaUmVocePreventivo(voce, indice)}
         ${irHtmlPreventivo('Margine percentuale', `<span id="pvv-totale-margine-perc">${marginePerc.toFixed(1)}%</span>`)}
       </div>
       <div id="pvv-margine-sconto" class="${scontoPreventivoEditor > 0 ? 'al2 w' : ''}" style="${scontoPreventivoEditor > 0 ? 'margin-top:10px;font-size:13px' : ''}">${htmlMargineConScontoPreventivo(costo, vendita)}</div>
+      <div id="pvv-margine-gruppi">${typeof htmlMargineCategoriePreventivo === 'function' ? htmlMargineCategoriePreventivo(vociPreventivoDati) : ''}</div>
 
 ${htmlOggettoNotaEditorPreventivo()}
 

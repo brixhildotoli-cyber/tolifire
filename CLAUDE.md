@@ -2869,6 +2869,19 @@ matrice invariata. Sito (js/74): "🗑️ Cancella" con conferma
 (puoCancellareRichiestaAcquisto, verificaCancellazioneRichiesteAcquisto);
 guide ct-28, com-31, tit-44. Prove: sql/269-...-PROVA.sql (15 controlli) e
 test/richieste-acquisto.spec.js con e senza sql/269: TUTTO OK.
+Margine per categoria (F16.48, js/75-margine-categorie.js caricato dopo
+js/74, NESSUN SQL; decisione di Erika del 13/11, E3 = solo avviso): gruppo =
+categoria della voce (le voci a gruppi di F16.15 e i modelli non si fanno),
+margine prima della provvigione (prezzi rimandati), soglia FISSA
+SOGLIA_MARGINE_CATEGORIA = 20 (nelle Regole serve SQL: con i prezzi).
+Riquadro "📊 Margine per categoria" sotto i totali dell'editor delle voci
+(pvv-margine-gruppi in js/18, aggiornato da aggiornaRiepilogoVociPreventivo),
+righe gialle sotto la soglia; generaPreventivoClientePDF avvolta: il PDF
+esce e compare l'avviso; titolare: riga di Cosa tocca a me "📊 Preventivi con
+una categoria sotto il 20% di margine" sui preventivi di Acquisti da
+controllare (preventiviConCategoriaSottoSoglia). F16.12-F16.46 tranne 34, 35,
+47, 48: saltate o rimandate (decisione di Erika del 13/11, note nell'Excel).
+Guide info-com-32, info-tit-45. Prova test/margine-categorie.spec.js: TUTTO OK.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
