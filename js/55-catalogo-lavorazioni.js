@@ -662,13 +662,16 @@ async function togliCampoLavorazione() {
   await togliRigaLav('lavorazioni_campi', c.id, c.attivo === false);
 }
 
-// Bottone "📚 Catalogo lavorazioni" nella pagina Verifiche tecniche
-// (ingegnere e titolare): compare solo con sql/75
+// Bottone "📚 Catalogo lavorazioni" nella pagina Verifiche tecniche: compare
+// solo con sql/75 e SOLO al titolare (informatico compreso). Decisione di
+// Erika del 13/11: il catalogo lo gestisce lei, all'ingegnere niente bottone
+// (resta "➕ Proponi un campo" nella scheda del motore). Solo il sito: le
+// regole di sql/75 nel database non cambiano.
 async function mostraBottoneCatalogoVerifiche() {
   const btn = ge('vt-catalogo-btn');
   if (!btn) return;
   btn.style.display = 'none';
-  if (!puoModificareCatalogoLav()) return;
+  if (ROLE !== 'titolare' || !puoModificareCatalogoLav()) return;
   await caricaCatalogoLavorazioni();
   if (CATALOGO_LAV.disponibili) btn.style.display = '';
 }

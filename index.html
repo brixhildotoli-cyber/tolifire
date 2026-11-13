@@ -7513,28 +7513,11 @@
         Finché il database non è aggiornato (sql/72) i pulsanti <b>↩️ Annulla</b> e <b>✏️ Chiedi correzione</b> non compaiono e si lavora come prima.
       </div>
 
-      <h4 id="info-ing-18">18. 📚 Catalogo lavorazioni: correggere campi e menu delle schede</h4>
+      <h4 id="info-ing-18">18. 📚 Catalogo lavorazioni: lo gestisce il titolare</h4>
 
       <p>
-        Campi, menu, foto obbligatorie e checklist di posa delle lavorazioni stanno nel catalogo: li correggi tu, senza aspettare una modifica del programma.
+        Campi, menu, foto obbligatorie e checklist delle schede di rilievo stanno nel catalogo delle lavorazioni, che gestisce il titolare. Se in una scheda manca una domanda o una voce di un menu, usa <b>➕ Proponi un campo</b> nella scheda aperta (punto 32) oppure scrivilo al titolare.
       </p>
-
-      <ul>
-        <li>Nella pagina <b>🔧 Verifiche</b> premi <b>📚 Catalogo lavorazioni</b> e scegli la <b>Lavorazione</b>.</li>
-        <li>Per un menu: <b>✏️ Modifica</b>, <b>Nuovo valore</b>, <b>➕ Aggiungi al menu</b>, <b>💾 Salva campo</b>. La scheda lo mostra alla prossima apertura.</li>
-        <li><b>➕ Aggiungi campo</b>: scrivi sempre l'<b>Uso a valle</b> (quale calcolo o documento usa il dato) e segna <b>Dato normativo</b> per classi, minuti di resistenza al fuoco e simili.</li>
-        <li><b>Foto e documenti obbligatori</b> e <b>Checklist di posa</b>: una riga per cosa serve, con <b>💾</b> per salvare e <b>🗑️ Togli</b> per nascondere.</li>
-        <li><b>➕ Nuova lavorazione…</b> la crea <b>spenta</b>: la attiva il titolare quando è pronta. Attivare o spegnere non è tra i tuoi permessi, nemmeno dal database.</li>
-      </ul>
-
-      <div class="info-esempio">
-        <b>Esempio</b><br>Nella scheda Coppelle serve la classe "EI 240". <b>✏️ Modifica</b> su <b>Classe di resistenza al fuoco</b>, aggiungi "EI 240", <b>💾 Salva campo</b>: dal prossimo rilievo il valore si può scegliere, e nel registro resta scritto che l'hai aggiunto tu.
-      </div>
-
-      <div class="al2 w">
-        Le formule dei prezzi non sono nel catalogo e non si toccano da qui. Finché il database non è aggiornato (sql/75) il bottone non compare.
-      </div>
-
 
       <h4 id="info-ing-19">19. 📍 Posizioni P-01, P-02... dentro la scheda di rilievo</h4>
 
@@ -7696,26 +7679,11 @@
         Tutto questo compare dopo l'aggiornamento del database sql/82-foto-video (i video dopo il suo secondo file, -VINCOLO).
       </div>
 
-      <h4 id="info-ing-26">26. 📥 Compilare le lavorazioni in un foglio Excel e importarle</h4>
+      <h4 id="info-ing-26">26. 📥 Lavorazioni nuove: le aggiunge il titolare</h4>
 
       <p>
-        Le lavorazioni della tabella della proposta le compili in un foglio Excel, <b>una riga per campo</b>, e le carichi nel <b>📚 Catalogo lavorazioni</b> (dalla pagina <b>Verifiche tecniche</b>). Arrivano <b>spente</b>: le attiva il titolare.
+        Una scheda nuova (per esempio la <b>🪧 Cartellonistica</b>) la crea il titolare nel catalogo. Quando è accesa, nella <b>Verifica tecnica</b> trovi il suo bottone <b>Compila ...</b> in fondo agli altri e la compili come le altre schede.
       </p>
-
-      <ul>
-        <li>Nel catalogo premi <b>⬇️ Scarica il modello</b> e compila il foglio "Campi" (le istruzioni sono nel secondo foglio). Codice o nome della lavorazione solo nella prima riga: le righe sotto senza lavorazione sono della stessa.</li>
-        <li>Per ogni campo: etichetta, tipo (numero, menu, sì/no, testo, foto), unità, valori del menu separati da <b>;</b>, minimo e massimo plausibili (con la virgola), "ingegnere" se lo compili solo tu (🎓), normativo, <b>serve al prezzo</b> (solo i dati del preventivo, D2), per posizione e l'<b>uso a valle</b>, obbligatorio.</li>
-        <li><b>📥 Importa da foglio</b>: nell'<b>anteprima</b> vedi lavorazioni e campi, con gli errori riga per riga (codice non valido, tipo sconosciuto, menu senza valori, minimo sopra il massimo, uso a valle mancante...). Con un errore non si importa nulla.</li>
-        <li><b>📥 Importa</b>: le lavorazioni nuove nascono spente; i campi con un codice già nel catalogo non cambiano. Puoi già aprire la scheda dal progetto per vedere come viene; il rappresentante la vede solo quando il titolare la attiva.</li>
-      </ul>
-
-      <div class="info-esempio">
-        <b>Esempio</b><br>Riga 2: "sigillature", "Sigillature", famiglia "compartimentazione", campo "Tipo di servizio", menu "Sigillatura di canaline; Sigillatura di tubi; Sigillatura di cavi", serve al prezzo sì, uso a valle "Voce del preventivo". Righe 3-17: solo i campi, colonna lavorazione vuota. L'anteprima mostra "Sigillature · ➕ nuova, nasce spenta" con i 16 campi.
-      </div>
-
-      <div class="al2 w">
-        L'import aggiunge e basta: non toglie e non cambia campi già nel catalogo. Per correggerne uno usa <b>✏️ Modifica</b>; per un campo sbagliato <b>🗑️ Togli il campo</b>. Se un errore del database ferma l'import a metà, le lavorazioni già create restano spente: correggi il foglio e ricaricalo, i campi già entrati non si ripetono.
-      </div>
 
       <h4 id="info-ing-27">27. 📴 Senza rete: app installata e cose da inviare</h4>
 
@@ -7801,7 +7769,7 @@
       <h4 id="info-ing-32">32. ➕ Manca una domanda nella scheda: proponi un campo nuovo</h4>
 
       <p>
-        Se compilando una scheda ti accorgi che manca una domanda (per esempio il tipo di specchiatura delle porte), proponila al titolare. Puoi farlo in due punti: nella scheda di rilievo aperta, con il link <b>➕ Proponi un campo</b> sotto i campi, oppure da <b>📚 Catalogo lavorazioni</b> (pagina <b>Verifiche tecniche</b>) con il bottone <b>➕ Proponi un campo</b> sotto <b>➕ Aggiungi campo</b>.
+        Se compilando una scheda ti accorgi che manca una domanda (per esempio il tipo di specchiatura delle porte), proponila al titolare. Nella scheda di rilievo aperta usa il link <b>➕ Proponi un campo</b> sotto i campi.
       </p>
 
       <ul>

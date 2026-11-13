@@ -2743,7 +2743,15 @@ index.html) un bottone "Compila ..." per ogni lavorazione ATTIVA del catalogo
 che non è tra le 7 di SCHEDE_VECCHIE_MOTORE né il blocco comune ("🪧 Compila
 cartellonistica"), i 7 bottoni di prima invariati; lavorazioneNuovaCatalogo:
 per queste lavorazioni etichette e valori dei menu dal catalogo anche in
-preventivo, copia di Acquisti e PDF (campoCatalogoMigrato).
+preventivo, copia di Acquisti e PDF (campoCatalogoMigrato). Voce
+"Solo stampa plastificata" del supporto della planimetria: cambiata da Erika
+dal catalogo (sql/267 preparato con lo stesso cambio, NON eseguito, non
+serve). DECISIONE DI ERIKA del 13/11: il catalogo lavorazioni lo gestisce il
+titolare; il bottone "📚 Catalogo lavorazioni" della pagina Verifiche
+tecniche (vt-catalogo-btn, mostraBottoneCatalogoVerifiche di js/55) solo al
+titolare, all'ingegnere resta "➕ Proponi un campo" nella scheda; SOLO IL
+SITO (le regole di sql/75 lasciano ancora scrivere l'ingegnere da console).
+Guide info-ing-18, 26, 32 riscritte.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
