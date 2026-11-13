@@ -3969,6 +3969,22 @@
 
       <div class="al2 w">Fino all'aggiornamento del database sql/264 (con il computo) il riquadro <b>📐 Computo</b> non c'è.</div>
 
+      <h4 id="info-com-28">28. 📦 Catalogo prodotti: un prodotto sparito dal catalogo</h4>
+
+      <p>
+        Il listino del catalogo lo importa il titolare (<b>📦 Catalogo</b> → <b>📥 Importa listino</b>). Da ora l'import <b>non cancella più nulla</b>: i prodotti con lo stesso codice si aggiornano (stessi prezzi calcolati come prima), quelli nuovi si aggiungono e quelli che nel nuovo file non ci sono diventano <b>non attivi</b>.
+      </p>
+
+      <ul>
+        <li>Un prodotto non attivo non si vede più nella pagina Catalogo né nella ricerca dei DDT, ma i DDT vecchi che lo usano restano collegati con la loro descrizione e il loro prezzo.</li>
+        <li>Se ti serve un prodotto che non trovi più, chiedi al titolare: torna attivo appena il codice è di nuovo nel file del listino.</li>
+        <li>Tu leggi il catalogo ma non lo cambi: anche dalla console il database rifiuta le modifiche del ruolo Acquisti.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Nel nuovo listino il fornitore ha tolto il cartello "EST-CART-01": dopo l'import del titolare non lo trovi più aggiungendo righe a un DDT, ma il DDT di settembre che lo contiene si apre e si stampa come prima.
+      </div>
+
   <h4>Checklist prima dell’invio</h4>
 
   <ul>
@@ -6153,6 +6169,27 @@
       </ul>
 
       <div class="al2 w">Fino all'aggiornamento del database sql/264 (con il computo) il riquadro <b>📐 Computo</b> non c'è.</div>
+
+      <h4 id="info-tit-42">42. 📦 Importare il listino del catalogo prodotti senza perdere i collegamenti</h4>
+
+      <p>
+        In <b>📦 Catalogo</b> il bottone <b>📥 Importa listino</b> e la finestra sono quelli di sempre (sconto dal listino del fornitore, <b>Scegli file Excel →</b>) e i prezzi si calcolano come prima. Cambia cosa succede ai prodotti: prima l'import cancellava tutto il catalogo e lo ricreava, e i DDT perdevano il collegamento al prodotto; ora <b>nessun prodotto si cancella</b>.
+      </p>
+
+      <ul>
+        <li><b>Stesso codice</b> (maiuscole e spazi non contano): il prodotto si aggiorna e resta lo stesso, con descrizione e prezzi del file.</li>
+        <li><b>Codice nuovo</b>: il prodotto si aggiunge.</li>
+        <li><b>Codice che nel file non c'è più</b>: il prodotto diventa <b>non attivo</b> (non si vede in Catalogo né nei DDT nuovi, i DDT vecchi restano collegati). Se il codice torna in un file, il prodotto torna attivo. Vale anche per i prodotti aggiunti a mano con <b>+ Aggiungi prodotto</b>: se vuoi tenerli, mettili nel file.</li>
+        <li><b>Prima dell'import</b>, se nel file ci sono codici ripetuti o righe con il prezzo ma senza codice, il gestionale te li elenca: <b>OK</b> continua (di un codice ripetuto si tiene la prima riga, le righe senza codice si saltano), <b>Annulla</b> non cambia nulla e correggi il file.</li>
+        <li>Alla fine leggi quanti prodotti sono aggiornati, nuovi e messi non attivi. Se qualche prodotto non entra, nessuno viene messo non attivo: correggi il file e reimporta (lo stesso file due volte non cambia nulla).</li>
+        <li>Lo puoi fare solo tu (e l'informatico): Acquisti e gli altri ruoli sono rifiutati anche dalla console.</li>
+      </ul>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Il nuovo listino ha l'estintore "EST-PS6" a 200 € invece di 100 €, la manichetta "MAN-45-20" nuova e non ha più il cartello "EST-CART-01": dopo l'import l'estintore ha il prezzo nuovo con lo stesso collegamento ai DDT, la manichetta c'è, il cartello è non attivo e il DDT che lo usava lo mostra come prima.
+      </div>
+
+      <div class="al2 i">Con l'aggiornamento del database sql/93 il database impedisce anche due prodotti con lo stesso codice scritto in modo diverso (per esempio "est-ps6" e "EST-PS6"), un codice vuoto e la cancellazione dalla console di un prodotto usato in un DDT; il registro delle azioni dice chi ha cambiato prezzi e prodotti e quando. Senza sql/93 l'import funziona già così.</div>
 
       <h4>Regole pratiche</h4>
 

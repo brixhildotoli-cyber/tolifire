@@ -619,6 +619,7 @@ async function importaExcelCatalogo(input) {
     var workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
     var prodotti = [];
+    var codiciVuotiFile = [];
     var PREZZO_MINIMO = 3.00;
 
     workbook.SheetNames.forEach(function(sheetName) {
@@ -650,6 +651,10 @@ async function importaExcelCatalogo(input) {
           categoriaCorrente = String(codice);
           continue;
         }
+        if (!codice && listino !== null && listino !== '' && !isNaN(parseFloat(listino))) {
+          codiciVuotiFile.push(sheetName + ', riga ' + (r + 1));
+          continue;
+        }
         if (!codice || !listino || isNaN(parseFloat(listino))) continue;
 
         var l = parseFloat(listino);
@@ -679,50 +684,152 @@ async function importaExcelCatalogo(input) {
       return;
     }
 
-    status.textContent = '⏳ Trovati ' + prodotti.length + ' prodotti. Caricamento su Supabase...';
-
-    // Cancella tutto e reinserisci
-    await db.from('prodotti_catalogo').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-
-    var done = 0, errors = 0;
-    var batchSize = 50;
-    for (var i = 0; i < prodotti.length; i += batchSize) {
-      var batch = prodotti.slice(i, i + batchSize);
-      var res = await db.from('prodotti_catalogo').insert(batch);
-      if (res.error) {
-        console.error('Batch error:', res.error);
-        // Prova uno ad uno per trovare il record problematico
-        for (var j = 0; j < batch.length; j++) {
-          var r1 = await db.from('prodotti_catalogo').insert(batch[j]);
-          if (r1.error) {
-            console.error('Record fallito:', batch[j].codice, r1.error.message, r1.error.details);
-          }
-        }
-        errors++;
-        // Aggiorna status con errore visibile
-        status.textContent = '❌ Errore batch: ' + res.error.message + ' | ' + (res.error.details||res.error.hint||'');
-      } else {
-        done += batch.length;
-      }
-      status.textContent = '⏳ ' + done + '/' + prodotti.length + ' importati...';
-    }
+    // F16.2: import SENZA cancellazione. Stesso codice = stesso prodotto
+    // (stesso id: le righe dei DDT che puntano a prodotto_id restano
+    // collegate), i codici nuovi si aggiungono, quelli che mancano nel file
+    // diventano "non attivo" (non si cancellano). Prezzi calcolati come prima.
+    var esito = await importaCatalogoSenzaCancellare(prodotti, codiciVuotiFile, status);
+    if (!esito) { bar.style.display = 'none'; return; }
 
     _catalogo = []; // Reset cache
-    if (errors === 0) {
-      status.textContent = '✅ ' + prodotti.length + ' prodotti importati con successo!';
+    if (!esito.errori.length) {
+      status.textContent = '✅ ' + esito.importati + ' prodotti importati: ' + esito.aggiornati + ' aggiornati, ' +
+        esito.nuovi + ' nuovi, ' + esito.disattivati + ' non più nel file messi "non attivo" (non cancellati)' +
+        (esito.riattivati ? ', ' + esito.riattivati + ' tornati attivi' : '') + '.';
       bar.style.background = 'var(--gl)';
       bar.style.borderColor = 'var(--gm)';
+      setTimeout(function() { bar.style.display = 'none'; }, 8000);
     } else {
-      status.textContent = '⚠️ ' + done + ' ok, ' + errors + ' batch falliti (vedi console)';
+      status.textContent = '⚠️ ' + esito.importati + ' importati, ' + esito.errori.length + ' non importati (' +
+        esito.errori.slice(0, 5).map(function(x) { return x.codice + ': ' + x.motivo; }).join('; ') +
+        (esito.errori.length > 5 ? '; ...' : '') + '). Nessun prodotto è stato messo "non attivo": correggi e reimporta.';
       bar.style.background = 'var(--al)';
     }
-    setTimeout(function() { bar.style.display = 'none'; }, 4000);
     loadPaginaCatalogo();
 
   } catch(e) {
     console.error('Import error:', e);
     status.textContent = '❌ Errore: ' + e.message;
   }
+}
+
+// F16.2 — Import del catalogo SENZA cancellazione (sql/93 facoltativo: il
+// vincolo unico prodotti_catalogo_codice_key c'è già in produzione).
+// prodotti: righe già calcolate da importaExcelCatalogo (codice in
+// maiuscolo e senza spazi). Restituisce null se il titolare annulla.
+// Passi: 1) report dei codici ripetuti o vuoti nel file (conferma);
+// 2) lettura dei prodotti che ci sono (id, codice, attivo); 3) upsert a
+// blocchi di 50 per codice (stesso id, prezzi del file, attivo = true);
+// 4) solo se tutto è entrato: i prodotti che mancano nel file diventano
+// attivo = false, a blocchi di 100 id. Le richieste partono una alla volta
+// (fila di js/01).
+function normalizzaCodiceCatalogo(c) {
+  return String(c == null ? '' : c).trim().toUpperCase();
+}
+
+function rapportoCodiciFileCatalogo(prodotti, codiciVuoti) {
+  var visti = {}, unici = [], ripetuti = {};
+  prodotti.forEach(function(p) {
+    var k = normalizzaCodiceCatalogo(p.codice);
+    if (visti[k]) { ripetuti[k] = (ripetuti[k] || 1) + 1; return; }
+    visti[k] = true; unici.push(p);
+  });
+  return { unici: unici, ripetuti: ripetuti, vuoti: codiciVuoti || [] };
+}
+
+async function leggiCodiciCatalogoEsistenti() {
+  var tutti = [], da = 0, PAGINA = 1000;
+  while (true) {
+    var res = await db.from('prodotti_catalogo').select('id,codice,attivo').order('id').range(da, da + PAGINA - 1);
+    if (res.error) throw new Error('lettura del catalogo: ' + res.error.message);
+    tutti = tutti.concat(res.data || []);
+    if (!res.data || res.data.length < PAGINA) break;
+    da += PAGINA;
+  }
+  return tutti;
+}
+
+async function importaCatalogoSenzaCancellare(prodotti, codiciVuoti, status) {
+  var rap = rapportoCodiciFileCatalogo(prodotti, codiciVuoti);
+  var codiciRipetuti = Object.keys(rap.ripetuti);
+  if (codiciRipetuti.length || rap.vuoti.length) {
+    var testo = 'Prima di importare, controlla il file:\n\n';
+    if (codiciRipetuti.length) {
+      testo += codiciRipetuti.length + ' codici ripetuti (si tiene la PRIMA riga di ognuno):\n' +
+        codiciRipetuti.slice(0, 15).map(function(k) { return '- ' + k + ' (' + rap.ripetuti[k] + ' righe)'; }).join('\n') +
+        (codiciRipetuti.length > 15 ? '\n- ... e altri ' + (codiciRipetuti.length - 15) : '') + '\n\n';
+    }
+    if (rap.vuoti.length) {
+      testo += rap.vuoti.length + ' righe con il prezzo ma senza codice (non si importano):\n' +
+        rap.vuoti.slice(0, 10).map(function(x) { return '- ' + x; }).join('\n') +
+        (rap.vuoti.length > 10 ? '\n- ... e altre ' + (rap.vuoti.length - 10) : '') + '\n\n';
+    }
+    testo += 'Continuare con l\'import?';
+    if (!confirm(testo)) { toast('Import annullato: il catalogo non è cambiato', 'ok'); return null; }
+  }
+  var daImportare = rap.unici;
+
+  status.textContent = '⏳ Trovati ' + daImportare.length + ' prodotti. Confronto con il catalogo...';
+  var esistenti = await leggiCodiciCatalogoEsistenti();
+  var perCodice = {}, perNormalizzato = {};
+  esistenti.forEach(function(e) {
+    perCodice[e.codice] = e;
+    var k = normalizzaCodiceCatalogo(e.codice);
+    if (!perNormalizzato[k]) perNormalizzato[k] = e;
+    else console.warn('Catalogo: codice presente più volte con maiuscole o spazi diversi:', e.codice, perNormalizzato[k].codice);
+  });
+
+  var oraIso = new Date().toISOString();
+  var nelFile = {}, nuovi = 0, aggiornati = 0, riattivati = 0;
+  var righe = daImportare.map(function(p) {
+    var k = normalizzaCodiceCatalogo(p.codice);
+    nelFile[k] = true;
+    var c = perCodice[p.codice] || perNormalizzato[k];
+    var riga = Object.assign({}, p, { attivo: true, aggiornato_il: oraIso });
+    // stesso prodotto scritto con maiuscole o spazi diversi: si aggiorna quello (stesso id)
+    if (c) { riga.codice = c.codice; aggiornati++; if (c.attivo === false) riattivati++; }
+    else nuovi++;
+    return riga;
+  });
+
+  var importati = 0, errori = [];
+  var BLOCCO = 50;
+  for (var i = 0; i < righe.length; i += BLOCCO) {
+    var blocco = righe.slice(i, i + BLOCCO);
+    var res = await db.from('prodotti_catalogo').upsert(blocco, { onConflict: 'codice' });
+    if (res.error) {
+      console.error('Blocco non importato:', res.error);
+      for (var j = 0; j < blocco.length; j++) {
+        var r1 = await db.from('prodotti_catalogo').upsert(blocco[j], { onConflict: 'codice' });
+        if (r1.error) {
+          console.error('Prodotto non importato:', blocco[j].codice, r1.error.message, r1.error.details);
+          errori.push({ codice: blocco[j].codice, motivo: r1.error.message });
+        } else importati++;
+      }
+    } else {
+      importati += blocco.length;
+    }
+    status.textContent = '⏳ ' + importati + '/' + righe.length + ' importati...';
+  }
+
+  var disattivati = 0;
+  if (!errori.length) {
+    var assenti = esistenti.filter(function(e) {
+      return e.attivo !== false && !nelFile[normalizzaCodiceCatalogo(e.codice)];
+    }).map(function(e) { return e.id; });
+    for (var a = 0; a < assenti.length; a += 100) {
+      var ids = assenti.slice(a, a + 100);
+      status.textContent = '⏳ Prodotti non più nel file: ' + Math.min(a + ids.length, assenti.length) + '/' + assenti.length + ' messi "non attivo"...';
+      var rd = await db.from('prodotti_catalogo').update({ attivo: false, aggiornato_il: oraIso }).in('id', ids);
+      if (rd.error) {
+        errori.push({ codice: '(non attivi)', motivo: rd.error.message });
+        break;
+      }
+      disattivati += ids.length;
+    }
+  }
+  return { importati: importati, nuovi: nuovi, aggiornati: aggiornati, riattivati: riattivati,
+           disattivati: disattivati, errori: errori };
 }
 
 async function loadPaginaCatalogo() {

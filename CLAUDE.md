@@ -420,6 +420,15 @@ NUOVA quantita_um (testo libero facoltativo, max 50, una riga, vincolo
 preventivi_voci_quantita_um_check; nessun calcolo); la scrive chi oggi scrive
 le voci, dopo l'esito solo il titolare (trigger trg_preventivi_voci_quantita_um);
 vedi "Dopo sql/265".
+Dopo sql/93 (F16.2 catalogo stabile, approvata da Erika il 13/11; DA ESEGUIRE
+con "CONFERMATO DA TOLI: sql/93", dall'EDITOR: contiene "before delete"):
+nessuna tabella nuova, matrice invariata. prodotti_catalogo: vincolo unico su
+codice (c'era già: prodotti_catalogo_codice_key), indice UNICO NUOVO
+prodotti_catalogo_codice_normalizzato_unico (upper(btrim(codice))), vincolo
+NUOVO prodotti_catalogo_codice_check (codice non vuoto), trigger NUOVO
+trg_prodotti_catalogo_niente_cancellazione (un prodotto usato in
+ddt_righe.prodotto_id non si cancella dal sito) e trg_registro_azioni; vedi
+"Dopo sql/93".
 
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
@@ -2572,6 +2581,69 @@ entrambi gli ordini (schema identico con pg_dump); test/voci-quantita-um.spec.js
 salvate, PDF con le due colonne, voce senza = colonna vuota, dati esterni "12
 m²"); preventivo-oggetto-nota, sconto-rappresentante e smoke TUTTO OK con
 264+265 e senza. Senza sql/265: nessun campo "Quantità x UM", nessun errore.
+Dopo sql/93 (F16.2 catalogo stabile: pulizia e import senza cancellazione,
+approvata da Erika il 13/11: "l'import aggiorna i prodotti con lo stesso
+codice, aggiunge i nuovi e mette non attivo quelli che mancano, SENZA
+cancellarli; i bottoni restano gli stessi"). DA ESEGUIRE con "CONFERMATO DA
+TOLI: sql/93": backup, ANTEPRIMA in fondo al file (doppioni "a meno di
+maiuscole e spazi" e codici vuoti con le righe di ddt_righe e fatture_righe
+che li usano, solo codici e conteggi; atteso nessuna riga: nel backup
+pre88-265 1.364 prodotti, 0 doppioni, 0 vuoti), 93-catalogo-stabile-pulizia-
+import-senza.sql DALL'EDITOR SQL (contiene "before delete": il server MCP lo
+rifiuta), controllo in fondo; nessun -REGISTRO-CANCELLAZIONI (il registro
+delle azioni con le cancellazioni è nel file); richiede 07, 71, si ferma
+senza; 67 facoltativo; il sito si pubblica prima o dopo. Il file SI FERMA
+con l'elenco dei codici doppi o con il numero dei codici vuoti (si decide
+prima con Toli quale prodotto tenere; provato nel locale con 2 doppioni in
+minuscolo). Nessuna RPC, nessuna policy cambiata (cat_modify: solo titolare,
+informatico compreso). Fa: vincolo unico su codice se manca (in produzione
+c'è già: prodotti_catalogo_codice_key; se lo crea il 93 il commento lo dice e
+il rollback lo toglie), indice unico prodotti_catalogo_codice_normalizzato_unico
+su upper(btrim(codice)), vincolo prodotti_catalogo_codice_check (btrim(codice)
+<> ''), trigger trg_prodotti_catalogo_niente_cancellazione (BEFORE DELETE,
+security definer: per gli utenti del sito, utente_effettivo() non vuoto, un
+prodotto usato in ddt_righe.prodotto_id non si cancella, 23503 "... mettilo
+non attivo"; editor libero), trg_registro_azioni (sql/67) after insert,
+update, delete su prodotti_catalogo, commento della tabella. ddt_righe.
+prodotto_id non ha una chiave esterna; fatture_righe NON ha prodotto_id
+(arriva al prodotto da ddt_id). NON FATTI (dichiarato: non servono all'import
+stabile, prezzi e fasce rimandati con F16.3-F16.5): colonne tipo, um (c'era),
+famiglia_lavoro, costo_ultimo(_il), prezzo_riferimento(_il); codici
+provvisori di Acquisti (bottoni nuovi). SITO (js/14, vale con e senza sql/93
+perché il vincolo unico c'è già): importaExcelCatalogo legge il file e
+calcola i prezzi COME PRIMA (sconto, ×1,70/×1,85/×1,25, minimo 3 €), poi
+importaCatalogoSenzaCancellare: (1) report dei codici ripetuti nel file (si
+tiene la PRIMA riga, come faceva l'insert uno per uno) e delle righe con il
+listino ma senza codice (saltate come prima), in un confirm: Annulla = nulla
+cambia; (2) lettura id, codice, attivo dei prodotti a pagine da 1000
+(leggiCodiciCatalogoEsistenti); un codice uguale a meno di maiuscole e spazi
+usa il codice scritto nel database (stesso id); (3) upsert onConflict codice a
+blocchi di 50 (attivo = true, aggiornato_il), un blocco in errore si rifà
+riga per riga; (4) SOLO se tutto è entrato, i prodotti attivi assenti dal
+file diventano attivo = false con update .in('id') a blocchi di 100 (mai
+delete); messaggio "N aggiornati, N nuovi, N messi non attivo, N tornati
+attivi". Richieste una alla volta (fila di js/01). loadCatalogo legge già
+solo gli attivi: i non attivi spariscono da pagina Catalogo e ricerca DDT,
+le righe dei DDT restano collegate. Bottoni, finestra e permessi
+invariati (import solo titolare). SCELTA DICHIARATA: anche i prodotti
+aggiunti a mano con "+ Aggiungi prodotto" e assenti dal file diventano non
+attivi (prima venivano cancellati). Guide info-com-28, info-tit-42. Prove:
+sql/93-catalogo-stabile-pulizia-import-senza-PROVA.sql (solo database di
+prova, rollback, 22 controlli: upsert del titolare con lo stesso id due
+volte, codice nuovo, assente non attivo, "prova93-a " in minuscolo 23505,
+codice vuoto 23514, Acquisti, rappresentante e titolare "come" Acquisti
+rifiutati 42501 o zero righe, prodotto usato in un DDT non cancellabile
+23503, non usato sì, editor libero, registro delle azioni);
+test/catalogo-stabile.spec.js (Chrome headless, database locale: titolare
+importa dal bottone un Excel con tutto il catalogo, 1.367 righe, + prezzo
+nuovo, codice ripetuto e riga senza codice: report, stessi id, prodotto tolto
+non attivo e non cancellato, riga di DDT collegata; secondo import = id
+identici; Annulla = nulla cambia; Acquisti a 390 px da console rifiutato;
+con sql/93 cancellazione da console rifiutata; CATALOGO_SENZA_SQL=1 dopo il
+rollback); smoke TUTTO OK con e senza sql/93; matrice uguale (errori di
+fatture, fatture_righe, fatture_scadenze già presenti prima); rollback
+provato (schema identico con pg_dump). Senza sql/93: import senza
+cancellazione uguale, nessun errore.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
