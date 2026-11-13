@@ -411,13 +411,43 @@ function htmlCampiMotore(lav, d) {
   `;
 }
 
+// Scheda Cartellonistica (richiesta di Erika del 13/11, campi dal foglio di
+// import del catalogo): icona del cartello accanto al campo, per codice.
+// Disegni semplificati con i colori della segnaletica (verde salvataggio,
+// rosso antincendio, giallo pericolo, cerchio rosso divieto). Altri campi: niente.
+const ICONE_CARTELLI_MOTORE = (function() {
+  const q = function(colore, dentro) { return '<rect x="1" y="1" width="22" height="22" rx="2" fill="' + colore + '"/>' + dentro; };
+  const divieto = function(dentro) { return '<circle cx="12" cy="12" r="10" fill="#fff" stroke="#C8102E" stroke-width="2.5"/>' + dentro + '<line x1="5" y1="5" x2="19" y2="19" stroke="#C8102E" stroke-width="2.5"/>'; };
+  const V = '#00843D', R = '#C8102E';
+  return {
+    cartello_chiamata_soccorsi: q(V, '<path d="M7 6c1-1 2-1 2.5 0l1.2 2.2c.3.6.1 1.2-.4 1.6l-.8.6c.6 1.5 1.8 2.8 3.4 3.5l.6-.8c.4-.5 1-.7 1.6-.4l2.2 1.2c1 .5 1 1.5 0 2.5-1.2 1.2-3 1.4-5 .4-2.8-1.4-5-3.7-6.3-6.4C5.6 8.6 5.8 7.2 7 6z" fill="#fff"/>'),
+    cartello_punto_raccolta: q(V, '<circle cx="8" cy="8" r="2" fill="#fff"/><circle cx="16" cy="8" r="2" fill="#fff"/><circle cx="12" cy="11" r="2" fill="#fff"/><path d="M5 18c0-3 1.5-5 3-5s3 2 3 5zM13 18c0-3 1.5-5 3-5s3 2 3 5z" fill="#fff"/><path d="M4 4l3 3M20 4l-3 3M4 20l3-3M20 20l-3-3" stroke="#fff" stroke-width="1.5"/>'),
+    cartello_uscita_emergenza: q(V, '<rect x="14" y="4" width="6" height="16" fill="none" stroke="#fff" stroke-width="1.5"/><circle cx="9" cy="5.5" r="1.8" fill="#fff"/><path d="M8.5 8l-2.5 4 2 1 1-1.5 1 2.5-2 4h1.8l1.8-3.5L12 17h1.6l-1.8-5-1-2.5 2 1.5V9.5L10 8z" fill="#fff"/>'),
+    cartello_direzione_esodo: q(V, '<path d="M4 10.5h10V6l6 6-6 6v-4.5H4z" fill="#fff"/>'),
+    cartello_quadro_elettrico: '<path d="M12 2l11 19H1z" fill="#FFD100" stroke="#000" stroke-width="1.5" stroke-linejoin="round"/><path d="M13 7l-4 6h3l-2 5 5-7h-3l2-4z" fill="#000"/>',
+    cartello_sgancio_energia: q(V, '<rect x="5" y="5" width="14" height="14" rx="1" fill="none" stroke="#fff" stroke-width="1.5"/><path d="M13 7l-4 6h3l-2 5 5-7h-3l2-4z" fill="#fff"/>'),
+    cartello_divieto_fumo: divieto('<rect x="6" y="11" width="10" height="2.5" fill="#000"/><rect x="16.3" y="11" width="1.7" height="2.5" fill="#000"/><path d="M17 9.5c0-1.5 1.2-1.5 1.2-3" stroke="#000" stroke-width="1" fill="none"/>'),
+    cartello_divieto_fiamme: divieto('<path d="M12 6c2 2.5 3.5 4 3.5 6.5a3.5 3.5 0 0 1-7 0c0-1.5.8-2.5 1.5-3.3 0 1.2.6 2 1.3 2.3C11 9.5 11.5 8 12 6z" fill="#000"/><rect x="9" y="17" width="6" height="1.5" fill="#000"/>'),
+    cartello_estintore: q(R, '<rect x="9" y="8" width="6" height="12" rx="2" fill="#fff"/><rect x="10.5" y="5" width="3" height="3" fill="#fff"/><path d="M13.5 5.5h3l1.5 2" stroke="#fff" stroke-width="1.3" fill="none"/><path d="M5 7l3-1.5v3z" fill="#fff"/>'),
+    cartello_estintore_carrellato: q(R, '<rect x="8" y="5" width="6" height="11" rx="2" fill="#fff"/><rect x="9.5" y="3" width="3" height="2" fill="#fff"/><path d="M14 8h3v10" stroke="#fff" stroke-width="1.3" fill="none"/><path d="M6 17h13" stroke="#fff" stroke-width="1.5"/><circle cx="8" cy="19" r="1.8" fill="#fff"/><circle cx="16" cy="19" r="1.8" fill="#fff"/>'),
+    planimetria_evacuazione: q('#0057A8', '<path d="M5 6l4-1.5 6 1.5 4-1.5v13l-4 1.5-6-1.5L5 19z" fill="#fff"/><path d="M9 4.5v13M15 6v13" stroke="#0057A8" stroke-width="1"/><path d="M6.5 13h6.5v-2.5l3 3.5-3 3.5v-2.5H6.5z" fill="#00843D"/>')
+  };
+})();
+
+function iconaCartelloMotore(codice) {
+  const disegno = ICONE_CARTELLI_MOTORE[codice];
+  return disegno
+    ? '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" style="vertical-align:middle;margin-right:6px;flex:0 0 auto">' + disegno + '</svg>'
+    : '';
+}
+
 function htmlCampoMotore(c, valore, indicativa, ingegnere, notaGruppo) {
   const id = 'msm-c-' + c.codice;
   const solaLettura = c.livello === 'ingegnere' && !ingegnere;
   const nonNoto = indicativa && !solaLettura && valore === VALORE_NON_NOTO;
   const eraNonNoto = !indicativa && valore === VALORE_NON_NOTO;
   const val = (valore === VALORE_NON_NOTO && !solaLettura) ? '' : valore;
-  const etichetta = esc(c.etichetta) + (serveAlPrezzoMotore(c) ? ' <b style="color:var(--r)">*</b>' : '') +
+  const etichetta = iconaCartelloMotore(c.codice) + esc(c.etichetta) + (serveAlPrezzoMotore(c) ? ' <b style="color:var(--r)">*</b>' : '') +
     (notaGruppo && !serveAlPrezzoMotore(c) ? ' <b style="color:var(--r)">*</b> <span style="font-weight:400;font-size:11px;color:var(--m)">(' + esc(notaGruppo) + ')</span>' : '') +
     (c.livello === 'ingegnere' ? ' <span title="Campo dell’ingegnere">🎓</span>' : '');
   const dis = solaLettura || nonNoto ? ' disabled' : '';
