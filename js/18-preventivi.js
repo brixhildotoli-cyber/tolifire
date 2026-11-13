@@ -8097,6 +8097,14 @@ async function generaRichiestaQuotazionePDF(selezioneId) {
     return;
   }
 
+  // F16.9 (js/73): solo le schede spuntate per questo fornitore e le loro posizioni P-xx
+  const schedeScelte = typeof schedeRichiestaFornitore === 'function'
+    ? schedeRichiestaFornitore(selezioneId, schede || []) : (schede || []);
+  const posizioniScelte = typeof posizioniRichiestaFornitore === 'function'
+    ? await posizioniRichiestaFornitore(preventivo.progetto_tecnico_id, schedeScelte) : [];
+  const entroRichiesta = typeof entroRichiestaFornitore === 'function' ? entroRichiestaFornitore(selezioneId) : '';
+  const prezzoIndicativo = typeof richiestaFornitoreIndicativa === 'function' && richiestaFornitoreIndicativa(schedeScelte);
+
     const idsAllegati = Array.isArray(selezione.allegati_progetto_ids)
     ? selezione.allegati_progetto_ids
     : [];
@@ -8244,6 +8252,26 @@ pdfDaInserire = (allegati || []).filter(function(file) {
     testo('Email destinatario: ' + fornitore.email, 10);
   }
 
+  // F16.9 (js/73): scadenza della risposta e prezzo indicativo
+  if (entroRichiesta) {
+    doc.setFont('helvetica', 'bold');
+    testo('Rispondere entro il: ' + entroRichiesta, 11, [8, 80, 65]);
+  }
+  if (prezzoIndicativo) {
+    nuovaPaginaSeServe(16);
+    doc.setFillColor(253, 236, 200);
+    doc.setDrawColor(133, 79, 11);
+    doc.rect(margine, y - 1, larghezzaTesto, 13, 'FD');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(133, 79, 11);
+    doc.text('PREZZO INDICATIVO', margine + 3, y + 5);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.text('Alcuni dati sono ancora da confermare: la quotazione richiesta è indicativa.', margine + 3, y + 10);
+    y += 17;
+  }
+
   y += 4;
 
   titolo('Oggetto della richiesta');
@@ -8267,12 +8295,15 @@ if (progetto.materiali_note) {
   testo(progetto.materiali_note);
 }
 
-  if (schede && schede.length) {
+  if (schedeScelte.length) {
   titolo('Rilievi tecnici dell’ingegnere');
 
   // Più schede dello stesso tipo (sql/48): "Porte e portoni REI – scheda 2"
-  ordinaSchedeRilievo(schede).forEach(function(scheda, indice, elenco) {
-      titolo(titoloSchedaRilievo(scheda, elenco));
+  // Il titolo usa tutte le schede del progetto (numerazione "scheda 2" invariata)
+  const tutteLeSchede = ordinaSchedeRilievo(schede || []);
+  ordinaSchedeRilievo(schedeScelte).forEach(function(scheda) {
+      titolo(titoloSchedaRilievo(scheda, tutteLeSchede) +
+        (scheda.dati && scheda.dati.tipo_richiesta === 'indicativa' ? ' (prezzo indicativo)' : ''));
 
      const campi = Object.entries(
   datiSchedaDaMostrare(scheda)
@@ -8282,6 +8313,8 @@ if (progetto.materiali_note) {
         // Le note interne per il calcolo non vanno al fornitore (decisione 28/10)
         if (entry[0] === 'note_calcolo') return false;
         if (!campoSchedaDaElencare(entry[0])) return false;
+        // F16.9: niente campi 🎓 dell'ingegnere (salvo la copia di Acquisti)
+        if (typeof campoInternoRichiestaFornitore === 'function' && campoInternoRichiestaFornitore(scheda, entry[0])) return false;
 
         return valore !== null &&
           valore !== undefined &&
@@ -8290,7 +8323,6 @@ if (progetto.materiali_note) {
 
       if (!campi.length) {
         testo('Nessun dato tecnico compilato.');
-        return;
       }
 
       campi.forEach(function(entry) {
@@ -8301,6 +8333,11 @@ if (progetto.materiali_note) {
           9
         );
       });
+
+      // F16.9: posizioni P-xx della scheda
+      if (typeof tabellaPosizioniRichiestaFornitore === 'function') {
+        y = tabellaPosizioniRichiestaFornitore(doc, y, margine, scheda, posizioniScelte);
+      }
     });
   }
 
@@ -8313,6 +8350,13 @@ if (progetto.materiali_note) {
     10
   );
 }
+
+  // F16.9 (js/73): testi fissi della richiesta
+  if (typeof TESTI_FISSI_RICHIESTA_FORNITORE !== 'undefined') {
+    titolo('Condizioni della richiesta');
+    TESTI_FISSI_RICHIESTA_FORNITORE.forEach(function(riga) { testo('- ' + riga, 9); });
+    if (entroRichiesta) testo('- Inviare l’offerta entro il ' + entroRichiesta + '.', 9);
+  }
 
   for (const foto of fotoDaInserire) {
     try {

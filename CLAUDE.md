@@ -2752,6 +2752,29 @@ tecniche (vt-catalogo-btn, mostraBottoneCatalogoVerifiche di js/55) solo al
 titolare, all'ingegnere resta "➕ Proponi un campo" nella scheda; SOLO IL
 SITO (le regole di sql/75 lasciano ancora scrivere l'ingegnere da console).
 Guide info-ing-18, 26, 32 riscritte.
+PDF della richiesta al fornitore per sezione (F16.9, js/73-richiesta-
+fornitore-sezioni.js caricato dopo js/72 e prima di js/19 + agganci in js/18
+generaRichiestaQuotazionePDF, NESSUN SQL; decisione di Erika del 13/11: si fa
+così e si corregge dopo la prova di Acquisti). renderFornitoriPreventivo
+avvolta: nel riquadro di ogni fornitore, sopra "Salva dati fornitore",
+"📑 Schede da mandare a questo fornitore" (data-rq-sezioni, spunte
+data-rq-scheda per scheda di rilievo, blocco comune escluso, tutte spuntate
+all'inizio) e "Rispondere entro il" (rq-entro-<id>). PDF: solo le schede
+spuntate (tutte spuntate = come prima), titolo con la numerazione di tutte
+le schede, tabella delle posizioni P-xx non tolte (regole e testi di js/71),
+"Rispondere entro il", riquadro "PREZZO INDICATIVO" se una scheda ha
+tipo_richiesta 'indicativa' (e "(prezzo indicativo)" nel suo titolo),
+"Condizioni della richiesta" (TESTI_FISSI_RICHIESTA_FORNITORE); niente campi
+livello ingegnere né note_tecniche/note_calcolo quando la scheda NON ha la
+copia di Acquisti (con la copia vale la copia). SCELTA: spunte e data solo
+in memoria (RQ_SEZIONI), non nel database: restano dopo "Salva dati
+fornitore", ripartono ricaricando. Nessun bottone né flusso di prima
+cambia. F16.8 (dati da chiedere al cliente): NON FARE, decisione di Erika
+del 13/11. Guida info-com-29. Prova test/richiesta-fornitore-sezioni.spec.js
+(database locale: Acquisti a 390 px e titolare, estintori tolti, data, PDF
+con le sole porte, P-01/P-02, entro il, PREZZO INDICATIVO, condizioni, senza
+note interne né posizione tolta; spunte dopo Salva; tutte spuntate = anche
+gli estintori): TUTTO OK.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

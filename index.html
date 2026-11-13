@@ -3996,6 +3996,26 @@
         <b>Esempio</b><br>Nel nuovo listino il fornitore ha tolto il cartello "EST-CART-01": dopo l'import del titolare non lo trovi più aggiungendo righe a un DDT, ma il DDT di settembre che lo contiene si apre e si stampa come prima.
       </div>
 
+      <h4 id="info-com-29">29. 📑 PDF al fornitore: solo le schede che gli servono</h4>
+
+      <p>
+        Nel riquadro di ogni fornitore del preventivo (scheda <b>Fornitori</b>), sopra <b>Salva dati fornitore</b>, trovi <b>📑 Schede da mandare a questo fornitore</b>: una spunta per ogni scheda di rilievo del progetto, all'inizio tutte spuntate, e <b>Rispondere entro il</b>. Con <b>📄 Genera PDF richiesta</b> il PDF contiene:
+      </p>
+
+      <ul>
+        <li>solo le schede spuntate, con la tabella delle loro <b>posizioni P-01, P-02...</b> (ubicazione, quantità, misure);</li>
+        <li><b>Rispondere entro il ...</b> in alto e nelle condizioni, se hai messo la data;</li>
+        <li>il riquadro <b>PREZZO INDICATIVO</b> se una scheda è una richiesta indicativa (dati ancora da confermare);</li>
+        <li>in fondo le <b>Condizioni della richiesta</b> (prezzi IVA esclusa, tempi di consegna e validità, certificazioni e DoP, marca e codice per posizione).</li>
+      </ul>
+
+      <div class="al2 i">Le note tecniche dell'ingegnere (campi 🎓) non vanno al fornitore. Se hai corretto la copia per i fornitori (<b>✏️ Modifica copia</b>), il PDF usa la tua copia così com'è.</div>
+      <div class="al2 w">Spunte e data non si salvano: restano finché tieni aperta la pagina (anche dopo <b>Salva dati fornitore</b>); ricaricando ripartono tutte spuntate.</div>
+
+      <div class="info-esempio">
+        <b>Esempio</b><br>Progetto con porte REI e vernice: al fornitore delle porte lasci spuntate solo le due schede delle porte e scrivi "entro il 20/11". Il PDF ha le porte con P-01...P-08 e la scadenza, senza la vernice.
+      </div>
+
   <h4>Checklist prima dell’invio</h4>
 
   <ul>
@@ -11097,6 +11117,7 @@
 <script defer src="js/70-foto-bozza-progetto.js?v=202611131203"></script>
 <script defer src="js/71-pdf-schede-tecniche.js?v=202611131203"></script>
 <script defer src="js/72-modelli-pdf.js?v=202611131203"></script>
+<script defer src="js/73-richiesta-fornitore-sezioni.js?v=202611131203"></script>
 <script defer src="js/19-init.js?v=202611131203"></script>
 
 
