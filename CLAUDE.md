@@ -2954,6 +2954,24 @@ Acquisti. Guide info-rap-14 riscritta, info-com-35, info-tit-48. Prova
 sql/227-...-PROVA.sql: rappresentante e titolare "come" rappresentante
 rifiutati (crea, conferma, annulla), Acquisti crea e conferma, titolare
 annulla, il rappresentante legge ordine e offerte: OK.
+Dopo sql/126 (F17.2 scadenze delle richieste ai fornitori, approvata da
+Erika il 13/11 come solo promemoria; DA ESEGUIRE con "CONFERMATO DA TOLI:
+sql/126": backup, file (senza parole di cancellazione, server MCP),
+controllo; richiede 71; matrice invariata): preventivi_fornitori colonne
+risposta_entro, esito_telefonata (max 500), telefonata_il, telefonata_da,
+telefonata_da_nome (chi e quando dal trigger
+trg_preventivi_fornitori_telefonata); scrive chi oggi scrive le offerte
+(policy di prima); RPC fornitori_scadenze_attive(). Sito
+(js/78-scadenze-fornitori.js caricato dopo js/77): riquadro "⏰ Risposta del
+fornitore" nel riquadro del fornitore (renderFornitoriPreventivo avvolta):
+data con "💾 Salva la data", "📞 Ho telefonato" (esito nel prompt, nuova
+scadenza a 2 g lav.), rosso oltre la data; segnaRichiestaFornitoreInviata
+avvolta: data proposta a 3 g lav. se vuota; Cosa tocca a me: Acquisti "📞
+Fornitori da sollecitare", titolare "Richieste ai fornitori ferme da più di 2
+giorni lavorativi" (aprono il preventivo sulla scheda Fornitori). Scelte:
+giorni fissi (3, 2, 2), niente motore delle scadenze. Guide info-com-36,
+info-tit-49. Prove: sql/126-...-PROVA.sql e test/scadenze-fornitori.spec.js
+(Acquisti a 390 px, titolare): TUTTO OK.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
