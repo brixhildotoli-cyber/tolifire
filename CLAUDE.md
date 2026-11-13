@@ -429,8 +429,8 @@ NUOVO prodotti_catalogo_codice_check (codice non vuoto), trigger NUOVO
 trg_prodotti_catalogo_niente_cancellazione (un prodotto usato in
 ddt_righe.prodotto_id non si cancella dal sito) e trg_registro_azioni; vedi
 "Dopo sql/93".
-Dopo sql/98 (F16.7 motore unico dei PDF da modello; DA ESEGUIRE con
-"CONFERMATO DA TOLI: sql/98": file principale dal server MCP, poi il
+Dopo sql/98 (F16.7 motore unico dei PDF da modello; ESEGUITO il 13/11
+(backup pre98, controllo in regola): file principale dal server MCP, poi il
 -REGISTRO-CANCELLAZIONI dall'editor): modelli_pdf (modelli dei PDF NUOVI:
 codice fisso, nome, descrizione, titolo, blocchi di testo fissi
 [{"chiave","etichetta","testo"}], revisione data dal database, attivo, chi e
@@ -2653,8 +2653,8 @@ fatture, fatture_righe, fatture_scadenze già presenti prima); rollback
 provato (schema identico con pg_dump). Senza sql/93: import senza
 cancellazione uguale, nessun errore.
 Dopo sql/98 (F16.7 motore unico dei PDF da modello, REGOLA DI ERIKA del
-13/11: nessun flusso, bottone, obbligo o PDF di oggi cambia; DA ESEGUIRE con
-"CONFERMATO DA TOLI: sql/98": backup, anteprima in fondo al file,
+13/11: nessun flusso, bottone, obbligo o PDF di oggi cambia; ESEGUITO il
+13/11 con il -REGISTRO-CANCELLAZIONI (backup pre98, controllo in regola): backup, anteprima in fondo al file,
 98-motore-unico-pdf-modello.sql (senza parole di cancellazione, server MCP),
 98-...-REGISTRO-CANCELLAZIONI.sql dall'EDITOR, controllo in fondo al 98;
 richiede 07, 67, 71, si ferma senza; il sito si pubblica prima o dopo).
