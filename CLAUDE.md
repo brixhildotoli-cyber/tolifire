@@ -3361,6 +3361,39 @@ corsi-senza-iscrizione (titolare, segreteria). Guide info-seg-33, info-tit-63,
 info-ct-37, info-tec-28. Prove: sql/155-...-PROVA.sql (17 ok) e
 test/piano-formazione.spec.js (segreteria, capo tecnico a 390 px, tecnico a 390
 px, console): TUTTO OK.
+Dopo sql/156 (F19.5 corsi mancanti nel preventivo, decisione di Erika del 16/11:
+avviso CON SCELTA OBBLIGATORIA; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/156"
+DOPO sql/152 e DOPO aver pubblicato il sito: backup, file (senza parole di
+cancellazione), -REGISTRO-CANCELLAZIONI dall'editor, controllo in fondo; richiede
+32, 67, 71, 152). corsi_catalogo colonne NUOVE parole_preventivo e
+lavorazioni_preventivo (text[], max 20; righe di partenza: ple ← PLE,
+piattaforma, piattaforme; ponteggi_pimus ← ponteggio, ponteggi;
+carrelli_elevatori ← muletto, carrello elevatore; gru_autocarro ← gru;
+spazi_confinati ← spazio confinato, spazi confinati). corsi_preventivo_calcolo
+(interna, non concessa): parole intere (\m \M, ~*) nelle descrizioni delle voci
+e famiglie delle schede (progetti_tecnici_schede del progetto e
+preventivi_schede_tecniche) contro i corsi attivi; persone_valide = dipendenti
+attivi e persone (riferito_a) dei subappaltatori attivi con documento del corso in
+vigore e non scaduto (solo il NUMERO). RPC corsi_preventivo(p_preventivo)
+(titolare, commerciale AUTORE) e scegli_corso_preventivo (faremo_corso /
+subappaltatore + nota; solo in bozza; solo corsi richiesti) → tabella
+preventivi_corsi_scelte (unico preventivo+corso; lettura come i preventivi).
+BLOCCO: trigger trg_preventivi_corsi_mancanti BEFORE UPDATE OF stato quando
+bozza → inviato_a_rappresentante / inviato / in_attesa_approvazione (l'invio
+reale oggi è bozza → inviato_a_rappresentante: "approvazione" non si usa) se un
+corso senza persone abilitate non ha la scelta (23514); solo utenti del sito.
+Matrice: 10 righe. Sito (js/94-corsi-preventivo.js dopo js/93): riquadro
+pvd-corsi sopra pvd-scheda-oggetto (openPreventivoDetail avvolta; Acquisti e
+titolare) con i corsi richiesti, persone abilitate o "nessuno" + le due scelte
+(prompt per la nota); inviaPdfClienteATitolareERappresentante e
+caricaEInviaPdfEsternoTitolare avvolte (in bozza, senza scelta: toast e scroll al
+riquadro). js/91: campi ccr-parole / ccr-lavorazioni (ccr-preventivo-box,
+visibili solo con le colonne) e riga "Serve nel preventivo con". Guide
+info-com-45, info-tit-64. Prove: sql/156-...-PROVA.sql (parola intera: "Gruppo"
+non fa scattare la gru; invio bloccato e poi passato) e
+test/corsi-preventivo.spec.js (Acquisti a 390 px, titolare, rappresentante,
+console): TUTTO OK. Smoke TUTTO OK con 151-156 e senza; rollback e riesecuzione
+di tutti provati.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

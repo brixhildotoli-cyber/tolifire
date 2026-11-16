@@ -4202,6 +4202,12 @@
       </p>
       <div class="al2 i">È solo un promemoria: nessun blocco.</div>
 
+      <h4 id="info-com-45">45. 🎓 Corsi richiesti dal preventivo</h4>
+      <p>
+        Se nelle voci del preventivo c'è un lavoro che richiede un corso (es. "PLE", "ponteggio", "muletto") compare il riquadro <b>🎓 Corsi richiesti da questo preventivo</b> con quante persone hanno il corso valido. Se <b>nessuno</b> ce l'ha, prima di inviare il preventivo scegli <b>🎓 Faremo il corso</b> o <b>🏗️ Lo fa un subappaltatore</b> (con una nota): senza la scelta l'invio si ferma.
+      </p>
+      <div class="al2 i">Vedi solo il numero delle persone abilitate, non chi sono né i loro documenti.</div>
+
   <h4>Checklist prima dell’invio</h4>
 
   <ul>
@@ -6639,6 +6645,12 @@
         Corsi, patentini e visite delle persone ora hanno un preavviso a parte: <b>Regole → Preavviso scadenza di corsi e visite mediche</b> (60 giorni); i documenti dell'impresa (DURC, visura, POS...) restano sul preavviso di Soglie e tariffe. In Team e subappalti la tab <b>🎓 Piano formazione</b> mostra chi deve rinnovare e se è già iscritto a un corso.
       </p>
       <div class="al2 i">Ognuno vede in "Cosa tocca a me" i suoi corsi o visite in scadenza.</div>
+
+      <h4 id="info-tit-64">64. 🎓 Corsi mancanti nel preventivo</h4>
+      <p>
+        Nel catalogo dei corsi (Impostazioni → 🎓 Corsi e abilitazioni) per ogni corso puoi scrivere le <b>parole delle voci</b> (es. PLE, piattaforma) o le <b>lavorazioni</b> che lo richiedono. Nel preventivo compare il riquadro dei corsi richiesti: se nessuno ha il corso valido, Acquisti (o tu) deve scegliere "faremo il corso" o "lo fa un subappaltatore" prima dell'invio.
+      </p>
+      <div class="al2 i">Righe di partenza: PLE, ponteggi, muletto, gru, spazi confinati. Correggile se servono altre parole.</div>
 
 
 
@@ -9934,6 +9946,11 @@
         <label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="ccr-attivo"> Attivo</label>
       </div>
       <div class="f" style="margin-top:6px"><label>Ordine nell'elenco</label><input type="number" id="ccr-ordine" min="0" max="9999"></div>
+      <div id="ccr-preventivo-box" style="display:none">
+        <div class="f"><label>🧾 Serve nel preventivo quando le voci contengono (parole separate da virgola)</label><input type="text" id="ccr-parole" placeholder="es. PLE, piattaforma"></div>
+        <div class="f"><label>…o con le lavorazioni (codici separati da virgola)</label><input type="text" id="ccr-lavorazioni" placeholder="es. rilevazione_incendi"></div>
+        <div style="font-size:12px;color:var(--m);margin:-4px 0 6px">Se nessuno ha questo corso valido, Acquisti deve scegliere "faremo il corso" o "lo fa un subappaltatore" prima di inviare il preventivo.</div>
+      </div>
       <div class="ma">
         <button class="btn" onclick="ge('ccr-form').style.display='none'">Annulla</button>
         <button class="btn p" onclick="salvaCorsoCatalogo()">💾 Salva</button>
@@ -11896,6 +11913,7 @@
 <script defer src="js/91-catalogo-corsi.js?v=202611161541"></script>
 <script defer src="js/92-idoneita.js?v=202611161541"></script>
 <script defer src="js/93-piano-formazione.js?v=202611161541"></script>
+<script defer src="js/94-corsi-preventivo.js?v=202611161541"></script>
 <script defer src="js/19-init.js?v=202611161541"></script>
 
 

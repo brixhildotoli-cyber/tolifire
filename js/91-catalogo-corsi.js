@@ -125,9 +125,21 @@ function disegnaCatalogoCorsi() {
     return '<div data-corso="' + esc(r.codice) + '" style="display:flex;gap:8px;align-items:flex-start;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--b2, #e5e7eb)' + (r.attivo ? '' : ';opacity:.55') + '">' +
       '<div style="min-width:0"><div style="font-size:13px;font-weight:600">' + esc(r.nome) + (r.obbligo_legge ? ' <span class="bx bblue">⚖️ Per legge</span>' : '') + (r.attivo ? '' : ' <span class="bx bgray">Spento</span>') + '</div>' +
       '<div style="font-size:12px;color:var(--m)">' + esc(NOMI_PER_CORSO[r.per] || r.per) + ' · ' + esc(testoValiditaCorso(r)) +
-      (r.ore_aggiornamento != null ? ' · aggiornamento ' + esc(String(r.ore_aggiornamento).replace('.', ',')) + ' h' : '') + (r.ente ? ' · ' + esc(r.ente) : '') + '</div></div>' +
+      (r.ore_aggiornamento != null ? ' · aggiornamento ' + esc(String(r.ore_aggiornamento).replace('.', ',')) + ' h' : '') + (r.ente ? ' · ' + esc(r.ente) : '') + '</div>' +
+      (testoPreventivoCorso(r) ? '<div style="font-size:12px;color:var(--m)">🧾 Serve nel preventivo con: ' + esc(testoPreventivoCorso(r)) + '</div>' : '') + '</div>' +
       '<button class="btn sm" onclick="modificaCorsoCatalogo(\'' + esc(r.codice) + '\')">✏️</button></div>';
   }).join('') || '<div class="empty">Nessun corso</div>';
+}
+
+// F19.5 (sql/156): quando il corso serve in un preventivo
+function catalogoConPreventivo() {
+  return CATALOGO_CORSI.righe.some(function(r) { return Object.prototype.hasOwnProperty.call(r, 'parole_preventivo'); });
+}
+function testoPreventivoCorso(r) {
+  return [].concat((r.parole_preventivo || []).map(function(w) { return '"' + w + '"'; }), (r.lavorazioni_preventivo || []).map(function(l) { return 'lavorazione ' + l; })).join(', ');
+}
+function elencoDaTesto(t) {
+  return String(t || '').split(',').map(function(x) { return x.trim(); }).filter(Boolean).slice(0, 20);
 }
 
 function codiceDaNomeCorso(nome) {
@@ -147,6 +159,12 @@ function modificaCorsoCatalogo(codice) {
   ge('ccr-attivo').checked = r ? r.attivo !== false : true;
   ge('ccr-ordine').value = r ? r.ordine : 300;
   ge('ccr-giorni-nota').textContent = r && r.validita_giorni ? 'Validità attuale: ' + r.validita_giorni + ' giorni (scrivendo i mesi si passa ai mesi).' : '';
+  const conPrev = catalogoConPreventivo();
+  ge('ccr-preventivo-box').style.display = conPrev ? '' : 'none';
+  if (conPrev) {
+    ge('ccr-parole').value = r ? (r.parole_preventivo || []).join(', ') : '';
+    ge('ccr-lavorazioni').value = r ? (r.lavorazioni_preventivo || []).join(', ') : '';
+  }
   ge('ccr-form').style.display = '';
   ge('ccr-nome').focus();
 }
@@ -161,6 +179,10 @@ async function salvaCorsoCatalogo() {
     ore_aggiornamento: ore, ente: (ge('ccr-ente').value || '').trim() || null, attivo: ge('ccr-attivo').checked,
     ordine: parseInt(ge('ccr-ordine').value, 10) || 300
   };
+  if (catalogoConPreventivo()) {
+    dati.parole_preventivo = elencoDaTesto(ge('ccr-parole').value);
+    dati.lavorazioni_preventivo = elencoDaTesto(ge('ccr-lavorazioni').value).map(function(x) { return x.toLowerCase(); });
+  }
   let res;
   if (CATALOGO_CORSI.aperto) {
     const vecchio = CATALOGO_CORSI.righe.find(function(x) { return x.codice === CATALOGO_CORSI.aperto; });
@@ -183,12 +205,13 @@ async function salvaCorsoCatalogo() {
   mostraCatalogoCorsiImpostazioni().catch(function() {});
 }
 
-const CAMPI_REGISTRO_CORSI = { nome: 'nome', per: 'per chi', validita_mesi: 'validità (mesi)', validita_giorni: 'validità (giorni)', obbligo_legge: 'per legge', ore_aggiornamento: 'ore di aggiornamento', ente: 'ente', attivo: 'attivo', ordine: 'ordine' };
+const CAMPI_REGISTRO_CORSI = { parole_preventivo: 'parole nel preventivo', lavorazioni_preventivo: 'lavorazioni nel preventivo', nome: 'nome', per: 'per chi', validita_mesi: 'validità (mesi)', validita_giorni: 'validità (giorni)', obbligo_legge: 'per legge', ore_aggiornamento: 'ore di aggiornamento', ente: 'ente', attivo: 'attivo', ordine: 'ordine' };
 
 function valoreRegistroCorsi(x) {
   if (x === true) return 'sì';
   if (x === false) return 'no';
   if (x === null || x === undefined || x === '') return '—';
+  if (Array.isArray(x)) return x.length ? x.join(', ') : '—';
   return String(x);
 }
 
