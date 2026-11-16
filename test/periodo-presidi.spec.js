@@ -284,7 +284,7 @@ async function apriCommessa(s, id) {
   const prima = psql("select coalesce(ciclo_manutenzione,'') || '|' || coalesce(periodicita_mesi::text,'') || '|' || coalesce(data_ultimo_controllo::text,'') || '|' || coalesce(data_prossimo_controllo::text,'') from public.impianti where id = " + q(imp)).split('|');
   const n = v => v ? q(v) : 'null';
   psql("set session_replication_role = replica; update public.impianti set ciclo_manutenzione = 'febbraio_agosto', periodicita_mesi = 6, data_ultimo_controllo = '2025-03-04', data_prossimo_controllo = null where id = " + q(imp));
-  psql("set session_replication_role = replica; insert into public.schede_presidi (impianto_id, anno, mese, ciclo, dati) values (" + q(imp) + ", 2026, 2, 'febbraio_agosto', '{\"prova\":\"periodo\"}'::jsonb)");
+  psql("set session_replication_role = replica; insert into public.schede_presidi (impianto_id, anno, mese, ciclo, dati) values (" + q(imp) + ", 2026, 2, 'febbraio_agosto', '{\"prova\":\"periodo\",\"data_ultimo_controllo\":\"2026-09-08\"}'::jsonb)");
   const odl = psql("select id from public.ordini_lavoro where eliminato_il is null and stato = 'pianificato' order by id limit 1");
   const odlPrima = psql("select data_pianificata || '|' || coalesce(in_ritardo_il::text, '') from public.ordini_lavoro where id = " + q(odl)).split('|');
   psql("set session_replication_role = replica; update public.ordini_lavoro set data_pianificata = '2026-05-27', in_ritardo_il = now() where id = " + q(odl));
@@ -298,10 +298,12 @@ async function apriCommessa(s, id) {
     await s.page.evaluate(async id => { await apriSchedaPresidio(id); }, imp);
     await attendiQuiete(s.stato, 1500);
     const sch = await s.page.evaluate(() => ge('msp-contenuto').innerText);
-    const atteso = [/Controlli\s*ogni 6 mesi \(semestrale\) · febbraio e agosto/, /Ultima verifica\s*febbraio 2026 \(1° semestre\) · dallo storico/, /Prossima verifica\s*agosto 2026 \(2° semestre\) — ⚠️ SCADUTO \(calcolata\)/];
+    const atteso = [/Controlli\s*ogni 6 mesi \(semestrale\) · febbraio e agosto/, /Ultima verifica\s*settembre 2026 \(2° semestre\) · dallo storico/, /Prossima verifica\s*febbraio 2027 \(1° semestre\) \(calcolata\)/];
     const manca = atteso.filter(r => !r.test(sch));
     if (manca.length) KO('scheda del presidio: manca ' + manca.join(' ; ') + ' — testo: ' + sch.slice(0, 500));
-    else righe.push('scheda del presidio (390 px): periodicità «ogni 6 mesi · febbraio e agosto», ultima verifica «febbraio 2026 · dallo storico», prossima «agosto 2026 — SCADUTO (calcolata)»');
+    else righe.push('scheda del presidio (390 px), caso di produzione (scheda nella casella di febbraio con la data 08/09/2026): «ogni 6 mesi · febbraio e agosto», ultima «settembre 2026 · dallo storico», prossima «febbraio 2027 (calcolata)», non scaduta');
+    const riserva = await s.page.evaluate(() => { const r = periodoPresidio({ ciclo_manutenzione: 'febbraio_agosto', periodicita_mesi: 6, data_ultimo_controllo: '2025-03-04' }, { anno: 2026, mese: 2 }); return testoMesePeriodo(r.prossimo) + (r.scaduto ? ' SCADUTO' : ''); });
+    if (riserva !== 'agosto 2026 (2° semestre) SCADUTO') KO('calcolo senza data nella scheda: ' + riserva); else righe.push('senza data nella scheda (solo casella febbraio 2026): prossima «agosto 2026 SCADUTO»');
     await s.page.screenshot({ path: path.join(CARTELLA_OUT, 'scheda-presidio-390.png') });
     await s.page.evaluate(() => closeM('m-scheda-presidio'));
     // riquadro In ritardo

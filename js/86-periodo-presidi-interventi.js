@@ -65,16 +65,25 @@ function testoPeriodicitaPresidio(per) {
   return [ogni, mesi].filter(Boolean).join(' · ');
 }
 
-// Ultima scheda dello storico, letta prima di disegnare la scheda
+// Ultima scheda dello storico, letta prima di disegnare la scheda. Conta la
+// DATA VERA del controllo scritta nella scheda (dati.data_ultimo_controllo: la
+// salvano le importazioni e "Esegui intervento", sql/255); la casella anno/mese
+// solo se la data manca (le schede importate prima del 04/11 sono nel "mese 2"
+// anche con la verifica di settembre: la casella da sola darebbe febbraio).
 async function leggiStoricoPeriodo(id) {
   try {
     const [rp, rm] = await Promise.all([
-      db.from('schede_presidi').select('anno, mese').eq('impianto_id', id).order('anno', { ascending: false }).order('mese', { ascending: false }).limit(1),
+      db.from('schede_presidi').select('anno, mese, data_controllo:dati->>data_ultimo_controllo').eq('impianto_id', id)
+        .order('anno', { ascending: false }).order('mese', { ascending: false }).limit(12),
       db.from('schede_manichette').select('data_intervento').eq('impianto_id', id).order('data_intervento', { ascending: false, nullsFirst: false }).limit(1)
     ]);
-    const a = rp.data && rp.data[0] && rp.data[0].anno ? { anno: +rp.data[0].anno, mese: +rp.data[0].mese || 1 } : null;
+    let migliore = null;
+    (rp.data || []).forEach(function(r) {
+      const am = /^\d{4}-\d{2}-\d{2}/.test(r.data_controllo || '') ? amDaData(r.data_controllo) : (r.anno ? { anno: +r.anno, mese: +r.mese || 1 } : null);
+      migliore = amMaggiore(migliore, am);
+    });
     const b = rm.data && rm.data[0] ? amDaData(rm.data[0].data_intervento) : null;
-    PERIODO_STORICO[id] = amMaggiore(a, b);
+    PERIODO_STORICO[id] = amMaggiore(migliore, b);
   } catch (e) { PERIODO_STORICO[id] = null; }
 }
 

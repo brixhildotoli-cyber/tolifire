@@ -3186,7 +3186,7 @@ del presidio (apriSchedaPresidio legge prima l'ultima scheda dello storico:
 schede_presidi anno/mese, schede_manichette data_intervento;
 campiSchedaPresidio avvolta): riquadro "📆 Controlli" (periodicita_mesi e mesi
 di ciclo_manutenzione, es. "ogni 6 mesi (semestrale) · febbraio e agosto"),
-"Ultima verifica" dallo storico se più recente ("· dallo storico"), "Prossima
+"Ultima verifica" dallo storico se più recente ("· dallo storico"; conta la DATA VERA dati.data_ultimo_controllo della scheda, la casella anno/mese solo se manca: le schede importate il 20/10 sono nel "mese 2" anche con la verifica di settembre, es. ALESSANDRO CERAMICHE 08/09/2026 → prossima febbraio 2027), "Prossima
 verifica" se vuota calcolata a video (gruppo di due mesi e 6 mesi = mese del
 gruppo del semestre dopo; altrimenti ultimo + periodicità; "— ⚠️ SCADUTO" rosso a
 mese finito; "(calcolata)"), estintori senza revisione "non registrata". DECISIONE
