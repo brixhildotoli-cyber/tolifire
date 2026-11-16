@@ -3261,6 +3261,39 @@ info-seg-30, info-tit-59. Prova test/documenti-finali.spec.js (capo tecnico a
 390 px, segreteria, Acquisti, rappresentante, commessa approvata): TUTTO OK.
 F18.15 (note spese e straordinari) NON FATTA: decisione di Erika del 16/11
 (superflua per ora).
+Dopo sql/151 (F18.25 sospensione, ordini aperti e anticipo, decisioni di Erika
+del 16/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/151": backup, file (senza
+parole di cancellazione), -REGISTRO-CANCELLAZIONI dall'editor, controllo in
+fondo; richiede 07, 22, 26, 28, 67, 71). SOSPENSIONE = SEGNO sopra lo stato
+(commesse.stato NON cambia, nessuno stato nuovo: le 25 funzioni che leggono lo
+stato restano come sono): tabella commesse_sospensioni (motivo 3-500,
+ripresa_prevista, sospesa_il/da/da_nome/da_ruolo, ripresa_il/da/da_nome/nota;
+indice unico parziale: una aperta per commessa; lettura = chi legge la commessa).
+RPC sospendi_commessa(p_commessa_id, p_motivo, p_ripresa_prevista) titolare e
+capo_tecnico (scelta di Erika), non chiusa/annullata, ripresa da oggi;
+riprendi_commessa(p_commessa_id, p_nota) titolare o il capo tecnico che ha
+sospeso. Tabella commesse_anticipo_decisioni (una riga per commessa:
+trattenuto/rimborsato, nota; lettura titolare, segreteria, contabile): RPC
+decidi_anticipo_commessa titolare e segreteria, solo commessa annullata con
+preventivi.anticipo_accredito_data (il rimborso con la nota di credito di
+sql/46, 54). sospensione_commessa_attiva(). Matrice: 20 righe. Sito
+(js/90-sospensione-commessa.js dopo js/89): azioni "⏸ Sospendi" / "▶️
+Riprendi" della scheda comune (registraAzioneScheda di js/63; la sospensione si
+legge PRIMA di caricaSchedaCommessa, avvolta), finestra m-sospendi-commessa (id
+sco-), etichetta "⏸ Sospesa" in cmd-stato e negli elenchi (onclick
+openCommessaDetail, MutationObserver), riquadro cmd-sospensione sotto
+cmd-scheda-oggetto (motivo, chi, ripresa prevista; ordini ordinato/confermato
+di commessa sospesa o annullata ad Acquisti e titolare, data-ordini-aperti;
+anticipo della commessa annullata a titolare e segreteria con Trattenuto /
+Rimborsato), conferma prima di cambiare lo stato di una commessa sospesa
+(salvaStatoCommessa avvolta, solo avviso). Cosa tocca a me:
+ordini-commesse-ferme (commerciale), commesse-sospese-ripresa (titolare,
+capo_tecnico: ripresa prevista <= oggi), anticipo-commesse-annullate (titolare,
+segreteria). Nessun annullamento automatico degli ordini. Guide info-com-44,
+info-ct-35, info-seg-31, info-tit-60. Prove: sql/151-...-PROVA.sql (29 ok) e
+test/sospensione-commessa.spec.js (capo tecnico a 390 px, Acquisti, titolare,
+segreteria, console): TUTTO OK; smoke TUTTO OK con e senza; rollback e
+riesecuzione provati.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

@@ -4181,6 +4181,12 @@
       </p>
       <div class="al2 i">È solo un promemoria: non blocca niente.</div>
 
+      <h4 id="info-com-44">44. ⏸ Commesse sospese o annullate con ordini aperti</h4>
+      <p>
+        Se una commessa viene <b>sospesa</b> o <b>annullata</b> e ha ordini ai fornitori non ancora arrivati, trovi la riga <b>🛒 Ordini aperti di commesse annullate o sospese</b> in "Cosa tocca a me" e un riquadro rosso nella commessa con l'elenco degli ordini. Decidi tu con il fornitore se annullarli o farli slittare: il gestionale non li annulla da solo.
+      </p>
+      <div class="al2 i">È solo un promemoria: nessun blocco.</div>
+
   <h4>Checklist prima dell’invio</h4>
 
   <ul>
@@ -5390,6 +5396,12 @@
       </p>
       <div class="al2 i">È solo un promemoria: non blocca niente.</div>
 
+      <h4 id="info-ct-35">35. ⏸ Sospendere una commessa</h4>
+      <p>
+        Nella scheda della commessa, in "Cosa puoi fare", <b>⏸ Sospendi</b>: scrivi il motivo e, se la sai, la data di ripresa prevista. Lo stato non cambia: accanto compare <b>⏸ Sospesa</b> e sotto l'intestazione il riquadro con motivo e ripresa. Quando si riparte premi <b>▶️ Riprendi</b> (puoi riprendere le commesse che hai sospeso tu; le altre le riprende il titolare). Se la ripresa prevista passa, la trovi in "Cosa tocca a me".
+      </p>
+      <div class="al2 i">È solo un promemoria: nessun blocco.</div>
+
 
 
       <h4>Regole pratiche</h4>
@@ -6567,6 +6579,12 @@
       </p>
       <div class="al2 i">È solo un promemoria: non blocca niente. La barra per posizione non c'è perché le posizioni non sono state fatte (F16.10).</div>
 
+      <h4 id="info-tit-60">60. ⏸ Sospensione, ordini aperti e anticipo</h4>
+      <p>
+        <b>⏸ Sospendi</b> e <b>▶️ Riprendi</b> sono in "Cosa puoi fare" della commessa (tu e il capo tecnico; il capo tecnico riprende solo quelle che ha sospeso lui). Lo stato non cambia, compare "⏸ Sospesa". Con una commessa sospesa o annullata Acquisti vede gli ordini non ancora arrivati e decide se annullarli; tu e la segreteria segnate se l'anticipo già incassato di una commessa annullata è <b>trattenuto</b> o <b>rimborsato</b>.
+      </p>
+      <div class="al2 i">È solo un promemoria: nessun blocco.</div>
+
 
 
       <h4>Regole pratiche</h4>
@@ -7185,6 +7203,12 @@
         Nella scheda della commessa, da quando è <b>in corso</b>, il riquadro <b>📑 Documenti finali</b> dice quali documenti servono al cliente e cosa manca. A te toccano la <b>dichiarazione di corretta posa</b> (la prepari dal riquadro sotto, a fine lavori, e la salvi nella cartella Chiusura) e la <b>DiCo D.M. 37/08</b>: il gestionale non la genera, carica il PDF firmato nella cartella "Chiusura" con "DiCo" o "37-08" nel nome del file.
       </p>
       <div class="al2 i">Esempio: DiCo_impianto_rilevazione.pdf nella cartella Chiusura → la riga diventa ✅.</div>
+
+      <h4 id="info-seg-31">31. 💶 Anticipo di una commessa annullata</h4>
+      <p>
+        Se il titolare annulla una commessa e l'anticipo era già incassato, in "Cosa tocca a me" trovi <b>💶 Commesse annullate: decidere l'anticipo incassato</b>. Nella commessa premi <b>Trattenuto</b> o <b>Rimborsato</b> (con una nota). Per il rimborso fai la nota di credito della fattura d'anticipo dalla pagina Fatture, come sempre.
+      </p>
+      <div class="al2 i">È solo un promemoria: nessun blocco.</div>
 
 
 
@@ -9786,6 +9810,23 @@
   </div>
 </div>
 
+<!-- F18.25 — SOSPENSIONE DELLA COMMESSA (js/90, solo con sql/151) -->
+<div class="mbg" id="m-sospendi-commessa">
+  <div class="modal" style="max-width:460px">
+    <button class="x" onclick="closeM('m-sospendi-commessa')">×</button>
+    <h3>⏸ Sospendi la commessa</h3>
+    <div id="sco-commessa" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <input type="hidden" id="sco-id">
+    <div class="f"><label>Motivo *</label><input type="text" id="sco-motivo" maxlength="500" placeholder="es. il cliente ha fermato il cantiere, manca il materiale"></div>
+    <div class="f"><label>Ripresa prevista</label><input type="date" id="sco-ripresa"></div>
+    <div style="font-size:12px;color:var(--m)">Lo stato della commessa non cambia: compare "⏸ Sospesa" finché non la riprendi. Acquisti vede gli ordini ancora aperti.</div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-sospendi-commessa')">Annulla</button>
+      <button class="btn p" onclick="salvaSospendiCommessa()">⏸ Sospendi</button>
+    </div>
+  </div>
+</div>
+
 <!-- F18.21 — RESO DI MATERIALE (js/84, solo con sql/147) -->
 <div class="mbg" id="m-reso">
   <div class="modal" style="max-width:560px">
@@ -11717,6 +11758,7 @@
 <script defer src="js/87-ordini-sopra-offerta.js?v=202611161541"></script>
 <script defer src="js/88-revisioni-preventivo.js?v=202611161541"></script>
 <script defer src="js/89-documenti-finali.js?v=202611161541"></script>
+<script defer src="js/90-sospensione-commessa.js?v=202611161541"></script>
 <script defer src="js/19-init.js?v=202611161541"></script>
 
 
