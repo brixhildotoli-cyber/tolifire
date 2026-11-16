@@ -448,7 +448,7 @@ inviata_fornitore → arrivata | annullata, chi e quando di ogni passo;
 lettura titolare, commerciale, capo_tecnico, segreteria; nessuna scrittura
 diretta, solo le RPC di sql/268); vedi "Dopo sql/268".
 
-Usate dal frontend — mezzi (sql/129, F17.13, DA ESEGUIRE): mezzi_multe
+Usate dal frontend — mezzi (sql/129, F17.13, ESEGUITO il 16/11 con il -REGISTRO-CANCELLAZIONI): mezzi_multe
 (multe dei mezzi aziendali: mezzo, data, ora, luogo, verbale, importo,
 notifica, scadenza per comunicare il conducente = notifica o data + 60 giorni
 dal database, conducente con nome copiato, conducente proposto, comunicato il,
@@ -457,7 +457,7 @@ chi e quando, nota, annullata con motivo; lettura, inserimento e modifica
 DIRETTI di titolare, segreteria, capo_tecnico, nessuna cancellazione);
 colonne nuove mezzi_attrezzature.fermo_dal e fermo_causa; vedi "Dopo sql/129".
 
-Usate dal frontend — resi (sql/147, F18.21, DA ESEGUIRE): ordini_fornitori_resi
+Usate dal frontend — resi (sql/147, F18.21, ESEGUITO il 16/11 con il -REGISTRO-CANCELLAZIONI): ordini_fornitori_resi
 (reso di materiale sbagliato, danneggiato o mancante di un ordine arrivato:
 problema, descrizione, voci jsonb, foto jsonb della cartella "ordini" della
 commessa, stato segnalato → reso_inviato → chiuso con esito, riordino
@@ -2952,7 +2952,7 @@ controlli), test/gare.spec.js (Acquisti a 390 px, titolare, segreteria,
 capo tecnico e rappresentante senza pagina; GARE_SENZA_SQL=1): TUTTO OK;
 smoke TUTTO OK (ATTESE con 'gare'); matrice TUTTO OK per la tabella nuova.
 Dopo sql/227 (F17.14 solo Acquisti ordina ai fornitori, decisione di Toli E8
-approvata da Erika il 13/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/227":
+approvata da Erika il 13/11; ESEGUITO il 16/11 (backup pre227-147, controllo in regola) con "CONFERMATO DA TOLI: sql/227":
 backup, anteprima in fondo, file (senza parole di cancellazione, server MCP),
 controllo; richiede 30, 42, 71; matrice invariata): AGGANCIO SUL POSTO
 (pg_get_functiondef + replace) di crea_ordine_fornitore (verifica_ruolo
@@ -2971,8 +2971,7 @@ sql/227-...-PROVA.sql: rappresentante e titolare "come" rappresentante
 rifiutati (crea, conferma, annulla), Acquisti crea e conferma, titolare
 annulla, il rappresentante legge ordine e offerte: OK.
 Dopo sql/126 (F17.2 scadenze delle richieste ai fornitori, approvata da
-Erika il 13/11 come solo promemoria; DA ESEGUIRE con "CONFERMATO DA TOLI:
-sql/126": backup, file (senza parole di cancellazione, server MCP),
+Erika il 13/11 come solo promemoria; ESEGUITO il 16/11 (backup pre227-147, controllo in regola) con "CONFERMATO DA TOLI: sql/126": backup, file (senza parole di cancellazione, server MCP),
 controllo; richiede 71; matrice invariata): preventivi_fornitori colonne
 risposta_entro, esito_telefonata (max 500), telefonata_il, telefonata_da,
 telefonata_da_nome (chi e quando dal trigger
@@ -2990,7 +2989,7 @@ info-tit-49. Prove: sql/126-...-PROVA.sql e test/scadenze-fornitori.spec.js
 (Acquisti a 390 px, titolare): TUTTO OK.
 Dopo sql/245 (F17.11 affidabilità del fornitore, approvata da Erika il 13/11
 come SOLA INFORMAZIONE: niente motivo obbligatorio né avviso per i "rossi";
-DA ESEGUIRE con "CONFERMATO DA TOLI: sql/245": backup, file (server MCP),
+ESEGUITO il 16/11 (backup pre227-147, controllo in regola) con "CONFERMATO DA TOLI: sql/245": backup, file (server MCP),
 controllo; richiede 30, 42, 71, 240; nessuna tabella, matrice invariata): RPC
 affidabilita_fornitore(p_fornitore) -> jsonb (solo titolare e commerciale,
 42501 per gli altri anche "come"; ultimi 12 mesi: puntualità 40 = arrivati
@@ -3003,8 +3002,7 @@ fornitore (openFornitoreDetail avvolta), cache 2 minuti. Guide info-com-37,
 info-tit-50. Prove: sql/245-...-PROVA.sql (5 ordini = 69, 2 ordini = pochi
 dati, data spostata non conta) e test/affidabilita-fornitori.spec.js: TUTTO OK.
 Dopo sql/128 (F17.12 ordini liberi senza offerta, destinazione COMMESSA,
-decisione di Toli D3 approvata da Erika il 13/11; DA ESEGUIRE con "CONFERMATO
-DA TOLI: sql/128": backup, 128-...-VINCOLO.sql dall'EDITOR (drop e add di
+decisione di Toli D3 approvata da Erika il 13/11; ESEGUITO il 16/11 (backup pre227-147, controllo in regola) con "CONFERMATO DA TOLI: sql/128": backup, 128-...-VINCOLO.sql dall'EDITOR (drop e add di
 ordini_fornitori_stato_check con 'da_approvare'), poi 128-ordini-liberi-senza-
 offerta.sql (senza parole di cancellazione, server MCP), controllo in fondo;
 richiede 30, 62, 65, 71; matrice invariata): ordini_fornitori colonne origine
@@ -3032,7 +3030,7 @@ rappresentante): TUTTO OK; smoke TUTTO OK; rollback e riesecuzione provati.
 Dopo sql/129 (F17.13 mezzo fermo e multe, VERSIONE RIDOTTA decisa da Erika il
 13/11: niente scadenze di assicurazione/revisione/bollo/tagliando, niente
 incidenti, niente pagina nuova; conducente proposto solo dalla squadra del
-cantiere. DA ESEGUIRE con "CONFERMATO DA TOLI: sql/129": backup, file (senza
+cantiere. ESEGUITO il 16/11 (backup pre227-147, controllo in regola) con "CONFERMATO DA TOLI: sql/129": backup, file (senza
 parole di cancellazione, server MCP), -REGISTRO-CANCELLAZIONI dall'EDITOR,
 controllo in fondo; richiede 07, 35, 67, 71; matrice: 10 righe nuove;
 il sito si pubblica prima o dopo). mezzi_attrezzature: fermo_dal, fermo_causa
@@ -3082,8 +3080,7 @@ Guide info-rap-38, info-tit-53, info-seg-28. Prova test/anticipi-attesa.spec.js
 390 px, titolare con la pagina Decisioni, segreteria): TUTTO OK; smoke TUTTO OK.
 Dopo sql/141 (F18.14 noli con restituzione e inventario delle attrezzature,
 versione decisa da Erika il 16/11: restituzione e proroga, a chi è assegnata
-e dove, stato; NON il "nolo contestato". DA ESEGUIRE con "CONFERMATO DA TOLI:
-sql/141": backup, file (senza parole di cancellazione, server MCP), controllo
+e dove, stato; NON il "nolo contestato". ESEGUITO il 16/11 (backup pre227-147, controllo in regola) con "CONFERMATO DA TOLI: sql/141": backup, file (senza parole di cancellazione, server MCP), controllo
 in fondo; richiede 07, 31, 35, 71, 129 (si ferma senza: va eseguito DOPO
 sql/129); nessuna tabella nuova, matrice invariata). mezzi_attrezzature:
 stato (in_uso, fuori_uso, rubata, dismessa; vincolo
@@ -3115,7 +3112,7 @@ titolare toglie, console di tecnico e segreteria rifiutate): TUTTO OK;
 multe-mezzi aggiornato e TUTTO OK; smoke TUTTO OK con e senza; rollback e
 riesecuzione provati.
 Dopo sql/147 (F18.21 reso: materiale sbagliato o danneggiato, scelta da Erika
-il 16/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/147": backup, file (senza
+il 16/11; ESEGUITO il 16/11 (backup pre227-147, controllo in regola) con "CONFERMATO DA TOLI: sql/147": backup, file (senza
 parole di cancellazione, server MCP), -REGISTRO-CANCELLAZIONI dall'EDITOR,
 controllo in fondo; richiede 07, 29, 30, 65, 67, 71; 128 per il riordino;
 matrice: 10 righe nuove). Tabella ordini_fornitori_resi (vedi "Tabelle
@@ -5125,6 +5122,11 @@ già provato, dopo il backup fatto da Erika (sql/BACKUP.md) e la frase
 "CONFERMATO DA TOLI: sql/NN"; poi lancia la query di controllo del
 file. Nessuna scrittura di dati fuori da un file confermato. Il
 collegamento non rispetta le RLS: leggere solo i dati che servono.
+Dal 16/11 il server di `.mcp.json` nell'estensione di VS Code non si collega
+più (anche con enabledMcpjsonServers in .claude/settings.local.json): Supabase
+è collegato come CONNETTORE DI CLAUDE.AI (strumenti mcp__claude_ai_Supabase__*,
+progetto di produzione = quello di SU in js/01). Stesse regole: un file sql/NN
+solo dopo backup e "CONFERMATO DA TOLI"; file con drop/delete dall'editor.
 Il server MCP rifiuta da solo i comandi distruttivi (drop, delete...):
 la conferma che chiede non arriva in VS Code. File con drop: li esegue
 Erika nell'editor SQL, Claude lancia solo il controllo (es. sql/240).
