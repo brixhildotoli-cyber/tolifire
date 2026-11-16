@@ -66,35 +66,82 @@ function mezzoDaId(id) {
     || (MEZZI_MULTE.mezzi || []).find(function(m) { return m.id === id; });
 }
 
-function apriFermoMezzo(id) {
+// F18.14 (sql/141): stato in uso / fuori uso / rubata / dismessa, a chi è
+// assegnata e dove si trova. Senza sql/141 (m.stato assente) solo il fermo.
+const STATI_ATTREZZATURA = { in_uso: 'In uso', fuori_uso: 'Fuori uso', rubata: 'Rubata', dismessa: 'Dismessa' };
+function conStatoAttrezzatura(m) { return !!m && m.stato !== undefined; }
+
+async function apriFermoMezzo(id) {
   const m = mezzoDaId(id);
   if (!m) return;
+  const stato = conStatoAttrezzatura(m);
+  if (stato && !MEZZI_MULTE.utenti) await leggiMezziEUtentiMulte();
   ge('mzf-id').value = m.id;
-  ge('mzf-titolo').textContent = '🛑 ' + nomeMezzoSquadra(m);
+  ge('mzf-titolo').textContent = (stato ? '📍 ' : '🛑 ') + nomeMezzoSquadra(m);
   ge('mzf-dal').value = m.fermo_dal || dataLocaleISO();
   ge('mzf-causa').value = m.fermo_causa || '';
-  ge('mzf-rimetti').style.display = m.fermo_dal ? '' : 'none';
+  ge('mzf-stato-box').style.display = stato ? '' : 'none';
+  document.querySelectorAll('#m-mezzo-fermo .mzf-solo-stato').forEach(function(el) { el.style.display = stato ? '' : 'none'; });
+  ge('mzf-fermo-box').style.display = '';
+  ge('mzf-aiuto').style.display = stato ? 'none' : '';
+  if (stato) {
+    ge('mzf-stato').value = m.stato || 'in_uso';
+    ge('mzf-assegnata').innerHTML = '<option value="">— nessuno —</option>' + (MEZZI_MULTE.utenti || [])
+      .filter(function(u) { return u.attivo !== false || u.id === m.assegnata_a; })
+      .map(function(u) { return '<option value="' + esc(u.id) + '"' + (u.id === m.assegnata_a ? ' selected' : '') + '>' + esc(nomeUtenteMulta(u)) + '</option>'; }).join('');
+    ge('mzf-dove').value = m.dove || '';
+    cambiaStatoAttrezzatura();
+  }
+  ge('mzf-rimetti').style.display = !stato && m.fermo_dal ? '' : 'none';
+  ge('mzf-salva').textContent = stato ? '💾 Salva' : '💾 Segna fermo';
   openM('m-mezzo-fermo');
+}
+
+function cambiaStatoAttrezzatura() {
+  const inUso = v('mzf-stato') === 'in_uso';
+  ge('mzf-fermo-box').style.display = inUso ? 'none' : '';
+  ge('mzf-nota-stato').textContent = v('mzf-stato') === 'dismessa'
+    ? 'Dismessa: diventa anche "non attiva" e non si sceglie più nella squadra (resta nei giorni passati).'
+    : (inUso ? '' : 'Si può ancora scegliere nella squadra del giorno, ma compare con l\'avviso rosso.');
 }
 
 async function salvaFermoMezzo(rimetti) {
   const id = v('mzf-id');
+  const m = mezzoDaId(id);
   const causa = String(v('mzf-causa') || '').trim();
-  const riga = rimetti ? { fermo_dal: null, fermo_causa: null } : { fermo_dal: v('mzf-dal'), fermo_causa: causa };
-  if (!rimetti) {
-    if (!riga.fermo_dal) { toast('Indica da quando è fermo', 'err'); return; }
-    if (causa.length < 3) { toast('Scrivi la causa del fermo (es. in officina, guasto)', 'err'); return; }
+  let riga;
+  if (conStatoAttrezzatura(m)) {
+    const stato = v('mzf-stato');
+    riga = { stato: stato, assegnata_a: v('mzf-assegnata') || null, dove: String(v('mzf-dove') || '').trim() || null,
+             fermo_dal: stato === 'in_uso' ? null : v('mzf-dal'), fermo_causa: stato === 'in_uso' ? null : causa };
+    if (stato === 'dismessa') riga.attivo = false;
+    if (stato !== 'in_uso' && !riga.fermo_dal) { toast('Indica da quando', 'err'); return; }
+    if (stato !== 'in_uso' && causa.length < 3) { toast('Scrivi la causa (es. guasto, in officina, furto denunciato)', 'err'); return; }
+  } else {
+    riga = rimetti ? { fermo_dal: null, fermo_causa: null } : { fermo_dal: v('mzf-dal'), fermo_causa: causa };
+    if (!rimetti) {
+      if (!riga.fermo_dal) { toast('Indica da quando è fermo', 'err'); return; }
+      if (causa.length < 3) { toast('Scrivi la causa del fermo (es. in officina, guasto)', 'err'); return; }
+    }
   }
   const { error } = await db.from('mezzi_attrezzature').update(riga).eq('id', id);
   if (error) { toast('Non salvato: ' + error.message, 'err'); return; }
   closeM('m-mezzo-fermo');
-  toast(rimetti ? 'Mezzo di nuovo in servizio' : 'Mezzo segnato fermo', 'ok');
+  toast(riga.stato ? 'Salvato: ' + STATI_ATTREZZATURA[riga.stato] : (rimetti ? 'Mezzo di nuovo in servizio' : 'Mezzo segnato fermo'), 'ok');
   if (typeof ricaricaMezziSquadra === 'function' && squadraAperta) await ricaricaMezziSquadra();
   MEZZI_MULTE.mezzi = null;
 }
 
 function testoFermoMezzo(m) {
-  return m && m.fermo_dal ? '🛑 Fermo dal ' + dataItMulta(m.fermo_dal) + (m.fermo_causa ? ': ' + m.fermo_causa : '') : '';
+  if (!m || !m.fermo_dal) return '';
+  const nome = conStatoAttrezzatura(m) ? ({ fuori_uso: '🛑 Fuori uso', rubata: '🚨 Rubata', dismessa: '⛔ Dismessa' }[m.stato] || '🛑 Fermo') : '🛑 Fermo';
+  return nome + ' dal ' + dataItMulta(m.fermo_dal) + (m.fermo_causa ? ': ' + m.fermo_causa : '');
+}
+
+function testoPosizioneAttrezzatura(m) {
+  if (!conStatoAttrezzatura(m)) return '';
+  const u = m.assegnata_a ? (MEZZI_MULTE.utenti || []).find(function(x) { return x.id === m.assegnata_a; }) : null;
+  return [u ? '👤 ' + nomeUtenteMulta(u) : (m.assegnata_a ? '👤 assegnata' : ''), m.dove ? '📍 ' + m.dove : ''].filter(Boolean).join(' · ');
 }
 
 // Elenco dei mezzi (js/33): bottoni Fermo e Multe e riga del fermo
@@ -109,6 +156,9 @@ if (typeof renderElencoMezzi === 'function') {
     }
     const box = ge('mza-elenco');
     if (!box) return;
+    if (!MEZZI_MULTE.utenti && (squadraAperta?.mezzi || []).some(function(m) { return m.assegnata_a; })) {
+      leggiMezziEUtentiMulte().then(function() { renderElencoMezzi(); });
+    }
     if (!box.querySelector('[data-multe-tutte]')) {
       box.insertAdjacentHTML('afterbegin', '<div data-multe-tutte style="margin-bottom:8px"><button class="btn sm" onclick="apriMulteMezzo(null)">🧾 Tutte le multe</button></div>');
     }
@@ -116,15 +166,17 @@ if (typeof renderElencoMezzi === 'function') {
       const id = (b.getAttribute('onclick').match(/'([^']+)'/) || [])[1];
       const m = mezzoDaId(id);
       if (!m || b.parentNode.querySelector('[data-mezzo-multe]')) return;
-      if (m.tipo === 'mezzo') {
+      const conStato = conStatoAttrezzatura(m);
+      if (m.tipo === 'mezzo' || conStato) {
         b.parentNode.insertAdjacentHTML('afterbegin',
-          '<button class="btn sm" data-mezzo-fermo onclick="apriFermoMezzo(\'' + esc(m.id) + '\')">' + (m.fermo_dal ? '🛑 Fermo' : '🛑 Segna fermo') + '</button>' +
-          '<button class="btn sm" data-mezzo-multe onclick="apriMulteMezzo(\'' + esc(m.id) + '\')">🧾 Multe</button>');
+          '<button class="btn sm" data-mezzo-fermo onclick="apriFermoMezzo(\'' + esc(m.id) + '\')">' + (conStato ? '📍 Stato e posizione' : (m.fermo_dal ? '🛑 Fermo' : '🛑 Segna fermo')) + '</button>' +
+          (m.tipo === 'mezzo' ? '<button class="btn sm" data-mezzo-multe onclick="apriMulteMezzo(\'' + esc(m.id) + '\')">🧾 Multe</button>' : '<span data-mezzo-multe></span>'));
       }
-      if (m.fermo_dal) {
-        const testo = b.closest('div[style*="justify-content:space-between"]')?.querySelector('div[style*="min-width:0"]');
-        if (testo) testo.insertAdjacentHTML('beforeend', '<div style="font-size:12px;color:var(--r);font-weight:600">' + esc(testoFermoMezzo(m)) + '</div>');
-      }
+      const testo = b.closest('div[style*="justify-content:space-between"]')?.querySelector('div[style*="min-width:0"]');
+      if (testo) testo.style.minWidth = '160px'; // sul telefono i bottoni vanno a capo, il nome resta leggibile
+      if (testo && m.fermo_dal) testo.insertAdjacentHTML('beforeend', '<div style="font-size:12px;color:var(--r);font-weight:600">' + esc(testoFermoMezzo(m)) + '</div>');
+      const pos = testoPosizioneAttrezzatura(m);
+      if (testo && pos) testo.insertAdjacentHTML('beforeend', '<div style="font-size:12px;color:var(--m)">' + esc(pos) + '</div>');
     });
   };
 }

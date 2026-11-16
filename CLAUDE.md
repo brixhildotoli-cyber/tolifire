@@ -3073,6 +3073,40 @@ NON FATTO: anticipo di default dal cliente (dipende da F16.39, rimandata).
 Guide info-rap-38, info-tit-53, info-seg-28. Prova test/anticipi-attesa.spec.js
 (database locale, preventivo accettato 8/16/31/61 giorni fa; rappresentante a
 390 px, titolare con la pagina Decisioni, segreteria): TUTTO OK; smoke TUTTO OK.
+Dopo sql/141 (F18.14 noli con restituzione e inventario delle attrezzature,
+versione decisa da Erika il 16/11: restituzione e proroga, a chi è assegnata
+e dove, stato; NON il "nolo contestato". DA ESEGUIRE con "CONFERMATO DA TOLI:
+sql/141": backup, file (senza parole di cancellazione, server MCP), controllo
+in fondo; richiede 07, 31, 35, 71, 129 (si ferma senza: va eseguito DOPO
+sql/129); nessuna tabella nuova, matrice invariata). mezzi_attrezzature:
+stato (in_uso, fuori_uso, rubata, dismessa; vincolo
+mezzi_attrezzature_stato_fermo_check: diverso da in uso = fermo_dal e
+fermo_causa di sql/129 compilati, i mezzi già fermi diventano fuori_uso),
+assegnata_a (utente), dove (max 200): update diretto dei ruoli di sql/35,
+chi e quando nel registro delle azioni. commesse_richieste_integrazione
+(solo noli): restituito_il, restituito_da/_nome, restituzione_registrata_il,
+nota_restituzione, proroghe jsonb [{da, a, motivo, chi, il}]. RPC
+segna_nolo_restituito(p_richiesta_id, p_data, p_nota) (titolare, capo
+tecnico, Acquisti, segreteria; noli evasi o arrivati; data non futura; anche a
+commessa chiusa), proroga_nolo(p_richiesta_id, p_fino_al, p_motivo)
+(titolare, capo tecnico, Acquisti; data dopo quella di prima, motivo 3-300),
+annulla_restituzione_nolo(p_richiesta_id) (solo titolare),
+noli_restituzione_attiva(); interna nome_utente_nolo(). Sito
+(js/83-noli-restituzione.js dopo js/82 + js/81, index.html m-nolo id nol-,
+m-mezzo-fermo esteso): sulle righe dei noli di js/28 "Da restituire entro il"
+(gialla entro 2 giorni, rossa se scaduta), "↩️ Restituito", "📅 Proroga",
+"↩️ Restituito il" con "Togli (errore)" del titolare, proroghe nei "Dettagli e
+passaggi"; Cosa tocca a me di capo tecnico e Acquisti "Noli da restituire entro
+2 giorni" e, rossa, "Noli scaduti da restituire" (calcolate nel sito); js/81:
+con sql/141 "📍 Stato e posizione" su mezzi e attrezzature (stato, dal, causa,
+assegnata a, dove; dismessa = anche non attiva), nell'elenco stato e
+"👤 ... · 📍 ...", nella squadra del giorno fuori uso e rubata con l'avviso
+rosso (solo avviso, decisione di Erika). Guide info-ct-30, info-com-39,
+info-tit-54. Prove: sql/141-...-PROVA.sql e test/noli-attrezzature.spec.js
+(capo tecnico a 390 px proroga e trapano fuori uso, Acquisti restituito,
+titolare toglie, console di tecnico e segreteria rifiutate): TUTTO OK;
+multe-mezzi aggiornato e TUTTO OK; smoke TUTTO OK con e senza; rollback e
+riesecuzione provati.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

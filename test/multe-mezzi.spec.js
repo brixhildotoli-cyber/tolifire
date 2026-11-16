@@ -343,17 +343,17 @@ async function apriCommessa(s, id) {
     await s.page.evaluate(() => apriElencoMezzi());
     await attendiQuiete(s.stato, 800);
     await s.page.evaluate(id => apriFermoMezzo(id), mezzo);
-    await s.page.evaluate(() => { ge('mzf-causa').value = 'In officina: frizione'; });
+    await s.page.evaluate(() => { ge('mzf-causa').value = 'In officina: frizione'; if (ge('mzf-stato-box').style.display !== 'none') ge('mzf-stato').value = 'fuori_uso'; });
     await s.page.evaluate(() => salvaFermoMezzo(false));
     await attendiQuiete(s.stato, 1500);
     const fermo = psql("select coalesce(fermo_causa, '') from public.mezzi_attrezzature where id = " + q(mezzo));
     const elenco = await s.page.evaluate(() => ge('mza-elenco').innerText);
-    if (fermo !== 'In officina: frizione' || !/Fermo dal/.test(elenco)) KO('fermo: ' + fermo + ' / ' + elenco.slice(0, 200));
+    if (fermo !== 'In officina: frizione' || !/(Fermo|Fuori uso) dal/.test(elenco)) KO('fermo: ' + fermo + ' / ' + elenco.slice(0, 200));
     else righe.push('capo tecnico (390 px): furgone segnato fermo «In officina: frizione»');
     await s.page.evaluate(() => { closeM('m-mezzi-attrezzature'); apriGiornoSquadra(); });
     await attendiQuiete(s.stato, 1500);
     const sq = await s.page.evaluate(id => { const el = document.querySelector('#m-squadra-giorno .sq-scelta[data-id="' + id + '"]'); return el ? el.innerText : null; }, mezzo);
-    if (!sq || !/Fermo dal/.test(sq)) KO('squadra del giorno senza avviso del fermo: ' + sq); else righe.push('squadra del giorno: il furgone ha l\'avviso «' + sq.split('\n').find(x => /Fermo/.test(x)) + '»');
+    if (!sq || !/(Fermo|Fuori uso) dal/.test(sq)) KO('squadra del giorno senza avviso del fermo: ' + sq); else righe.push('squadra del giorno: il furgone ha l\'avviso «' + sq.split('\n').find(x => /Fermo|Fuori uso/.test(x)) + '»');
     await s.page.screenshot({ path: path.join(CARTELLA_OUT, 'capo-tecnico-squadra-fermo-390.png') });
     await chiudi(s);
     // 4. console: tecnico rifiutato, segreteria che decide l'addebito rifiutata

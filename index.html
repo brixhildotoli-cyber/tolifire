@@ -4145,6 +4145,11 @@
       <p class="info-esempio">Esempio: 10 siliconi REI a 30 € = 300 €: l'ordine nasce "ordinato" e si scarica il PDF da mandare al fornitore.</p>
       <div class="al2 w">Sopra la soglia (2.000 € IVA esclusa, la cambia il titolare nelle Regole) l'ordine resta <b>Da approvare (titolare)</b>: niente PDF finché il titolare non approva. Se lo rifiuta l'ordine si annulla con il suo motivo e ti arriva l'avviso.</div>
 
+      <h4 id="info-com-39">39. 🏗️ Noli: restituzione e proroga</h4>
+      <p>
+        I noli che hai procurato compaiono in "Cosa tocca a me" 2 giorni prima della data di restituzione (<b>Noli da restituire entro 2 giorni</b>) e, rossi, quando la data è passata (<b>Noli scaduti da restituire</b>). Nella commessa, box <b>🧰 Consumabili e noli</b>: <b>↩️ Restituito</b> quando il noleggiatore lo ritira, oppure <b>📅 Proroga</b> con la nuova data e il motivo, dopo averla concordata con il noleggiatore.
+      </p>
+
   <h4>Checklist prima dell’invio</h4>
 
   <ul>
@@ -5306,6 +5311,16 @@
         <b>🧾 Multe</b>: puoi registrare una multa come la segreteria; il conducente proposto è chi avevi messo in squadra quel giorno con quel mezzo. Per questo conviene spuntare sempre i mezzi nella squadra del giorno.
       </p>
 
+      <h4 id="info-ct-30">30. 🏗️ Noli da restituire e attrezzature</h4>
+      <p>
+        Nel box <b>🧰 Consumabili e noli</b> della commessa ogni nolo procurato dagli acquisti mostra <b>Da restituire entro il ...</b> (gialla negli ultimi 2 giorni, rossa se scaduta). In "Cosa tocca a me" trovi <b>Noli da restituire entro 2 giorni</b> e <b>Noli scaduti da restituire</b>. Quando il noleggiatore lo ritira premi <b>↩️ Restituito</b>; se serve ancora, <b>📅 Proroga</b> con la nuova data e il motivo (le proroghe restano nei "Dettagli e passaggi").
+      </p>
+      <p>
+        Nell'<b>Elenco mezzi e attrezzature</b> ogni voce ha <b>📍 Stato e posizione</b>: <b>In uso</b>, <b>Fuori uso</b> (guasto, in officina), <b>Rubata</b> o <b>Dismessa</b>, con la data e la causa, e poi a chi è assegnata e dove si trova (magazzino, furgone, cantiere).
+      </p>
+      <p class="info-esempio">Esempio: dal cantiere ti dicono che il trapano a percussione è guasto: Fuori uso, causa "Guasto segnalato dal cantiere", dove "Furgone Ducato". Nella squadra del giorno il trapano compare con l'avviso rosso: puoi spuntarlo lo stesso, ma è meglio prenderne un altro.</p>
+      <div class="al2 i">Dismessa la toglie anche dalla squadra (non attiva). Quando un'attrezzatura torna a posto rimetti <b>In uso</b>.</div>
+
 
       <h4>Regole pratiche</h4>
 
@@ -6449,6 +6464,11 @@
       <h4 id="info-tit-53">53. ⏳ Anticipi non pagati da 30 e 60 giorni</h4>
       <p>
         Un preventivo accettato con anticipo e non ancora pagato: da <b>30 giorni</b> trovi in "Cosa tocca a me" <b>Anticipi non pagati da più di 30 giorni</b>; da <b>60 giorni</b> la riga rossa <b>... decidi se rifiutare il preventivo</b>, anche nella pagina <b>⚖️ Decisioni</b>. <b>Apri</b> porta alla finestra <b>Rifiuta: anticipo non versato</b> del più vecchio: confermi con il motivo, oppure chiudi e il preventivo resta in attesa. Niente si annulla da solo (decisione E7). Il rappresentante ha già i promemoria a 7 e 15 giorni.
+      </p>
+
+      <h4 id="info-tit-54">54. 🏗️ Noli e attrezzature</h4>
+      <p>
+        Capo tecnico e Acquisti vedono i noli da restituire 2 giorni prima della scadenza e quelli scaduti, e li segnano <b>↩️ Restituito</b> o <b>📅 Proroga</b> con il motivo. Se un nolo è stato segnato restituito per errore, solo tu hai <b>Togli (errore)</b>. Le attrezzature hanno uno stato (in uso, fuori uso, rubata, dismessa) con data e causa, a chi sono assegnate e dove si trovano: le modifiche restano nel registro delle azioni.
       </p>
 
 
@@ -9602,18 +9622,43 @@
   </div>
 </div>
 
-<!-- F17.13 — MEZZO FERMO (js/81, solo con sql/129) -->
+<!-- F17.13 — MEZZO FERMO (js/81, solo con sql/129); F18.14 stato e posizione (sql/141) -->
 <div class="mbg" id="m-mezzo-fermo">
   <div class="modal" style="max-width:440px">
     <button class="x" onclick="closeM('m-mezzo-fermo')">×</button>
     <h3 id="mzf-titolo">🛑 Mezzo fermo</h3>
-    <div style="font-size:12px;color:var(--m);margin-bottom:10px">Un mezzo fermo si può ancora scegliere nella squadra del giorno, ma compare con l'avviso rosso.</div>
     <input type="hidden" id="mzf-id">
-    <div class="f"><label>Fermo dal *</label><input type="date" id="mzf-dal"></div>
-    <div class="f"><label>Causa *</label><input type="text" id="mzf-causa" maxlength="300" placeholder="es. In officina: frizione, Guasto, Incidente"></div>
+    <div id="mzf-stato-box" style="display:none">
+      <div class="f"><label>Stato</label><select id="mzf-stato" onchange="cambiaStatoAttrezzatura()"><option value="in_uso">In uso</option><option value="fuori_uso">Fuori uso (guasto, in officina)</option><option value="rubata">Rubata</option><option value="dismessa">Dismessa</option></select></div>
+      <div id="mzf-nota-stato" style="font-size:12px;color:var(--m);margin:-4px 0 8px"></div>
+    </div>
+    <div id="mzf-fermo-box">
+      <div style="font-size:12px;color:var(--m);margin-bottom:10px" id="mzf-aiuto">Un mezzo fermo si può ancora scegliere nella squadra del giorno, ma compare con l'avviso rosso.</div>
+      <div class="f"><label>Dal *</label><input type="date" id="mzf-dal"></div>
+      <div class="f"><label>Causa *</label><input type="text" id="mzf-causa" maxlength="300" placeholder="es. In officina: frizione, Guasto, Furto denunciato il..."></div>
+    </div>
+    <div id="mzf-posizione" style="display:contents">
+      <div class="f mzf-solo-stato"><label>Assegnata a</label><select id="mzf-assegnata"></select></div>
+      <div class="f mzf-solo-stato"><label>Dove si trova</label><input type="text" id="mzf-dove" maxlength="200" placeholder="es. Magazzino, Furgone Ducato, cantiere 2026-001"></div>
+    </div>
     <div class="ma">
       <button class="btn" id="mzf-rimetti" onclick="salvaFermoMezzo(true)">✅ Rimetti in servizio</button>
-      <button class="btn p" onclick="salvaFermoMezzo(false)">💾 Segna fermo</button>
+      <button class="btn p" id="mzf-salva" onclick="salvaFermoMezzo(false)">💾 Segna fermo</button>
+    </div>
+  </div>
+</div>
+
+<!-- F18.14 — NOLO RESTITUITO O PROROGATO (js/83, solo con sql/141) -->
+<div class="mbg" id="m-nolo">
+  <div class="modal" style="max-width:440px">
+    <button class="x" onclick="closeM('m-nolo')">×</button>
+    <h3 id="nol-titolo">↩️ Nolo</h3>
+    <div id="nol-cosa" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div class="f"><label id="nol-etichetta-data">Data *</label><input type="date" id="nol-data"></div>
+    <div class="f"><label id="nol-etichetta-testo">Nota</label><input type="text" id="nol-testo" maxlength="300"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-nolo')">Annulla</button>
+      <button class="btn p" id="nol-salva" onclick="salvaNolo()">Salva</button>
     </div>
   </div>
 </div>
@@ -11485,6 +11530,7 @@
 <script defer src="js/80-ordini-liberi.js?v=202611131715"></script>
 <script defer src="js/81-mezzi-fermo-multe.js?v=202611131715"></script>
 <script defer src="js/82-anticipi-attesa.js?v=202611131715"></script>
+<script defer src="js/83-noli-restituzione.js?v=202611131715"></script>
 <script defer src="js/19-init.js?v=202611131715"></script>
 
 
