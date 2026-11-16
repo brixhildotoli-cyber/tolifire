@@ -3197,7 +3197,7 @@ il GG/MM/AAAA (manutenzione del N° semestre AAAA)" in cima alla finestra
 dell'intervento (openEditOdl avvolta, mo-ritardo), sotto la data nella pagina
 Interventi (renderO avvolta) e nel riquadro "⏰ In ritardo" della dashboard del
 capo tecnico, ora cliccabile (apriInterventiInRitardo: elenco con tecnico e
-"Apri"). NON FATTI (Erika ha scelto solo il periodo): elenco di cosa è scaduto e
+"Apri"). Cosa si controlla (richiesta di Erika del 16/11, stesso file): presidiPerInterventi(odls) conta i presidi di impianti del cliente nella sede dell'intervento (presidi senza sede valgono per tutte), "🚪 Porte REI: 2 · ..." sotto il tipo nella pagina Interventi (in sottofondo, con controllo del ridisegno), "Da controllare in questa sede" in cima alla finestra dell'intervento e nell'elenco degli interventi in ritardo. NON FATTI (Erika ha scelto solo il periodo): elenco di cosa è scaduto e
 cosa fare nell'intervento, avviso dei doppioni (in produzione #31, #32, #33 dello
 stesso cliente e giorno). Guide info-ct-33, info-tec-26. Prova
 test/periodo-presidi.spec.js (capo tecnico a 390 px): TUTTO OK; smoke TUTTO OK.

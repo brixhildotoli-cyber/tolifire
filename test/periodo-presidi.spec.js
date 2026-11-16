@@ -325,6 +325,13 @@ async function apriCommessa(s, id) {
     await attendiQuiete(s.stato, 2500);
     const tab = await s.page.evaluate(() => ge('otbody').innerText);
     if (!tab.includes(testoAtteso)) KO('pagina Interventi senza il periodo'); else righe.push('pagina Interventi: sotto la data «In ritardo da ' + giorni + ' giorni … (1° semestre 2026)»');
+    const presidiRiga = await s.page.evaluate(() => [...document.querySelectorAll('#otbody [data-presidi-odl]')].length);
+    if (!presidiRiga) KO('pagina Interventi senza i presidi da controllare'); else righe.push('pagina Interventi: sotto il tipo i presidi da controllare della sede (' + presidiRiga + ' righe)');
+    await s.page.evaluate(id => openEditOdl(id), odl);
+    await new Promise(r => setTimeout(r, 2500));
+    const daControllare = await s.page.evaluate(() => (ge('mo-ritardo') || {}).innerText || '');
+    if (!/Da controllare in questa sede:/.test(daControllare)) KO('finestra senza «Da controllare in questa sede»'); else righe.push('finestra dell\'intervento: «' + daControllare.split('\n').find(l => /Da controllare/.test(l)) + '»');
+    await s.page.screenshot({ path: path.join(CARTELLA_OUT, 'intervento-presidi-390.png') });
     for (const x of sessioni) {
       if (x.stato.erroriJs.length) KO('errori JavaScript: ' + x.stato.erroriJs.join(' | '));
       const rete = x.stato.rete.filter(r => !/_attiv[oie]$|stati_fornitore_controlli|elimina_richiesta_acquisto/.test(r.dove) && (r.status >= 500 || /does not exist|Could not find/i.test(r.msg)));

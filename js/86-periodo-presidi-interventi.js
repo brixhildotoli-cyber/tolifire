@@ -137,6 +137,32 @@ function testoRitardoIntervento(o) {
   return '⏰ In ritardo da ' + gg + (gg === 1 ? ' giorno' : ' giorni') + ': era previsto il ' + fd(o.data_pianificata) + ' (' + periodo + ') e non è ancora chiuso.';
 }
 
+
+// ── Cosa si controlla: presidi registrati nella sede dell'intervento ──
+// (l'intervento non dice quali presidi: si ricava dal registro della sede;
+// presidi senza sede = valgono per tutte le sedi del cliente)
+async function presidiPerInterventi(odls) {
+  const out = {};
+  const clienti = [...new Set((odls || []).map(function(o) { return o.cliente_id; }).filter(Boolean))];
+  const righe = [];
+  for (let i = 0; i < clienti.length; i += 100) {
+    const { data, error } = await db.from('impianti').select('tipo, cliente_id, sede_id').in('cliente_id', clienti.slice(i, i + 100)).is('eliminato_il', null).limit(5000);
+    if (error) return out;
+    righe.push.apply(righe, data || []);
+  }
+  (odls || []).forEach(function(o) {
+    const conta = {};
+    righe.forEach(function(r) {
+      if (r.cliente_id !== o.cliente_id) return;
+      if (o.sede_id && r.sede_id && r.sede_id !== o.sede_id) return;
+      conta[r.tipo] = (conta[r.tipo] || 0) + 1;
+    });
+    const tipi = Object.keys(conta);
+    out[o.id] = tipi.length ? tipi.map(function(t) { return tpl(t) + ': ' + conta[t]; }).join(' · ') : 'Nessun presidio registrato in questa sede';
+  });
+  return out;
+}
+
 if (typeof openEditOdl === 'function') {
   const openEditOdlSenzaRitardo = openEditOdl;
   // eslint-disable-next-line no-global-assign
@@ -146,10 +172,13 @@ if (typeof openEditOdl === 'function') {
       const box = document.querySelector('#m-odl .modal');
       const vecchio = ge('mo-ritardo');
       if (vecchio) vecchio.remove();
-      const { data: o } = await db.from('ordini_lavoro').select('id, tipo, stato, data_pianificata, in_ritardo_il').eq('id', id).maybeSingle();
+      const { data: o } = await db.from('ordini_lavoro').select('id, tipo, stato, data_pianificata, in_ritardo_il, cliente_id, sede_id').eq('id', id).maybeSingle();
       const testo = testoRitardoIntervento(o);
+      const presidi = o ? (await presidiPerInterventi([o]))[o.id] : '';
       const titolo = ge('modal-odl-title');
-      if (box && titolo && testo) titolo.insertAdjacentHTML('afterend', '<div id="mo-ritardo" class="al2 w" style="margin:8px 0">' + esc(testo) + '</div>');
+      if (box && titolo && (testo || presidi)) titolo.insertAdjacentHTML('afterend', '<div id="mo-ritardo" style="margin:8px 0">' +
+        (testo ? '<div class="al2 w" style="margin:0 0 6px">' + esc(testo) + '</div>' : '') +
+        (presidi ? '<div class="al2 i" style="margin:0">Da controllare in questa sede: <b>' + esc(presidi) + '</b></div>' : '') + '</div>');
     } catch (e) { console.warn('Intervento in ritardo:', e); }
     return esito;
   };
@@ -167,6 +196,18 @@ if (typeof renderO === 'function') {
         const cella = righe[i] && righe[i].cells[4];
         if (testo && cella) cella.insertAdjacentHTML('beforeend', '<div style="font-size:11px;color:var(--r);font-weight:600;margin-top:2px">' + esc(testo.replace(' e non è ancora chiuso.', '')) + '</div>');
       });
+      // Cosa si controlla, sotto il tipo (in sottofondo)
+      const tb = ge('otbody'), giro = {};
+      if (tb) tb._giroPresidi = giro;
+      presidiPerInterventi(data).then(function(mappa) {
+        if (!tb || tb._giroPresidi !== giro) return; // la lista è stata ridisegnata nel frattempo
+        (data || []).forEach(function(o, i) {
+          const cella = righe[i] && righe[i].cells[2];
+          if (cella && mappa[o.id] && !cella.querySelector('[data-presidi-odl]')) {
+            cella.insertAdjacentHTML('beforeend', '<div data-presidi-odl style="font-size:11px;color:var(--m);margin-top:2px">' + esc(mappa[o.id]) + '</div>');
+          }
+        });
+      });
     } catch (e) { console.warn('Interventi in ritardo:', e); }
     return esito;
   };
@@ -178,15 +219,17 @@ async function apriInterventiInRitardo() {
   const box = ge('mir-elenco');
   box.innerHTML = '<div class="load">Caricamento…</div>';
   const { data, error } = await db.from('ordini_lavoro')
-    .select('id, numero, tipo, stato, data_pianificata, in_ritardo_il, clienti(ragione_sociale), utenti!ordini_lavoro_tecnico_id_fkey(nome, cognome)')
+    .select('id, numero, tipo, stato, data_pianificata, in_ritardo_il, cliente_id, sede_id, clienti(ragione_sociale), utenti!ordini_lavoro_tecnico_id_fkey(nome, cognome)')
     .is('eliminato_il', null).not('in_ritardo_il', 'is', null).not('stato', 'in', '(completato,annullato)')
     .order('data_pianificata', { ascending: true }).limit(200);
   if (error) { box.innerHTML = '<div class="al2 e">Interventi non letti: ' + esc(error.message) + '</div>'; return; }
   const tipi = { ordinario_programmato: 'Manutenzione programmata', ordinario_chiamata: 'Su chiamata', straordinario: 'Straordinario', corso: 'Corso' };
+  const presidi = await presidiPerInterventi(data || []);
   box.innerHTML = (data || []).length ? data.map(function(o) {
     return '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--bo)">' +
       '<div style="min-width:160px;flex:1"><div style="font-weight:700">' + (o.numero ? '#' + esc(o.numero) + ' · ' : '') + esc(o.clienti?.ragione_sociale || '—') + '</div>' +
       '<div style="font-size:12px;color:var(--m)">' + esc(tipi[o.tipo] || o.tipo || '') + ' · ' + (o.utenti ? esc(o.utenti.nome + ' ' + o.utenti.cognome) : '<span style="color:var(--r)">senza tecnico</span>') + '</div>' +
+      '<div style="font-size:12px">Da controllare: ' + esc(presidi[o.id] || '—') + '</div>' +
       '<div style="font-size:12px;color:var(--r);font-weight:600">' + esc(testoRitardoIntervento(o)) + '</div></div>' +
       '<button class="btn sm" onclick="closeM(\'m-interventi-ritardo\');openEditOdl(\'' + esc(o.id) + '\')">Apri</button></div>';
   }).join('') : '<div class="empty">✅ Nessun intervento in ritardo.</div>';
