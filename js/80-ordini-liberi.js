@@ -51,7 +51,11 @@ if (typeof apriNuovoOrdineFornitore === 'function') {
   };
 }
 
+// F18.21: funzione chiamata con l'id del nuovo ordine (js/84, riordino di un reso)
+let dopoOrdineLibero = null;
+
 async function apriOrdineLibero() {
+  dopoOrdineLibero = null; // un riordino lasciato a metà non si collega a un altro ordine
   const commessa = commessaOrdiniAperta;
   if (!commessa) return;
   if (!ORDINI_LIBERI.fornitori) {
@@ -138,6 +142,8 @@ async function salvaOrdineLibero() {
     p_allegato_path: allegatoPath, p_allegato_nome: allegatoNome
   });
   if (error || !ordineId) { ripristina(); toast('Ordine non creato: ' + (error?.message || 'errore sconosciuto'), 'err'); return; }
+  // F18.21: il riordino di un reso si collega al reso (js/84)
+  if (typeof dopoOrdineLibero === 'function') { try { await dopoOrdineLibero(ordineId); } catch (e) { console.warn('Dopo l\'ordine libero:', e); } dopoOrdineLibero = null; }
   const salvaInCartella = !!ge('mof-salva-cartella')?.checked && documentiCommessaDisponibili === true && puoCaricareDocumentiCommessa(commessa);
   closeM('m-ordine-fornitore');
   const { data: ordine } = await db.from('ordini_fornitori').select('stato').eq('id', ordineId).maybeSingle();

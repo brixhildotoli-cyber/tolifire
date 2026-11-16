@@ -340,7 +340,7 @@ function htmlElencoOrdiniCommessa(commessa) {
       }
 
       return `
-        <div style="padding:8px 0;border-bottom:1px solid var(--bo)${o.stato === 'annullato' ? ';opacity:.65' : ''}">
+        <div data-ordine-id="${esc(o.id)}" style="padding:8px 0;border-bottom:1px solid var(--bo)${o.stato === 'annullato' ? ';opacity:.65' : ''}">
           <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
             <div style="min-width:0;flex:1">
               <div style="font-weight:700">${esc(o.codice)} · ${esc(o.fornitore_ragione_sociale)} ${badgeStatoOrdineFornitore(o.stato)}${o.origine === 'libero' ? ' <span class="bx bgray">Ordine libero</span>' : ''}</div>

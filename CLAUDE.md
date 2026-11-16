@@ -457,6 +457,13 @@ chi e quando, nota, annullata con motivo; lettura, inserimento e modifica
 DIRETTI di titolare, segreteria, capo_tecnico, nessuna cancellazione);
 colonne nuove mezzi_attrezzature.fermo_dal e fermo_causa; vedi "Dopo sql/129".
 
+Usate dal frontend — resi (sql/147, F18.21, DA ESEGUIRE): ordini_fornitori_resi
+(reso di materiale sbagliato, danneggiato o mancante di un ordine arrivato:
+problema, descrizione, voci jsonb, foto jsonb della cartella "ordini" della
+commessa, stato segnalato → reso_inviato → chiuso con esito, riordino
+collegato, causale SOLO del titolare con chi e quando; lettura per chi legge
+l'ordine, nessuna scrittura diretta: solo le RPC di sql/147); vedi "Dopo sql/147".
+
 Usate dal frontend — fatturazione:
 fatture (lista, js/06-fatture-workflow.js `loadFatture`; il modulo Fatture
 è in costruzione, vedi sotto). Dopo sql/45 (F11.1, eseguito il 30/10):
@@ -3106,6 +3113,40 @@ info-tit-54. Prove: sql/141-...-PROVA.sql e test/noli-attrezzature.spec.js
 (capo tecnico a 390 px proroga e trapano fuori uso, Acquisti restituito,
 titolare toglie, console di tecnico e segreteria rifiutate): TUTTO OK;
 multe-mezzi aggiornato e TUTTO OK; smoke TUTTO OK con e senza; rollback e
+riesecuzione provati.
+Dopo sql/147 (F18.21 reso: materiale sbagliato o danneggiato, scelta da Erika
+il 16/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/147": backup, file (senza
+parole di cancellazione, server MCP), -REGISTRO-CANCELLAZIONI dall'EDITOR,
+controllo in fondo; richiede 07, 29, 30, 65, 67, 71; 128 per il riordino;
+matrice: 10 righe nuove). Tabella ordini_fornitori_resi (vedi "Tabelle
+Supabase"); policy di lettura con la sottoquery su ordini_fornitori (RLS di
+sql/30). RPC segnala_reso_ordine(p_ordine_id, p_problema, p_descrizione,
+p_voci, p_foto) (titolare, capo tecnico, Acquisti; ordine 'arrivato'; voci con
+quantità; foto solo <commessa>/ordini/; avviso 'reso_segnalato' al ruolo
+commerciale con rif l'ordine, se non segnala lui), aggiorna_reso_ordine(p_id,
+p_azione reso_inviato|riordine|chiudi, p_esito, p_nota, p_riordine_ordine_id)
+(titolare, Acquisti; riordino = altro ordine non annullato della stessa
+commessa; esito sostituito/rimborsato/tenuto/altro con nota; chiude l'avviso),
+imposta_causale_reso(p_id, p_causale, p_nota) (SOLO titolare, anche "come" =
+42501: fornitore, rilievo, trasporto, progetto), resi_ordini_attivi(); interne
+nome_utente_reso, chiudi_avvisi_reso_ordine, segna_reso_controlla_elenchi.
+Sito (js/84-resi-ordini.js dopo js/83; js/27: data-ordine-id sulla riga
+dell'ordine; js/80: dopoOrdineLibero(id), aggancio dopo la creazione
+dell'ordine libero, azzerato a ogni apertura; index.html m-reso id rso-): sotto
+l'ordine arrivato "⚠️ Segnala problema" (problema, descrizione, voci con
+quantità, foto rimpicciolite con ridimensionaFotoGiornale di js/35 nella
+cartella "ordini" con registra_documento_commessa) e l'elenco dei resi con
+stato e causale; "Apri": passaggi e foto, Acquisti e titolare "📦 Reso al
+fornitore", "🔁 Riordina (ordine libero)" (finestra di js/80 già compilata con
+fornitore, voci, prezzi, nota; il nuovo ordine si collega al reso), "✅ Chiudi
+il reso" con l'esito; titolare la causale. Cosa tocca a me: Acquisti "Resi da
+gestire", titolare "Resi: causale da decidere"; TIPI_AVVISO reso_segnalato.
+NON FATTI: magazzino "fuori standard" (modulo Magazzino), riga nel report del
+venerdì (non esiste). Guide info-ct-31, info-com-40, info-tit-55. Prove:
+sql/147-...-PROVA.sql e test/resi-ordini.spec.js (capo tecnico a 390 px
+segnala, Acquisti reso/riordino/chiusura, titolare causale, console di tecnico
+e Acquisti rifiutate): TUTTO OK; caricamento delle foto NON provato in locale
+(niente Storage); ordini-liberi e smoke TUTTO OK con e senza; rollback e
 riesecuzione provati.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra

@@ -4150,6 +4150,12 @@
         I noli che hai procurato compaiono in "Cosa tocca a me" 2 giorni prima della data di restituzione (<b>Noli da restituire entro 2 giorni</b>) e, rossi, quando la data è passata (<b>Noli scaduti da restituire</b>). Nella commessa, box <b>🧰 Consumabili e noli</b>: <b>↩️ Restituito</b> quando il noleggiatore lo ritira, oppure <b>📅 Proroga</b> con la nuova data e il motivo, dopo averla concordata con il noleggiatore.
       </p>
 
+      <h4 id="info-com-40">40. ⚠️ Resi al fornitore</h4>
+      <p>
+        Quando il capo tecnico segnala materiale sbagliato o danneggiato ricevi l'avviso e in "Cosa tocca a me" trovi <b>Resi da gestire</b>. Nella commessa, sotto l'ordine, <b>Apri</b> il reso: <b>📦 Reso al fornitore</b> quando parte il reso, <b>🔁 Riordina</b> per rifare il materiale (si apre l'ordine libero già compilato con fornitore, voci e prezzi; salvato, si collega da solo al reso), poi <b>✅ Chiudi il reso</b> con l'esito (sostituito, rimborsato, tenuto o altro con la nota).
+      </p>
+      <div class="al2 i">Puoi segnalare un problema anche tu, dalla stessa riga dell'ordine. La causale (di chi è la colpa) la sceglie il titolare.</div>
+
   <h4>Checklist prima dell’invio</h4>
 
   <ul>
@@ -5321,6 +5327,12 @@
       <p class="info-esempio">Esempio: dal cantiere ti dicono che il trapano a percussione è guasto: Fuori uso, causa "Guasto segnalato dal cantiere", dove "Furgone Ducato". Nella squadra del giorno il trapano compare con l'avviso rosso: puoi spuntarlo lo stesso, ma è meglio prenderne un altro.</p>
       <div class="al2 i">Dismessa la toglie anche dalla squadra (non attiva). Quando un'attrezzatura torna a posto rimetti <b>In uso</b>.</div>
 
+      <h4 id="info-ct-31">31. ⚠️ Materiale sbagliato o danneggiato</h4>
+      <p>
+        È arrivato materiale rovinato, sbagliato o ne manca una parte: nella commessa, box <b>🛒 Ordini ai fornitori</b>, sotto l'ordine arrivato premi <b>⚠️ Segnala problema</b>. Scegli il problema, scrivi cosa non va, spunta le voci con la quantità e fai le foto (consigliate). Acquisti riceve l'avviso e si occupa del reso e del riordino; sotto l'ordine vedi lo stato del reso.
+      </p>
+      <p class="info-esempio">Esempio: delle 2 porte REI 60 una è ammaccata sul montante: Danneggiato, "Porta ammaccata sul montante", 1 pz, due foto.</p>
+
 
       <h4>Regole pratiche</h4>
 
@@ -6469,6 +6481,11 @@
       <h4 id="info-tit-54">54. 🏗️ Noli e attrezzature</h4>
       <p>
         Capo tecnico e Acquisti vedono i noli da restituire 2 giorni prima della scadenza e quelli scaduti, e li segnano <b>↩️ Restituito</b> o <b>📅 Proroga</b> con il motivo. Se un nolo è stato segnato restituito per errore, solo tu hai <b>Togli (errore)</b>. Le attrezzature hanno uno stato (in uso, fuori uso, rubata, dismessa) con data e causa, a chi sono assegnate e dove si trovano: le modifiche restano nel registro delle azioni.
+      </p>
+
+      <h4 id="info-tit-55">55. ⚠️ Resi: la causale</h4>
+      <p>
+        Per ogni reso di materiale (segnalato dal capo tecnico o da Acquisti sotto l'ordine arrivato) scegli tu la <b>causale</b>: <b>Fornitore</b>, <b>Rilievo</b>, <b>Trasporto</b> o <b>Progetto</b>, con una nota. In "Cosa tocca a me" trovi <b>Resi: causale da decidere</b>; nella commessa, sotto l'ordine, <b>Apri</b> il reso e <b>💾 Salva la causale</b>. La causale resta scritta sotto l'ordine con il tuo nome e la data.
       </p>
 
 
@@ -9648,6 +9665,48 @@
   </div>
 </div>
 
+<!-- F18.21 — RESO DI MATERIALE (js/84, solo con sql/147) -->
+<div class="mbg" id="m-reso">
+  <div class="modal" style="max-width:560px">
+    <button class="x" onclick="closeM('m-reso')">×</button>
+    <h3 id="rso-titolo">⚠️ Reso</h3>
+    <div id="rso-sottotitolo" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <div id="rso-segnala">
+      <div class="f"><label>Problema *</label><select id="rso-problema"><option value="danneggiato">Danneggiato</option><option value="sbagliato">Sbagliato (misura, classe, modello)</option><option value="mancante">Mancante</option></select></div>
+      <div class="f"><label>Cosa non va *</label><input type="text" id="rso-descrizione" maxlength="1000" placeholder="es. porta ammaccata sul montante, misura 80 invece di 90"></div>
+      <div style="font-size:13px;font-weight:700;margin:6px 0 2px">Voci con il problema</div>
+      <div id="rso-voci"></div>
+      <div class="f" style="margin-top:8px"><label>📷 Foto (consigliate, fino a 10)</label><input type="file" id="rso-foto" accept="image/*" capture="environment" multiple></div>
+      <div class="ma">
+        <button class="btn" onclick="closeM('m-reso')">Annulla</button>
+        <button class="btn p" id="rso-salva-segnala" onclick="salvaSegnalaReso()">⚠️ Segnala ad Acquisti</button>
+      </div>
+    </div>
+    <div id="rso-gestisci" style="display:none">
+      <div id="rso-passi" style="font-size:12px;color:var(--m);margin-bottom:10px"></div>
+      <div id="rso-azioni">
+        <div class="f"><label>Nota</label><input type="text" id="rso-nota" maxlength="500" placeholder="es. ritirato dal corriere del fornitore"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <button class="btn sm" id="rso-reso-inviato" onclick="azioneReso('reso_inviato')">📦 Reso al fornitore</button>
+          <button class="btn sm" id="rso-riordina" onclick="riordinaReso()">🔁 Riordina (ordine libero)</button>
+        </div>
+        <div class="fr">
+          <div class="f"><label>Esito</label><select id="rso-esito"><option value="">—</option><option value="sostituito">Sostituito</option><option value="rimborsato">Rimborsato</option><option value="tenuto">Tenuto (accordo)</option><option value="altro">Altro (scrivi la nota)</option></select></div>
+          <div class="f" style="display:flex;align-items:flex-end"><button class="btn sm p" onclick="azioneReso('chiudi')">✅ Chiudi il reso</button></div>
+        </div>
+      </div>
+      <div id="rso-causale-box" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--bo)">
+        <div class="fr">
+          <div class="f"><label>Causale (titolare)</label><select id="rso-causale"><option value="">Da decidere</option><option value="fornitore">Fornitore</option><option value="rilievo">Rilievo</option><option value="trasporto">Trasporto</option><option value="progetto">Progetto</option></select></div>
+          <div class="f"><label>Nota della causale</label><input type="text" id="rso-causale-nota" maxlength="500"></div>
+        </div>
+        <button class="btn sm p" onclick="salvaCausaleReso()">💾 Salva la causale</button>
+      </div>
+      <div class="ma"><button class="btn" onclick="closeM('m-reso')">Chiudi</button></div>
+    </div>
+  </div>
+</div>
+
 <!-- F18.14 — NOLO RESTITUITO O PROROGATO (js/83, solo con sql/141) -->
 <div class="mbg" id="m-nolo">
   <div class="modal" style="max-width:440px">
@@ -11531,6 +11590,7 @@
 <script defer src="js/81-mezzi-fermo-multe.js?v=202611131715"></script>
 <script defer src="js/82-anticipi-attesa.js?v=202611131715"></script>
 <script defer src="js/83-noli-restituzione.js?v=202611131715"></script>
+<script defer src="js/84-resi-ordini.js?v=202611131715"></script>
 <script defer src="js/19-init.js?v=202611131715"></script>
 
 
