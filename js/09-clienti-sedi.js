@@ -460,8 +460,8 @@ function renderPC(data) {
 
   const etichettaPeriodo = function(anno, ciclo) {
   const cicloLabel = {
-  gennaio_luglio: 'Gennaio – Giugno',
-  febbraio_agosto: 'Luglio – Dicembre'
+  gennaio_luglio: 'Gruppo gennaio/luglio',
+  febbraio_agosto: 'Gruppo febbraio/agosto'
 }[ciclo] || 'Periodo non assegnato';
 
     return anno ? `${cicloLabel} ${anno}` : cicloLabel;
@@ -469,6 +469,11 @@ function renderPC(data) {
 
  const scheda = function(p) {
   const nota = String(p.note || '');
+  // Porte, uscite, idranti, manichette...: gli stessi riquadri colorati della
+  // scheda grande (js/07 campiSchedaPresidio, con il periodo di js/86); gli
+  // estintori restano con i loro riquadri qui sotto.
+  const evidenza = p.tipo !== 'estintore' && typeof campiSchedaPresidio === 'function' && typeof riquadroEvidenzaPresidio === 'function'
+    ? campiSchedaPresidio(p).evidenza : null;
 
   const datoNota = function(etichetta) {
     return (
@@ -508,7 +513,7 @@ function renderPC(data) {
 
         <div style="font-size:12px;display:flex;flex-direction:column;gap:4px">
           <div style="display:flex;justify-content:space-between">
-            <span style="color:var(--m)">Ubicazione</span>
+            <span style="color:var(--m);white-space:nowrap;margin-right:8px">Ubicazione</span>
             <span>
               ${esc(p.ubicazione || '—')}
               ${esc(p.piano ? ' (' + p.piano + ')' : '')}
@@ -594,7 +599,7 @@ function renderPC(data) {
 </div>
 ` : ''}
 
-          ${p.tipo === 'porta_rei' ? `
+          ${p.tipo === 'porta_rei' && !evidenza ? `
             <div style="display:flex;justify-content:space-between">
               <span style="color:var(--m)">Classe</span>
               <span>${esc(p.modello || '—')}</span>
@@ -623,11 +628,12 @@ function renderPC(data) {
   </div>
 ` : ''}
 
+          ${evidenza ? evidenza.map(function(e) { return riquadroEvidenzaPresidio(e[0], e[1], e[2], e[3]); }).join('') : `
           <div style="display:flex;justify-content:space-between">
             <span style="color:var(--m)">Ultima verifica</span>
             <span>${fd(p.data_ultimo_controllo)}</span>
-          </div>
-${p.tipo === 'manichetta' ? `
+          </div>`}
+${p.tipo === 'manichetta' && !evidenza ? `
   <div style="
     display:flex;
     justify-content:space-between;
@@ -647,13 +653,13 @@ ${p.tipo === 'manichetta' ? `
     </strong>
   </div>
 ` : ''}
-          <div style="display:flex;justify-content:space-between">
+          ${evidenza ? '' : `<div style="display:flex;justify-content:space-between">
             <span style="color:var(--m)">Prossima verifica</span>
             <span class="${sc(p.data_prossimo_controllo)}">
               ${fd(p.data_prossimo_controllo)}
               (${dd2(p.data_prossimo_controllo)})
             </span>
-          </div>
+          </div>`}
         </div>
 
         <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">

@@ -87,6 +87,42 @@ async function leggiStoricoPeriodo(id) {
   } catch (e) { PERIODO_STORICO[id] = null; }
 }
 
+// Anteprima dei presidi nella scheda del cliente (js/09 renderPC): lo storico
+// di tutti i presidi della lista con una lettura sola, poi si ridisegna
+async function leggiStoricoPeriodoMolti(ids) {
+  const mancanti = ids.filter(function(id) { return !(id in PERIODO_STORICO); });
+  if (!mancanti.length) return false;
+  for (let i = 0; i < mancanti.length; i += 100) {
+    const pezzo = mancanti.slice(i, i + 100);
+    const [rp, rm] = await Promise.all([
+      db.from('schede_presidi').select('impianto_id, anno, mese, data_controllo:dati->>data_ultimo_controllo').in('impianto_id', pezzo).limit(5000),
+      db.from('schede_manichette').select('impianto_id, data_intervento').in('impianto_id', pezzo).limit(5000)
+    ]);
+    pezzo.forEach(function(id) { PERIODO_STORICO[id] = null; });
+    (rp.data || []).forEach(function(r) {
+      const am = /^\d{4}-\d{2}-\d{2}/.test(r.data_controllo || '') ? amDaData(r.data_controllo) : (r.anno ? { anno: +r.anno, mese: +r.mese || 1 } : null);
+      PERIODO_STORICO[r.impianto_id] = amMaggiore(PERIODO_STORICO[r.impianto_id], am);
+    });
+    (rm.data || []).forEach(function(r) { PERIODO_STORICO[r.impianto_id] = amMaggiore(PERIODO_STORICO[r.impianto_id], amDaData(r.data_intervento)); });
+  }
+  return true;
+}
+
+if (typeof renderPC === 'function') {
+  const renderPCSenzaStorico = renderPC;
+  // eslint-disable-next-line no-global-assign
+  renderPC = function(data) {
+    const esito = renderPCSenzaStorico.apply(this, arguments);
+    const ids = (data || []).filter(function(p) { return p.tipo !== 'estintore'; }).map(function(p) { return p.id; });
+    if (ids.length) {
+      leggiStoricoPeriodoMolti(ids).then(function(letti) {
+        if (letti && ge('pcards')) renderPCSenzaStorico.call(this, data);
+      }).catch(function(e) { console.warn('Storico dei presidi:', e); });
+    }
+    return esito;
+  };
+}
+
 if (typeof apriSchedaPresidio === 'function') {
   const apriSchedaPresidioSenzaPeriodo = apriSchedaPresidio;
   // eslint-disable-next-line no-global-assign

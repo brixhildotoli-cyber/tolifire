@@ -172,8 +172,8 @@ function datoNotaPresidio(note, etichette) {
 
 function riquadroEvidenzaPresidio(icona, etichetta, valore, colori) {
   return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;background:${colori[0]};border:1px solid ${colori[1]};border-radius:8px">
-    <span style="font-weight:700;color:${colori[2]};font-size:13px">${icona} ${esc(etichetta)}</span>
-    <strong style="color:${colori[2]};font-size:13px;text-align:right">${esc(valore || '—')}</strong>
+    <span style="font-weight:700;color:${colori[2]};font-size:13px;white-space:nowrap;flex-shrink:0">${icona} ${esc(etichetta)}</span>
+    <strong style="color:${colori[2]};font-size:13px;text-align:right;min-width:0;overflow-wrap:anywhere">${esc(valore || '—')}</strong>
   </div>`;
 }
 
