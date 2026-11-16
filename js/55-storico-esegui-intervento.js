@@ -439,3 +439,24 @@ if (typeof salvaInt === 'function') {
     return r;
   };
 }
+
+// ── "🧯 Apri schede manutenzione ordinaria" (Esegui intervento, passo 1) ──
+// Il bottone chiamava apriManutenzioneOrdinaria(), mai scritta (CLAUDE.md D7):
+// non succedeva nulla. Quello che il bottone promette ("riapre le ultime
+// verifiche dei presidi del cliente: modifica soltanto ciò che è cambiato") lo
+// fa già il passo 4 "Aggiorna presidi": porta lì, con la manutenzione ordinaria
+// programmata scelta. Chiusura, storico del semestre e PDF restano quelli di
+// sempre (salvaInt); check-list e anomalie si raggiungono con "← Indietro".
+function apriManutenzioneOrdinaria() {
+  if (!v('tc1')) { toast('Seleziona prima il cliente', 'err'); return; }
+  if (!v('tc3')) { toast('Inserisci la data della verifica', 'err'); return; }
+  const tipo = ge('tc2');
+  if (tipo && tipo.value !== 'ordinario_programmato' && [...tipo.options].some(function(o) { return o.value === 'ordinario_programmato'; })) {
+    tipo.value = 'ordinario_programmato';
+    if (typeof mostraRelazioneBox === 'function') mostraRelazioneBox();
+  }
+  if (ge('chkc') && typeof buildCKL === 'function') buildCKL();
+  tnav(3);
+  window.scrollTo(0, 0);
+  toast('Presidi della sede con l\'ultima verifica già riportata: cambia solo quello che è diverso', 'ok');
+}
