@@ -4723,6 +4723,11 @@
       <p>
         Nella scheda del presidio il primo riquadro <b>📆 Controlli</b> dice ogni quanto e in quali mesi si controlla (es. "ogni 6 mesi · febbraio e agosto"). <b>Ultima verifica</b> prende anche lo storico, quando è più recente del registro ("febbraio 2026 · dallo storico"). Se la data della <b>Prossima verifica</b> non è stata scritta, il gestionale la calcola dal gruppo e dall'ultimo controllo ("agosto 2026 (2° semestre) — ⚠️ SCADUTO (calcolata)"): è un'indicazione, il registro non cambia. Gli stessi riquadri colorati li trovi nella pagina <b>Presidi</b>, vista cartelle, per porte REI, uscite di emergenza, idranti e gli altri presidi, come per gli estintori; le cartelle si chiamano "Gruppo gennaio/luglio" e "Gruppo febbraio/agosto".
       </p>
+
+      <h4 id="info-tec-27">27. 🩺 La tua visita di idoneità</h4>
+      <p>
+        In <b>🪪 I miei documenti</b> trovi l'esito della tua visita di idoneità (idoneo, idoneo con limitazioni e quali, non idoneo) scritto dalla segreteria. Lo vedono solo tu, la segreteria e il titolare.
+      </p>
       </div>
 
       <div class="al2 i">Se in alto leggi che vedi solo i clienti dei tuoi interventi, il database non è ancora aggiornato: la pagina funziona lo stesso, con meno clienti.</div>
@@ -5411,6 +5416,12 @@
         Nella scheda della commessa, in "Cosa puoi fare", <b>⏸ Sospendi</b>: scrivi il motivo e, se la sai, la data di ripresa prevista. Lo stato non cambia: accanto compare <b>⏸ Sospesa</b> e sotto l'intestazione il riquadro con motivo e ripresa. Quando si riparte premi <b>▶️ Riprendi</b> (puoi riprendere le commesse che hai sospeso tu; le altre le riprende il titolare). Se la ripresa prevista passa, la trovi in "Cosa tocca a me".
       </p>
       <div class="al2 i">È solo un promemoria: nessun blocco.</div>
+
+      <h4 id="info-ct-36">36. 🩺 Idoneità dei dipendenti</h4>
+      <p>
+        Nella scheda documenti di un dipendente, sotto la visita di idoneità, vedi <b>Idoneo: sì / no</b> e la scadenza. L'esito con le eventuali limitazioni lo hanno la segreteria e il titolare: se "no" o se hai dubbi su un lavoro, chiedi a loro.
+      </p>
+      <div class="al2 i">Il file della visita e le limitazioni restano riservati.</div>
 
 
 
@@ -6601,6 +6612,12 @@
       </p>
       <div class="al2 i">Validità e ore dei corsi nuovi (gru, ponteggi, spazi confinati, PES/PAV, F-gas...) sono valori iniziali: controllali. Ogni modifica resta nel registro in fondo alla finestra.</div>
 
+      <h4 id="info-tit-62">62. 🩺 Esito della visita di idoneità</h4>
+      <p>
+        Nella scheda documenti di un dipendente (Team e subappalti), sotto la <b>visita di idoneità</b> premi <b>🩺 Esito</b> e scegli: idoneo, idoneo con limitazioni (scrivi quali) o non idoneo. Lo leggete tu, la segreteria e la persona; il capo tecnico vede solo "Idoneo: sì / no".
+      </p>
+      <div class="al2 i">È un dato sanitario: le limitazioni non compaiono al capo tecnico.</div>
+
 
 
       <h4>Regole pratiche</h4>
@@ -7225,6 +7242,12 @@
         Se il titolare annulla una commessa e l'anticipo era già incassato, in "Cosa tocca a me" trovi <b>💶 Commesse annullate: decidere l'anticipo incassato</b>. Nella commessa premi <b>Trattenuto</b> o <b>Rimborsato</b> (con una nota). Per il rimborso fai la nota di credito della fattura d'anticipo dalla pagina Fatture, come sempre.
       </p>
       <div class="al2 i">È solo un promemoria: nessun blocco.</div>
+
+      <h4 id="info-seg-32">32. 🩺 Esito della visita di idoneità</h4>
+      <p>
+        Quando registri la <b>visita di idoneità</b> di un dipendente, nella sua scheda documenti premi <b>🩺 Esito</b> sotto la visita: idoneo, idoneo con limitazioni (scrivi quali) o non idoneo. La persona lo vede nei suoi documenti, il capo tecnico solo "Idoneo: sì / no".
+      </p>
+      <div class="al2 i">È un dato sanitario: scrivi solo quello che serve per organizzare il lavoro.</div>
 
 
 
@@ -9826,6 +9849,22 @@
   </div>
 </div>
 
+<!-- F19.2 — ESITO DELLA VISITA DI IDONEITÀ (js/92, solo con sql/153) -->
+<div class="mbg" id="m-idoneita">
+  <div class="modal" style="max-width:440px">
+    <button class="x" onclick="closeM('m-idoneita')">×</button>
+    <h3>🩺 Esito della visita di idoneità</h3>
+    <input type="hidden" id="ido-id">
+    <div class="f"><label>Esito</label><select id="ido-esito" onchange="cambiaEsitoIdoneita()"><option value="idoneo">✅ Idoneo</option><option value="con_limitazioni">⚠️ Idoneo con limitazioni</option><option value="non_idoneo">⛔ Non idoneo</option></select></div>
+    <div class="f" id="ido-limitazioni-box"><label>Limitazioni *</label><input type="text" id="ido-limitazioni" maxlength="500" placeholder="es. no lavori in quota oltre 2 m, no movimentazione carichi oltre 15 kg"></div>
+    <div style="font-size:12px;color:var(--m)">È un dato sanitario: lo leggono solo titolare, segreteria e la persona. Il capo tecnico vede solo "Idoneo: sì / no".</div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-idoneita')">Annulla</button>
+      <button class="btn p" onclick="salvaEsitoIdoneita()">💾 Salva</button>
+    </div>
+  </div>
+</div>
+
 <!-- F19.1 — CATALOGO DEI CORSI (js/91, solo con sql/152) -->
 <div class="mbg" id="m-catalogo-corsi">
   <div class="modal" style="max-width:640px">
@@ -11809,6 +11848,7 @@
 <script defer src="js/89-documenti-finali.js?v=202611161541"></script>
 <script defer src="js/90-sospensione-commessa.js?v=202611161541"></script>
 <script defer src="js/91-catalogo-corsi.js?v=202611161541"></script>
+<script defer src="js/92-idoneita.js?v=202611161541"></script>
 <script defer src="js/19-init.js?v=202611161541"></script>
 
 

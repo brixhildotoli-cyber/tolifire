@@ -3317,6 +3317,26 @@ tranne quello scelto, ⚖️ per legge). Impostazioni: riquadro si-corsi-card
 (registro_azioni tabella corsi_catalogo). Guida info-tit-61. Prove:
 sql/152-...-PROVA.sql (15 ok) e test/catalogo-corsi.spec.js (titolare a 390 px,
 segreteria, console): TUTTO OK.
+Dopo sql/153 (F19.2 esito della visita di idoneità, decisione di Erika del
+16/11: SOLO l'esito, niente anagrafica degli operai dei subappaltatori né import;
+DA ESEGUIRE con "CONFERMATO DA TOLI: sql/153": backup, file (senza parole di
+cancellazione), -REGISTRO-CANCELLAZIONI dall'editor, controllo in fondo;
+richiede 07, 32, 67, 71). Tabella documenti_idoneita (documento_id unico →
+documenti_team_subappalti on delete cascade, esito idoneo/con_limitazioni/
+non_idoneo, limitazioni obbligatorie con "con limitazioni", aggiornato_da*):
+tabella A PARTE perché il capo tecnico legge le righe dei documenti; lettura
+titolare, segreteria e la persona (utente_id del documento). RPC
+imposta_idoneita_documento (titolare, segreteria; solo tipo idoneita_sanitaria),
+idoneita_persone() (titolare, segreteria, capo_tecnico: visite in vigore con SOLO
+idoneo sì/no, con limitazioni = sì, e scadenza; D9), idoneita_esito_attivo().
+Matrice: 10 righe. Sito (js/92-idoneita.js dopo js/91): htmlDocumentoTS avvolta
+(segnaposto data-idoneita-doc nella riga della visita), caricaSchedaDocumenti
+avvolta (riempie: titolare/segreteria esito + "🩺 Esito", capo tecnico "Idoneo:
+sì/no"), finestra m-idoneita (id ido-), caricaMieiDocumentiTecnico avvolta
+(data-mia-idoneita: la persona vede il suo esito). Guide info-tit-62,
+info-seg-32, info-ct-36, info-tec-27. Prove: sql/153-...-PROVA.sql (18 ok) e
+test/idoneita.spec.js (segreteria, capo tecnico a 390 px, tecnico a 390 px,
+console): TUTTO OK; rollback e riesecuzione di 152 e 153 provati.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
