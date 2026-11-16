@@ -4672,6 +4672,11 @@
 
       <div class="info-esempio">
         <b>Esempio</b><br>Domani vai dalla Rossi Srl al posto di un collega. Oggi apri <b>🧯 Presidi</b>, scegli <b>Rossi Srl</b> e guardi quali estintori erano in anomalia a luglio e dove si trovano. Domani, con l'intervento assegnato a te, li controlli da <b>Esegui intervento</b>.
+
+      <h4 id="info-tec-25">25. 🔴 Cliente che non paga</h4>
+      <p>
+        Accanto a un cliente o a un suo intervento può comparire <b>🟡 Pagamenti in ritardo</b> o <b>🔴 Non intervenire</b>: lo mette la segreteria quando il cliente non paga. Con il 🟡 si interviene, ma prima di contattarlo senti la segreteria; con il 🔴 non contattarlo per le manutenzioni finché la segreteria non toglie il segno. Passa sopra il segno (o leggi il riquadro in <b>Esegui intervento</b> e nella finestra dell'intervento) per il motivo.
+      </p>
       </div>
 
       <div class="al2 i">Se in alto leggi che vedi solo i clienti dei tuoi interventi, il database non è ancora aggiornato: la pagina funziona lo stesso, con meno clienti.</div>
@@ -5332,6 +5337,12 @@
         È arrivato materiale rovinato, sbagliato o ne manca una parte: nella commessa, box <b>🛒 Ordini ai fornitori</b>, sotto l'ordine arrivato premi <b>⚠️ Segnala problema</b>. Scegli il problema, scrivi cosa non va, spunta le voci con la quantità e fai le foto (consigliate). Acquisti riceve l'avviso e si occupa del reso e del riordino; sotto l'ordine vedi lo stato del reso.
       </p>
       <p class="info-esempio">Esempio: delle 2 porte REI 60 una è ammaccata sul montante: Danneggiato, "Porta ammaccata sul montante", 1 pz, due foto.</p>
+
+      <h4 id="info-ct-32">32. 🔴 Clienti che non pagano: chi contattare</h4>
+      <p>
+        Accanto a un cliente o a un suo intervento può comparire <b>🟡 Pagamenti in ritardo</b> o <b>🔴 Non intervenire</b>: lo mette la segreteria quando il cliente non paga. Con il 🟡 si interviene, ma prima di contattarlo senti la segreteria; con il 🔴 non contattarlo per le manutenzioni finché la segreteria non toglie il segno. Passa sopra il segno (o leggi il riquadro in <b>Esegui intervento</b> e nella finestra dell'intervento) per il motivo.
+      </p>
+      <div class="al2 i">In "Cosa tocca a me" trovi <b>Interventi aperti di clienti da non contattare</b>. È solo un avviso: puoi comunque pianificare, ma prima senti la segreteria.</div>
 
 
       <h4>Regole pratiche</h4>
@@ -6488,6 +6499,11 @@
         Per ogni reso di materiale (segnalato dal capo tecnico o da Acquisti sotto l'ordine arrivato) scegli tu la <b>causale</b>: <b>Fornitore</b>, <b>Rilievo</b>, <b>Trasporto</b> o <b>Progetto</b>, con una nota. In "Cosa tocca a me" trovi <b>Resi: causale da decidere</b>; nella commessa, sotto l'ordine, <b>Apri</b> il reso e <b>💾 Salva la causale</b>. La causale resta scritta sotto l'ordine con il tuo nome e la data.
       </p>
 
+      <h4 id="info-tit-56">56. 💶 Clienti che non pagano</h4>
+      <p>
+        Tu e la segreteria segnate dalla scheda del cliente (<b>💶 Stato dei pagamenti</b>) chi è <b>🟡 in ritardo</b> o <b>🔴 da non contattare</b>, con il motivo. Tecnici e capo tecnico lo vedono accanto al cliente e ai suoi interventi (senza importi). È solo un avviso: nessun blocco della pianificazione. Il segno lo mettete a mano perché oggi le fatture si fanno fuori dal gestionale.
+      </p>
+
 
       <h4>Regole pratiche</h4>
 
@@ -7093,6 +7109,12 @@
       <p>
         La lista degli anticipi da fatturare resta com'è. Il rappresentante riceve il promemoria di richiamare il cliente a 7 giorni e di sollecitarlo a 15; il titolare l'avviso a 30 e 60 giorni. Il preventivo non si annulla da solo: se il cliente non paga lo rifiuti tu (o il titolare) con <b>Rifiuta: anticipo non versato</b>.
       </p>
+
+      <h4 id="info-seg-29">29. 💶 Segnare un cliente che non paga</h4>
+      <p>
+        Nella scheda del cliente, sotto il nome, premi <b>💶 Stato dei pagamenti</b> e scegli <b>🟡 Pagamenti in ritardo</b> (si interviene, ma ti avvisano prima) o <b>🔴 Non intervenire</b> (prima deve pagare), con il motivo. Tecnici e capo tecnico vedono il segno e il motivo accanto al cliente e ai suoi interventi, mai gli importi. Quando paga torna su <b>✅ Regolare</b>.
+      </p>
+      <p class="info-esempio">Esempio: 🔴 Non intervenire, motivo "Due fatture non pagate, sentire la segreteria". Il tecnico che apre l'intervento lo legge subito.</p>
 
 
       <h4>Regole pratiche</h4>
@@ -9665,6 +9687,23 @@
   </div>
 </div>
 
+<!-- STATO DEI PAGAMENTI DEL CLIENTE (js/85, solo con sql/270) -->
+<div class="mbg" id="m-stato-pagamenti">
+  <div class="modal" style="max-width:460px">
+    <button class="x" onclick="closeM('m-stato-pagamenti')">×</button>
+    <h3>💶 Stato dei pagamenti</h3>
+    <div id="spg-cliente" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <input type="hidden" id="spg-id">
+    <div class="f"><label>Il cliente paga?</label><select id="spg-stato" onchange="cambiaStatoPagamenti()"><option value="regolare">✅ Regolare</option><option value="ritardo">🟡 Pagamenti in ritardo (si interviene, avvisando la segreteria)</option><option value="bloccato">🔴 Non intervenire (prima deve pagare)</option></select></div>
+    <div class="f" id="spg-nota-box"><label>Motivo * (lo leggono tecnici e capo tecnico)</label><input type="text" id="spg-nota" maxlength="300" placeholder="es. due fatture non pagate, sentire la segreteria"></div>
+    <div id="spg-aiuto" style="font-size:12px;color:var(--m)"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-stato-pagamenti')">Annulla</button>
+      <button class="btn p" onclick="salvaStatoPagamenti()">💾 Salva</button>
+    </div>
+  </div>
+</div>
+
 <!-- F18.21 — RESO DI MATERIALE (js/84, solo con sql/147) -->
 <div class="mbg" id="m-reso">
   <div class="modal" style="max-width:560px">
@@ -11591,6 +11630,7 @@
 <script defer src="js/82-anticipi-attesa.js?v=202611161158"></script>
 <script defer src="js/83-noli-restituzione.js?v=202611161158"></script>
 <script defer src="js/84-resi-ordini.js?v=202611161158"></script>
+<script defer src="js/85-stato-pagamenti.js?v=202611161158"></script>
 <script defer src="js/19-init.js?v=202611161158"></script>
 
 

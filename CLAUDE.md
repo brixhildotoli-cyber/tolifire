@@ -3145,6 +3145,39 @@ segnala, Acquisti reso/riordino/chiusura, titolare causale, console di tecnico
 e Acquisti rifiutate): TUTTO OK; caricamento delle foto NON provato in locale
 (niente Storage); ordini-liberi e smoke TUTTO OK con e senza; rollback e
 riesecuzione provati.
+Dopo sql/270 (stato dei pagamenti del cliente per tecnici e capo tecnico,
+richiesta di Erika del 16/11, fuori piano; DA ESEGUIRE con "CONFERMATO DA TOLI:
+sql/270": backup, file (senza parole di cancellazione, connettore), controllo in
+fondo; richiede 07, 71; nessuna tabella nuova, matrice invariata). DECISIONI DI
+ERIKA: il flag lo mettono A MANO segreteria e titolare (le fatture vere si fanno
+fuori dal gestionale: in produzione 1 fattura emessa); tre stati; SOLO AVVISO;
+tecnici e capo tecnico vedono flag e motivo, mai importi. clienti colonne NUOVE
+stato_pagamenti ('regolare' predefinito, 'ritardo' 🟡 si interviene avvisando la
+segreteria, 'bloccato' 🔴 non intervenire), stato_pagamenti_nota (motivo
+obbligatorio 3-300 se non regolare), stato_pagamenti_da/_da_nome/_il. Trigger
+trg_clienti_stato_pagamenti: le colonne si cambiano solo dentro la RPC (segno
+toli.stato_pagamenti), 42501 per gli update diretti degli utenti del sito, editor
+libero. RPC imposta_stato_pagamenti_cliente(p_cliente_id, p_stato, p_nota) (solo
+titolare e segreteria, anche "come"), stato_pagamenti_clienti() (clienti non
+regolari con stato, motivo, chi, quando e odl_ids degli interventi da pianificare
+o pianificati NON eliminati; titolare, segreteria, capo_tecnico, tecnico,
+rappresentante, commerciale, contabile; non ingegnere né anon; in
+RPC_SOLA_LETTURA_DB di js/01). Sito (js/85-stato-pagamenti.js dopo js/84,
+index.html m-stato-pagamenti id spg-): scheda cliente riquadro cd-pagamenti
+("✅ Pagamenti regolari" o il banner) e "💶 Stato dei pagamenti" per segreteria e
+titolare; un controllore della pagina (MutationObserver) cerca negli attributi
+onclick e data-* l'id di un cliente segnato o di un suo intervento aperto e mette
+il badge 🟡/🔴 sulla riga (tr, li, .card, righe con bordo) di ogni pagina aperta
+(dashboard, Piano mensile, ripartenza, appuntamenti, calendari, Interventi);
+banner sotto mo1 (finestra dell'intervento), tc1 e tc-odl (Esegui intervento);
+Cosa tocca a me di capo tecnico e segreteria "Interventi aperti di clienti da non
+contattare (pagamenti)"; lettura ogni 5 minuti e dopo ogni cambio. Guide
+info-tec-25, info-ct-32, info-seg-29, info-tit-56. Prove:
+sql/270-...-PROVA.sql e test/stato-pagamenti.spec.js (segreteria a 390 px,
+capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
+Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
+TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
+riesecuzione provati.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
