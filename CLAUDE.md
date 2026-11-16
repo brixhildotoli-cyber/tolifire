@@ -3056,6 +3056,23 @@ con il tecnico proposto, Cosa tocca a me, titolare addebito, capo tecnico a
 390 px fermo e avviso nella squadra, console di tecnico e segreteria
 rifiutate): TUTTO OK; smoke TUTTO OK con e senza; rollback e riesecuzione
 provati.
+Anticipo atteso, promemoria (F18.4, js/82-anticipi-attesa.js dopo js/81 +
+js/13, NESSUN SQL; decisione di Toli E7, task scelta da Erika il 16/11):
+giorni di calendario dall'accettazione del cliente (esito_registrato_il) dei
+preventivi in_attesa_anticipo, fissi nel sito (ANTICIPO_PROMEMORIA_GG di js/13:
+7, 15, 30, 60; nelle Regole servirebbe SQL). Cosa tocca a me: rappresentante
+"Anticipo non ancora pagato da 7 giorni: richiama il cliente" (7-14) e, rossa,
+"... da più di 15 giorni: sollecita il cliente"; titolare "Anticipi non pagati
+da più di 30 giorni" (30-59) e, rossa, "... da più di 60 giorni: decidi se
+rifiutare il preventivo" (anche nella pagina ⚖️ Decisioni, sezione delle
+fonti), che apre apriRifiutoAnticipoNonVersato (js/18) sul più vecchio. Box
+"Ricorda l'anticipo" del rappresentante: "· richiama il cliente" / "· sollecita
+il cliente" (rossa) sull'etichetta dei giorni. NESSUN annullamento automatico:
+il rifiuto resta "Rifiuta: anticipo non versato" di segreteria o titolare.
+NON FATTO: anticipo di default dal cliente (dipende da F16.39, rimandata).
+Guide info-rap-38, info-tit-53, info-seg-28. Prova test/anticipi-attesa.spec.js
+(database locale, preventivo accettato 8/16/31/61 giorni fa; rappresentante a
+390 px, titolare con la pagina Decisioni, segreteria): TUTTO OK; smoke TUTTO OK.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

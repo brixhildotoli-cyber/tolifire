@@ -888,6 +888,9 @@ async function apriPreventiviRappresentanteDaDashboard() {
 // anticipo non versato sparisce da solo. Nessun dato nuovo: legge i
 // preventivi che le policy (sql/10) gli lasciano vedere (suoi o dei suoi
 // clienti). Senza sql/24 non compare nulla.
+// F18.4 (decisione di Toli E7): richiamo del cliente a 7 giorni, sollecito a 15
+const ANTICIPO_PROMEMORIA_GG = { richiamo: 7, sollecito: 15, titolare: 30, decisione: 60 };
+
 async function caricaPromemoriaAnticipiRappresentante() {
   if (ROLE !== 'rappresentante') return;
 
@@ -966,6 +969,7 @@ async function caricaPromemoriaAnticipiRappresentante() {
     const conIva = Math.round(Number(imponibile || 0) * (100 + ivaPerc)) / 100;
     const fatturata = !!p.anticipo_fattura_numero;
     const giorni = giorniDa(fatturata ? p.anticipo_fattura_data : p.esito_registrato_il);
+    const attesa = giorniDa(p.esito_registrato_il); // F18.4: dall'accettazione del cliente
 
     const stato = fatturata
       ? `<span class="bx bblue">Fattura n. ${esc(p.anticipo_fattura_numero)} del ${esc(fd(p.anticipo_fattura_data))}</span>`
@@ -990,7 +994,7 @@ async function caricaPromemoriaAnticipiRappresentante() {
         </div>
         <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;gap:4px;align-items:flex-end">
           ${stato}
-          <span class="bx bwarn">${testoGiorni(giorni)}</span>
+          <span class="bx ${attesa !== null && attesa >= ANTICIPO_PROMEMORIA_GG.sollecito ? 'berr' : 'bwarn'}">${testoGiorni(giorni)}${attesa !== null && attesa >= ANTICIPO_PROMEMORIA_GG.sollecito ? ' · sollecita il cliente' : (attesa !== null && attesa >= ANTICIPO_PROMEMORIA_GG.richiamo ? ' · richiama il cliente' : '')}</span>
         </div>
       </div>
     `;
