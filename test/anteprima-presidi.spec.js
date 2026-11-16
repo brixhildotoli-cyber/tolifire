@@ -293,10 +293,11 @@ async function apriCommessa(s, id) {
       const gruppi = [...document.querySelectorAll('#pcards')].map(x => x.textContent).join(' ');
       return (card ? card.textContent.replace(/\s+/g, ' ') : 'SCHEDA NON TROVATA') + ' || ' + (/Gruppo febbraio\/agosto/.test(gruppi) ? 'Gruppo febbraio/agosto' : '');
     }, imp);
-    const attesi = [/Gruppo febbraio\/agosto/, /Controlli\s*ogni 6 mesi \(semestrale\) · febbraio e agosto/, /Ultima verifica\s*(08\/09\/2026|settembre 2026 \(2° semestre\) · dallo storico)/, /Prossima verifica\s*febbraio 2027 \(1° semestre\) \(calcolata\)/, /Classe REI \/ modello/];
+    const attesi = [/Gruppo febbraio\/agosto/, /Controlli\s*ogni 6 mesi \(semestrale\) · febbraio e agosto/, /Ultima verifica\s*(08\/09\/2026|settembre 2026 \(2° semestre\) · dallo storico)/, /Prossima verifica\s*febbraio 2027 \(1° semestre\) \(calcolata\)/];
     const manca = attesi.filter(r => !r.test(t));
     if (manca.length) KO('anteprima: manca ' + manca.join(' ; ') + ' — ' + t.slice(0, 600));
-    else righe.push('anteprima delle porte (390 px): «Gruppo febbraio/agosto», Controlli, Ultima verifica 08/09/2026, Prossima febbraio 2027 (calcolata), Classe REI');
+    else righe.push('anteprima delle porte (390 px): «Gruppo febbraio/agosto», Controlli, Ultima verifica 08/09/2026, Prossima febbraio 2027 (calcolata), senza Classe REI');
+    if (/Classe REI \/ modello/.test(t)) KO('nell\'anteprima c\'è ancora la classe REI');
     const riquadri = await s.page.evaluate(() => document.querySelectorAll('#pcards .pc div[style*="border-radius"]').length);
     righe.push('riquadri colorati nelle anteprime: ' + riquadri);
     await s.page.evaluate(id => { const b = document.querySelector('#pcards button[onclick="apriSchedaPresidio(\'' + id + '\')"]'); if (!b) return; let d = b.closest('details'); while (d) { d.open = true; d = d.parentElement && d.parentElement.closest('details'); } b.closest('.pc').scrollIntoView(); }, imp);

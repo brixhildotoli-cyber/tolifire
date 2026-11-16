@@ -473,7 +473,9 @@ function renderPC(data) {
   // scheda grande (js/07 campiSchedaPresidio, con il periodo di js/86); gli
   // estintori restano con i loro riquadri qui sotto.
   const evidenza = p.tipo !== 'estintore' && typeof campiSchedaPresidio === 'function' && typeof riquadroEvidenzaPresidio === 'function'
-    ? campiSchedaPresidio(p).evidenza : null;
+    ? campiSchedaPresidio(p).evidenza.filter(function(e) { return ['Controlli', 'Ultima verifica', 'Prossima verifica'].includes(e[1]); }) : null;
+  // (richiesta di Erika del 16/11: nell'anteprima solo controlli, ultima e
+  // prossima verifica; classe, scadenze e il resto nella scheda completa)
 
   const datoNota = function(etichetta) {
     return (
