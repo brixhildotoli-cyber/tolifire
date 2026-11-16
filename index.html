@@ -2573,6 +2573,16 @@
     <div class="al2 i" id="si-catalogo-lav-stato"></div>
     <button class="btn p" type="button" id="si-catalogo-lav-apri" style="display:none" onclick="apriCatalogoLavorazioni()">📚 Apri il catalogo</button>
   </div>
+  <!-- F19.1 — CATALOGO CORSI E ABILITAZIONI (js/91-catalogo-corsi.js, sql/152): solo titolare -->
+  <div class="card" id="si-corsi-card" style="margin-top:14px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:13px;font-weight:600">🎓 Corsi e abilitazioni</div>
+      <button class="btn sm" title="Rileggi" onclick="mostraCatalogoCorsiImpostazioni()">↻</button>
+    </div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">L'elenco di corsi, abilitazioni e documenti di dipendenti e subappaltatori (pagina Team e subappalti): validità, obbligatorio per legge, ore di aggiornamento, ente. Un corso spento non compare più tra i documenti nuovi, quelli già registrati restano. Ogni modifica resta nel registro.</div>
+    <div class="al2 i" id="si-corsi-stato"></div>
+    <button class="btn p" type="button" id="si-corsi-apri" style="display:none" onclick="apriCatalogoCorsi()">🎓 Apri il catalogo dei corsi</button>
+  </div>
   <!-- F15.13 — REGOLE DI SMISTAMENTO PER FAMIGLIA (js/67-smistamento-famiglie.js, sql/83): solo titolare -->
   <div class="card" id="si-smistamento-card" style="margin-top:14px">
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -6585,6 +6595,12 @@
       </p>
       <div class="al2 i">È solo un promemoria: nessun blocco.</div>
 
+      <h4 id="info-tit-61">61. 🎓 Catalogo dei corsi e delle abilitazioni</h4>
+      <p>
+        In <b>Impostazioni → 🎓 Corsi e abilitazioni</b> trovi l'elenco di corsi, abilitazioni e documenti usato nella pagina Team e subappalti. Con <b>+ Nuovo corso</b> ne aggiungi uno (es. "Abilitazione posa sistema X", validità 36 mesi); con ✏️ cambi validità, ore di aggiornamento, ente, "obbligatorio per legge" o lo spegni. Un corso spento non compare più tra i documenti nuovi, quelli già registrati restano.
+      </p>
+      <div class="al2 i">Validità e ore dei corsi nuovi (gru, ponteggi, spazi confinati, PES/PAV, F-gas...) sono valori iniziali: controllali. Ogni modifica resta nel registro in fondo alla finestra.</div>
+
 
 
       <h4>Regole pratiche</h4>
@@ -9810,6 +9826,39 @@
   </div>
 </div>
 
+<!-- F19.1 — CATALOGO DEI CORSI (js/91, solo con sql/152) -->
+<div class="mbg" id="m-catalogo-corsi">
+  <div class="modal" style="max-width:640px">
+    <button class="x" onclick="closeM('m-catalogo-corsi')">×</button>
+    <h3>🎓 Corsi e abilitazioni</h3>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:6px"><button class="btn sm p" onclick="modificaCorsoCatalogo()">+ Nuovo corso</button></div>
+    <div id="ccr-form" class="card" style="display:none;margin-bottom:10px">
+      <div id="ccr-form-titolo" style="font-size:13px;font-weight:700;margin-bottom:6px"></div>
+      <div class="f"><label>Nome *</label><input type="text" id="ccr-nome" maxlength="150" placeholder="es. Abilitazione posa sistema X"></div>
+      <div class="g2">
+        <div class="f"><label>Per chi</label><select id="ccr-per"><option value="persona">Persona (dipendenti e operai)</option><option value="impresa">Impresa (subappaltatori)</option><option value="tutti">Tutti</option></select></div>
+        <div class="f"><label>Validità (mesi)</label><input type="number" id="ccr-mesi" min="1" max="240" placeholder="vuoto = senza scadenza fissa"></div>
+      </div>
+      <div id="ccr-giorni-nota" style="font-size:12px;color:var(--m);margin:-4px 0 6px"></div>
+      <div class="g2">
+        <div class="f"><label>Ore di aggiornamento</label><input type="number" id="ccr-ore" min="0" max="999" step="0.5"></div>
+        <div class="f"><label>Ente</label><input type="text" id="ccr-ente" maxlength="150" placeholder="es. ente formatore, produttore"></div>
+      </div>
+      <div class="g2">
+        <label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="ccr-legge"> ⚖️ Obbligatorio per legge</label>
+        <label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="ccr-attivo"> Attivo</label>
+      </div>
+      <div class="f" style="margin-top:6px"><label>Ordine nell'elenco</label><input type="number" id="ccr-ordine" min="0" max="9999"></div>
+      <div class="ma">
+        <button class="btn" onclick="ge('ccr-form').style.display='none'">Annulla</button>
+        <button class="btn p" onclick="salvaCorsoCatalogo()">💾 Salva</button>
+      </div>
+    </div>
+    <div id="ccr-elenco" style="max-height:50vh;overflow:auto"></div>
+    <details style="margin-top:10px"><summary style="font-size:13px;cursor:pointer">📒 Registro delle modifiche</summary><div id="ccr-registro" style="max-height:240px;overflow:auto"></div></details>
+  </div>
+</div>
+
 <!-- F18.25 — SOSPENSIONE DELLA COMMESSA (js/90, solo con sql/151) -->
 <div class="mbg" id="m-sospendi-commessa">
   <div class="modal" style="max-width:460px">
@@ -11759,6 +11808,7 @@
 <script defer src="js/88-revisioni-preventivo.js?v=202611161541"></script>
 <script defer src="js/89-documenti-finali.js?v=202611161541"></script>
 <script defer src="js/90-sospensione-commessa.js?v=202611161541"></script>
+<script defer src="js/91-catalogo-corsi.js?v=202611161541"></script>
 <script defer src="js/19-init.js?v=202611161541"></script>
 
 

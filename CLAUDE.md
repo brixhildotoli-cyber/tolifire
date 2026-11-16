@@ -3294,6 +3294,29 @@ info-ct-35, info-seg-31, info-tit-60. Prove: sql/151-...-PROVA.sql (29 ok) e
 test/sospensione-commessa.spec.js (capo tecnico a 390 px, Acquisti, titolare,
 segreteria, console): TUTTO OK; smoke TUTTO OK con e senza; rollback e
 riesecuzione provati.
+Dopo sql/152 (F19.1 catalogo dei corsi, decisione di Erika del 16/11: tabella
+gestita dal titolare; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/152": backup,
+file (senza parole di cancellazione), controllo in fondo; richiede 07, 32, 67,
+71). Tabella corsi_catalogo (id, codice unico = documenti_team_subappalti.tipo,
+nome, per impresa/persona/tutti, validita_mesi o validita_giorni, obbligo_legge,
+ore_aggiornamento, ente, riservato, attivo, ordine, aggiornato_da/_nome/_il):
+lettura chiunque abbia un ruolo, insert e update SOLO titolare (policy), nessuna
+cancellazione (attivo = false); trigger trg_corsi_catalogo: codice fisso (42501),
+riservato deciso dal database (solo idoneita_sanitaria), chi e quando; registro
+delle azioni (sql/67, esclusi aggiornato_da*). 23 righe di partenza: i 15+2 tipi
+di js/30 + dirigente, gru_autocarro, ponteggi_pimus, spazi_confinati, pes_pav,
+lavori_caldo, fgas, abilitazione_produttore (validità e ore da verificare da
+Toli). Matrice: 10 righe. Sito (js/91-catalogo-corsi.js dopo js/90):
+caricaCatalogoCorsi riempie IN PLACE TIPI_DOCUMENTO_TEAM_SUBAPPALTI (id, per,
+nome, mesi, giorni, riservato, attivo, obbligo_legge, ore, ente; js/30 e js/31
+non cambiano), al login e in verificaTeamSubappaltiDisponibili (avvolta, cache 5
+min); opzioniTipoDocumentoTS sostituita (stessa resa + senza i corsi spenti
+tranne quello scelto, ⚖️ per legge). Impostazioni: riquadro si-corsi-card
+(titolare; loadImp avvolta) → finestra m-catalogo-corsi (id ccr-): elenco,
+"+ Nuovo corso" (codice dal nome), ✏️ modifica, registro delle modifiche
+(registro_azioni tabella corsi_catalogo). Guida info-tit-61. Prove:
+sql/152-...-PROVA.sql (15 ok) e test/catalogo-corsi.spec.js (titolare a 390 px,
+segreteria, console): TUTTO OK.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
