@@ -3177,6 +3177,30 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Periodo dei controlli e interventi in ritardo (richiesta di Erika del 16/11,
+js/86-periodo-presidi-interventi.js dopo js/85 + index.html m-interventi-ritardo
+id mir-, NESSUN SQL, nessun dato cambia). Trovato in produzione: 798 presidi senza
+impianti.data_prossimo_controllo (591 calcolabili, 215 già scaduti) e registri
+fermi (data_ultimo_controllo 04/03/2025 con lo storico a febbraio 2026). Scheda
+del presidio (apriSchedaPresidio legge prima l'ultima scheda dello storico:
+schede_presidi anno/mese, schede_manichette data_intervento;
+campiSchedaPresidio avvolta): riquadro "📆 Controlli" (periodicita_mesi e mesi
+di ciclo_manutenzione, es. "ogni 6 mesi (semestrale) · febbraio e agosto"),
+"Ultima verifica" dallo storico se più recente ("· dallo storico"), "Prossima
+verifica" se vuota calcolata a video (gruppo di due mesi e 6 mesi = mese del
+gruppo del semestre dopo; altrimenti ultimo + periodicità; "— ⚠️ SCADUTO" rosso a
+mese finito; "(calcolata)"), estintori senza revisione "non registrata". DECISIONE
+DI ERIKA: solo a video, il registro NON si aggiorna (salvarlo = file SQL su 591
+presidi). Interventi in ritardo (in_ritardo_il di marca_ritardi_pendenti =
+data pianificata passata e non chiuso): "⏰ In ritardo da N giorni: era previsto
+il GG/MM/AAAA (manutenzione del N° semestre AAAA)" in cima alla finestra
+dell'intervento (openEditOdl avvolta, mo-ritardo), sotto la data nella pagina
+Interventi (renderO avvolta) e nel riquadro "⏰ In ritardo" della dashboard del
+capo tecnico, ora cliccabile (apriInterventiInRitardo: elenco con tecnico e
+"Apri"). NON FATTI (Erika ha scelto solo il periodo): elenco di cosa è scaduto e
+cosa fare nell'intervento, avviso dei doppioni (in produzione #31, #32, #33 dello
+stesso cliente e giorno). Guide info-ct-33, info-tec-26. Prova
+test/periodo-presidi.spec.js (capo tecnico a 390 px): TUTTO OK; smoke TUTTO OK.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
