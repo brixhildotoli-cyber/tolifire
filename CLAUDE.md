@@ -3240,6 +3240,27 @@ R1 (n. ...)" e "R1" negli elenchi dei preventivi (id negli attributi). Guide
 info-com-42, info-tit-58, info-rap-39. Prove: sql/131-...-PROVA.sql e
 test/revisioni-preventivo.spec.js (Acquisti autore a 390 px, rappresentante):
 TUTTO OK; smoke TUTTO OK con e senza; rollback e riesecuzione provati.
+Documenti finali della commessa (F18.16, decisioni di Erika del 16/11: versione
+calcolata, NESSUN SQL, solo avviso; js/89-documenti-finali.js dopo js/88).
+Riquadro cmd-documenti-finali (index.html, sopra cmd-dichiarazione) da
+in_corso a chiusa per titolare, segreteria, capo_tecnico e commerciale
+(l'ingegnere non apre commessa-detail). Quali documenti: famiglie delle schede di
+rilievo da scheda_cantiere_commessa (sql/34, la leggono i 4 ruoli; le tabelle
+delle schede e preventivi_certificati no) incrociate con
+lavorazioni.documento_finale (sql/75): solo corretta_posa e dico_37_08. Per
+ognuno barra "N su 3" e voci con a chi tocca la mancanza: certificati (scheda
+.certificati del preventivo o cartella certificati → Acquisti), foto (cartella
+cantiere, immagini, anche giornale_ → capo tecnico), dichiarazione salvata in
+chiusura (prefisso di js/37 → segreteria) o DiCo (file in chiusura con
+/dico|37[\s._-]?08/i nel nome, il gestionale non la genera → segreteria). Si
+ricalcola a ogni caricaDocumentiCommessa (avvolta; RPC letta una volta per
+commessa, DOC_FINALI); caricaSchedaCommessa avvolta svuota il riquadro. Senza
+sql/34 o cartella documenti: niente riquadro. Barra per posizione NON fatta (le
+posizioni non esistono, F16.10 saltata). Guide info-com-43, info-ct-34,
+info-seg-30, info-tit-59. Prova test/documenti-finali.spec.js (capo tecnico a
+390 px, segreteria, Acquisti, rappresentante, commessa approvata): TUTTO OK.
+F18.15 (note spese e straordinari) NON FATTA: decisione di Erika del 16/11
+(superflua per ora).
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

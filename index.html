@@ -2062,6 +2062,8 @@
     <div id="cmd-domande"></div>
     <!-- F8.5: fine lavori, riepilogo per la chiusura della segreteria (js/36) -->
     <div id="cmd-chiusura"></div>
+    <!-- F18.16: documenti finali, cosa serve e cosa manca (js/89, da in corso; nessun SQL) -->
+    <div id="cmd-documenti-finali"></div>
     <!-- F9.1: dichiarazione di corretta messa in opera (js/37, fine lavori e chiusa) -->
     <div id="cmd-dichiarazione"></div>
     <!-- F9.2: fattura finale con l'anticipo scalato (js/38, attiva con sql/39) -->
@@ -4173,6 +4175,12 @@
       </p>
       <div class="al2 i">La revisione la fa chi ha preparato il preventivo (o il titolare). Lo sconto del rappresentante non si copia: lo rimette sulla revisione.</div>
 
+      <h4 id="info-com-43">43. 📑 Documenti finali della commessa</h4>
+      <p>
+        Nella scheda della commessa, da quando è <b>in corso</b>, il riquadro <b>📑 Documenti finali</b> dice quali documenti servono al cliente (dichiarazione di corretta posa per porte, compartimentazione, vernice e coppelle; DiCo D.M. 37/08 per rilevazione e spegnimento) e cosa manca. A te toccano i <b>certificati e le schede tecniche dei prodotti</b>: caricali sul preventivo o nella cartella "Certificati e schede tecniche" della commessa.
+      </p>
+      <div class="al2 i">È solo un promemoria: non blocca niente.</div>
+
   <h4>Checklist prima dell’invio</h4>
 
   <ul>
@@ -4702,6 +4710,7 @@
       </div>
 
       <div class="al2 i">Se in alto leggi che vedi solo i clienti dei tuoi interventi, il database non è ancora aggiornato: la pagina funziona lo stesso, con meno clienti.</div>
+
 
       <h4>Regole pratiche</h4>
 
@@ -5374,6 +5383,13 @@
       <p>
         Nella scheda del presidio il primo riquadro <b>📆 Controlli</b> dice ogni quanto e in quali mesi si controlla (es. "ogni 6 mesi · febbraio e agosto"). <b>Ultima verifica</b> prende anche lo storico, quando è più recente del registro ("febbraio 2026 · dallo storico"). Se la data della <b>Prossima verifica</b> non è stata scritta, il gestionale la calcola dal gruppo e dall'ultimo controllo ("agosto 2026 (2° semestre) — ⚠️ SCADUTO (calcolata)"): è un'indicazione, il registro non cambia. Gli stessi riquadri colorati li trovi nella pagina <b>Presidi</b>, vista cartelle, per porte REI, uscite di emergenza, idranti e gli altri presidi, come per gli estintori; le cartelle si chiamano "Gruppo gennaio/luglio" e "Gruppo febbraio/agosto".
       </p>
+
+      <h4 id="info-ct-34">34. 📑 Documenti finali della commessa</h4>
+      <p>
+        Nella scheda della commessa, da quando è <b>in corso</b>, il riquadro <b>📑 Documenti finali</b> dice quali documenti servono al cliente e cosa manca, con a chi tocca. A te tocca le <b>foto del cantiere</b>: quelle del giornale di cantiere o caricate nella cartella "Cantiere" contano già.
+      </p>
+      <div class="al2 i">È solo un promemoria: non blocca niente.</div>
+
 
 
       <h4>Regole pratiche</h4>
@@ -6545,6 +6561,13 @@
         Tu e Acquisti (chi ha preparato il preventivo) potete fare <b>🔁 Nuova revisione</b> di un preventivo già inviato: R1, R2... in bozza con voci e condizioni copiate e le offerte dei fornitori spostate sulla revisione. Il preventivo di prima non cambia stato: ha il riquadro "Sostituito dalla revisione" e negli elenchi l'etichetta <b>🔁 Sostituito da R1</b>; chi prova a registrarne l'esito riceve una conferma (solo avviso).
       </p>
 
+      <h4 id="info-tit-59">59. 📑 Documenti finali della commessa</h4>
+      <p>
+        Nella scheda della commessa, da quando è <b>in corso</b>, il riquadro <b>📑 Documenti finali</b> dice quali documenti servono al cliente (dalle lavorazioni delle schede di rilievo: corretta posa o DiCo D.M. 37/08), con una barra di quanto è pronto e, per ogni cosa che manca, a chi tocca: certificati ad Acquisti, foto al capo tecnico, dichiarazione e DiCo alla segreteria.
+      </p>
+      <div class="al2 i">È solo un promemoria: non blocca niente. La barra per posizione non c'è perché le posizioni non sono state fatte (F16.10).</div>
+
+
 
       <h4>Regole pratiche</h4>
 
@@ -7156,6 +7179,13 @@
         Nella scheda del cliente, sotto il nome, premi <b>💶 Stato dei pagamenti</b> e scegli <b>🟡 Pagamenti in ritardo</b> (si interviene, ma ti avvisano prima) o <b>🔴 Non intervenire</b> (prima deve pagare), con il motivo. Tecnici e capo tecnico vedono il segno e il motivo accanto al cliente e ai suoi interventi, mai gli importi. Quando paga torna su <b>✅ Regolare</b>.
       </p>
       <p class="info-esempio">Esempio: 🔴 Non intervenire, motivo "Due fatture non pagate, sentire la segreteria". Il tecnico che apre l'intervento lo legge subito.</p>
+
+      <h4 id="info-seg-30">30. 📑 Documenti finali della commessa</h4>
+      <p>
+        Nella scheda della commessa, da quando è <b>in corso</b>, il riquadro <b>📑 Documenti finali</b> dice quali documenti servono al cliente e cosa manca. A te toccano la <b>dichiarazione di corretta posa</b> (la prepari dal riquadro sotto, a fine lavori, e la salvi nella cartella Chiusura) e la <b>DiCo D.M. 37/08</b>: il gestionale non la genera, carica il PDF firmato nella cartella "Chiusura" con "DiCo" o "37-08" nel nome del file.
+      </p>
+      <div class="al2 i">Esempio: DiCo_impianto_rilevazione.pdf nella cartella Chiusura → la riga diventa ✅.</div>
+
 
 
       <h4>Regole pratiche</h4>
@@ -11686,6 +11716,7 @@
 <script defer src="js/86-periodo-presidi-interventi.js?v=202611161541"></script>
 <script defer src="js/87-ordini-sopra-offerta.js?v=202611161541"></script>
 <script defer src="js/88-revisioni-preventivo.js?v=202611161541"></script>
+<script defer src="js/89-documenti-finali.js?v=202611161541"></script>
 <script defer src="js/19-init.js?v=202611161541"></script>
 
 
