@@ -104,7 +104,7 @@ async function utentiPerDomande() {
   const { data, error } = await db.from('utenti').select('id,nome,cognome,ruolo,attivo').eq('attivo', true).order('cognome');
   if (error) return [];
   DOMANDE.utenti = (data || []).map(function(u) {
-    return { id: u.id, nome: [u.nome, u.cognome].filter(Boolean).join(' '), ruolo: u.ruolo === 'informatico' ? 'titolare' : u.ruolo };
+    return { id: u.id, nome: [u.nome, u.cognome].filter(Boolean).join(' '), ruolo: u.ruolo === 'informatico' ? 'titolare' : u.ruolo, programmatrice: u.ruolo === 'informatico' };
   });
   return DOMANDE.utenti;
 }
@@ -228,12 +228,19 @@ async function apriNuovaDomanda(tabella, id, contenitoreId) {
   ge('dmn-record').textContent = (RECORD_DOMANDA[tabella] ? RECORD_DOMANDA[tabella].su : 'Sul record aperto') +
     '. Chi risponde riceve subito un avviso nella campanella 🔔.';
   const utenti = (await utentiPerDomande()).filter(function(u) { return String(u.id) !== mioIdDomande(); });
+  // L'informatico (la programmatrice) ha un suo gruppo sotto il titolare;
+  // per tempi e smistamento resta come il titolare.
+  const programmatori = utenti.filter(function(u) { return u.programmatrice; });
+  const gruppoProgrammatrice = programmatori.length ? '<optgroup label="Programmatrice">' + programmatori.map(function(u) {
+    return '<option value="u:' + esc(u.id) + '" data-ruolo="titolare">' + esc(u.nome) + '</option>';
+  }).join('') + '</optgroup>' : '';
   const persone = RUOLI_DOMANDA.map(function(r) {
-    const del = utenti.filter(function(u) { return u.ruolo === r; });
+    const del = utenti.filter(function(u) { return u.ruolo === r && !u.programmatrice; });
+    if (r === 'titolare' && !del.length) return gruppoProgrammatrice;
     if (!del.length) return '';
     return '<optgroup label="' + esc(etichettaRuolo(r)) + '">' + del.map(function(u) {
       return '<option value="u:' + esc(u.id) + '" data-ruolo="' + esc(r) + '">' + esc(u.nome) + '</option>';
-    }).join('') + '</optgroup>';
+    }).join('') + '</optgroup>' + (r === 'titolare' ? gruppoProgrammatrice : '');
   }).join('');
   ge('dmn-a').innerHTML = '<option value="">— Scegli —</option>' +
     '<optgroup label="Tutto un ruolo (risponde chiunque del ruolo)">' +
