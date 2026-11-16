@@ -3201,6 +3201,18 @@ capo tecnico, ora cliccabile (apriInterventiInRitardo: elenco con tecnico e
 cosa fare nell'intervento, avviso dei doppioni (in produzione #31, #32, #33 dello
 stesso cliente e giorno). Guide info-ct-33, info-tec-26. Prova
 test/periodo-presidi.spec.js (capo tecnico a 390 px): TUTTO OK; smoke TUTTO OK.
+Ordine sopra l'offerta del fornitore (F18.22, js/87-ordini-sopra-offerta.js dopo
+js/86, NESSUN SQL; decisione di Erika del 16/11: SOLO AVVISO, soglia 5% fissa
+SOGLIA_ORDINE_SOPRA_OFFERTA, nelle Regole servirebbe un file SQL): ordine nato da
+un'offerta scelta (non gli ordini liberi) con totale delle voci oltre il 5% sopra
+preventivi_fornitori.prezzo_offerto: avviso giallo mof-sopra-offerta nella finestra
+m-ordine-fornitore (renderVociNuovoOrdine e aggiornaVoceNuovoOrdine avvolte), confirm
+alla creazione (salvaNuovoOrdineFornitore avvolta: Annulla = nessun ordine), badge
+"⚠️ +N% sull'offerta" sulla riga dell'ordine per chi vede i prezzi d'acquisto
+(caricaOrdiniCommessa avvolta), Cosa tocca a me del titolare "Ordini ai fornitori
+sopra l'offerta (oltre il 5%)" (ordinati e confermati). Guide info-com-41,
+info-tit-57. Prova test/ordini-sopra-offerta.spec.js (Acquisti a 390 px, titolare):
+TUTTO OK; smoke TUTTO OK.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
