@@ -3394,6 +3394,21 @@ non fa scattare la gru; invio bloccato e poi passato) e
 test/corsi-preventivo.spec.js (Acquisti a 390 px, titolare, rappresentante,
 console): TUTTO OK. Smoke TUTTO OK con 151-156 e senza; rollback e riesecuzione
 di tutti provati.
+Corsi e ruoli minimi nella squadra del giorno (F19.9, decisioni di Erika del
+16/11: SOLO AVVISO, anche per i corsi di legge della D9 — niente blocco né
+sblocchi del titolare; ruoli minimi come avviso; NESSUN SQL;
+js/95-squadra-corsi.js dopo js/94). Corsi richiesti dalla commessa calcolati nel
+sito: corsi attivi del catalogo (CATALOGO_CORSI di js/91, servono sql/152 e le
+colonne di sql/156) con parole (parola intera, regex Unicode) nelle voci o
+lavorazioni tra le schede di scheda_cantiere_commessa (sql/34); calcolati in
+caricaSquadraCantiere (avvolta, SQUADRA_CORSI). avvisiDocumentiSquadra avvolta:
+"manca <corso> richiesto dalla commessa" (grave = obbligo_legge) se la persona
+(o, per un subappaltatore, una sua persona) non ha il documento valido fino
+all'ultimo giorno scelto; vale nella finestra e nei giorni già organizzati.
+aggiornaRiepilogoAvvisiSquadra avvolta: riquadro data-corsi-richiesti e
+data-ruoli-minimi (preposto, primo_soccorso, formazione_antincendio tra i
+dipendenti scelti). Si salva sempre. Guide info-ct-38, info-tit-65, info-seg-34.
+Prova test/squadra-corsi.spec.js (capo tecnico a 390 px): TUTTO OK.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
