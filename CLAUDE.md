@@ -3337,6 +3337,30 @@ sì/no"), finestra m-idoneita (id ido-), caricaMieiDocumentiTecnico avvolta
 info-seg-32, info-ct-36, info-tec-27. Prove: sql/153-...-PROVA.sql (18 ok) e
 test/idoneita.spec.js (segreteria, capo tecnico a 390 px, tecnico a 390 px,
 console): TUTTO OK; rollback e riesecuzione di 152 e 153 provati.
+Dopo sql/155 (F19.4 piano formazione, decisione di Erika del 16/11: preavviso
+separato + piano; SENZA l'incrocio con le commesse dei 90 giorni, che serve
+F19.3, e senza report del venerdì; DA ESEGUIRE con "CONFERMATO DA TOLI:
+sql/155": backup, file (senza parole di cancellazione), -REGISTRO-CANCELLAZIONI
+dall'editor, controllo in fondo; richiede 07, 32, 67, 71). Preavviso dei corsi =
+regola GIÀ esistente preavviso_corsi_visite_gg di sql/62 (60, Regole; nessuna
+colonna nuova): statoDocumentoTeamSubappalti SOSTITUITA in js/93 (per = 'persona'
+nel catalogo → regola dei corsi, impresa → giorni_preavviso_documenti; vale
+anche senza sql/155). Tabella iscrizioni_corsi (documento_id unico →
+documenti_team_subappalti on delete cascade, data_corso, ente, nota, stato
+iscritto/annullato): lettura titolare, segreteria, capo_tecnico e la persona;
+RPC iscrivi_corso (upsert; documento in vigore, di persona) e
+annulla_iscrizione_corso (titolare, segreteria), piano_formazione_attivo().
+Matrice: 10 righe. Sito (js/93-piano-formazione.js dopo js/92): tab "🎓 Piano
+formazione" (ts-tab-piano, ts-piano-lista, ts-piano-conta) in Team e subappalti
+= documentiDaSegnalareTS filtrati per persona, con l'iscrizione e "📅 Iscrivi /
+Cambia" (titolare, segreteria; finestra m-iscrizione-corso, id isc-),
+loadTeamSubappalti avvolta (prima caricaRegole); nota della tab Scadenze con i
+due preavvisi (renderScadenzeTeamSubappalti avvolta). Cosa tocca a me:
+miei-corsi-scadenza (tutti i ruoli: i propri documenti di persona) e
+corsi-senza-iscrizione (titolare, segreteria). Guide info-seg-33, info-tit-63,
+info-ct-37, info-tec-28. Prove: sql/155-...-PROVA.sql (17 ok) e
+test/piano-formazione.spec.js (segreteria, capo tecnico a 390 px, tecnico a 390
+px, console): TUTTO OK.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

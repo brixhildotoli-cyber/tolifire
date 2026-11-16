@@ -2097,6 +2097,11 @@
       <button class="tab on" onclick="stab(this,'ts-tab-scadenze')">⚠️ Scadenze <span id="ts-scadenze-conta"></span></button>
       <button class="tab" onclick="stab(this,'ts-tab-dipendenti')">👷 Dipendenti</button>
       <button class="tab" onclick="stab(this,'ts-tab-subappaltatori')">🏗️ Subappaltatori</button>
+      <button class="tab" onclick="stab(this,'ts-tab-piano')">🎓 Piano formazione <span id="ts-piano-conta"></span></button>
+    </div>
+    <!-- F19.4: piano formazione (js/93, iscrizioni con sql/155) -->
+    <div class="tc" id="ts-tab-piano">
+      <div id="ts-piano-lista"><div class="load">Caricamento...</div></div>
     </div>
     <div class="tc on" id="ts-tab-scadenze">
       <div id="ts-scadenze-lista"><div class="load">Caricamento...</div></div>
@@ -4728,6 +4733,11 @@
       <p>
         In <b>🪪 I miei documenti</b> trovi l'esito della tua visita di idoneità (idoneo, idoneo con limitazioni e quali, non idoneo) scritto dalla segreteria. Lo vedono solo tu, la segreteria e il titolare.
       </p>
+
+      <h4 id="info-tec-28">28. 🎓 I tuoi corsi in scadenza</h4>
+      <p>
+        Quando un tuo corso, patentino o visita scade entro 60 giorni lo trovi in "Cosa tocca a me": chiedi alla segreteria la data del corso di rinnovo.
+      </p>
       </div>
 
       <div class="al2 i">Se in alto leggi che vedi solo i clienti dei tuoi interventi, il database non è ancora aggiornato: la pagina funziona lo stesso, con meno clienti.</div>
@@ -5422,6 +5432,12 @@
         Nella scheda documenti di un dipendente, sotto la visita di idoneità, vedi <b>Idoneo: sì / no</b> e la scadenza. L'esito con le eventuali limitazioni lo hanno la segreteria e il titolare: se "no" o se hai dubbi su un lavoro, chiedi a loro.
       </p>
       <div class="al2 i">Il file della visita e le limitazioni restano riservati.</div>
+
+      <h4 id="info-ct-37">37. 🎓 Piano formazione</h4>
+      <p>
+        In Team e subappalti la tab <b>🎓 Piano formazione</b> ti dice chi ha corsi, patentini o visite scaduti o in scadenza (60 giorni prima) e se la segreteria l'ha già iscritto a un corso, con la data: utile per organizzare le squadre.
+      </p>
+      <div class="al2 i">Le iscrizioni le segna la segreteria.</div>
 
 
 
@@ -6618,6 +6634,12 @@
       </p>
       <div class="al2 i">È un dato sanitario: le limitazioni non compaiono al capo tecnico.</div>
 
+      <h4 id="info-tit-63">63. 🎓 Preavviso dei corsi e piano formazione</h4>
+      <p>
+        Corsi, patentini e visite delle persone ora hanno un preavviso a parte: <b>Regole → Preavviso scadenza di corsi e visite mediche</b> (60 giorni); i documenti dell'impresa (DURC, visura, POS...) restano sul preavviso di Soglie e tariffe. In Team e subappalti la tab <b>🎓 Piano formazione</b> mostra chi deve rinnovare e se è già iscritto a un corso.
+      </p>
+      <div class="al2 i">Ognuno vede in "Cosa tocca a me" i suoi corsi o visite in scadenza.</div>
+
 
 
       <h4>Regole pratiche</h4>
@@ -7248,6 +7270,12 @@
         Quando registri la <b>visita di idoneità</b> di un dipendente, nella sua scheda documenti premi <b>🩺 Esito</b> sotto la visita: idoneo, idoneo con limitazioni (scrivi quali) o non idoneo. La persona lo vede nei suoi documenti, il capo tecnico solo "Idoneo: sì / no".
       </p>
       <div class="al2 i">È un dato sanitario: scrivi solo quello che serve per organizzare il lavoro.</div>
+
+      <h4 id="info-seg-33">33. 🎓 Piano formazione</h4>
+      <p>
+        In <b>Team e subappalti → 🎓 Piano formazione</b> trovi corsi, patentini e visite delle persone scaduti o che scadono entro 60 giorni (il preavviso dei corsi è nelle Regole). Premi <b>📅 Iscrivi</b> e scrivi la data del corso, l'ente e una nota; quando arriva il nuovo attestato lo registri con "Rinnova" come sempre e la riga sparisce. In "Cosa tocca a me" trovi quelli ancora senza iscrizione.
+      </p>
+      <div class="al2 i">Ognuno vede in "Cosa tocca a me" i suoi corsi o visite in scadenza.</div>
 
 
 
@@ -9849,6 +9877,24 @@
   </div>
 </div>
 
+<!-- F19.4 — ISCRIZIONE A UN CORSO (js/93, solo con sql/155) -->
+<div class="mbg" id="m-iscrizione-corso">
+  <div class="modal" style="max-width:440px">
+    <button class="x" onclick="closeM('m-iscrizione-corso')">×</button>
+    <h3>📅 Iscrizione al corso</h3>
+    <div id="isc-documento" style="font-size:13px;color:var(--m);margin-bottom:10px"></div>
+    <input type="hidden" id="isc-id">
+    <div class="f"><label>Data del corso *</label><input type="date" id="isc-data"></div>
+    <div class="f"><label>Ente</label><input type="text" id="isc-ente" maxlength="150" placeholder="es. ente formatore"></div>
+    <div class="f"><label>Nota</label><input type="text" id="isc-nota" maxlength="500" placeholder="es. aggiornamento 4 ore, in sede"></div>
+    <div class="ma">
+      <button class="btn" id="isc-annulla" style="color:var(--r)" onclick="annullaIscrizioneCorso()">Annulla iscrizione</button>
+      <button class="btn" onclick="closeM('m-iscrizione-corso')">Chiudi</button>
+      <button class="btn p" onclick="salvaIscrizioneCorso()">💾 Salva</button>
+    </div>
+  </div>
+</div>
+
 <!-- F19.2 — ESITO DELLA VISITA DI IDONEITÀ (js/92, solo con sql/153) -->
 <div class="mbg" id="m-idoneita">
   <div class="modal" style="max-width:440px">
@@ -11849,6 +11895,7 @@
 <script defer src="js/90-sospensione-commessa.js?v=202611161541"></script>
 <script defer src="js/91-catalogo-corsi.js?v=202611161541"></script>
 <script defer src="js/92-idoneita.js?v=202611161541"></script>
+<script defer src="js/93-piano-formazione.js?v=202611161541"></script>
 <script defer src="js/19-init.js?v=202611161541"></script>
 
 
