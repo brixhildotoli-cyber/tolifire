@@ -3434,6 +3434,31 @@ caricaCatalogoCorsi, avvolta). Guide info-tit-66, info-seg-35, info-ct-39. Prove
 sql/159-...-PROVA.sql (14 ok) e test/documenti-impresa.spec.js (segreteria,
 capo tecnico a 390 px, console; senza file perché il locale non ha lo Storage):
 TUTTO OK; smoke con e senza; rollback e riesecuzione provati.
+Dopo sql/158 (F19.7 kit standard, decisione di Erika del 16/11: il kit sta nel
+catalogo lavorazioni; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/158": backup,
+file (senza parole di cancellazione), -REGISTRO-CANCELLAZIONI dall'editor,
+controllo in fondo; richiede 26, 31, 67, 71, 75). Tabella lavorazioni_kit
+(lavorazione_id bigint → lavorazioni, voce, categoria dpi/attrezzatura/
+consumabile, nota, ordine, attivo, aggiornato_da*; lettura tutti, insert e update
+titolare e ingegnere, niente cancellazioni; trigger trg_lavorazioni_kit chi e
+quando, lavorazione fissa; registro delle azioni sql/67, NON lavorazioni_registro
+per non toccare il suo vincolo); 34 righe di partenza per porte_rei,
+compartimentazione, vernice_intumescente, coppelle, rilevazione_incendi,
+impianti_spegnimento (da controllare dall'ingegnere). Tabella
+commesse_kit_spunte (commessa+kit unici, presente, richiesto_il; lettura come le
+commesse) con RPC spunta_kit_commessa(p_commessa_id, p_kit_id, p_presente,
+p_richiesto) (titolare, capo_tecnico; non chiusa/annullata). kit_standard_attivo().
+Matrice: 20 righe. Sito (js/97-kit-standard.js dopo js/96): riquadro cl-kit-card
+nella finestra del catalogo (disegnaCatalogoLavorazioni avvolta; titolare e
+ingegnere aggiungono, correggono, tolgono); riquadro cmd-kit (index.html, sotto
+cmd-cantiere; caricaSchedaCantiere avvolta) con le voci attive delle lavorazioni
+delle schede (scheda_cantiere_commessa), spunte per capo tecnico e titolare,
+segreteria in lettura, "📦 Chiedi i mancanti" = apri_richiesta_integrazione tipo
+consumabile "Kit: <voce>" per ogni voce non presente e non chiesta, poi
+spunta con p_richiesto. Guide info-ct-40, info-tit-67, info-ing-33. Prove:
+sql/158-...-PROVA.sql (15 ok) e test/kit-standard.spec.js (capo tecnico a 390 px,
+segreteria, titolare, console): TUTTO OK; smoke con e senza; rollback e
+riesecuzione provati.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

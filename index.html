@@ -2045,6 +2045,8 @@
     <!-- F8.3: % di avanzamento in breve (js/34, attivo con sql/36) -->
     <div id="cmd-avanzamento-cantiere"></div>
     <div id="cmd-cantiere"></div>
+    <!-- F19.7: kit standard da portare (js/97, con sql/158) -->
+    <div id="cmd-kit"></div>
     <!-- F8.5: lavori extra chiesti in cantiere (js/36, attivo con sql/38) -->
     <div id="cmd-lavori-extra"></div>
     <!-- F8.3: cronoprogramma e % di avanzamento (js/34, attivo con sql/36) -->
@@ -5457,6 +5459,12 @@
       </p>
       <div class="al2 i">Li registra la segreteria.</div>
 
+      <h4 id="info-ct-40">40. 🧰 Kit da portare in cantiere</h4>
+      <p>
+        Nella scheda <b>🏗️ Cantiere</b> della commessa il riquadro <b>🧰 Kit da portare</b> elenca DPI, attrezzatura e consumabili delle lavorazioni della commessa (porte REI, compartimentazione, vernice...). Spunta quello che c'è; con <b>📦 Chiedi i mancanti</b> parte una richiesta di consumabili ad Acquisti per ogni voce che manca, come quelle che fai a mano.
+      </p>
+      <div class="al2 i">Il kit di ogni lavorazione lo decidono titolare e ingegnere nel catalogo lavorazioni.</div>
+
 
 
       <h4>Regole pratiche</h4>
@@ -6675,6 +6683,12 @@
         In <b>Team e subappalti</b> il bottone <b>🏢 Documenti di TOLI Fire</b> apre la scheda dei documenti dell'impresa: DURC, visura, nomine RSPP, RLS e medico competente, abilitazione D.M. 37/08, white list, assicurazione... con le scadenze. Si aggiungono, rinnovano e correggono come quelli dei subappaltatori; quando scadono compaiono nella tab Scadenze come "🏢 TOLI Fire".
       </p>
       <div class="al2 i">Il preavviso è quello dei documenti dell'impresa (Soglie e tariffe).</div>
+
+      <h4 id="info-tit-67">67. 🧰 Kit standard delle lavorazioni</h4>
+      <p>
+        Nel <b>catalogo lavorazioni</b> (Impostazioni → Apri il catalogo) ogni lavorazione ha il riquadro <b>🧰 Kit standard</b>: DPI, attrezzatura e consumabili da portare in cantiere. Tu e l'ingegnere aggiungete, correggete o togliete le voci; il capo tecnico le spunta nella scheda cantiere della commessa e chiede i mancanti.
+      </p>
+      <div class="al2 i">Le voci di partenza sono una proposta: falle controllare all'ingegnere.</div>
 
 
 
@@ -8298,6 +8312,11 @@
 
       <p>
         Se compilando una scheda ti accorgi che manca una domanda (per esempio il tipo di specchiatura delle porte), proponila al titolare. Nella scheda di rilievo aperta usa il link <b>➕ Proponi un campo</b> sotto i campi.
+      </p>
+
+      <h4 id="info-ing-33">33. 🧰 Kit standard delle lavorazioni</h4>
+      <p>
+        Nel catalogo lavorazioni ogni lavorazione ha il riquadro <b>🧰 Kit standard</b>: scrivi i DPI, l'attrezzatura e i consumabili da portare in cantiere (es. semimaschera con filtri per la vernice). Il capo tecnico li spunta nella scheda cantiere della commessa.
       </p>
 
       <ul>
@@ -11952,6 +11971,7 @@
 <script defer src="js/94-corsi-preventivo.js?v=202611161722"></script>
 <script defer src="js/95-squadra-corsi.js?v=202611161722"></script>
 <script defer src="js/96-documenti-impresa.js?v=202611161722"></script>
+<script defer src="js/97-kit-standard.js?v=202611161722"></script>
 <script defer src="js/19-init.js?v=202611161722"></script>
 
 
