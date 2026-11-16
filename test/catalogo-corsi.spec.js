@@ -284,7 +284,7 @@ async function sessioneCome(browser, url, u, largo) {
     await s.page.evaluate(() => gotoPage('impostazioni'));
     await attendiQuiete(s.stato, 3000);
     const card = await s.page.evaluate(() => ({ vis: !!(ge('si-corsi-card') && ge('si-corsi-card').offsetParent), testo: (ge('si-corsi-stato') || {}).innerText || '', bottone: ge('si-corsi-apri') && ge('si-corsi-apri').style.display !== 'none' }));
-    if (!card.vis || !/23/.test(card.testo) || !card.bottone) KO('titolare: riquadro in Impostazioni: ' + JSON.stringify(card)); else righe.push('titolare (390 px): riquadro «🎓 Corsi e abilitazioni» in Impostazioni (' + card.testo.trim() + ')');
+    if (!card.vis || !/\d+ tra corsi/.test(card.testo) || !card.bottone) KO('titolare: riquadro in Impostazioni: ' + JSON.stringify(card)); else righe.push('titolare (390 px): riquadro «🎓 Corsi e abilitazioni» in Impostazioni (' + card.testo.trim() + ')');
     await s.page.evaluate(() => apriCatalogoCorsi());
     await attendiQuiete(s.stato, 1500);
     await s.page.evaluate(() => { modificaCorsoCatalogo(); ge('ccr-nome').value = 'Abilitazione posa sistema X'; ge('ccr-mesi').value = '36'; ge('ccr-ente').value = 'Produttore X'; });

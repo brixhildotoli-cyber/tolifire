@@ -3409,6 +3409,31 @@ aggiornaRiepilogoAvvisiSquadra avvolta: riquadro data-corsi-richiesti e
 data-ruoli-minimi (preposto, primo_soccorso, formazione_antincendio tra i
 dipendenti scelti). Si salva sempre. Guide info-ct-38, info-tit-65, info-seg-34.
 Prova test/squadra-corsi.spec.js (capo tecnico a 390 px): TUTTO OK.
+Dopo sql/159 (F19.8 documenti di TOLI Fire, decisione di Erika del 16/11: SOLO
+i documenti dell'impresa, niente fascicolo PDF né "chi rilascia la
+dichiarazione"; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/159": backup, file
+(senza parole di cancellazione), -VINCOLO dall'EDITOR subito dopo (drop e add
+dei vincoli intestatario e percorso), controllo in fondo; richiede 07, 32).
+documenti_team_subappalti colonna NUOVA impresa (terzo intestatario: utente_id
+e subappaltatore_id vuoti; vincolo intestatario = uno solo tra i tre; percorso
+impresa/toli/<file>). Policy storage documenti_impresa_caricamento (titolare,
+segreteria; creata solo se storage.objects esiste: il locale non lo ha). RPC
+registra_documento_impresa (titolare, segreteria; nuovo o rinnovo, stessi
+controlli di sql/32, niente visita di idoneità); correzione ed eliminazione con
+le RPC di sql/32. documenti_impresa_attivi(). Tipi nuovi nel catalogo (se c'è
+sql/152): nomina_rspp, nomina_rls, nomina_medico, abilitazione_dm37, white_list
+(12 mesi). Matrice invariata. Sito (js/96-documenti-impresa.js dopo js/95):
+bottone ts-btn-impresa "🏢 Documenti di TOLI Fire" in Team e subappalti
+(titolare, segreteria, capo tecnico; loadTeamSubappalti avvolta) → scheda
+documenti tipo 'impresa' id 'toli' (caricaSchedaDocumenti, apriDocumentoTS con
+i soli tipi impresa/tutti, salvaDocumentoTS con upload in impresa/toli/ e la RPC
+nuova: avvolte); documentiDaSegnalareTS avvolta (documenti senza dipendente né
+subappaltatore = impresa, riga "🏢 TOLI Fire" in Scadenze e dashboard);
+assicuraTipiImpresa aggiunge i 5 tipi anche senza sql/152 (e dopo
+caricaCatalogoCorsi, avvolta). Guide info-tit-66, info-seg-35, info-ct-39. Prove:
+sql/159-...-PROVA.sql (14 ok) e test/documenti-impresa.spec.js (segreteria,
+capo tecnico a 390 px, console; senza file perché il locale non ha lo Storage):
+TUTTO OK; smoke con e senza; rollback e riesecuzione provati.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
