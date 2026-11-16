@@ -3213,6 +3213,33 @@ alla creazione (salvaNuovoOrdineFornitore avvolta: Annulla = nessun ordine), bad
 sopra l'offerta (oltre il 5%)" (ordinati e confermati). Guide info-com-41,
 info-tit-57. Prova test/ordini-sopra-offerta.spec.js (Acquisti a 390 px, titolare):
 TUTTO OK; smoke TUTTO OK.
+Dopo sql/131 (F18.2 revisioni del preventivo PRIMA dell'esito, decisioni di
+Erika del 16/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/131": backup, file
+(senza parole di cancellazione), controllo in fondo; richiede 07, 22, 67, 71;
+nessuna tabella nuova, matrice invariata; le varianti dopo l'accettazione sono
+F20.15). preventivi colonne NUOVE revisione (0-99), preventivo_padre_id,
+sostituito_da, sostituito_il, sostituito_da_nome (scritte solo dalla RPC:
+trigger trg_preventivi_revisione, segno toli.revisione_preventivo, 42501 per gli
+utenti del sito). RPC nuova_revisione_preventivo(p_preventivo) (Acquisti AUTORE
+e titolare, anche "come"; preventivo inviato_a_rappresentante o inviato, non già
+sostituito): revisione R+1 in BOZZA con numero nuovo (sequenza), copia cliente,
+progetto, venditore, Acquisti, tipo, origine, IVA, note, condizioni di pagamento,
+anticipo, oggetto e nota (le colonne che esistono, insert costruito dalle chiavi)
+e tutte le voci (colonne lette da information_schema), totale = somma delle voci;
+NON sconto, PDF, certificati, computo; le OFFERTE DEI FORNITORI passano alla
+revisione (preventivi_fornitori.preventivo_id: servono a offerte_ordinabili e agli
+ordini dopo l'accettazione); R0 RESTA COM'È (scelta di Erika: nessuno stato
+'superato') con sostituito_da. revisioni_preventivo_attive(). Sito
+(js/88-revisioni-preventivo.js dopo js/87): azione "🔁 Nuova revisione" della
+scheda comune (registraAzioneScheda di js/63: commerciale autore e titolare,
+stati inviato_a_rappresentante e inviato), riquadro pvd-revisione ("Sostituito
+dalla revisione R1 (n. ...)" con "Apri la revisione" / "Revisione R1 del
+preventivo n. ..." con "Apri R0"), conferma prima dell'esito su un preventivo
+sostituito (apriEsitoPreventivo avvolta, solo avviso), etichette "🔁 Sostituito da
+R1 (n. ...)" e "R1" negli elenchi dei preventivi (id negli attributi). Guide
+info-com-42, info-tit-58, info-rap-39. Prove: sql/131-...-PROVA.sql e
+test/revisioni-preventivo.spec.js (Acquisti autore a 390 px, rappresentante):
+TUTTO OK; smoke TUTTO OK con e senza; rollback e riesecuzione provati.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

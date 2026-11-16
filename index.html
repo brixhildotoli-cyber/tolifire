@@ -3419,6 +3419,11 @@
       </p>
       <p class="info-esempio">Esempio: accettato il 1° marzo, l'8 marzo "richiama il cliente", il 16 marzo "sollecita il cliente". L'etichetta "Da N giorni" conta dalla fattura d'anticipo, se c'è già: per questo può dire "Da 6 giorni · richiama il cliente".</p>
       <div class="al2 i">Il preventivo non si annulla mai da solo: se il cliente non paga, decidono la segreteria o il titolare con "Rifiuta: anticipo non versato".</div>
+
+      <h4 id="info-rap-39">39. 🔁 Preventivo sostituito da una revisione</h4>
+      <p>
+        Se in <b>I miei preventivi</b> un preventivo ha l'etichetta <b>🔁 Sostituito da R1 (n. ...)</b>, Acquisti ne ha fatto una versione nuova: fai approvare al cliente la revisione, non quella vecchia. Se provi a registrare l'esito sul preventivo vecchio il gestionale te lo chiede prima.
+      </p>
       </div>
 
       <h4>Regole pratiche</h4>
@@ -4161,6 +4166,12 @@
         Creando un ordine da un'offerta scelta, se il totale delle voci supera l'offerta del fornitore di oltre il 5% compare l'avviso giallo sotto il totale e, premendo <b>🛒 Crea ordine e PDF</b>, una conferma. L'ordine si può creare lo stesso (non c'è nessun blocco); sulla riga dell'ordine resta <b>⚠️ +N% sull'offerta</b> e il titolare lo vede in "Cosa tocca a me".
       </p>
       <p class="info-esempio">Esempio: offerta 1.000 €, nell'ordine scrivi 1.200 € → "supera l'offerta del 20%". Controlla i prezzi: se il fornitore ha davvero aumentato, conferma.</p>
+
+      <h4 id="info-com-42">42. 🔁 Nuova revisione del preventivo</h4>
+      <p>
+        Il cliente chiede modifiche a un preventivo già inviato (al rappresentante o al cliente)? Apri il preventivo e in "Cosa puoi fare" premi <b>🔁 Nuova revisione</b>. Nasce la revisione <b>R1</b> in bozza, con un numero nuovo, le stesse voci e le stesse condizioni: cambia quello che serve, ricontrolla il margine e rifai il PDF per il cliente. Le offerte dei fornitori passano alla revisione. Il preventivo di prima resta com'è, con il riquadro "Sostituito dalla revisione R1".
+      </p>
+      <div class="al2 i">La revisione la fa chi ha preparato il preventivo (o il titolare). Lo sconto del rappresentante non si copia: lo rimette sulla revisione.</div>
 
   <h4>Checklist prima dell’invio</h4>
 
@@ -6527,6 +6538,11 @@
       <h4 id="info-tit-57">57. ⚠️ Ordini sopra l'offerta del fornitore</h4>
       <p>
         In "Cosa tocca a me" trovi <b>Ordini ai fornitori sopra l'offerta (oltre il 5%)</b>: ordini ancora da ricevere il cui totale supera l'offerta scelta. È solo un'informazione: Acquisti li ha creati confermando l'avviso. Sulla riga dell'ordine nella commessa c'è <b>⚠️ +N% sull'offerta</b>; se l'aumento riduce troppo il margine valuti con il rappresentante una variante per il cliente.
+      </p>
+
+      <h4 id="info-tit-58">58. 🔁 Revisioni del preventivo</h4>
+      <p>
+        Tu e Acquisti (chi ha preparato il preventivo) potete fare <b>🔁 Nuova revisione</b> di un preventivo già inviato: R1, R2... in bozza con voci e condizioni copiate e le offerte dei fornitori spostate sulla revisione. Il preventivo di prima non cambia stato: ha il riquadro "Sostituito dalla revisione" e negli elenchi l'etichetta <b>🔁 Sostituito da R1</b>; chi prova a registrarne l'esito riceve una conferma (solo avviso).
       </p>
 
 
@@ -11669,6 +11685,7 @@
 <script defer src="js/85-stato-pagamenti.js?v=202611161518"></script>
 <script defer src="js/86-periodo-presidi-interventi.js?v=202611161518"></script>
 <script defer src="js/87-ordini-sopra-offerta.js?v=202611161518"></script>
+<script defer src="js/88-revisioni-preventivo.js?v=202611161518"></script>
 <script defer src="js/19-init.js?v=202611161518"></script>
 
 
