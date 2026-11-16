@@ -3146,8 +3146,7 @@ e Acquisti rifiutate): TUTTO OK; caricamento delle foto NON provato in locale
 (niente Storage); ordini-liberi e smoke TUTTO OK con e senza; rollback e
 riesecuzione provati.
 Dopo sql/270 (stato dei pagamenti del cliente per tecnici e capo tecnico,
-richiesta di Erika del 16/11, fuori piano; DA ESEGUIRE con "CONFERMATO DA TOLI:
-sql/270": backup, file (senza parole di cancellazione, connettore), controllo in
+richiesta di Erika del 16/11, fuori piano; ESEGUITO il 16/11 (backup pre270, controllo in regola) con "CONFERMATO DA TOLI: sql/270": backup, file (senza parole di cancellazione, connettore), controllo in
 fondo; richiede 07, 71; nessuna tabella nuova, matrice invariata). DECISIONI DI
 ERIKA: il flag lo mettono A MANO segreteria e titolare (le fatture vere si fanno
 fuori dal gestionale: in produzione 1 fattura emessa); tre stati; SOLO AVVISO;
