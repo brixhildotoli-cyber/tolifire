@@ -10,7 +10,7 @@
 // titolare riceve l'avviso e la riga di Cosa tocca a me; chi l'ha creato
 // l'esito. Senza sql/128 niente bottone, nessun errore.
 
-const ORDINI_LIBERI = { attivi: null, fornitori: null };
+const ORDINI_LIBERI = { attivi: true, fornitori: null };
 
 async function verificaOrdiniLiberiDisponibili() {
   if (ORDINI_LIBERI.attivi !== null) return ORDINI_LIBERI.attivi;

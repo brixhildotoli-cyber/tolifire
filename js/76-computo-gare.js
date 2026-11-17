@@ -10,7 +10,7 @@
 // descrizione ("[A.01.003] ..."). Nessun blocco, niente cambia nei preventivi
 // senza computo (il campo "Cod. ente" compare solo se una voce ha il codice).
 
-let codiceClienteVociDisponibile = null;
+let codiceClienteVociDisponibile = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 
 // Come verificaOggettoNotaPreventivoDisponibile: si guarda una riga letta
 // con select *; nessuna richiesta in errore senza sql/112.

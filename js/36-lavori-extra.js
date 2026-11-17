@@ -54,7 +54,7 @@ const ETICHETTE_STATO_PREVENTIVO_LAVORO_EXTRA = {
 const RUOLI_REGISTRANO_LAVORI_EXTRA = ['titolare', 'capo_tecnico'];
 const RUOLI_ANNULLANO_LAVORI_EXTRA = ['titolare', 'capo_tecnico', 'commerciale', 'rappresentante'];
 
-let lavoriExtraDisponibili = null;
+let lavoriExtraDisponibili = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 // Riepilogo per "Tocca a te": { id_commessa: { richiesti, bozze, daApprovare, inAttesa, accettati } }
 let riepilogoLavoriExtraCommesse = {};
 // Lavori extra caricati (scheda e dashboard): { id: lavoro }, con la sua commessa in r.commesse.

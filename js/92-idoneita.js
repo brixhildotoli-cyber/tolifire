@@ -8,7 +8,7 @@
 //   - "I miei documenti" del tecnico: la persona vede il suo esito.
 // Senza sql/153 nessuna riga né bottone (una RPC 404).
 
-const IDON = { attivo: null };
+const IDON = { attivo: true };
 
 async function verificaIdoneitaDisponibile() {
   if (IDON.attivo !== null) return IDON.attivo;

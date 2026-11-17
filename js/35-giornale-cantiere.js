@@ -35,7 +35,7 @@ const ORE_PROPOSTE_GIORNALE = 8;
 const GIORNI_GIORNALE_IN_VISTA = 7;      // gli altri in "Giorni precedenti"
 const LATO_MAX_FOTO_GIORNALE = 1920;     // px: le foto più grandi si rimpiccioliscono
 
-let giornaleDisponibile = null;
+let giornaleDisponibile = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 let giornaleAperto = null;   // { commessa, giorni, lavorazioni, ore, presenti, utenti, subappaltatori, foto, urlFoto, vedeOre }
 let giornaleModulo = null;   // { commessa, giorno, esistente, righe, foto }
 let lavorazioniModulo = null; // { commessa, righe, proposte }

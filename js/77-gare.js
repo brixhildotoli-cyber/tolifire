@@ -12,7 +12,7 @@
 // Il computo dell'ente si importa nel preventivo (F16.34, js/76).
 // Senza sql/113: "non ancora attiva", nessun errore (una chiamata RPC 404).
 
-const GARE = { attive: null, elenco: [], filtro: 'aperte', aperta: null, checklist: [] };
+const GARE = { attive: true, elenco: [], filtro: 'aperte', aperta: null, checklist: [] };
 const GIORNI_AVVISO_GARA = 5;
 const CHECKLIST_GARA_PREDEFINITA = ['DGUE', 'Domanda di partecipazione', 'Garanzia provvisoria (cauzione)', 'PassOE', 'Contributo ANAC',
   'Attestato di sopralluogo', 'Offerta tecnica', 'Offerta economica', 'Dichiarazioni (requisiti, subappalto)'];

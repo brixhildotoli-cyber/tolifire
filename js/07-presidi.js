@@ -410,7 +410,7 @@ function editP(id) {
 // Capacità degli estintori (decisione di Toli del 02/11, sql/52): la
 // colonna impianti.capacita c'è? Senza sql/52 il campo si mostra ma non si
 // salva, come prima.
-let capacitaEstintoriVerificata = null;
+let capacitaEstintoriVerificata = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 async function capacitaEstintoriDisponibile() {
   if (capacitaEstintoriVerificata !== null) return capacitaEstintoriVerificata;
   const { error } = await db.from('impianti').select('capacita').limit(1);

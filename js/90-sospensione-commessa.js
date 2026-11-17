@@ -18,7 +18,7 @@
 //     prevista passata.
 // Senza sql/151 nessun bottone, riquadro o riga (una RPC 404).
 
-const SOSP = { attivo: null, corrente: null, commessaId: null, mappa: {}, letto: 0 };
+const SOSP = { attivo: true, corrente: null, commessaId: null, mappa: {}, letto: 0 };
 const STATI_ORDINE_APERTO = ['ordinato', 'confermato'];
 
 async function verificaSospensioneDisponibile() {

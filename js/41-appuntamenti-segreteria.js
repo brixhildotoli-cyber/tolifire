@@ -45,7 +45,7 @@ const COLONNE_APPUNTAMENTO = 'appuntamento_richiesto,appuntamento_fissato,appunt
   'appuntamento_contatto,appuntamento_contattato_il,appuntamento_nota,appuntamento_fissato_da_nome,' +
   'appuntamento_fissato_il,appuntamento_motivo,appuntamento_motivo_il';
 
-let appuntamentiDisponibile = null;
+let appuntamentiDisponibile = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 let fapIntervento = null; // intervento aperto nella finestra "Fissa appuntamento"
 
 // true se sql/43 è stato eseguito (colonna ordini_lavoro.appuntamento_richiesto).

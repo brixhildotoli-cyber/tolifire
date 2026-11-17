@@ -30,7 +30,7 @@
 // Senza sql/56 non compare nulla di nuovo.
 // =====================================================================
 
-let lavoriExtraRappDisponibili = null;
+let lavoriExtraRappDisponibili = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 let importiExtraDisponibili = null;
 let importiExtraCommesse = {};          // commessa id → { n, totale }
 let preventivoExtraRappAperto = null;   // { lavoroId, preventivo, voci, ... }

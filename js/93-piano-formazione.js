@@ -13,7 +13,7 @@
 //   - Cosa tocca a me: a ognuno i SUOI corsi o visite in scadenza; a
 //     segreteria e titolare i corsi in scadenza senza iscrizione.
 
-const PIANO_FORM = { attivo: null, iscrizioni: {} };
+const PIANO_FORM = { attivo: true, iscrizioni: {} };
 
 async function verificaPianoFormazioneDisponibile() {
   if (PIANO_FORM.attivo !== null) return PIANO_FORM.attivo;

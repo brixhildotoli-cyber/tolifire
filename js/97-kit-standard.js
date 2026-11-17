@@ -11,7 +11,7 @@
 //     integrazione di sql/31, come la richiesta a mano); segreteria legge.
 // Senza sql/158 nessun riquadro.
 
-const KIT = { attivo: null, commessaId: null, voci: [], spunte: {} };
+const KIT = { attivo: true, commessaId: null, voci: [], spunte: {} };
 const CATEGORIE_KIT = { dpi: '🦺 DPI', attrezzatura: '🔧 Attrezzatura', consumabile: '📦 Consumabile' };
 
 async function verificaKitDisponibile() {

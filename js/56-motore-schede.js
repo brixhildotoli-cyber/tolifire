@@ -46,7 +46,7 @@
 // progetti in bozza o da integrare (policy di sql/77), ingegnere e titolare
 // sempre. Senza sql/77 (RPC motore_schede_attivo) nulla di questo compare.
 
-const MOTORE_SCHEDE = { disponibile: null, progetto: null, cliente: null, sedi: [], famiglia: null, datiBase: {}, numero: null };
+const MOTORE_SCHEDE = { disponibile: true, progetto: null, cliente: null, sedi: [], famiglia: null, datiBase: {}, numero: null };
 
 const ICONE_LAVORAZIONI_MOTORE = {
   porte_rei: '🚪', estintori: '🧯', rilevazione_incendi: '🔔', compartimentazione: '🧱',
@@ -867,7 +867,7 @@ function chiudiSchedaMotore() {
 // viene il dato. Senza fonte il dato non vale e l'invio del progetto si
 // ferma (js/17 controllaFontiPrimaDellInvio + trigger di sql/79, anche da
 // console). Senza sql/79 (RPC fonti_dati_attive) nulla di questo compare.
-const FONTI_DATI = { disponibile: null, allegati: [], progettoId: null };
+const FONTI_DATI = { disponibile: true, allegati: [], progettoId: null };
 
 const FONTI_RILIEVO = [
   { valore: 'sopralluogo_toli', etichetta: 'Sopralluogo TOLI' },

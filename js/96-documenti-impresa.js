@@ -12,7 +12,7 @@
 //     avvisi della dashboard come "🏢 TOLI Fire" (preavviso dei documenti).
 // Senza sql/159 il bottone non compare e nulla cambia.
 
-const DOC_IMPRESA = { attivo: null, nome: 'TOLI Fire' };
+const DOC_IMPRESA = { attivo: true, nome: 'TOLI Fire' };
 const TIPI_IMPRESA_NUOVI = [
   { id: 'nomina_rspp', per: 'impresa', nome: 'Nomina RSPP', obbligo_legge: true },
   { id: 'nomina_rls', per: 'impresa', nome: 'Nomina o elezione RLS', obbligo_legge: true },

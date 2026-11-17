@@ -48,7 +48,7 @@ const ETICHETTE_STATO_PREVENTIVO_CONTRATTO = {
   scaduto: 'Scaduto'
 };
 
-let contrattoRinnovoDisponibile = null;
+let contrattoRinnovoDisponibile = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 const colonnePeriodicitaVerificate = {};
 let contrattoRinnovoAperto = null; // { cliId, ragione, perio, esito }
 const contrattiScadenzaCache = {};

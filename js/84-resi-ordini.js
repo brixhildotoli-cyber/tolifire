@@ -15,7 +15,7 @@
 // decidere". NON FATTI: magazzino "fuori standard" (modulo Magazzino) e riga
 // nel report del venerdì (non esiste ancora). Senza sql/147 nulla compare.
 
-const RESI = { attivo: null, perOrdine: {}, aperto: null };
+const RESI = { attivo: true, perOrdine: {}, aperto: null };
 const RUOLI_SEGNALANO_RESI = ['titolare', 'capo_tecnico', 'commerciale'];
 const RUOLI_GESTISCONO_RESI = ['titolare', 'commerciale'];
 const PROBLEMI_RESO = { sbagliato: 'Materiale sbagliato', danneggiato: 'Materiale danneggiato', mancante: 'Materiale mancante' };

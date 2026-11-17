@@ -13,7 +13,7 @@
 // cmd-domande); finestra "❓ Domande per me" (riga di "Cosa tocca a me",
 // js/46, e azione rapida degli avvisi). Senza sql/70 non compare nulla.
 
-const DOMANDE = { disponibili: null, utenti: null, aperta: null, mie: null, mieLette: 0 };
+const DOMANDE = { disponibili: true, utenti: null, aperta: null, mie: null, mieLette: 0 };
 const DOMANDE_VALIDE_MS = 15000;
 const DOMANDE_MAX_FILE = 20 * 1024 * 1024;   // come il bucket domande-allegati
 const RUOLI_DOMANDA = ['titolare', 'segreteria', 'capo_tecnico', 'commerciale', 'rappresentante', 'tecnico', 'ingegnere', 'contabile'];

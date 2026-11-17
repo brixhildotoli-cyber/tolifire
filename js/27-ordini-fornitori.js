@@ -40,7 +40,7 @@ const RUOLI_ARRIVO_ORDINI = ['titolare', 'commerciale', 'rappresentante', 'capo_
 // Decisioni 29/10: chi vede i prezzi d'acquisto (ordini, consumabili e noli).
 const RUOLI_VEDONO_PREZZI_ACQUISTO = ['titolare', 'segreteria', 'commerciale', 'rappresentante'];
 
-let ordiniFornitoriDisponibili = null;
+let ordiniFornitoriDisponibili = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 let commessaOrdiniAperta = null;
 let ordiniCommessaAperta = [];
 let offerteCommessaAperta = [];
@@ -48,7 +48,7 @@ let offerteCommessaLette = false; // false se la lettura delle offerte è fallit
 let vociNuovoOrdine = [];
 let offertaNuovoOrdine = null;
 let ordineStatoInModifica = null;
-let ritornoArrivoOrdiniDisponibile = null; // sql/42: colonne arrivo_annullato_*
+let ritornoArrivoOrdiniDisponibile = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo // sql/42: colonne arrivo_annullato_*
 
 // ── Disponibilità di sql/30 ─────────────────────────────────────────
 async function verificaOrdiniFornitoriDisponibili() {

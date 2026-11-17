@@ -5526,6 +5526,17 @@ quante insieme, in risultato.json) e SMOKE_RITARDO_MS=150 (database lento).
     con una sola sezione "👷 Team tecnico: chi è impegnato", riga "Debug"
     tolta (js/05). NON fatto (Erika): le tessere dei numeri del titolare.
   - Il ruolo contabile non c'è in azienda: non serve sistemarne la dashboard.
+- Controlli "SQL già eseguito?" (riordino del 17/11): verificato in
+  produzione che ci sono tutti; 51 stati di partenza messi a true (commento
+  "riordino 17/11" sulla riga), così le verifica…Disponibil* rispondono
+  subito senza leggere il database. NON toccati (controllano anche il
+  ruolo o leggono dati): assenze, fermi, FIR, squadra, multe mezzi,
+  promesse, eventi sicurezza, migrazione schede, foto/video, annulla,
+  deleghe, smistamento, regole, festività. Il database di prova locale va
+  tenuto allineato alla produzione (il 17/11 mancavano 226, 263, 264).
+  Prove vecchie che falliscono anche prima (da aggiornare): catalogo-
+  lavorazioni e import-catalogo-lavorazioni (12 lavorazioni, non 11),
+  smistamento-famiglie (anteprima), voci-quantita-um (colonna tolta).
 
 ## SICUREZZA
 I permessi vivono SOLO nel frontend (`canAccessPage`, `PAGINE_RUOLO`,

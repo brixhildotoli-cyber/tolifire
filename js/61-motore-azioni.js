@@ -28,7 +28,7 @@
 // Senza sql/68: nessun pulsante, il riquadro dice "non ancora attivo".
 
 const MOTORE_AZIONI = {
-  disponibile: null, caricato_il: 0, lettura: null,
+  disponibile: true, caricato_il: 0, lettura: null,
   oggetti: {}, stati: {}, transizioni: [], dopo: {}, tipiAvviso: {}, aperto: null
 };
 const MOTORE_AZIONI_VALIDO_MS = 5 * 60 * 1000;

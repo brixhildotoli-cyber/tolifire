@@ -26,7 +26,7 @@
 // Finestre: m-posizione (id pos-) e m-posizione-duplica (id posd-).
 // Senza sql/76 il sito resta come prima: nessun riquadro, nessun errore.
 
-const POSIZIONI = { disponibili: null, progetti: {}, aperta: null, duplica: null, contesto: null };
+const POSIZIONI = { disponibili: true, progetti: {}, aperta: null, duplica: null, contesto: null };
 
 async function verificaPosizioniDisponibili() {
   if (POSIZIONI.disponibili !== null) return POSIZIONI.disponibili;

@@ -28,7 +28,7 @@
 
 const RUOLI_SOSTITUZIONE_UFFICIO = ['titolare', 'capo_tecnico', 'segreteria'];
 
-let sostituzionePresidiVerificata = null;
+let sostituzionePresidiVerificata = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 let sostituzioneInCorso = null;   // { presidio, odlId, daTecnico }
 let salvataggioSostituzione = false;
 

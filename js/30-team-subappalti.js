@@ -48,7 +48,7 @@ const LIMITE_FILE_TEAM_SUBAPPALTI = 50 * 1024 * 1024; // 50 MB, come il bucket
 const COLONNE_DOCUMENTO_TS = 'id, utente_id, subappaltatore_id, tipo, descrizione, riferito_a, data_rilascio, data_scadenza, ' +
   'riservato, nota, nome_file, storage_path, dimensione, sostituito_da, sostituito_il, caricato_da_nome, caricato_da_ruolo, caricato_il';
 
-let teamSubappaltiDisponibili = null;
+let teamSubappaltiDisponibili = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 let subappaltatoriElenco = [];
 let dipendentiElencoTS = [];
 let documentiInVigoreTS = [];

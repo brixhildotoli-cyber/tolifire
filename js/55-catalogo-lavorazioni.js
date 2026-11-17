@@ -1109,7 +1109,7 @@ async function scaricaModelloImportLav() {
 // Senza sql/91: nessun bottone, nessuna riga, nessun errore (una chiamata RPC
 // 404, solo per titolare e ingegnere).
 
-const PROPOSTE_CAMPI = { disponibili: null, inVerifica: null, elenco: [], letto: 0, modo: '', id: null, lavorazione: '', valori: [], soloAttesa: true };
+const PROPOSTE_CAMPI = { disponibili: true, inVerifica: null, elenco: [], letto: 0, modo: '', id: null, lavorazione: '', valori: [], soloAttesa: true };
 const TIPI_PROPOSTA_CAMPO = TIPI_CAMPO_LAV.filter(function(t) { return t.value !== 'foto'; });
 const STATI_PROPOSTA_CAMPO = { in_attesa: '⏳ In attesa del titolare', approvata: '✅ Approvata', rifiutata: '✖ Rifiutata' };
 

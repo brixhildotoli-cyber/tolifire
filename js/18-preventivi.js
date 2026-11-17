@@ -699,7 +699,7 @@ function valoreSchedaTecnica(valore, campo, famiglia) {
 // "Nome / riferimento" (salvato in dati.nome_scheda, non in una colonna).
 // Senza sql/48 tutto come prima: una scheda per tipo, nessuna barra.
 // Nessun campo obbligatorio (decisione di Erika del 28/10).
-let schedeMultipleDisponibili = null; // null = non ancora verificato
+let schedeMultipleDisponibili = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo // null = non ancora verificato
 // Scheda aperta nella finestra m-rilievo-tecnico (contesto progetto):
 // { progettoId, famiglia, numero, elenco (schede salvate; null senza
 //   sql/48), bozze ({ numero: { dati, nome, nuova } } non salvate),
@@ -9342,7 +9342,7 @@ const STATI_ATTESA_ESITO_PREVENTIVO = ['inviato_a_rappresentante', 'inviato'];
 // Stati con l'esito del cliente già registrato (F4.2: in_attesa_anticipo).
 const STATI_ESITO_PREVENTIVO = ['in_attesa_anticipo', 'accettato', 'rifiutato'];
 const ESITO_PREVENTIVO_MAX_MB = 15;
-let esitoPreventivoDisponibile = null;
+let esitoPreventivoDisponibile = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 
 // true se sql/22 è stato eseguito (esiste la colonna dell'allegato).
 async function verificaEsitoPreventivoDisponibile() {
@@ -9742,13 +9742,13 @@ async function htmlEsitiRegistratiRappresentante() {
 // accredito la commessa non parte. Senza sql/24 nulla di questo compare.
 // =====================================================================
 
-let anticipoPreventivoDisponibile = null;
+let anticipoPreventivoDisponibile = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 
 // sql/264 --------------------------------------------------------------
 const OGGETTO_PREVENTIVO_MAX = 200;
 const NOTA_INTRO_PREVENTIVO_MAX = 2000;
-let oggettoNotaPreventivoDisponibile = null;
-let computoPreventivoDisponibile = null;
+let oggettoNotaPreventivoDisponibile = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
+let computoPreventivoDisponibile = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 
 // true solo con le colonne oggetto e nota_introduttiva (sql/264). Si legge
 // una riga intera e si guarda se la colonna c'è: così senza sql/264 nessuna
@@ -10702,7 +10702,7 @@ const COLONNE_FATTURA_ANTICIPO =
   'anticipo_fattura_registrata_da, anticipo_fattura_registrata_il, ' +
   'anticipo_accredito_data, anticipo_accredito_verificato_da, anticipo_accredito_registrato_il';
 
-let fatturaAnticipoDisponibile = null;
+let fatturaAnticipoDisponibile = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 let anticipoSegreteriaTotale = 0;
 
 // true se sql/25 è stato eseguito (esiste la colonna anticipo_fattura_numero).
@@ -11117,7 +11117,7 @@ const ETICHETTE_STATO_COMMESSA = {
   annullata: 'Annullata'
 };
 
-let commesseDisponibili = null;
+let commesseDisponibili = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 
 // true se sql/26 è stato eseguito (esiste la tabella commesse).
 async function verificaCommesseDisponibili() {
@@ -11424,7 +11424,7 @@ function toccaAMeCommessa(commessa) {
   return !!prossimo && RUOLO_PASSO_COMMESSA[prossimo] === ROLE;
 }
 
-let statiCommessaDisponibili = null;
+let statiCommessaDisponibili = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 
 // true se sql/28 è stato eseguito (esiste la tabella commesse_storico).
 async function verificaStatiCommessaDisponibili() {

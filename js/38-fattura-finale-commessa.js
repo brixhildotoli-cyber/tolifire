@@ -26,7 +26,7 @@
 const RUOLI_FATTURA_FINALE = ['titolare', 'segreteria'];
 const STATI_FATTURA_FINALE = ['fine_lavori', 'chiusa'];
 
-let fatturaFinaleDisponibile = null;
+let fatturaFinaleDisponibile = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 let statoChiusuraAperto = null;   // risposta di controllo_chiusura_commessa
 let commessaFatturaFinale = null; // commessa del box
 let fatturaFinaleCommessaLetta = null; // colonne fattura_finale_* lette per tutti i ruoli

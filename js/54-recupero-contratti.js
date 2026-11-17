@@ -32,7 +32,7 @@ const BOX_CONTRATTI_RECUPERO = {
 const RUOLI_ASSEGNA_VENDITORE = ['titolare', 'segreteria'];
 const RUOLI_CHIUDI_RECUPERO = ['titolare', 'segreteria', 'rappresentante'];
 
-let recuperoContrattiAttivo = null; // null = da verificare
+let recuperoContrattiAttivo = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo // null = da verificare
 let recuperoAperto = null;          // contratto della finestra "Perso" / "Assegna"
 const contrattiRecuperoCache = {};
 

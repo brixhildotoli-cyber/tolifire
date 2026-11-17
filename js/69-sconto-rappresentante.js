@@ -23,7 +23,7 @@
 // blocco arriva qui come errore della RPC e si mostra così com'è.
 // =====================================================================
 
-let scontoRappresentanteAttivoCache = null;
+let scontoRappresentanteAttivoCache = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 const SCONTI_PREVENTIVI = {};
 const SOGLIA_MOTIVAZIONE_SCONTO = 2;
 

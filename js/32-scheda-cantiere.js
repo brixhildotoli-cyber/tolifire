@@ -36,7 +36,7 @@ const ETICHETTE_CATEGORIA_LAVORAZIONE = {
   altro: 'Altro'
 };
 
-let datiCantiereDisponibili = null;
+let datiCantiereDisponibili = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 let tabCommessaScelta = null;   // { commessaId, tab } per non perdere la scheda scelta ricaricando
 let cantiereAperto = null;      // { commessa, dati }
 

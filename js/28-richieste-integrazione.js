@@ -37,7 +37,7 @@ const RUOLI_EVADONO_RICHIESTE = ['titolare', 'commerciale'];
 const RUOLI_ARRIVO_RICHIESTE = ['titolare', 'capo_tecnico', 'commerciale', 'segreteria'];
 const RUOLI_ANNULLANO_RICHIESTE = ['titolare', 'capo_tecnico', 'commerciale'];
 
-let richiesteIntegrazioneDisponibili = null;
+let richiesteIntegrazioneDisponibili = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 // Riepilogo delle richieste attive per commessa (per "Tocca a te"):
 // { id_commessa: { aperte, evase, daSegnare } }
 let riepilogoRichiesteCommesse = {};

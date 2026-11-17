@@ -317,7 +317,7 @@ function cambiaMeseAppuntamenti(delta) {
 //   "⏳ Progetti fermi dall'ingegnere" in Cosa tocca a me (js/46).
 // =====================================================================
 const ATTESA_VERIFICA_LIMITE_GG = 1;
-const URGENZA_PROGETTI = { presente: null };
+const URGENZA_PROGETTI = { presente: true };
 
 async function verificaUrgenzaProgettiDisponibile() {
   if (URGENZA_PROGETTI.presente !== null) return URGENZA_PROGETTI.presente;

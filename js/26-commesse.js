@@ -40,7 +40,7 @@ const COLONNE_COMMESSA = 'id, codice, anno, numero, stato, origine, titolo, impo
 let commesseElenco = [];
 let commessaApertaId = null;
 let paginaPrecedenteCommessa = 'commesse';
-let documentiCommessaDisponibili = null;
+let documentiCommessaDisponibili = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 let documentiCommessaAperta = [];
 
 // ── Disponibilità di sql/29 ─────────────────────────────────────────

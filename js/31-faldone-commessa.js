@@ -32,7 +32,7 @@ const ETICHETTE_STATO_VOCE_FALDONE = {
   non_necessaria: 'Non necessario'
 };
 
-let faldoneDisponibile = null;
+let faldoneDisponibile = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 let faldoneAperto = null;       // { commessa, stato (risposta di controllo_faldone_commessa) }
 let utentiFaldoneElenco = [];
 let subappaltatoriFaldoneElenco = [];

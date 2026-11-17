@@ -12,7 +12,7 @@
 // ancora attivo". Le fonti di js/46 restano come conteggio finché ogni
 // modulo non passa al motore.
 
-const MOTORE_SCADENZE={disponibili:null,righe:[],aperte:[],utenti:{}};
+const MOTORE_SCADENZE={disponibili:true,righe:[],aperte:[],utenti:{}};
 const UNITA_SCADENZE=['minuti','ore','ore_lav','giorni','giorni_lav'];
 const RUOLI_SCADENZE=['titolare','segreteria','capo_tecnico','commerciale','rappresentante','tecnico','ingegnere','contabile'];
 const FONTI_SCADENZE={

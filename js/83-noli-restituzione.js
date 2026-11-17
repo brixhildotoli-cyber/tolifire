@@ -13,7 +13,7 @@
 // F15.18: niente motore delle scadenze). Finestra m-nolo (id nol-).
 // Senza sql/141: righe come prima, nessuna riga in Cosa tocca a me.
 
-const NOLI = { attivo: null, richiesta: null, modo: null };
+const NOLI = { attivo: true, richiesta: null, modo: null };
 const RUOLI_RESTITUISCONO_NOLI = ['titolare', 'capo_tecnico', 'commerciale', 'segreteria'];
 const RUOLI_PROROGANO_NOLI = ['titolare', 'capo_tecnico', 'commerciale'];
 const GG_AVVISO_NOLO = 2;

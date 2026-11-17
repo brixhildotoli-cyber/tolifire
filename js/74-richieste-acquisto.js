@@ -10,7 +10,7 @@
 // al capo tecnico (database, sql/268). Finestra m-richiesta-acquisto (id
 // rqa-). Senza sql/268: "non ancora attiva", nessun errore (una chiamata 404).
 
-const RICH_ACQ = { attive: null, cancellazione: undefined, elenco: [], filtro: 'aperte', aperta: null, righe: [] };
+const RICH_ACQ = { attive: true, cancellazione: undefined, elenco: [], filtro: 'aperte', aperta: null, righe: [] };
 const RUOLI_RICHIESTE_ACQUISTO = ['titolare', 'commerciale', 'capo_tecnico', 'segreteria'];
 const STATI_RICHIESTA_ACQUISTO = {
   inviata_acquisti: { nome: 'Da prendere in carico', classe: 'bwarn' },

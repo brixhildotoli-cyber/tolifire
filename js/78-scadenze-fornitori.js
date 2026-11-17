@@ -11,7 +11,7 @@
 // oltre la data), titolare "📞 Richieste ai fornitori ferme" (oltre la data
 // da più di 2 giorni lavorativi). Senza sql/126 niente riquadro né righe.
 
-const SCAD_FORN = { attive: null };
+const SCAD_FORN = { attive: true };
 const GG_RISPOSTA_FORNITORE = 3, GG_RINVIO_TELEFONATA = 2, GG_RITARDO_TITOLARE = 2;
 
 async function verificaScadenzeFornitoriDisponibili() {

@@ -36,12 +36,12 @@ const FASI_TIPICHE_CANTIERE = [
   'Smobilizzo e pulizia del cantiere'
 ];
 
-let cronoprogrammaDisponibile = null;
+let cronoprogrammaDisponibile = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 let cronoprogrammaAperto = null;    // { commessa, fasi, datiLavori }
 let faseCronoprogrammaAperta = null; // { commessa, fase } finestra aperta
 let propostaFasiAperta = null;       // { commessa, proposte }
 let avanzamentoCommesse = null;      // { id commessa: riepilogo } per la pagina Commesse; null = non attivo
-let oreFasiDisponibili = null;       // sql/42: colonna commesse_fasi.ore_previste
+let oreFasiDisponibili = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo       // sql/42: colonna commesse_fasi.ore_previste
 
 // ── Disponibilità di sql/36 ─────────────────────────────────────────
 async function verificaCronoprogrammaDisponibile() {

@@ -37,7 +37,7 @@ const BOX_AUDIT_PRESIDI = {
   rappresentante: 'rap-audit-presidi'
 };
 
-let auditPresidiDisponibile = null;
+let auditPresidiDisponibile = true; // riordino 17/11: SQL già in produzione, nessuna lettura di controllo
 let auditInCorso = null;        // { odlId, clienteId } intervento con audit scelto dal tecnico
 let auditValori = {};           // pid -> { esito, matricola, annata, stato, note } scritti dal tecnico
 let auditPresidiLista = [];     // presidi mostrati al passo Presidi

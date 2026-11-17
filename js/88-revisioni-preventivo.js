@@ -8,7 +8,7 @@
 // registrarne l'esito (solo avviso). Sconto e PDF del cliente si rifanno sulla
 // revisione. Senza sql/131 nessun bottone né riquadro (una RPC 404).
 
-const REVISIONI = { attivo: null, mappa: {}, letto: 0 };
+const REVISIONI = { attivo: true, mappa: {}, letto: 0 };
 
 async function verificaRevisioniDisponibili() {
   if (REVISIONI.attivo !== null) return REVISIONI.attivo;

@@ -20,7 +20,7 @@
 // F14.6: gli urgenti arrivano anche come notifica ed email (js/59, sql/66).
 
 const AVVISI = {
-  disponibili: null, miei: null, ultimoElenco: null, letti_il: 0, lettura: null,
+  disponibili: true, miei: null, ultimoElenco: null, letti_il: 0, lettura: null,
   tutti: false, chiusi: false, timer: null, inApertura: false, barra: null, evidenzia: null
 };
 const AVVISI_VALIDI_MS = 15000;          // lettura condivisa tra campanella e riquadro

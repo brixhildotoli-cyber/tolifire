@@ -10,7 +10,7 @@
 //     l'uscita dalla bozza (trg_preventivi_corsi_mancanti).
 // Senza sql/156 nessun riquadro né controllo.
 
-const CORSI_PREV = { attivo: null };
+const CORSI_PREV = { attivo: true };
 
 async function verificaCorsiPreventivoDisponibili() {
   if (CORSI_PREV.attivo !== null) return CORSI_PREV.attivo;
