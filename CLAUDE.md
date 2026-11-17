@@ -3214,7 +3214,7 @@ sopra l'offerta (oltre il 5%)" (ordinati e confermati). Guide info-com-41,
 info-tit-57. Prova test/ordini-sopra-offerta.spec.js (Acquisti a 390 px, titolare):
 TUTTO OK; smoke TUTTO OK.
 Dopo sql/131 (F18.2 revisioni del preventivo PRIMA dell'esito, decisioni di
-Erika del 16/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/131": backup, file
+Erika del 16/11; ESEGUITO il 17/11 (backup 2026-11-17-pre-blocco, controllo in regola) con "CONFERMATO DA TOLI: sql/131": backup, file
 (senza parole di cancellazione), controllo in fondo; richiede 07, 22, 67, 71;
 nessuna tabella nuova, matrice invariata; le varianti dopo l'accettazione sono
 F20.15). preventivi colonne NUOVE revisione (0-99), preventivo_padre_id,
@@ -3262,7 +3262,7 @@ info-seg-30, info-tit-59. Prova test/documenti-finali.spec.js (capo tecnico a
 F18.15 (note spese e straordinari) NON FATTA: decisione di Erika del 16/11
 (superflua per ora).
 Dopo sql/151 (F18.25 sospensione, ordini aperti e anticipo, decisioni di Erika
-del 16/11; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/151": backup, file (senza
+del 16/11; ESEGUITO il 17/11 (backup 2026-11-17-pre-blocco, controllo in regola) con "CONFERMATO DA TOLI: sql/151": backup, file (senza
 parole di cancellazione), -REGISTRO-CANCELLAZIONI dall'editor, controllo in
 fondo; richiede 07, 22, 26, 28, 67, 71). SOSPENSIONE = SEGNO sopra lo stato
 (commesse.stato NON cambia, nessuno stato nuovo: le 25 funzioni che leggono lo
@@ -3295,7 +3295,7 @@ test/sospensione-commessa.spec.js (capo tecnico a 390 px, Acquisti, titolare,
 segreteria, console): TUTTO OK; smoke TUTTO OK con e senza; rollback e
 riesecuzione provati.
 Dopo sql/152 (F19.1 catalogo dei corsi, decisione di Erika del 16/11: tabella
-gestita dal titolare; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/152": backup,
+gestita dal titolare; ESEGUITO il 17/11 (backup 2026-11-17-pre-blocco, controllo in regola) con "CONFERMATO DA TOLI: sql/152": backup,
 file (senza parole di cancellazione), controllo in fondo; richiede 07, 32, 67,
 71). Tabella corsi_catalogo (id, codice unico = documenti_team_subappalti.tipo,
 nome, per impresa/persona/tutti, validita_mesi o validita_giorni, obbligo_legge,
@@ -3319,7 +3319,7 @@ sql/152-...-PROVA.sql (15 ok) e test/catalogo-corsi.spec.js (titolare a 390 px,
 segreteria, console): TUTTO OK.
 Dopo sql/153 (F19.2 esito della visita di idoneità, decisione di Erika del
 16/11: SOLO l'esito, niente anagrafica degli operai dei subappaltatori né import;
-DA ESEGUIRE con "CONFERMATO DA TOLI: sql/153": backup, file (senza parole di
+ESEGUITO il 17/11 (backup 2026-11-17-pre-blocco, controllo in regola) con "CONFERMATO DA TOLI: sql/153": backup, file (senza parole di
 cancellazione), -REGISTRO-CANCELLAZIONI dall'editor, controllo in fondo;
 richiede 07, 32, 67, 71). Tabella documenti_idoneita (documento_id unico →
 documenti_team_subappalti on delete cascade, esito idoneo/con_limitazioni/
@@ -3362,7 +3362,7 @@ info-ct-37, info-tec-28. Prove: sql/155-...-PROVA.sql (17 ok) e
 test/piano-formazione.spec.js (segreteria, capo tecnico a 390 px, tecnico a 390
 px, console): TUTTO OK.
 Dopo sql/156 (F19.5 corsi mancanti nel preventivo, decisione di Erika del 16/11:
-avviso CON SCELTA OBBLIGATORIA; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/156"
+avviso CON SCELTA OBBLIGATORIA; ESEGUITO il 17/11 (backup 2026-11-17-pre-blocco, controllo in regola) con "CONFERMATO DA TOLI: sql/156"
 DOPO sql/152 e DOPO aver pubblicato il sito: backup, file (senza parole di
 cancellazione), -REGISTRO-CANCELLAZIONI dall'editor, controllo in fondo; richiede
 32, 67, 71, 152). corsi_catalogo colonne NUOVE parole_preventivo e
@@ -3411,7 +3411,7 @@ dipendenti scelti). Si salva sempre. Guide info-ct-38, info-tit-65, info-seg-34.
 Prova test/squadra-corsi.spec.js (capo tecnico a 390 px): TUTTO OK.
 Dopo sql/159 (F19.8 documenti di TOLI Fire, decisione di Erika del 16/11: SOLO
 i documenti dell'impresa, niente fascicolo PDF né "chi rilascia la
-dichiarazione"; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/159": backup, file
+dichiarazione"; ESEGUITO il 17/11 (backup 2026-11-17-pre-blocco, controllo in regola) con "CONFERMATO DA TOLI: sql/159": backup, file
 (senza parole di cancellazione), -VINCOLO dall'EDITOR subito dopo (drop e add
 dei vincoli intestatario e percorso), controllo in fondo; richiede 07, 32).
 documenti_team_subappalti colonna NUOVA impresa (terzo intestatario: utente_id
@@ -3435,7 +3435,7 @@ sql/159-...-PROVA.sql (14 ok) e test/documenti-impresa.spec.js (segreteria,
 capo tecnico a 390 px, console; senza file perché il locale non ha lo Storage):
 TUTTO OK; smoke con e senza; rollback e riesecuzione provati.
 Dopo sql/158 (F19.7 kit standard, decisione di Erika del 16/11: il kit sta nel
-catalogo lavorazioni; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/158": backup,
+catalogo lavorazioni; ESEGUITO il 17/11 (backup 2026-11-17-pre-blocco, controllo in regola) con "CONFERMATO DA TOLI: sql/158": backup,
 file (senza parole di cancellazione), -REGISTRO-CANCELLAZIONI dall'editor,
 controllo in fondo; richiede 26, 31, 67, 71, 75). Tabella lavorazioni_kit
 (lavorazione_id bigint → lavorazioni, voce, categoria dpi/attrezzatura/
@@ -3489,7 +3489,7 @@ TUTTO OK; smoke con e senza; rollback e riesecuzione provati.
 Dopo sql/170 (F20.2 infortuni e quasi-incidenti + F20.3 danni, decisioni di
 Erika del 17/11: registrano SOLO capo tecnico, segreteria, titolare; nessuna
 scadenza INAIL calcolata; danni con regola fissa; F20.3 dentro sql/170, niente
-sql/171; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/170": backup, file (senza
+sql/171; ESEGUITO il 17/11 (backup 2026-11-17-pre-blocco, controllo in regola) con "CONFERMATO DA TOLI: sql/170": backup, file (senza
 parole di cancellazione), -REGISTRO-CANCELLAZIONI dall'editor, controllo in
 fondo; richiede 26, 62, 65, 67, 71). Regola nuova sinistro_denuncia_gg (3,
 preavvisi). Tabella eventi_sicurezza (tipo infortunio/quasi_incidente/danno,
@@ -3518,7 +3518,7 @@ tecnico a 390 px, segreteria, titolare, console): TUTTO OK; smoke con e senza;
 rollback e riesecuzione provati. Nota test: per cancellare avvisi di prova prima
 avvisi_invii (chiave esterna).
 Dopo sql/178 (F20.10 fermi del cantiere, decisione di Erika del 17/11: versione
-completa; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/178": backup, file (senza
+completa; ESEGUITO il 17/11 (backup 2026-11-17-pre-blocco, controllo in regola) con "CONFERMATO DA TOLI: sql/178": backup, file (senza
 parole di cancellazione), -REGISTRO-CANCELLAZIONI dall'editor, controllo in
 fondo; richiede 26, 35, 65, 67, 71). Tabella fermi_cantiere (commessa_id,
 giorno, giorno_id → commesse_squadra_giorni, causa cliente_assente/
@@ -3547,7 +3547,7 @@ info-tit-70, info-tec-29, info-com-46. Prove: sql/178-...-PROVA.sql (20 ok) e
 test/fermi-cantiere.spec.js (tecnico a 390 px, segreteria, titolare, Acquisti,
 console): TUTTO OK; smoke con e senza; rollback e riesecuzione provati.
 Dopo sql/181 (F20.13 formulari dei rifiuti, decisione di Erika del 17/11 come
-MD7: responsabile Acquisti; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/181":
+MD7: responsabile Acquisti; ESEGUITO il 17/11 (backup 2026-11-17-pre-blocco, controllo in regola) con "CONFERMATO DA TOLI: sql/181":
 backup, file (senza parole di cancellazione), -REGISTRO-CANCELLAZIONI
 dall'editor, controllo in fondo; richiede 26, 67, 71). Tabella formulari_rifiuti
 (commessa_id, numero unico per commessa, data_fir, trasportatore, destinatario,
