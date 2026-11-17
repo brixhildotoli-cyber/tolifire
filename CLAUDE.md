@@ -3517,6 +3517,35 @@ Prove: sql/170-...-PROVA.sql (25 ok) e test/eventi-sicurezza.spec.js (capo
 tecnico a 390 px, segreteria, titolare, console): TUTTO OK; smoke con e senza;
 rollback e riesecuzione provati. Nota test: per cancellare avvisi di prova prima
 avvisi_invii (chiave esterna).
+Dopo sql/178 (F20.10 fermi del cantiere, decisione di Erika del 17/11: versione
+completa; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/178": backup, file (senza
+parole di cancellazione), -REGISTRO-CANCELLAZIONI dall'editor, controllo in
+fondo; richiede 26, 35, 65, 67, 71). Tabella fermi_cantiere (commessa_id,
+giorno, giorno_id → commesse_squadra_giorni, causa cliente_assente/
+accesso_negato/area_non_pronta/materiale_mancante/meteo/altro, nota, attesa
+dalle/alle, stato da_riprogrammare/riprogrammato/non_serve, nuova_data; addebito
+da_decidere/addebitare/non_addebitare solo per le cause del cliente,
+importo_addebito; lettura titolare, segreteria, capo_tecnico, commerciale e chi
+l'ha registrato). RPC registra_fermo_cantiere(p_causa, p_nota, p_attesa_dalle,
+p_attesa_alle, p_giorno_id, p_commessa_id, p_data) (titolare, capo_tecnico; il
+TECNICO solo con p_giorno_id di un giorno in cui è nella squadra; avvisi
+fermo_cantiere al capo tecnico se tecnico e alla segreteria, fermo_addebito al
+titolare per le cause del cliente; rif commesse), riprogramma_fermo (titolare,
+segreteria, capo_tecnico; data vuota = non serve), decidi_addebito_fermo (solo
+titolare; addebitare richiede l'importo), fermi_cantiere_attivi(). Matrice: 10
+righe. Sito (js/100-fermi-cantiere.js dopo js/99): htmlGiornoCantiereTecnico
+avvolta (bottone data-fermo-giorno "🛑 Fermo: non si può lavorare" nei giorni
+fino a oggi; caricaMieiCantieriDashboard e caricaCantieriCalendarioTecnico
+avvolte per la verifica), azione "🛑 Fermo del cantiere" della commessa (titolare,
+capo tecnico), finestra m-fermo-cantiere (id frm-), riquadro cmd-fermi (sotto
+cmd-eventi; caricaSchedaCommessa avvolta) con totale da addebitare, finestra
+m-gestisci-fermo (id gfr-: riprogramma, addebito). Cosa tocca a me
+fermi-da-riprogrammare (segreteria, titolare), addebiti-fermi (titolare),
+fermi-noli (commerciale: fermi degli ultimi 30 giorni su commesse con noli evasi o
+arrivati non restituiti). Niente riga nel giornale. Guide info-ct-42, info-seg-38,
+info-tit-70, info-tec-29, info-com-46. Prove: sql/178-...-PROVA.sql (20 ok) e
+test/fermi-cantiere.spec.js (tecnico a 390 px, segreteria, titolare, Acquisti,
+console): TUTTO OK; smoke con e senza; rollback e riesecuzione provati.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

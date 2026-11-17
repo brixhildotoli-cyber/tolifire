@@ -2068,6 +2068,8 @@
     <div id="cmd-documenti-finali"></div>
     <!-- F20.2/F20.3: infortuni, quasi-incidenti e danni della commessa (js/99, con sql/170) -->
     <div id="cmd-eventi"></div>
+    <!-- F20.10: fermi del cantiere (js/100, con sql/178) -->
+    <div id="cmd-fermi"></div>
     <!-- F9.1: dichiarazione di corretta messa in opera (js/37, fine lavori e chiusa) -->
     <div id="cmd-dichiarazione"></div>
     <!-- F9.2: fattura finale con l'anticipo scalato (js/38, attiva con sql/39) -->
@@ -4212,6 +4214,12 @@
       </p>
       <div class="al2 i">Vedi solo il numero delle persone abilitate, non chi sono né i loro documenti.</div>
 
+      <h4 id="info-com-46">46. 🏗️ Cantieri fermi con noli in corso</h4>
+      <p>
+        Se un cantiere si ferma e ha noli in corso (piattaforme, ponteggi...), in Cosa tocca a me trovi <b>Cantieri fermi con noli in corso</b>: decidi con il fornitore se prorogare il nolo o farlo ritirare (proroga e restituzione si segnano come sempre nella commessa).
+      </p>
+      <div class="al2 i">Il fermo e la nuova data li vedi nel riquadro 🛑 della commessa.</div>
+
   <h4>Checklist prima dell’invio</h4>
 
   <ul>
@@ -4747,6 +4755,11 @@
       <h4 id="info-tec-28">28. 🎓 I tuoi corsi in scadenza</h4>
       <p>
         Quando un tuo corso, patentino o visita scade entro 60 giorni lo trovi in "Cosa tocca a me": chiedi alla segreteria la data del corso di rinnovo.
+      </p>
+
+      <h4 id="info-tec-29">29. 🛑 Non si può lavorare in cantiere</h4>
+      <p>
+        Nel tuo giorno di cantiere (dashboard o calendario) premi <b>🛑 Fermo: non si può lavorare</b> se il cliente non c'è, non vi fanno entrare, l'area non è pronta, manca il materiale o c'è maltempo. Prima aspetta almeno 30 minuti e prova a chiamare il referente; scrivi le ore di attesa. Capo tecnico e segreteria ricevono subito l'avviso.
       </p>
       </div>
 
@@ -5472,6 +5485,12 @@
         Nella commessa, in "Cosa puoi fare", premi <b>🚨 Infortunio o danno</b>: scegli cosa (infortunio, quasi-incidente, danno al cliente o a terzi), scrivi cosa è successo, dove, chi era coinvolto e i testimoni. Bastano pochi secondi dal telefono; titolare e segreteria ricevono subito l'avviso urgente. Gli eventi della commessa restano nel riquadro 🚨.
       </p>
       <div class="al2 i">Anche i quasi-incidenti (nessuno si è fatto male) vanno registrati: servono a prevenire.</div>
+
+      <h4 id="info-ct-42">42. 🛑 Fermi del cantiere</h4>
+      <p>
+        Se in cantiere non si può lavorare (cliente assente, accesso negato, area non pronta, materiale mancante, meteo) premi <b>🛑 Fermo del cantiere</b> nella commessa (i tecnici lo trovano nel loro giorno di cantiere). Scrivi la causa e le ore di attesa: la segreteria riceve "da riprogrammare" e, se è colpa del cliente, il titolare decide l'addebito dell'uscita a vuoto. Nel riquadro 🛑 della commessa trovi i fermi e puoi riprogrammare.
+      </p>
+      <div class="al2 i">Prima di registrare aspetta almeno 30 minuti e prova a chiamare il referente.</div>
 
 
 
@@ -6710,6 +6729,12 @@
       </p>
       <div class="al2 i">Gli infortuni hanno i dati sanitari riservati (tu, segreteria, la persona).</div>
 
+      <h4 id="info-tit-70">70. 🛑 Fermi e uscite a vuoto</h4>
+      <p>
+        Quando un cantiere si ferma per colpa del cliente (assente, accesso negato, area non pronta) ricevi la proposta di <b>addebito dell'uscita a vuoto</b> (Cosa tocca a me). Nella commessa, riquadro 🛑 → Gestisci, decidi: addebitare con l'importo, o non addebitare.
+      </p>
+      <div class="al2 i">Il totale da addebitare compare nel riquadro dei fermi della commessa.</div>
+
 
 
       <h4>Regole pratiche</h4>
@@ -7370,6 +7395,12 @@
         Quando arriva l'avviso urgente di un evento premi <b>🚨 Apri l'evento</b> (o "Infortuni, quasi-incidenti e danni aperti" in Cosa tocca a me). Per un infortunio scrivi prognosi, lesioni e la <b>data della denuncia INAIL</b> (se la prognosi supera i 3 giorni va fatta entro 2 giorni dal certificato). Per un danno controlla la scadenza della denuncia all'assicurazione. Quando è tutto fatto metti lo stato "Chiuso".
       </p>
       <div class="al2 i">I dati sanitari li vedete solo tu, il titolare e la persona infortunata.</div>
+
+      <h4 id="info-seg-38">38. 🛑 Fermi da riprogrammare</h4>
+      <p>
+        Quando un cantiere si ferma ricevi l'avviso e in Cosa tocca a me <b>Fermi del cantiere da riprogrammare</b>. Nella commessa, riquadro 🛑, premi <b>Gestisci</b> e scrivi la nuova data (o "Non serve riprogrammare"); poi organizza con il capo tecnico la squadra di quel giorno.
+      </p>
+      <div class="al2 i">La data nuova resta nel fermo: la squadra del giorno si fa come sempre.</div>
 
 
 
@@ -9976,6 +10007,46 @@
   </div>
 </div>
 
+<!-- F20.10 — FERMI DEL CANTIERE (js/100, solo con sql/178) -->
+<div class="mbg" id="m-fermo-cantiere">
+  <div class="modal" style="max-width:460px">
+    <button class="x" onclick="closeM('m-fermo-cantiere')">×</button>
+    <h3>🛑 Fermo del cantiere</h3>
+    <div id="frm-dove" style="font-size:13px;color:var(--m);margin-bottom:8px"></div>
+    <div class="f"><label>Perché non si può lavorare</label><select id="frm-causa"><option value="cliente_assente">🚪 Cliente assente</option><option value="accesso_negato">⛔ Accesso negato</option><option value="area_non_pronta">🚧 Area non pronta</option><option value="materiale_mancante">📦 Materiale mancante</option><option value="meteo">🌧️ Meteo</option><option value="altro">✏️ Altro</option></select></div>
+    <div class="f" id="frm-data-box"><label>Giorno</label><input type="date" id="frm-data"></div>
+    <div class="g2">
+      <div class="f"><label>Attesa dalle</label><input type="time" id="frm-dalle"></div>
+      <div class="f"><label>alle</label><input type="time" id="frm-alle"></div>
+    </div>
+    <div class="f"><label>Nota</label><input type="text" id="frm-nota" maxlength="500" placeholder="es. chiamato il referente, non risponde"></div>
+    <div style="font-size:12px;color:var(--m)">Prima di registrare aspetta almeno 30 minuti e prova a chiamare il referente. Avvisa capo tecnico e segreteria; se è colpa del cliente il titolare decide se addebitare l'uscita a vuoto.</div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-fermo-cantiere')">Annulla</button>
+      <button class="btn p" id="frm-salva" onclick="salvaFermoCantiere()">🛑 Registra il fermo</button>
+    </div>
+  </div>
+</div>
+<div class="mbg" id="m-gestisci-fermo">
+  <div class="modal" style="max-width:460px">
+    <button class="x" onclick="closeM('m-gestisci-fermo')">×</button>
+    <h3>🛑 Fermo del <span id="gfr-titolo"></span></h3>
+    <div id="gfr-riprog-box" class="card" style="margin-bottom:8px">
+      <div style="font-size:13px;font-weight:700">📅 Riprogrammazione</div>
+      <div class="f"><label>Nuova data</label><input type="date" id="gfr-nuova-data"></div>
+      <div class="f"><label>Nota</label><input type="text" id="gfr-nota-riprog" maxlength="500"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm p" onclick="salvaRiprogrammazioneFermo(false)">📅 Riprogramma</button><button class="btn sm" onclick="salvaRiprogrammazioneFermo(true)">Non serve riprogrammare</button></div>
+    </div>
+    <div id="gfr-addebito-box" class="card">
+      <div style="font-size:13px;font-weight:700">💶 Addebito "uscita a vuoto"</div>
+      <div class="g2"><div class="f"><label>Decisione</label><select id="gfr-addebito"><option value="da_decidere">Da decidere</option><option value="addebitare">Addebitare al cliente</option><option value="non_addebitare">Non addebitare</option></select></div>
+      <div class="f"><label>Importo (€)</label><input type="number" id="gfr-importo" min="0" step="0.01"></div></div>
+      <div class="f"><label>Nota</label><input type="text" id="gfr-nota-addebito" maxlength="500"></div>
+      <button class="btn sm p" onclick="salvaAddebitoFermo()">💾 Salva</button>
+    </div>
+  </div>
+</div>
+
 <!-- F20.2/F20.3 — INFORTUNI, QUASI-INCIDENTI E DANNI (js/99, solo con sql/170) -->
 <div class="mbg" id="m-evento-sicurezza">
   <div class="modal" style="max-width:520px">
@@ -12056,6 +12127,7 @@
 <script defer src="js/97-kit-standard.js?v=202611171012"></script>
 <script defer src="js/98-promesse-pagamento.js?v=202611171012"></script>
 <script defer src="js/99-eventi-sicurezza.js?v=202611171012"></script>
+<script defer src="js/100-fermi-cantiere.js?v=202611171012"></script>
 <script defer src="js/19-init.js?v=202611171012"></script>
 
 
