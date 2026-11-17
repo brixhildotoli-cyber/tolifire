@@ -59,7 +59,7 @@ async function renderPianoFormazione() {
   const box = ge('ts-piano-lista');
   if (!box) return;
   if (!(await verificaPianoFormazioneDisponibile())) {
-    box.innerHTML = '<div class="al2 i">Il piano formazione si attiva con l\'aggiornamento del database (sql/155). Le scadenze dei corsi sono già nella tab Scadenze, con il preavviso di ' + giorniPreavvisoCorsi() + ' giorni.</div>';
+    box.innerHTML = '<div class="al2 i">Il piano formazione si attiva con l\'aggiornamento del database. Le scadenze dei corsi sono già nella tab Scadenze, con il preavviso di ' + giorniPreavvisoCorsi() + ' giorni.</div>';
     return;
   }
   const righe = righePianoFormazione();

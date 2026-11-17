@@ -155,7 +155,7 @@ function statoUtenteTeam(u) {
 }
 
 async function apriRiassegnaPratiche(id) {
-  if (!RIASSEGNA.disponibili) { toast('La riassegnazione delle pratiche non è ancora attiva (sql/74)', 'err'); return; }
+  if (!RIASSEGNA.disponibili) { toast('La riassegnazione delle pratiche non è ancora attiva', 'err'); return; }
   RIASSEGNA.da = id;
   ge('rpr-da').textContent = nomeUtenteRiassegna(id);
   ge('rpr-motivo').value = '';
@@ -527,7 +527,7 @@ function ripristinaRegolaCampo(chiave){
 }
 async function salvaRegoleImpostazioni(){
   if(ROLE!=='titolare'){toast('Solo il titolare può modificare le regole','err');return;}
-  if(!(await verificaRegoleDisponibili())){toast('Le regole non sono ancora attive (sql/62)','err');return;}
+  if(!(await verificaRegoleDisponibili())){toast('Le regole non sono ancora attive','err');return;}
   const elenco=elencoRegoleOrdinato();
   const modifiche=[];
   for(const r of elenco){

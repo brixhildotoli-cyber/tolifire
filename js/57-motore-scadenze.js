@@ -146,7 +146,7 @@ function numeroCampoScadenza(id){
 
 async function salvaRigaScadenza(codice){
   if(ROLE!=='titolare'){toast('Solo il titolare può cambiare le scadenze','err');return;}
-  if(!(await verificaMotoreScadenzeDisponibili())){toast('Il motore delle scadenze non è ancora attivo (sql/64)','err');return;}
+  if(!(await verificaMotoreScadenzeDisponibili())){toast('Il motore delle scadenze non è ancora attivo','err');return;}
   const r=MOTORE_SCADENZE.righe.find(x=>x.codice===codice);if(!r)return;
   const t=numeroCampoScadenza('rs-t-'+codice);
   if(!t.valido||t.vuoto){toast('“'+r.nome+'”: scrivi il tempo (numero)','err');ge('rs-t-'+codice)?.focus();return;}
@@ -224,7 +224,7 @@ async function mostraScadenzeAperte(){
 
 async function creaScadenzaProva(){
   if(ROLE!=='titolare'){toast('Solo il titolare','err');return;}
-  if(!(await verificaMotoreScadenzeDisponibili())){toast('Il motore delle scadenze non è ancora attivo (sql/64)','err');return;}
+  if(!(await verificaMotoreScadenzeDisponibili())){toast('Il motore delle scadenze non è ancora attivo','err');return;}
   const regola=v('sp-regola'),inizio=v('sp-inizio'),nota=String(v('sp-nota')||'').trim();
   if(!regola){toast('Scegli la scadenza da provare','err');return;}
   if(!inizio){toast('Indica da quando parte (giorno e ora)','err');return;}
@@ -252,7 +252,7 @@ async function chiudiScadenzaProva(id){
 
 async function ricalcolaScadenzeMotore(){
   if(ROLE!=='titolare'){toast('Solo il titolare','err');return;}
-  if(!(await verificaMotoreScadenzeDisponibili())){toast('Il motore delle scadenze non è ancora attivo (sql/64)','err');return;}
+  if(!(await verificaMotoreScadenzeDisponibili())){toast('Il motore delle scadenze non è ancora attivo','err');return;}
   try{
     const {data,error}=await db.rpc('aggiorna_scadenze');
     if(error)throw error;
@@ -263,7 +263,7 @@ async function ricalcolaScadenzeMotore(){
 
 async function eseguiControlloScadenzeOra(){
   if(ROLE!=='titolare'){toast('Solo il titolare','err');return;}
-  if(!(await verificaMotoreScadenzeDisponibili())){toast('Il motore delle scadenze non è ancora attivo (sql/64)','err');return;}
+  if(!(await verificaMotoreScadenzeDisponibili())){toast('Il motore delle scadenze non è ancora attivo','err');return;}
   const bt=ge('si-scadenze-esegui');if(bt)bt.disabled=true;
   try{
     const {data,error}=await db.rpc('esegui_controllo_orario',{p_origine:'manuale'});

@@ -315,7 +315,7 @@ async function sessioneCome(browser, url, u, largo) {
     t = await s.page.evaluate(id => (document.querySelector('#fat-scadenze-box [data-scadenza-id="' + id + '"]') || {}).innerText || '', rata);
     if (!/Richiamare il 25/.test(t)) KO('Scadenze e incassi: ' + t.slice(0, 200)); else righe.push('«💶 Scadenze e incassi»: la data compare sotto la rata');
     const ordine = await s.page.evaluate(id => Array.from(document.querySelectorAll('#fat-scadenze-box [data-scadenza-id="' + id + '"] button')).map(b => b.innerText.trim()), rata);
-    if (!/^📅 Paga il \d/.test(ordine[0] || '') || !/Pagamento/.test(ordine[1] || '')) KO('Scadenze e incassi, bottoni: ' + JSON.stringify(ordine)); else righe.push('«💶 Scadenze e incassi»: bottoni ' + ordine.join(' | '));
+    if (!/^📅 Paga il \d/.test(ordine[0] || '') || !/Registra pagamento/.test(ordine[1] || '')) KO('Scadenze e incassi, bottoni: ' + JSON.stringify(ordine)); else righe.push('«💶 Scadenze e incassi»: bottoni ' + ordine.join(' | '));
     await s.page.screenshot({ path: path.join(CARTELLA_OUT, 'segreteria-scadenze-390.png') });
     await chiudi(s);
     s = await sessioneCome(browser, url, cont, 1280); sessioni.push(s);

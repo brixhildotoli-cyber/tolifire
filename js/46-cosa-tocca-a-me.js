@@ -1241,65 +1241,11 @@ registraFonteToccaAMe({
   }
 });
 
-// ── Tecnico: interventi di oggi e della settimana con l'ora esatta ──
-function oraOrdinamentoTAM(o) {
-  if (o.appuntamento_fissato && o.appuntamento_ora) return String(o.appuntamento_ora).slice(0, 5);
-  const m = String(o.fascia_oraria || '').match(/(\d{1,2})[:.](\d{2})/);
-  return m ? m[1].padStart(2, '0') + ':' + m[2] : '99:99';
-}
-
-function interventiTecnicoTAM(giro) {
-  return giro.memo('tecnico-settimana', async function() {
-    const oggi = oggiTAM();
-    const colApp = funzioneEsiste('colonneAppuntamento') ? await colonneAppuntamento() : '';
-    const { data, error } = await db.from('ordini_lavoro')
-      .select('id, stato, data_pianificata, fascia_oraria, clienti(ragione_sociale)' + colApp)
-      .is('eliminato_il', null).eq('tecnico_id', ME.id)
-      .gte('data_pianificata', oggi).lte('data_pianificata', giorniDopoTAM(oggi, 6))
-      .not('stato', 'in', '(annullato,completato)')
-      .order('data_pianificata').limit(500);
-    if (error) { console.warn('Cosa tocca a me (interventi):', error.message); return null; }
-    return (data || []).sort(function(a, b) {
-      return String(a.data_pianificata).localeCompare(String(b.data_pianificata)) || oraOrdinamentoTAM(a).localeCompare(oraOrdinamentoTAM(b));
-    });
-  });
-}
-
-function orarioTecnicoTAM(o) {
-  const t = funzioneEsiste('tecOrario') ? tecOrario(o) : (o.fascia_oraria || '');
-  return t && t !== '—' ? t : 'orario da definire';
-}
-
-registraFonteToccaAMe({
-  id: 'tecnico-oggi', ruoli: ['tecnico'], icona: '📋',
-  titolo: 'Interventi di oggi',
-  vai: { box: 'tec-oggi-lista' },
-  conta: async function(giro) {
-    const elenco = await interventiTecnicoTAM(giro);
-    if (!elenco) return null;
-    const oggi = oggiTAM();
-    const mie = elenco.filter(function(o) { return o.data_pianificata === oggi; });
-    const primo = mie[0];
-    return { n: mie.length, nota: primo ? 'primo: ' + orarioTecnicoTAM(primo) + ' · ' + ((primo.clienti && primo.clienti.ragione_sociale) || 'cliente') : '' };
-  }
-});
-
-registraFonteToccaAMe({
-  id: 'tecnico-settimana', ruoli: ['tecnico'], icona: '📅',
-  titolo: 'Interventi nei prossimi 6 giorni',
-  vai: { box: 'tec-week-lista', pagina: 'calendario-tec' },
-  conta: async function(giro) {
-    const elenco = await interventiTecnicoTAM(giro);
-    if (!elenco) return null;
-    const oggi = oggiTAM();
-    const dopo = elenco.filter(function(o) { return o.data_pianificata !== oggi; });
-    const primo = dopo[0];
-    return {
-      n: dopo.length,
-      nota: primo ? 'prossimo: ' + new Date(primo.data_pianificata + 'T00:00:00').toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric' }) + ', ' + orarioTecnicoTAM(primo) : ''
-    };
-  }
-});
+// ── Tecnico ─────────────────────────────────────────────────────────
+// Riordino del 17/11 (decisione di Erika): tolte le righe "Interventi di
+// oggi", "Interventi nei prossimi 6 giorni" e "Giorni di cantiere": la
+// dashboard del tecnico li mostra già subito sotto (📋 Oggi, 📅 Questa
+// settimana, I miei cantieri). Restano arretrati, documenti e avvisi.
 
 registraFonteToccaAMe({
   id: 'tecnico-arretrati', ruoli: ['tecnico'], icona: '⏰',
@@ -1308,20 +1254,6 @@ registraFonteToccaAMe({
   conta: function() {
     return numeroTAM(contaTAM('ordini_lavoro').is('eliminato_il', null).eq('tecnico_id', ME.id)
       .eq('stato', 'pianificato').lt('data_pianificata', oggiTAM()), 'interventi passati');
-  }
-});
-
-registraFonteToccaAMe({
-  id: 'tecnico-cantieri', ruoli: ['tecnico'], icona: '🏗️',
-  titolo: 'Giorni di cantiere (oggi e prossimi 6)',
-  vai: { box: 'tec-miei-cantieri' },
-  conta: async function() {
-    if (!funzioneEsiste('leggiMieiGiorniCantiere')) return null;
-    const oggi = oggiTAM();
-    const r = await leggiMieiGiorniCantiere(oggi, giorniDopoTAM(oggi, 6));
-    if (!r || r.errore) return null;
-    const diOggi = r.giorni.filter(function(g) { return g.data === oggi; }).length;
-    return { n: r.giorni.length, nota: diOggi ? 'oggi sei in cantiere' : '' };
   }
 });
 

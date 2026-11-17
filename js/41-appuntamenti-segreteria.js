@@ -194,13 +194,13 @@ async function caricaAppuntamentiDaFissare() {
         '<button class="btn sm" data-id="' + esc(o.id) + '" onclick="openEditOdl(this.dataset.id)">Apri intervento</button>' +
       '</div>' +
     '</div>';
-  }).join('');
+  });
 
   const titolo = ROLE === 'capo_tecnico' ? '⏳ Da confermare: appuntamento con il cliente' : '📞 Appuntamenti da fissare';
   box.innerHTML = '<div class="tit-section" style="margin-top:14px">' + titolo + ' (' + odls.length + ')</div>' +
     '<div class="rap-list-card" style="margin-bottom:14px">' +
     '<div style="font-size:12px;color:var(--m);margin-bottom:4px">' + esc(aiuti[ROLE] || '') + '</div>' +
-    righe + '</div>';
+    listaCorta(righe, 5) + '</div>';
 }
 
 // ── Finestra "Fissa appuntamento" ─────────────────────────────────────────

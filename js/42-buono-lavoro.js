@@ -953,7 +953,7 @@ async function caricaControlliDaRipianificareDashboard() {
     corpo = '<div class="ct-empty">✅ Nessun controllo scaduto da ripianificare</div>';
   } else {
     corpo = '<div style="font-size:12px;color:var(--m);margin-bottom:6px">Clienti con controlli del piano mai schedulati o presidi scaduti o in scadenza entro ' + GIORNI_PREAVVISO_CONTROLLI + ' giorni, senza una manutenzione ordinaria aperta. Schedulando, i controlli del piano si collegano all\'intervento e la segreteria fissa l\'appuntamento con il cliente.</div>' +
-      lista.slice(0, MAX).map(function(g) {
+      listaCorta(lista.slice(0, MAX).map(function(g) {
         return '<div style="padding:10px 0;border-bottom:0.5px solid var(--bo);overflow-wrap:anywhere">' +
           '<div style="font-size:13px;font-weight:600">' + esc(g.ragione_sociale) + '</div>' +
           htmlMotiviRipartenza(g) +
@@ -961,7 +961,7 @@ async function caricaControlliDaRipianificareDashboard() {
             '<button class="btn sm p" data-cli="' + esc(g.cliente_id) + '" onclick="schedulaRipartenzaDashboard(this.dataset.cli)">+ Schedula intervento</button>' +
             '<button class="btn sm" data-cli="' + esc(g.cliente_id) + '" onclick="apriContrattoCliente(this.dataset.cli)">Apri cliente</button>' +
           '</div></div>';
-      }).join('') +
+      }), 5) +
       (lista.length > MAX ? '<div style="font-size:12px;color:var(--m);margin-top:8px">e altri ' + (lista.length - MAX) + ' clienti: li trovi nel Piano mensile.</div>' : '');
   }
   box.innerHTML = '<div class="ct-section-title">🔁 Controlli scaduti: da ripianificare' + (lista.length ? ' (' + lista.length + ')' : '') + '</div>' +

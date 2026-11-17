@@ -777,7 +777,7 @@ async function loadDashSegreteriaPg(){
     } else if(!ans.length){
       elAn.innerHTML = '<div class="rap-list-card"><div class="tit-empty">✅ Tutti i clienti attivi hanno i dati di fatturazione completi</div></div>';
     } else {
-      elAn.innerHTML = '<div class="rap-list-card">' + ans.map(function(c){
+      elAn.innerHTML = '<div class="rap-list-card">' + listaCorta(ans.map(function(c){
         var manca = [];
         if(!c.indirizzo_fattura) manca.push('indirizzo');
         if(!c.codice_sdi) manca.push('SDI');
@@ -788,7 +788,7 @@ async function loadDashSegreteriaPg(){
           '<div style="font-weight:600">'+esc(c.ragione_sociale)+'</div>' +
           '<div style="font-size:11px;color:var(--a)">manca: '+manca.join(', ')+'</div>' +
         '</div>';
-      }).join('') + '</div>';
+      }), 5) + '</div>';
     }
   }
 

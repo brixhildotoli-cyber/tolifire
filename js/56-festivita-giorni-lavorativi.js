@@ -66,7 +66,7 @@ function modificaFestivitaCampo(data){
 
 async function salvaFestivita(){
   if(ROLE!=='titolare'){toast('Solo il titolare può cambiare le festività','err');return;}
-  if(!(await verificaFestivitaDisponibili())){toast('Il calendario delle festività non è ancora attivo (sql/63)','err');return;}
+  if(!(await verificaFestivitaDisponibili())){toast('Il calendario delle festività non è ancora attivo','err');return;}
   const data=v('fes-data'),nome=String(v('fes-nome')||'').trim(),tipo=v('fes-tipo')||'nazionale',nota=String(v('fes-nota')||'').trim();
   if(!data){toast('Indica il giorno','err');return;}
   if(nome.length<2){toast('Scrivi il nome (es. Chiusura estiva)','err');return;}
@@ -130,7 +130,7 @@ async function mostraControlloOrario(attive){
 
 async function eseguiControlloOrarioOra(){
   if(ROLE!=='titolare'){toast('Solo il titolare','err');return;}
-  if(!(await verificaFestivitaDisponibili())){toast('Il controllo orario non è ancora attivo (sql/63)','err');return;}
+  if(!(await verificaFestivitaDisponibili())){toast('Il controllo orario non è ancora attivo','err');return;}
   const bt=ge('fes-esegui-ora');if(bt)bt.disabled=true;
   try{
     const {data,error}=await db.rpc('esegui_controllo_orario',{p_origine:'manuale'});

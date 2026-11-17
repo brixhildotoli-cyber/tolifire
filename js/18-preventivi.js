@@ -10633,7 +10633,7 @@ async function loadAnticipiDaFatturare() {
       Se il cliente non versa l'anticipo usa "Rifiuta: anticipo non versato".
       Dal più vecchio.
     </div>
-  ` + anticipi.map(function(p) {
+  ` + listaCorta(anticipi.map(function(p) {
     const importo = importoAnticipoPreventivo(p.anticipo_tipo, p.anticipo_valore, p.totale_imponibile);
     const ivaPerc = Number(p.iva_perc ?? 22);
     const accettatoIl = p.esito_registrato_il ? new Date(p.esito_registrato_il) : null;
@@ -10705,7 +10705,7 @@ async function loadAnticipiDaFatturare() {
         ` : ''}
       </div>
     `;
-  }).join('');
+  }), 3);
 }
 
 // =====================================================================
@@ -10827,7 +10827,7 @@ async function apriAnticipoSegreteria(preventivoId, modo) {
   }
 
   if (!(await verificaFatturaAnticipoDisponibile())) {
-    toast('Funzione non ancora attiva sul database (manca sql/25)', 'err');
+    toast('Funzione non ancora attiva sul database', 'err');
     return;
   }
 
@@ -11031,7 +11031,7 @@ async function apriRifiutoAnticipoNonVersato(preventivoId) {
   }
 
   if (!(await verificaFatturaAnticipoDisponibile())) {
-    toast('Funzione non ancora attiva sul database (manca sql/25)', 'err');
+    toast('Funzione non ancora attiva sul database', 'err');
     return;
   }
 
@@ -11499,7 +11499,7 @@ let commessaStatoAperta = null;
 // consentito al ruolo, storico dei passaggi.
 async function apriStatoCommessa(commessaId, preventivoId) {
   if (!(await verificaStatiCommessaDisponibili())) {
-    toast('Gli stati della commessa non sono ancora attivi (sql/28)', 'err');
+    toast('Gli stati della commessa non sono ancora attivi', 'err');
     return;
   }
 

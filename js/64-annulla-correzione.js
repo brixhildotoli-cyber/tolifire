@@ -263,7 +263,7 @@ const STATI_CORREZIONE = {
 };
 
 async function apriCorrezione(richiestaId) {
-  if (!(await verificaAnnullaDisponibile())) { toast('Annulla e correzioni non sono ancora attivi (sql/72)', 'err'); return; }
+  if (!(await verificaAnnullaDisponibile())) { toast('Annulla e correzioni non sono ancora attivi', 'err'); return; }
   try { if (typeof caricaMotoreAzioni === 'function') await caricaMotoreAzioni(); } catch (e) {}
   preparaFinestreAnnulla();
   ge('crz-id').value = String(richiestaId);

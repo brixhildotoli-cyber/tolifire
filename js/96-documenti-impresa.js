@@ -100,7 +100,7 @@ if (typeof caricaSchedaDocumenti === 'function') {
     box.innerHTML = '<div class="load">Caricamento...</div>';
     ge('sdoc-titolo').textContent = '🏢 ' + DOC_IMPRESA.nome;
     ge('sdoc-sottotitolo').textContent = 'Documenti dell\'impresa (DURC, visura, nomine, D.M. 37/08, white list...)';
-    if (!(await verificaDocumentiImpresaDisponibili())) { box.innerHTML = '<div class="al2 i">I documenti dell\'impresa si attivano con l\'aggiornamento del database (sql/159).</div>'; return; }
+    if (!(await verificaDocumentiImpresaDisponibili())) { box.innerHTML = '<div class="al2 i">I documenti dell\'impresa si attivano con l\'aggiornamento del database.</div>'; return; }
     scheda.dati = { ragione_sociale: DOC_IMPRESA.nome };
     const { data, error } = await db.from('documenti_team_subappalti').select(COLONNE_DOCUMENTO_TS + ', impresa').eq('impresa', true)
       .order('data_scadenza', { ascending: true, nullsFirst: false });

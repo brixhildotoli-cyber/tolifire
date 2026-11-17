@@ -276,7 +276,7 @@ function preparaFinestreAvvisi() {
 
 async function apriAvvisi(evidenziaId) {
   if (!(await verificaAvvisiDisponibili())) {
-    toast('Gli avvisi non sono ancora attivi: serve l’aggiornamento del database (sql/65)', 'err');
+    toast('Gli avvisi non sono ancora attivi: serve l’aggiornamento del database', 'err');
     return;
   }
   preparaFinestreAvvisi();

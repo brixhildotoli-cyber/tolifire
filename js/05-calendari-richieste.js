@@ -870,10 +870,9 @@ async function loadDashTicket(targetId) {
   }
 
   if(!tickets.length) {
-    // Prova query senza filtri per debug
-    var rAll = await db.from('ticket_clienti').select('id,titolo,stato,assegnato_a').limit(5);
-    var debugInfo = rAll.error ? 'Errore: '+rAll.error.message : 'Tot nel DB: '+(rAll.data||[]).length + ' — ' + (rAll.data||[]).map(function(t){return t.titolo+'('+t.assegnato_a+')'}).join(', ');
-    el.innerHTML = '<div class="empty">✅ Nessuna richiesta aperta</div><div style="font-size:11px;color:var(--m);margin-top:8px">Debug: ROLE='+ROLE+' | '+debugInfo+'</div>';
+    // Riordino del 17/11: tolta la riga "Debug: ROLE=…" (una lettura in più
+    // e i titoli delle richieste di altri sullo schermo del capo tecnico).
+    el.innerHTML = '<div class="empty">✅ Nessuna richiesta aperta</div>';
     return;
   }
 
@@ -905,7 +904,7 @@ async function apriTicket(id) {
   var r = await db.from('ticket_clienti')
     .select('*, clienti(ragione_sociale,referente_telefono,referente_email)')
     .eq('id', id).single();
-  if(r.error || !r.data) { toast('Errore caricamento ticket','err'); return; }
+  if(r.error || !r.data) { toast('Errore caricamento della richiesta','err'); return; }
   var t = r.data;
 
   // Carica allegati
@@ -1005,7 +1004,7 @@ async function pianificaDaTicket(ticketId, cliId, sedeId) {
     aggiornato_il: new Date().toISOString()
   }).eq('id', ticketId);
 
-  toast('✅ Intervento pianificato e ticket aggiornato','ok');
+  toast('✅ Intervento pianificato e richiesta aggiornata','ok');
   chiudiModal('m-ticket');
   loadDash();
   await loadDashTicket();
@@ -1022,7 +1021,7 @@ async function salvaTicket(id) {
     aggiornato_il: new Date().toISOString()
   }).eq('id', id);
   if(r.error) { toast('Errore: '+r.error.message,'err'); return; }
-  toast('✅ Ticket aggiornato','ok');
+  toast('✅ Richiesta aggiornata','ok');
   closeM('m-ticket');
   await loadDashTicket();
 }
@@ -1034,7 +1033,7 @@ async function eliminaTicket(id) {
   // Ticket: soft-delete
   var r = await softDel('ticket_clienti').eq('id', id);
   if(r.error){ toast('Errore: '+r.error.message,'err'); return; }
-  toast('Ticket eliminato','ok');
+  toast('Richiesta eliminata','ok');
   closeM('m-ticket');
   await loadDashTicket();
 }

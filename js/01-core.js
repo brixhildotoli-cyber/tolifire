@@ -652,6 +652,14 @@ function dataLocaleISO(d){d=d||new Date();return d.getFullYear()+'-'+String(d.ge
 function fd(d){if(!d)return'—';try{return new Date(d+'T00:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});}catch(e){return d;}}
 // Escape HTML per dati provenienti dal DB o dall'utente prima dell'interpolazione in innerHTML.
 function esc(s){return String(s??'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+// Riordino del 17/11 (dashboard più leggere): una lista lunga mostra le prime
+// "quante" righe (5) e le altre dentro "▾ Mostra tutti (N)" chiuso. È un
+// <details>: tornando indietro js/47 lo riapre se era aperto.
+function listaCorta(righe,quante){
+  quante=quante||5;
+  if(!Array.isArray(righe)||righe.length<=quante)return (righe||[]).join('');
+  return righe.slice(0,quante).join('')+'<details data-lista-resto style="margin-top:6px"><summary class="btn sm" style="display:inline-block;list-style:none;cursor:pointer">▾ Mostra tutti ('+righe.length+')</summary>'+righe.slice(quante).join('')+'</details>';
+}
 
 // B7 — Soft-delete helper. Marca la riga come eliminata anziche' cancellarla.
 // Tracking automatico di chi e quando tramite eliminato_il e eliminato_da.

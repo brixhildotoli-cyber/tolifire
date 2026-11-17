@@ -54,7 +54,7 @@ async function loadGare() {
   if (!box) return;
   const nuova = ge('gar-nuova-btn');
   if (!(await verificaGareDisponibili())) {
-    box.innerHTML = '<div class="al2 i">Le gare non sono ancora attive: si attivano dopo l’aggiornamento del database (sql/113).</div>';
+    box.innerHTML = '<div class="al2 i">Le gare non sono ancora attive: si attivano dopo l’aggiornamento del database.</div>';
     if (nuova) nuova.style.display = 'none';
     return;
   }

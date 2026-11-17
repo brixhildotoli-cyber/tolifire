@@ -330,13 +330,13 @@
       <div class="tit-section">Azioni rapide</div>
       <div class="tit-quick">
         <button class="tit-quick-btn" onclick="openNewCli()"><span class="ico">👤</span><span class="lbl">Nuovo cliente</span></button>
-        <button class="tit-quick-btn" onclick="apriNuovoIntervento()"><span class="ico">📋</span><span class="lbl">Pianifica intervento</span></button>
+        <button class="tit-quick-btn" onclick="apriNuovoIntervento()"><span class="ico">🗓️</span><span class="lbl">Pianifica intervento</span></button>
         <button class="tit-quick-btn" onclick="resetPF();openM('m-presidio')"><span class="ico">🧯</span><span class="lbl">Nuovo presidio</span></button>
         <button class="tit-quick-btn" onclick="openM('m-ddt')"><span class="ico">📦</span><span class="lbl">Nuovo DDT</span></button>
-        <button class="tit-quick-btn" onclick="openM('m-user')"><span class="ico">👤</span><span class="lbl">Nuovo utente</span></button>
-        <button class="tit-quick-btn" onclick="gotoPage('catalogo')"><span class="ico">📦</span><span class="lbl">Catalogo</span></button>
+        <button class="tit-quick-btn" onclick="openM('m-user')"><span class="ico">🧑‍💼</span><span class="lbl">Nuovo utente</span></button>
+        <button class="tit-quick-btn" onclick="gotoPage('catalogo')"><span class="ico">📚</span><span class="lbl">Catalogo</span></button>
         <button class="tit-quick-btn" onclick="gotoPage('impostazioni')"><span class="ico">⚙️</span><span class="lbl">Impostazioni</span></button>
-        <button class="tit-quick-btn" onclick="gotoPage('workflow')"><span class="ico">📋</span><span class="lbl">Workflow</span></button>
+        <button class="tit-quick-btn" onclick="gotoPage('workflow')"><span class="ico">📋</span><span class="lbl">Da gestire</span></button>
       </div>
     </div>
   </div>
@@ -383,7 +383,7 @@
       <!-- F7.1 — documenti di team e subappalti scaduti o in scadenza (js/30, solo con sql/32) -->
       <div id="seg-documenti-scadenza"></div>
 
-      <div class="tit-section">🎫 Richieste clienti aperte</div>
+      <div class="tit-section">🎫 Richieste dei clienti aperte</div>
       <div id="seg-ticket-lista"><div class="rap-list-card"><div class="tit-empty">⏳ Caricamento...</div></div></div>
 
       <div class="tit-section">📝 Anagrafiche da completare (per fatturazione)</div>
@@ -403,18 +403,18 @@
       <!-- F11.3 — RIBA da presentare, esiti da registrare, insoluti e solleciti (js/45, solo con sql/47) -->
       <div class="tit-section">🏦 RIBA, insoluti e solleciti</div>
       <div id="seg-riba-solleciti">
-        <div class="rap-list-card"><div class="tit-empty">RIBA, insoluti e solleciti si attivano con il modulo Fatture (sql/47).</div></div>
+        <div class="rap-list-card"><div class="tit-empty">RIBA, insoluti e solleciti si attivano con il modulo Fatture.</div></div>
       </div>
 
       <div class="tit-section">Azioni rapide</div>
       <div class="tit-quick">
-        <button class="tit-quick-btn" onclick="apriNuovoIntervento()"><span class="ico">📋</span><span class="lbl">Pianifica intervento</span></button>
+        <button class="tit-quick-btn" onclick="apriNuovoIntervento()"><span class="ico">🗓️</span><span class="lbl">Pianifica intervento</span></button>
         <button class="tit-quick-btn" onclick="openNewCli()"><span class="ico">👤</span><span class="lbl">Nuovo cliente</span></button>
         <button class="tit-quick-btn" onclick="openM('m-ddt')"><span class="ico">📦</span><span class="lbl">Nuovo DDT</span></button>
-        <button class="tit-quick-btn" onclick="gotoPage('workflow')"><span class="ico">📋</span><span class="lbl">Workflow schede</span></button>
+        <button class="tit-quick-btn" onclick="gotoPage('workflow')"><span class="ico">📋</span><span class="lbl">Da gestire</span></button>
         <button class="tit-quick-btn" onclick="gotoPage('clienti')"><span class="ico">👥</span><span class="lbl">Clienti</span></button>
         <button class="tit-quick-btn" onclick="gotoPage('documenti')"><span class="ico">📄</span><span class="lbl">Documenti</span></button>
-        <button class="tit-quick-btn" onclick="gotoPage('catalogo')"><span class="ico">📦</span><span class="lbl">Catalogo</span></button>
+        <button class="tit-quick-btn" onclick="gotoPage('catalogo')"><span class="ico">📚</span><span class="lbl">Catalogo</span></button>
         <button class="tit-quick-btn" onclick="gotoPage('calendario')"><span class="ico">📅</span><span class="lbl">Calendario</span></button>
       </div>
     </div>
@@ -435,9 +435,9 @@
 
       <!-- KPI -->
       <div class="kpi-grid">
-        <div class="kpi-card warn"><div class="kpi-icon">❓</div><div class="kpi-num" id="ct-k-dapianif">—</div><div class="kpi-label">Da pianificare</div></div>
+        <div class="kpi-card warn" style="display:none" data-doppione="riordino 17/11: c'è già il pannello sotto"><div class="kpi-icon">❓</div><div class="kpi-num" id="ct-k-dapianif">—</div><div class="kpi-label">Da pianificare</div></div>
         <div class="kpi-card attention"><div class="kpi-icon">⏰</div><div class="kpi-num" id="ct-k-ritardo">—</div><div class="kpi-label">In ritardo</div></div>
-        <div class="kpi-card warn"><div class="kpi-icon">✏️</div><div class="kpi-num" id="ct-k-richmod">—</div><div class="kpi-label">Richieste modifica</div></div>
+        <div class="kpi-card warn" style="display:none" data-doppione="riordino 17/11: c'è già il pannello sotto"><div class="kpi-icon">✏️</div><div class="kpi-num" id="ct-k-richmod">—</div><div class="kpi-label">Richieste modifica</div></div>
         <div class="kpi-card"><div class="kpi-icon">⚡</div><div class="kpi-num" id="ct-k-urgenti">—</div><div class="kpi-label">Urgenti pendenti</div></div>
       </div>
 
@@ -496,7 +496,7 @@
       <div class="ct-section-title">✏️ Richieste modifica dai tecnici</div>
       <div class="ct-pane"><div id="ct-richieste-modifica"><div class="ct-empty">⏳ Caricamento...</div></div></div>
 
-      <div class="ct-section-title">🎫 Ticket clienti in arrivo</div>
+      <div class="ct-section-title">🎫 Richieste dei clienti aperte</div>
       <div class="ct-pane"><div id="ct-ticket-lista"><div class="ct-empty">⏳ Caricamento...</div></div></div>
     </div>
   </div>
@@ -708,7 +708,7 @@
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <div>
-          <div style="font-size:14px;font-weight:600">🎫 Richieste clienti in arrivo</div>
+          <div style="font-size:14px;font-weight:600">🎫 Richieste dei clienti aperte</div>
           <div style="font-size:12px;color:var(--m);margin-top:2px">Segnalazioni, interventi e preventivi aperti</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
@@ -1045,7 +1045,9 @@
     <div id="rap-miei-odl-lista"><div class="rap-list-card"><div class="tit-empty">⏳ Caricamento...</div></div></div>
 
     <!-- Heatmap calendario -->
- <div class="rap-section">📅 Disponibilità team tecnico</div>
+ <!-- Riordino del 17/11 (decisione di Erika): le tre sezioni "Disponibilità team tecnico",
+      "Tecnici impegnati nel mese" e "Impegni del team tecnico" sono una sola sezione. -->
+ <div class="rap-section">👷 Team tecnico: chi è impegnato</div>
 
 <div class="rap-cal-card">
   <div class="rap-cal-nav">
@@ -1074,29 +1076,23 @@
   </div>
 </div>
 
-<div class="rap-section">👷 Tecnici impegnati nel mese</div>
-
 <div class="card">
-  <div style="font-size:12px;color:var(--m);margin-bottom:12px">
-    Qui trovi il dettaglio degli interventi già assegnati: data, tecnico e fascia oraria.
-  </div>
-
-  <div id="rap-impegni-team-lista">
-    <div class="load">Caricamento...</div>
-  </div>
-</div> 
-<!--calendario comune-->
-<div class="rap-section">👷 Impegni del team tecnico</div>
-
-<div class="card">
+  <div style="font-size:13px;font-weight:600;margin-bottom:4px">Prossimi 14 giorni</div>
    <div style="font-size:12px;color:var(--m);margin-bottom:12px">
-      Prossimi 14 giorni. Sono visibili solo data, fascia oraria e tecnico assegnato.
+      Sono visibili solo data, fascia oraria e tecnico assegnato.
   </div>
 
   <!-- D3: id distinto dall'elenco del mese (rap-impegni-team-lista); lo riempie loadImpegniTeamAnonimi (js/13) -->
   <div id="rap-impegni-team-14gg">
     <div class="load">Caricamento...</div>
   </div>
+  <details style="margin-top:12px">
+    <summary style="cursor:pointer;font-size:13px;font-weight:600">📋 Tutti gli interventi assegnati nel mese del calendario</summary>
+    <div style="font-size:12px;color:var(--m);margin:8px 0 12px">Data, tecnico e fascia oraria degli interventi già assegnati.</div>
+    <div id="rap-impegni-team-lista">
+      <div class="load">Caricamento...</div>
+    </div>
+  </details>
 </div>
     <!-- Presidi in scadenza tuoi clienti -->
     <div class="rap-section">🧯 Presidi in scadenza — tuoi clienti (30gg)</div>
@@ -4275,12 +4271,11 @@
       </p>
 
       <ul>
-        <li><b>Interventi di oggi</b>, con l’ora del primo (appuntamento o fascia);</li>
-        <li><b>Interventi nei prossimi 6 giorni</b>;</li>
         <li><b>Interventi dei giorni scorsi non ancora chiusi</b>: vanno chiusi o segnati come non completati;</li>
-        <li><b>Giorni di cantiere (oggi e prossimi 6)</b>;</li>
-        <li><b>I miei documenti scaduti o in scadenza</b>.</li>
+        <li><b>I miei documenti scaduti o in scadenza</b>;</li>
+        <li>gli avvisi e le domande per te.</li>
       </ul>
+      <p>Gli interventi di oggi e della settimana e i giorni di cantiere li trovi subito sotto (📋 Oggi, 📅 Questa settimana, I miei cantieri).</p>
 
       <hr class="sep">
 
@@ -6820,7 +6815,7 @@
 
       <ul>
         <li>Premi <b>🧾 Emetti fattura d’anticipo</b>: si crea ed emette la fattura vera con l’importo dell’anticipo.</li>
-        <li>Quando vedi il bonifico in banca premi <b>💶 Registra pagamento (accredito)</b>: con il pagamento completo il preventivo diventa accettato e <b>nasce la commessa</b>.</li>
+        <li>Quando vedi il bonifico in banca premi <b>💶 Registra pagamento</b>: con il pagamento completo il preventivo diventa accettato e <b>nasce la commessa</b>.</li>
         <li>Se la fattura d’anticipo è stata fatta fuori dal gestionale usa invece <b>🧾 Registra fattura d’anticipo</b> e poi <b>✅ Accredito verificato</b>.</li>
         <li>Se il cliente non paga: <b>❌ Rifiuta: anticipo non versato</b>, con il motivo.</li>
       </ul>
@@ -7026,7 +7021,7 @@
       <p>
         Nel box <b>💶 Scadenze e incassi</b> della pagina Fatture scegli il
         filtro (scadute e prossimi 30 giorni, solo scadute, tutte da incassare,
-        pagate) e premi <b>💶 Pagamento</b> sulla rata: data, importo (proposto
+        pagate) e premi <b>💶 Registra pagamento</b> sulla rata: data, importo (proposto
         il residuo), modalità, nota, poi <b>💶 Registra pagamento</b>. Un
         pagamento parziale lascia la rata aperta.
       </p>
@@ -7134,7 +7129,7 @@
       <h4 id="info-seg-15">15. Richieste dei clienti e anagrafiche</h4>
 
       <p>
-        In dashboard <b>🎫 Richieste clienti aperte</b> raccoglie le richieste
+        In dashboard <b>🎫 Richieste dei clienti aperte</b> raccoglie le richieste
         dal portale clienti. <b>📝 Anagrafiche da completare (per
         fatturazione)</b> elenca i clienti senza dati fiscali: completali nella
         tab <b>Fatturazione</b> del cliente, altrimenti la fattura non si emette.
@@ -7549,7 +7544,7 @@
 
       <p>
         In <b>💶 Scadenze e incassi</b> trovi le rate da incassare. Arrivato il
-        pagamento premi <b>💶 Pagamento</b>, controlla data e importo e
+        pagamento premi <b>💶 Registra pagamento</b>, controlla data e importo e
         <b>💶 Registra pagamento</b>. Un pagamento sbagliato si annulla con
         <b>↩ Annulla</b> e il motivo. I numeri di <b>💶 Incassi</b> in
         dashboard (da incassare, scaduto, in scadenza nei 30 gg, incassato nel
@@ -12185,6 +12180,7 @@
 <script defer src="js/100-fermi-cantiere.js?v=202611171435"></script>
 <script defer src="js/101-formulari-rifiuti.js?v=202611171435"></script>
 <script defer src="js/102-capo-tecnico-non-paga.js?v=202611171435"></script>
+<script defer src="js/103-dashboard-sezioni-vuote.js?v=202611171435"></script>
 <script defer src="js/19-init.js?v=202611171435"></script>
 
 

@@ -5509,6 +5509,23 @@ quante insieme, in risultato.json) e SMOKE_RITARDO_MS=150 (database lento).
 - Terminologia antincendio corretta (estintori, presidi, compartimentazione,
   porte REI, manutenzione ordinaria/straordinaria).
 - UI a prova di errore: semplice, chiara, facile da usare.
+- Dashboard leggere (riordino del 17/11, decisioni di Erika):
+  - liste lunghe con `listaCorta(righeHtml[], 5)` di js/01 (prime 5, le
+    altre in "▾ Mostra tutti (N)", un <details> che js/47 riapre tornando
+    indietro). Usata in Appuntamenti da fissare (js/41), Controlli scaduti
+    (js/42), Anagrafiche da completare (js/03), Anticipi da fatturare (js/18, 3);
+  - sezioni vuote: js/103 nasconde titolo (tit-section, ct-section-title,
+    rap-section) e riquadro seguente se dicono solo "✅/🎉 Nessun…/Tutti …"
+    senza bottoni né link; per una sezione nuova basta quella struttura;
+  - una parola per cosa: "Richieste dei clienti" (non Ticket), "💶 Registra
+    pagamento", "📅 Paga il…" (non Promessa), "📋 Da gestire" (non Workflow);
+    niente "(sql/NN)" nei testi per gli utenti;
+  - fatto anche: tessere doppie del capo tecnico nascoste (Da pianificare,
+    Richieste modifica: data-doppione in index.html), tecnico senza le
+    righe oggi/settimana/cantieri in Cosa tocca a me (js/46), rappresentante
+    con una sola sezione "👷 Team tecnico: chi è impegnato", riga "Debug"
+    tolta (js/05). NON fatto (Erika): le tessere dei numeri del titolare.
+  - Il ruolo contabile non c'è in azienda: non serve sistemarne la dashboard.
 
 ## SICUREZZA
 I permessi vivono SOLO nel frontend (`canAccessPage`, `PAGINE_RUOLO`,

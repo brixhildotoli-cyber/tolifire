@@ -184,7 +184,7 @@ async function apriCatalogoLavorazioni(codice) {
   if (!puoModificareCatalogoLav()) { toast('Il catalogo lo correggono titolare e ingegnere', 'err'); return; }
   await caricaCatalogoLavorazioni(true);
   if (!CATALOGO_LAV.disponibili) {
-    toast('Il catalogo delle lavorazioni non è ancora attivo (serve sql/75)', 'err');
+    toast('Il catalogo delle lavorazioni non è ancora attivo', 'err');
     return;
   }
   if (codice !== undefined) CATALOGO_LAV.aperta = codice;
@@ -958,7 +958,7 @@ async function importaFoglioLavorazioni(input) {
     return;
   }
   await caricaCatalogoLavorazioni(true);
-  if (!CATALOGO_LAV.disponibili) { toast('Il catalogo delle lavorazioni non è ancora attivo (serve sql/75)', 'err'); return; }
+  if (!CATALOGO_LAV.disponibili) { toast('Il catalogo delle lavorazioni non è ancora attivo', 'err'); return; }
   IMPORT_LAV.file = file.name;
   if (ge('ilv-visibili')) ge('ilv-visibili').checked = false;
   IMPORT_LAV.righe = letto.righe;
@@ -1244,7 +1244,7 @@ if (typeof mostraCatalogoLavorazioniImpostazioni === 'function') {
 
 // ── Elenco delle proposte ───────────────────────────────────────────
 async function apriProposteCampi() {
-  if (!(await verificaProposteCampiDisponibili())) { toast('Le proposte di campi non sono ancora attive (serve sql/91)', 'err'); return; }
+  if (!(await verificaProposteCampiDisponibili())) { toast('Le proposte di campi non sono ancora attive', 'err'); return; }
   await caricaCatalogoLavorazioni();
   await caricaProposteCampi(true);
   PROPOSTE_CAMPI.soloAttesa = PROPOSTE_CAMPI.elenco.some(function(p) { return p.stato === 'in_attesa'; });
@@ -1274,7 +1274,7 @@ function disegnaProposteCampi() {
 
 // ── Finestra della proposta: "proponi" (ingegnere) o "decidi" (titolare) ──
 async function apriPropostaCampo(modo, id, codiceLav) {
-  if (!(await verificaProposteCampiDisponibili())) { toast('Le proposte di campi non sono ancora attive (serve sql/91)', 'err'); return; }
+  if (!(await verificaProposteCampiDisponibili())) { toast('Le proposte di campi non sono ancora attive', 'err'); return; }
   if (modo === 'decidi' && ROLE !== 'titolare') { toast('Le proposte le approva il titolare', 'err'); return; }
   await caricaCatalogoLavorazioni();
   const p = modo === 'decidi' ? (await caricaProposteCampi()).find(function(x) { return Number(x.id) === Number(id); }) : null;

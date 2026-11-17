@@ -547,7 +547,7 @@ async function decoraRibaFattura() {
 // ── Distinta RIBA: nuova o da cambiare ───────────────────────────────────
 async function apriDistintaRiba(id) {
   if (!puoRiba()) { toast('Le distinte RIBA le preparano segreteria, contabile o titolare', 'err'); return; }
-  if (!(await verificaFattureRiba())) { toast('Le RIBA non sono ancora attive (sql/47)', 'err'); return; }
+  if (!(await verificaFattureRiba())) { toast('Le RIBA non sono ancora attive', 'err'); return; }
   let distinta = null;
   let nella = [];
   if (id) {
@@ -1098,7 +1098,7 @@ async function scaricaPdfDistintaRiba() {
 // ── Solleciti ────────────────────────────────────────────────────────────
 async function apriSollecito(scadenzaId) {
   if (!puoSolleciti()) { toast('I solleciti li registra la segreteria, il titolare o il contabile', 'err'); return; }
-  if (!(await verificaFattureRiba())) { toast('I solleciti non sono ancora attivi (sql/47)', 'err'); return; }
+  if (!(await verificaFattureRiba())) { toast('I solleciti non sono ancora attivi', 'err'); return; }
   const { data: s, error } = await db.from('fatture_scadenze')
     .select('*,fatture(id,numero,data_emissione,stato,tipo_documento,snap_ragione_sociale,cliente_id,clienti(referente_nome,referente_telefono,referente_email,pec))')
     .eq('id', scadenzaId).maybeSingle();

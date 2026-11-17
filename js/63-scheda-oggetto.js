@@ -570,7 +570,7 @@ registraFonteCollegati('cliente', {
 
 // Ticket del portale (richieste del cliente): non hanno una scheda.
 registraFonteCollegati('cliente', {
-  id: 'ticket', icona: '🎫', titolo: 'Richieste dal portale',
+  id: 'ticket', icona: '🎫', titolo: 'Richieste dei clienti',
   leggi: async function(c) {
     const d = await leggiCollegati(db.from('ticket_clienti').select('id,titolo,stato,creato_il,odl_id').eq('cliente_id', c.id).is('eliminato_il', null).order('creato_il', { ascending: false }).limit(20));
     return righeOMancante(d, function(t) {

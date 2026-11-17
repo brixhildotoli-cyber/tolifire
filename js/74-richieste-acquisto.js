@@ -57,7 +57,7 @@ async function loadRichiesteAcquisto() {
   const nuova = ge('rqa-nuova-btn');
   if (nuova) nuova.style.display = puoCreareRichiestaAcquisto() ? '' : 'none';
   if (!(await verificaRichiesteAcquistoDisponibili())) {
-    box.innerHTML = '<div class="al2 i">Le richieste di acquisto non sono ancora attive: si attivano dopo l’aggiornamento del database (sql/268).</div>';
+    box.innerHTML = '<div class="al2 i">Le richieste di acquisto non sono ancora attive: si attivano dopo l’aggiornamento del database.</div>';
     if (nuova) nuova.style.display = 'none';
     return;
   }

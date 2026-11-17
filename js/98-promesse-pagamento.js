@@ -4,7 +4,7 @@
 // entro il …" e una nota di incasso.
 //   - Sotto ogni rata (finestra della fattura, "💶 Scadenze e incassi",
 //     "📞 Insoluti e solleciti"): "📅 Paga il … · nota (chi)" e il bottone
-//     "📅 Paga il…" accanto a "💶 Pagamento" per segreteria e titolare (finestra
+//     "📅 Paga il…" accanto a "💶 Registra pagamento" per segreteria e titolare (finestra
 //     m-promessa-pagamento, id ppg-); il contabile legge.
 //   - Promessa passata e rata non pagata: data in rosso.
 // Le righe delle rate hanno data-scadenza-id (js/44; per i solleciti lo mette
@@ -35,7 +35,7 @@ function htmlPromessaRata(id, p) {
 }
 
 // Bottone "📅 Paga il…" (come nella card "Anticipi da fatturare" della dashboard):
-// accanto a "💶 Pagamento" se c'è, altrimenti sotto la rata.
+// accanto a "💶 Registra pagamento" se c'è, altrimenti sotto la rata.
 function htmlBottonePagaIl(id, p) {
   if (!RUOLI_SCRIVONO_PROMESSA.includes(ROLE)) return '';
   return '<button class="btn sm" type="button" data-paga-il="' + esc(id) + '" onclick="apriPromessaPagamento(this.dataset.pagaIl)">📅 ' +

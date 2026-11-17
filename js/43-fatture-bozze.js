@@ -184,7 +184,7 @@ function aggiornaDopoBozza() {
 // Nuova bozza dalla scheda: righe proposte dal buono di lavoro.
 async function apriBozzaDaScheda(schedaId) {
   if (!puoScrivereBozze()) { toast('La bozza la preparano segreteria, contabile o titolare', 'err'); return; }
-  if (!(await verificaFattureBozze())) { toast('Il modulo Fatture non è ancora attivo (sql/45)', 'err'); return; }
+  if (!(await verificaFattureBozze())) { toast('Il modulo Fatture non è ancora attivo', 'err'); return; }
   const gia = await fattureAttivePerScheda([schedaId]);
   if (gia && gia[schedaId]) { apriFattura(gia[schedaId].id); return; }
   const { data: s, error } = await db.from('schede_lavoro')

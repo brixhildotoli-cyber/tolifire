@@ -265,7 +265,7 @@ async function caricaScadenzeNellaFattura(f) {
 async function apriEmissioneDaBozza() {
   const b = fatBozza;
   if (!b || !b.modificabile) return;
-  if (!(await verificaFattureEmissione())) { toast('L\'emissione non è ancora attiva (sql/46)', 'err'); return; }
+  if (!(await verificaFattureEmissione())) { toast('L\'emissione non è ancora attiva', 'err'); return; }
   const btn = ge('mfat-emetti');
   btn.disabled = true;
   const salvata = await salvaBozzaFattura({ restaAperta: true });
@@ -287,7 +287,7 @@ async function apriEmissioneAnticipo(preventivoId) {
     toast('La fattura d\'anticipo la emette la segreteria (o il titolare)', 'err');
     return;
   }
-  if (!(await verificaFattureEmissione())) { toast('L\'emissione non è ancora attiva (sql/46)', 'err'); return; }
+  if (!(await verificaFattureEmissione())) { toast('L\'emissione non è ancora attiva', 'err'); return; }
   const { data: p, error } = await db.from('preventivi')
     .select('id,cliente_id,numero,stato,data_emissione,totale_imponibile,iva_perc,anticipo_richiesto,anticipo_tipo,anticipo_valore,anticipo_fattura_numero,clienti(ragione_sociale,piva,codice_fiscale,giorni_pagamento,modalita_pagamento)')
     .eq('id', preventivoId).maybeSingle();
@@ -312,7 +312,7 @@ async function apriEmissioneFinale() {
     toast('La fattura finale si emette con la commessa in fine lavori (segreteria o titolare)', 'err');
     return;
   }
-  if (!(await verificaFattureEmissione())) { toast('L\'emissione non è ancora attiva (sql/46)', 'err'); return; }
+  if (!(await verificaFattureEmissione())) { toast('L\'emissione non è ancora attiva', 'err'); return; }
   const { data: cli } = await db.from('clienti')
     .select('ragione_sociale,piva,codice_fiscale,giorni_pagamento,modalita_pagamento').eq('id', commessa.cliente_id).maybeSingle();
   const calcolo = s.calcolo || {};
@@ -844,7 +844,7 @@ async function caricaScadenzeFatture() {
               ' · da incassare <b>' + esc(euroBuono(residuo)) + '</b>' + (Number(s.importo_pagato) ? ' su ' + esc(euroBuono(s.importo)) : '')
             : 'Pagata il ' + esc(fd(s.data_pagamento)) + ' · ' + esc(euroBuono(s.importo))) + ' ' + bsPag(s.stato) + '</div></div>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
-          (aperta && s.stato !== 'in_riba' && puoPagamentoFattura(f) ? '<button class="btn sm p" data-id="' + esc(s.id) + '" onclick="apriPagamentoFattura(this.dataset.id)">💶 Pagamento</button>' : '') +
+          (aperta && s.stato !== 'in_riba' && puoPagamentoFattura(f) ? '<button class="btn sm p" data-id="' + esc(s.id) + '" onclick="apriPagamentoFattura(this.dataset.id)">💶 Registra pagamento</button>' : '') +
           '<button class="btn sm" data-id="' + esc(f.id) + '" onclick="apriFattura(this.dataset.id)">Apri</button></div></div>';
     }).join('');
   }
@@ -1002,7 +1002,7 @@ async function decoraFattureAnticipo() {
           (aperta && puo && rata ? '<button class="btn sm" data-rata="' + esc(rata) + '" onclick="apriPromessaPagamento(this.dataset.rata)">📅 ' + (pr && pr.data_promessa ? 'Paga il ' + esc(fd(pr.data_promessa)) : 'Paga il…') + '</button>' : '') +
           '<span data-posto-rifiuta></span>' +
           (aperta && puo
-            ? '<button class="btn sm p" data-id="' + esc(f.id) + '" onclick="apriPagamentoAnticipo(this.dataset.id)">💶 Registra pagamento (accredito)</button>' : '') +
+            ? '<button class="btn sm p" data-id="' + esc(f.id) + '" onclick="apriPagamentoAnticipo(this.dataset.id)">💶 Registra pagamento</button>' : '') +
           (canAccessPage('fatture') ? '<button class="btn sm" data-id="' + esc(f.id) + '" onclick="apriFattura(this.dataset.id)">Apri fattura</button>' : '') +
         '</div>';
       const posto = ph.querySelector('[data-posto-rifiuta]');

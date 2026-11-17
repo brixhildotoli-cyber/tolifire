@@ -246,7 +246,7 @@ if (typeof renderSchedeProgettoCommerciale === 'function') {
 // ── Apertura della scheda ──────────────────────────────────────────────
 async function apriSchedaMotore(progettoId, famiglia, numero) {
   if (!progettoId || !famiglia) return;
-  if (!(await verificaMotoreSchedeDisponibile())) { toast('Il motore delle schede non è ancora attivo (serve sql/77)', 'err'); return; }
+  if (!(await verificaMotoreSchedeDisponibile())) { toast('Il motore delle schede non è ancora attivo', 'err'); return; }
   if (typeof caricaCatalogoLavorazioni === 'function') await caricaCatalogoLavorazioni();
   const lav = typeof lavorazioneCatalogo === 'function' ? lavorazioneCatalogo(famiglia) : null;
   if (!lav || !campiSchedaMotore(lav).length) { toast('Lavorazione non trovata nel catalogo', 'err'); return; }

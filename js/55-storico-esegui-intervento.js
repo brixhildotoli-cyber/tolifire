@@ -420,7 +420,7 @@ if (typeof salvaInt === 'function') {
     try { esito = await scriviStoricoIntervento(raccolta); } finally { azzera(); }
     if (esito.ruolo) return r;
     if (!esito.attivo) {
-      toast((prima ? prima + ' ' : '') + 'Storico presidi non aggiornato: per il tuo ruolo serve l’aggiornamento del database (sql/255). Avvisa il capo tecnico.', 'err');
+      toast((prima ? prima + ' ' : '') + 'Storico presidi non aggiornato: per il tuo ruolo serve l’aggiornamento del database. Avvisa il capo tecnico.', 'err');
       return r;
     }
     let msg = '📁 Storico presidi: ' + esito.create + (esito.create === 1 ? ' scheda nuova' : ' schede nuove') +
