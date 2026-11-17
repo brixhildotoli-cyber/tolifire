@@ -958,6 +958,19 @@ async function decoraFattureAnticipo() {
   const attive = {};
   (r.righe || []).forEach(function(f) { if (f.stato === 'emessa') attive[f.preventivo_id] = f; });
   const puo = typeof puoRegistrareAccreditoAnticipo === 'function' && puoRegistrareAccreditoAnticipo();
+  // "📅 Paga il": promessa di pagamento sulla prima rata aperta (sql/272, js/98)
+  const rataAperta = {};
+  const promessaRata = {};
+  const idsFatture = Object.keys(attive).map(function(k) { return attive[k].id; });
+  if (idsFatture.length && typeof verificaPromesseDisponibili === 'function' && (await verificaPromesseDisponibili())) {
+    const rs = await db.from('fatture_scadenze').select('id, fattura_id, numero_rata').in('fattura_id', idsFatture).neq('stato', 'pagata').order('numero_rata', { ascending: true });
+    (rs.data || []).forEach(function(x) { if (!rataAperta[x.fattura_id]) rataAperta[x.fattura_id] = x.id; });
+    const idsRate = Object.keys(rataAperta).map(function(k) { return rataAperta[k]; });
+    if (idsRate.length) {
+      const rp = await db.from('fatture_promesse_pagamento').select('scadenza_id, data_promessa, nota, aggiornato_da_nome, aggiornato_il').in('scadenza_id', idsRate);
+      (rp.data || []).forEach(function(x) { promessaRata[x.scadenza_id] = x; if (typeof PROMESSE !== 'undefined') PROMESSE.perRata[x.scadenza_id] = x; });
+    }
+  }
   segnaposti.forEach(function(ph) {
     ph.dataset.fatto = '1';
     const id = ph.dataset.preventivoId;
@@ -970,13 +983,30 @@ async function decoraFattureAnticipo() {
     }) : [];
     if (f) {
       bottoniF43.forEach(function(b) { b.style.display = 'none'; });
-      ph.innerHTML = '<div style="font-size:12px;line-height:1.6;overflow-wrap:anywhere">🧾 Fattura d\'anticipo <b>n. ' + esc(f.numero) + '</b> emessa dal gestionale · totale ' + esc(euroBuono(f.totale)) + ' ' + bsPag(f.stato_pagamento) +
-        (stato === 'in_attesa_anticipo' ? '<br>L\'accredito si registra come <b>pagamento</b> della fattura: pagata per intero, il preventivo diventa accettato e nasce la commessa.' : '') + '</div>' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">' +
-          (stato === 'in_attesa_anticipo' && puo && f.stato_pagamento !== 'pagata'
+      // Card più corta: via le righe doppie della registrazione a mano (F4.3)
+      // e un'unica riga di bottoni: Paga il, Rifiuta, Registra pagamento, Apri fattura.
+      const testoF43 = contenitore ? contenitore.querySelector('[data-anticipo-f43-testo]') : null;
+      if (testoF43) testoF43.style.display = 'none';
+      const rigaF43 = contenitore ? contenitore.querySelector('[data-anticipo-f43-bottoni]') : null;
+      const rifiuta = contenitore ? Array.from(contenitore.querySelectorAll('button')).find(function(b) { return (b.getAttribute('onclick') || '').indexOf('apriRifiutoAnticipoNonVersato') !== -1; }) : null;
+      if (rigaF43) rigaF43.style.display = 'none';
+      const rata = rataAperta[f.id];
+      const pr = rata ? promessaRata[rata] : null;
+      const aperta = stato === 'in_attesa_anticipo' && f.stato_pagamento !== 'pagata';
+      const oggi = oggiFattura();
+      ph.innerHTML = '<div style="font-size:12px;line-height:1.6;overflow-wrap:anywhere">🧾 Fattura d\'anticipo <b>n. ' + esc(f.numero) + '</b> del ' + esc(fd(f.data_emissione)) + ' · totale ' + esc(euroBuono(f.totale)) + ' ' + bsPag(f.stato_pagamento) + '</div>' +
+        (pr && (pr.data_promessa || pr.nota) ? '<div style="font-size:12px;margin-top:2px" data-promessa-anticipo="' + esc(rata) + '">📅 ' +
+          (pr.data_promessa ? 'Paga il <b' + (pr.data_promessa < oggi && aperta ? ' style="color:var(--r)"' : '') + '>' + esc(fd(pr.data_promessa)) + '</b>' + (pr.data_promessa < oggi && aperta ? ' (passata)' : '') : 'Nota') +
+          (pr.nota ? ' · ' + esc(pr.nota) : '') + (pr.aggiornato_da_nome ? ' <span style="color:var(--m)">(' + esc(pr.aggiornato_da_nome) + ')</span>' : '') + '</div>' : '') +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px" data-anticipo-bottoni>' +
+          (aperta && puo && rata ? '<button class="btn sm" data-rata="' + esc(rata) + '" onclick="apriPromessaPagamento(this.dataset.rata)">📅 ' + (pr && pr.data_promessa ? 'Paga il ' + esc(fd(pr.data_promessa)) : 'Paga il…') + '</button>' : '') +
+          '<span data-posto-rifiuta></span>' +
+          (aperta && puo
             ? '<button class="btn sm p" data-id="' + esc(f.id) + '" onclick="apriPagamentoAnticipo(this.dataset.id)">💶 Registra pagamento (accredito)</button>' : '') +
           (canAccessPage('fatture') ? '<button class="btn sm" data-id="' + esc(f.id) + '" onclick="apriFattura(this.dataset.id)">Apri fattura</button>' : '') +
         '</div>';
+      const posto = ph.querySelector('[data-posto-rifiuta]');
+      if (posto && rifiuta) posto.replaceWith(rifiuta); else if (posto) posto.remove();
     } else if (stato === 'in_attesa_anticipo' && !ph.dataset.esterna && puo) {
       bottoniF43.forEach(function(b) {
         if ((b.getAttribute('onclick') || '').indexOf('\'fattura\'') !== -1) {

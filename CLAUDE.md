@@ -3486,6 +3486,16 @@ titolare), finestra m-promessa-pagamento (id ppg-, Salva/Togli). Guide
 info-seg-36, info-tit-68. Prove: sql/272-...-PROVA.sql (13 ok) e
 test/promesse-pagamento.spec.js (segreteria a 390 px, contabile, console):
 TUTTO OK; smoke con e senza; rollback e riesecuzione provati.
+Card "Anticipi da fatturare" semplificata (richiesta di Erika del 17/11, solo
+sito): js/18 riepilogo in una riga data-anticipo-riepilogo ("💶 Anticipo X + IVA
+(con IVA) · preventivo"), data-anticipo-f43-testo/-bottoni sulle righe F4.3; con
+fattura d'anticipo emessa dal gestionale js/44 decoraFattureAnticipo nasconde le
+righe F4.3 e fa UNA riga data-anticipo-bottoni: "📅 Paga il…" (promessa sulla
+prima rata aperta, apriPromessaPagamento, solo segreteria/titolare e in attesa)
+PRIMA di "❌ Rifiuta: anticipo non versato" (stesso bottone spostato), poi
+Registra pagamento e Apri fattura; riga "📅 Paga il gg/mm/aaaa · nota (chi)",
+rossa se passata. js/98 dopo il salvataggio ridisegna la card. Prova:
+test/anticipo-paga-il.spec.js (segreteria 390 px) TUTTO OK; smoke TUTTO OK.
 Dopo sql/170 (F20.2 infortuni e quasi-incidenti + F20.3 danni, decisioni di
 Erika del 17/11: registrano SOLO capo tecnico, segreteria, titolare; nessuna
 scadenza INAIL calcolata; danni con regola fissa; F20.3 dentro sql/170, niente

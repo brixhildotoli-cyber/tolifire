@@ -10673,11 +10673,11 @@ async function loadAnticipiDaFatturare() {
           </div>
         </div>
 
-        <div class="g2" style="margin-top:10px">
-          ${irHtmlPreventivo('Anticipo da fatturare (IVA esclusa)', '<b>' + esc(euroPreventivo(importo)) + '</b>')}
-          ${irHtmlPreventivo('Con IVA ' + ivaPerc + '%', esc(euroPreventivo(Math.round(importo * (100 + ivaPerc)) / 100)))}
-          ${irHtmlPreventivo('Come richiesto', esc(testoAnticipoPreventivo(p.anticipo_tipo, p.anticipo_valore, p.totale_imponibile) || '—'))}
-          ${irHtmlPreventivo('Totale imponibile preventivo', esc(euroPreventivo(p.totale_imponibile)))}
+        <div style="font-size:13px;margin-top:8px;overflow-wrap:anywhere" data-anticipo-riepilogo>
+          💶 Anticipo <b>${esc(euroPreventivo(importo))} + IVA</b>
+          (${esc(euroPreventivo(Math.round(importo * (100 + ivaPerc)) / 100))} con IVA ${ivaPerc}%)
+          ${p.anticipo_tipo === 'percentuale' ? ' · ' + esc(testoAnticipoPreventivo(p.anticipo_tipo, p.anticipo_valore, p.totale_imponibile) || '') : ''}
+          · preventivo ${esc(euroPreventivo(p.totale_imponibile))}
         </div>
 
         ${p.condizioni_pagamento ? `
@@ -10779,7 +10779,7 @@ function htmlFatturaAnticipoPreventivo(p) {
   }
 
   return `
-    <div style="margin-top:8px;font-size:12px;line-height:1.6">
+    <div style="margin-top:8px;font-size:12px;line-height:1.6" data-anticipo-f43-testo>
       <div>
         🧾 Fattura d'anticipo:
         ${fattura
@@ -10797,7 +10797,7 @@ function htmlFatturaAnticipoPreventivo(p) {
       </div>
     </div>
     ${puo ? `
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px" data-anticipo-f43-bottoni>
         <button class="btn sm${fattura ? '' : ' p'}" onclick="apriAnticipoSegreteria('${p.id}', 'fattura')">
           ${fattura ? '✏️ Correggi fattura d\'anticipo' : '🧾 Registra fattura d\'anticipo'}
         </button>

@@ -97,4 +97,9 @@ async function salvaPromessaPagamento(togli) {
   closeM('m-promessa-pagamento');
   toast(togli ? 'Promessa tolta' : 'Promessa di pagamento salvata', 'ok');
   ['mfat-emessa', 'fat-scadenze-box', 'fat-solleciti-box'].forEach(function(b) { if (ge(b)) decoraPromesseRate(ge(b)).catch(function() {}); });
+  // Card "Anticipi da fatturare" (js/44): ridisegna la riga con "📅 Paga il"
+  if (typeof decoraFattureAnticipo === 'function') {
+    document.querySelectorAll('.fat-anticipo-vera[data-fatto]').forEach(function(ph) { delete ph.dataset.fatto; });
+    decoraFattureAnticipo().catch(function() {});
+  }
 }
