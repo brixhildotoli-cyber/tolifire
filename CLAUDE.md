@@ -3339,8 +3339,8 @@ test/idoneita.spec.js (segreteria, capo tecnico a 390 px, tecnico a 390 px,
 console): TUTTO OK; rollback e riesecuzione di 152 e 153 provati.
 Dopo sql/155 (F19.4 piano formazione, decisione di Erika del 16/11: preavviso
 separato + piano; SENZA l'incrocio con le commesse dei 90 giorni, che serve
-F19.3, e senza report del venerdì; DA ESEGUIRE con "CONFERMATO DA TOLI:
-sql/155": backup, file (senza parole di cancellazione), -REGISTRO-CANCELLAZIONI
+F19.3, e senza report del venerdì; ESEGUITO il 17/11 (backup 2026-11-17-pre-blocco,
+controllo in regola) con "CONFERMATO DA TOLI: sql/155": backup, file (senza parole di cancellazione), -REGISTRO-CANCELLAZIONI
 dall'editor, controllo in fondo; richiede 07, 32, 67, 71). Preavviso dei corsi =
 regola GIÀ esistente preavviso_corsi_visite_gg di sql/62 (60, Regole; nessuna
 colonna nuova): statoDocumentoTeamSubappalti SOSTITUITA in js/93 (per = 'persona'
