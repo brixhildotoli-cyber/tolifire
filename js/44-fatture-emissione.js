@@ -222,7 +222,7 @@ async function caricaScadenzeNellaFattura(f) {
       const residuo = residuoRata(s);
       const aperta = s.stato !== 'pagata' && f.stato === 'emessa';
       const scaduta = aperta && s.data_scadenza < oggi;
-      return '<div style="border:0.5px solid var(--bo);border-radius:var(--rs);padding:8px;margin-bottom:6px;font-size:13px;overflow-wrap:anywhere' + (scaduta ? ';border-left:3px solid var(--r)' : '') + '">' +
+      return '<div data-scadenza-id="' + esc(s.id) + '" style="border:0.5px solid var(--bo);border-radius:var(--rs);padding:8px;margin-bottom:6px;font-size:13px;overflow-wrap:anywhere' + (scaduta ? ';border-left:3px solid var(--r)' : '') + '">' +
         '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center">' +
           '<span><b>Rata ' + esc(s.numero_rata) + '</b> · scade il ' + esc(fd(s.data_scadenza)) +
             (scaduta ? ' <span class="bx berr">Scaduta da ' + giorniTraISO(s.data_scadenza, oggi) + ' gg</span>' : '') + '</span>' +
@@ -835,7 +835,7 @@ async function caricaScadenzeFatture() {
       const residuo = residuoRata(s);
       const aperta = s.stato !== 'pagata';
       const scaduta = aperta && s.data_scadenza < oggi;
-      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:0.5px solid var(--bo)' + (scaduta ? ';border-left:3px solid var(--r);padding-left:8px' : '') + '">' +
+      return '<div data-scadenza-id="' + esc(s.id) + '" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:0.5px solid var(--bo)' + (scaduta ? ';border-left:3px solid var(--r);padding-left:8px' : '') + '">' +
         '<div style="min-width:0;overflow-wrap:anywhere"><div style="font-size:13px;font-weight:600">' + esc(f.snap_ragione_sociale || '—') + '</div>' +
           '<div style="font-size:12px;color:var(--m)">Fattura n. <span style="font-family:monospace">' + esc(f.numero || '') + '</span> · rata ' + esc(s.numero_rata) +
             (f.origine && f.origine !== 'scheda' ? ' · ' + esc(ETICHETTE_ORIGINE_FATTURA[f.origine] || f.origine) : '') + '</div>' +

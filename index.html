@@ -6690,6 +6690,12 @@
       </p>
       <div class="al2 i">Le voci di partenza sono una proposta: falle controllare all'ingegnere.</div>
 
+      <h4 id="info-tit-68">68. 🤝 Promessa di pagamento delle rate</h4>
+      <p>
+        Sotto ogni rata delle fatture emesse tu e la segreteria potete scrivere la <b>data promessa di pagamento</b> e una nota di incasso, sempre modificabili (la fattura resta bloccata). Compaiono nella fattura e negli elenchi delle scadenze e dei solleciti; una promessa passata è in rosso.
+      </p>
+      <div class="al2 i">Il contabile la legge ma non la cambia.</div>
+
 
 
       <h4>Regole pratiche</h4>
@@ -7338,6 +7344,12 @@
         In Team e subappalti premi <b>🏢 Documenti di TOLI Fire</b>: lì registri i documenti dell'impresa (DURC, visura, nomine, D.M. 37/08, white list) con il file e la scadenza, e li rinnovi con "🔁 Rinnova o sostituisci". Gli avvisi di scadenza arrivano con gli altri documenti.
       </p>
       <div class="al2 i">Un DURC che scade entro il preavviso compare nella tab Scadenze.</div>
+
+      <h4 id="info-seg-36">36. 🤝 Promessa di pagamento di una fattura</h4>
+      <p>
+        Una fattura emessa non si modifica, ma sotto ogni rata puoi premere <b>🤝 Promessa</b> e scrivere <b>entro quando</b> il cliente ha detto che paga e una nota (es. "richiamare il 25"). Si cambia quando vuoi (✏️) e la vedi nella fattura, in "Scadenze e incassi" e in "Insoluti e solleciti"; se la data passa diventa rossa. Quando il pagamento arriva lo registri come sempre con <b>💶 Registra pagamento</b>.
+      </p>
+      <div class="al2 i">La leggono anche il titolare e il contabile; resta la storia di chi l'ha cambiata.</div>
 
 
 
@@ -9944,6 +9956,23 @@
   </div>
 </div>
 
+<!-- PROMESSA DI PAGAMENTO DI UNA RATA (js/98, solo con sql/272) -->
+<div class="mbg" id="m-promessa-pagamento">
+  <div class="modal" style="max-width:440px">
+    <button class="x" onclick="closeM('m-promessa-pagamento')">×</button>
+    <h3>🤝 Promessa di pagamento</h3>
+    <input type="hidden" id="ppg-id">
+    <div class="f"><label>Pagamento previsto entro il</label><input type="date" id="ppg-data"></div>
+    <div class="f"><label>Nota di incasso</label><input type="text" id="ppg-nota" maxlength="500" placeholder="es. ha detto che paga a fine mese, richiamare il 25"></div>
+    <div style="font-size:12px;color:var(--m)">La fattura resta com'è: questa nota si può cambiare quando vuoi. Il pagamento vero lo registri con "💶 Registra pagamento" quando arriva.</div>
+    <div class="ma">
+      <button class="btn" style="color:var(--r)" onclick="salvaPromessaPagamento(true)">Togli</button>
+      <button class="btn" onclick="closeM('m-promessa-pagamento')">Annulla</button>
+      <button class="btn p" onclick="salvaPromessaPagamento(false)">💾 Salva</button>
+    </div>
+  </div>
+</div>
+
 <!-- F19.4 — ISCRIZIONE A UN CORSO (js/93, solo con sql/155) -->
 <div class="mbg" id="m-iscrizione-corso">
   <div class="modal" style="max-width:440px">
@@ -11972,6 +12001,7 @@
 <script defer src="js/95-squadra-corsi.js?v=202611170946"></script>
 <script defer src="js/96-documenti-impresa.js?v=202611170946"></script>
 <script defer src="js/97-kit-standard.js?v=202611170946"></script>
+<script defer src="js/98-promesse-pagamento.js?v=202611170946"></script>
 <script defer src="js/19-init.js?v=202611170946"></script>
 
 

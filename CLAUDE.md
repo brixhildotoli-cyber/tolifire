@@ -3466,6 +3466,25 @@ non attivi, quindi niente accesso; spariscono da tutte le tendine, che filtrano
 attivo) e le loro 2 bozze (preventivi n. 13 e 16) passate a Laura Panseri.
 ESEGUITO il 17/11 (backup 2026-11-17-pre271, controllo in regola: disattivati 2,
 bozze_laura 2, restano_a_comm 0). Rollback: 271-...-ROLLBACK.sql.
+Dopo sql/272 (promessa di pagamento sulle rate, richiesta di Erika del 17/11:
+la fattura emessa resta bloccata ma "entro quando pagano" e una nota di incasso
+si cambiano sempre; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/272": backup,
+file (senza parole di cancellazione), -REGISTRO-CANCELLAZIONI dall'editor,
+controllo in fondo; richiede 46, 67, 71). Tabella fatture_promesse_pagamento
+(scadenza_id unica → fatture_scadenze on delete cascade, data_promessa, nota,
+aggiornato_da*; lettura titolare, segreteria, contabile) con RPC
+imposta_promessa_pagamento(p_scadenza_id, p_data_promessa, p_nota) (titolare,
+segreteria; solo fatture emesse; vuote = tolta, la riga resta);
+promesse_pagamento_attive(). Matrice: 10 righe. Sito: js/44 data-scadenza-id
+sulle righe delle rate (finestra della fattura e "Scadenze e incassi");
+js/98-promesse-pagamento.js (dopo js/97): htmlRataDaSollecitare avvolta (stesso
+attributo), caricaScadenzeNellaFattura / caricaScadenzeFatture /
+caricaSollecitiFatture avvolte (riga data-promessa-rata "🤝 Promesso entro il …
+· nota (chi, quando)", rossa se passata; "🤝 Promessa"/"✏️" per segreteria e
+titolare), finestra m-promessa-pagamento (id ppg-, Salva/Togli). Guide
+info-seg-36, info-tit-68. Prove: sql/272-...-PROVA.sql (13 ok) e
+test/promesse-pagamento.spec.js (segreteria a 390 px, contabile, console):
+TUTTO OK; smoke con e senza; rollback e riesecuzione provati.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
