@@ -340,6 +340,10 @@ async function cartaProgetto(s, progettoId) {
   const [progettoId, statoPartenza, rapId, fontePartenza, importoPartenza] = riga.split('|');
   const inizio = psql('select now()');
   const regolePartenza = SENZA ? [] : psql('select id || \':\' || attiva from public.regole_smistamento order by id').split('\n').filter(Boolean);
+  // In produzione lo smistamento è spento (tutte le regole disattivate, decisione
+  // di Erika: invio come prima del 06/11). La prova accende le 3 regole di
+  // partenza di sql/83 solo nel database locale; alla fine si rimettono com'erano.
+  if (!SENZA) psql("update public.regole_smistamento set attiva = (tipo in ('importo_progetto', 'fuori_catalogo') or (tipo = 'famiglia' and famiglia = 'vernice_intumescente'))");
   const docSpenti = psql("update public.lavorazioni_documenti set attivo = false where attivo returning id").split('\n').filter(x => /^\d+$/.test(x));
   psql("update public.progetti_tecnici set fonte_rilievo = 'sopralluogo_toli', importo_stimato = 8000 where id = " + q(progettoId));
   psql("insert into public.progetti_tecnici_allegati (progetto_id, nome_file, storage_path, mime_type, dimensione, caricato_da) values (" +

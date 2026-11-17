@@ -5534,9 +5534,12 @@ quante insieme, in risultato.json) e SMOKE_RITARDO_MS=150 (database lento).
   promesse, eventi sicurezza, migrazione schede, foto/video, annulla,
   deleghe, smistamento, regole, festività. Il database di prova locale va
   tenuto allineato alla produzione (il 17/11 mancavano 226, 263, 264).
-  Prove vecchie che falliscono anche prima (da aggiornare): catalogo-
-  lavorazioni e import-catalogo-lavorazioni (12 lavorazioni, non 11),
-  smistamento-famiglie (anteprima), voci-quantita-um (colonna tolta).
+  Prove aggiornate il 17/11: catalogo-lavorazioni (conta le lavorazioni
+  del database; ingegnere senza bottone del catalogo, decisione del 13/11),
+  import-catalogo-lavorazioni (l'import lo fa il titolare da Impostazioni),
+  smistamento-famiglie (in produzione le regole sono tutte spente: la prova
+  accende le 3 di partenza solo in locale e le rimette); tolta
+  voci-quantita-um (colonna "Quantità x UM" tolta dal sito il 12/11).
 
 ## SICUREZZA
 I permessi vivono SOLO nel frontend (`canAccessPage`, `PAGINE_RUOLO`,

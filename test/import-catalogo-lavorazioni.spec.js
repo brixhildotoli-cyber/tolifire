@@ -3,7 +3,7 @@
 // (js/55-catalogo-lavorazioni.js importaFoglioLavorazioni), Chrome headless con
 // puppeteer-core, SOLO DATABASE LOCALE con sql/75 e successivi
 // (test/locale/avvia-db-locale.sh). Il "fatto quando" della task:
-//  1. l'ingegnere (390 px), da Verifiche tecniche > Catalogo lavorazioni,
+//  1. il titolare (390 px), da Impostazioni > Catalogo lavorazioni (dal 13/11),
 //     scarica il modello; carica un foglio con errori (anteprima con le righe
 //     sbagliate, "Importa" spento, nulla nel database); carica il foglio di
 //     prova con 2 lavorazioni e 30 campi: anteprima, import senza errori, le 2
@@ -373,14 +373,15 @@ async function apriSchedaNelMotore(s, progettoId, lav) {
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', protocolTimeout: 90000, args: ['--no-first-run', '--disable-features=Translate'] });
   const sessioni = [];
   try {
-    // 1. ingegnere a 390 px
+    // 1. titolare a 390 px, da Impostazioni (decisione di Erika del 13/11: il
+    //    catalogo lo gestisce il titolare, l'ingegnere non ha più il bottone)
     const g = await apriSito(browser, url); sessioni.push(g);
     await g.page.setViewport({ width: 390, height: 844 });
-    await login(g, ing);
-    await g.page.evaluate(() => gotoPage('verifiche-tecniche'));
+    await login(g, tit);
+    await g.page.evaluate(() => gotoPage('impostazioni'));
     await attendiQuiete(g.stato, 1500);
-    await g.page.waitForFunction(() => document.getElementById('vt-catalogo-btn').style.display !== 'none', { timeout: 10000 });
-    await g.page.click('#vt-catalogo-btn');
+    await g.page.waitForFunction(() => document.getElementById('si-catalogo-lav-apri') && document.getElementById('si-catalogo-lav-apri').style.display !== 'none', { timeout: 15000 });
+    await g.page.click('#si-catalogo-lav-apri');
     await attendiQuiete(g.stato, 1000);
     // modello
     const modello = path.join(CARTELLA_OUT, 'download', 'Modello_catalogo_lavorazioni.xlsx');
@@ -424,9 +425,9 @@ async function apriSchedaNelMotore(s, progettoId, lav) {
       ' / ' + psql("select c.valori_ammessi::text from public.lavorazioni_campi c join public.lavorazioni l on l.id = c.lavorazione_id where l.codice = '" + LAV_B + "' and c.codice = 'spessore_lastra'");
     if (!/0\.5-20/.test(val) || !/"valore": "x_12_5_mm", "etichetta": "12,5 mm"/.test(val)) KO('1: numeri con la virgola o valori del menu sbagliati: ' + val);
     else righe.push('   0,5-20 m letto con la virgola; menu "12,5 mm" con valore x_12_5_mm');
-    const reg = psql("select count(*) from public.lavorazioni_registro r join public.lavorazioni l on l.id = r.lavorazione_id where l.codice in ('" + LAV_A + "','" + LAV_B + "') and r.utente_id = '" + ing.id + "' and r.azione = 'creata'");
-    if (reg !== '32') KO('1: registro: attese 32 righe "creata" dell\'ingegnere (2 lavorazioni + 30 campi), trovate ' + reg);
-    else righe.push('   registro del catalogo: 32 righe "creata" a nome dell\'ingegnere');
+    const reg = psql("select count(*) from public.lavorazioni_registro r join public.lavorazioni l on l.id = r.lavorazione_id where l.codice in ('" + LAV_A + "','" + LAV_B + "') and r.utente_id = '" + tit.id + "' and r.azione = 'creata'");
+    if (reg !== '32') KO('1: registro: attese 32 righe "creata" del titolare (2 lavorazioni + 30 campi), trovate ' + reg);
+    else righe.push('   registro del catalogo: 32 righe "creata" a nome del titolare');
     const aperta = await g.page.evaluate(() => document.getElementById('m-catalogo-lavorazioni').classList.contains('on') && document.getElementById('cl-scelta').value);
     if (aperta !== LAV_A) KO('1: dopo l\'import il catalogo non mostra la lavorazione importata: ' + aperta);
     // di nuovo lo stesso foglio
@@ -437,7 +438,7 @@ async function apriSchedaNelMotore(s, progettoId, lav) {
     for (const lav of [LAV_A, LAV_B]) {
       const sch = await apriSchedaNelMotore(g, progettoId, lav);
       if (!sch.aperta || sch.campi < sch.attesi || sch.attesi < 10) KO('1: scheda ' + lav + ' nel motore: ' + JSON.stringify(sch));
-      else righe.push('   l\'ingegnere apre la scheda ' + lav + ' nel motore (spenta): ' + sch.campi + ' campi disegnati');
+      else righe.push('   il titolare apre la scheda ' + lav + ' nel motore (spenta): ' + sch.campi + ' campi disegnati');
     }
     await g.page.screenshot({ path: path.join(CARTELLA_OUT, '1-ingegnere-dopo-390.png') });
     await chiudi(g);

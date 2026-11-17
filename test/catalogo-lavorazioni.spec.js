@@ -328,7 +328,8 @@ async function opzioniScheda(s, progettoId, apri, idSelect) {
     await attendiQuiete(t.stato, 1500);
     await t.page.waitForFunction(() => document.getElementById('si-catalogo-lav-apri') && document.getElementById('si-catalogo-lav-apri').style.display !== 'none', { timeout: 15000 });
     const riass = await t.page.evaluate(() => document.getElementById('si-catalogo-lav-stato').innerText);
-    if (!/11/.test(riass)) KO('1: riquadro in Impostazioni senza le 11 lavorazioni: ' + riass);
+    const nLav = psql("select count(*) from public.lavorazioni");
+    if (!new RegExp('\\b' + nLav + ' lavorazioni').test(riass)) KO('1: riquadro in Impostazioni senza le ' + nLav + ' lavorazioni del database: ' + riass);
     const prima = await opzioniScheda(t, progettoId, 'apriSchedaCompartimentazioneIngegnere', 'cp-tipo-intervento');
     if (prima.join('|') !== 'Seleziona|Sigillatura attraversamenti|Parete|Controsoffitto|Pavimento|Giunto') KO('1: menu della scheda diverso da quello di oggi: ' + prima.join('|'));
     else righe.push('1. scheda Compartimentazione, menu Intervento uguale a oggi (' + (prima.length - 1) + ' valori)');
@@ -368,16 +369,13 @@ async function opzioniScheda(s, progettoId, apri, idSelect) {
     await login(g, ing);
     await g.page.evaluate(() => gotoPage('verifiche-tecniche'));
     await attendiQuiete(g.stato, 1500);
-    await g.page.waitForFunction(() => document.getElementById('vt-catalogo-btn').style.display !== 'none', { timeout: 10000 });
-    await g.page.click('#vt-catalogo-btn');
-    await attendiQuiete(g.stato, 1000);
-    await aggiungiValoreDallaPagina(g, 'coppelle', 'classe_resistenza', 'EI 240');
-    await g.page.screenshot({ path: path.join(CARTELLA_OUT, '2-ingegnere-catalogo-390.png') });
-    if (await g.page.evaluate(() => !!document.getElementById('cl-attiva-btn'))) KO('2: l\'ingegnere vede il bottone Attiva');
-    await g.page.evaluate(() => closeM('m-catalogo-lavorazioni'));
-    const opzCo = await opzioniScheda(g, progettoId, 'apriSchedaCoppelleIngegnere', 'co-classe-resistenza');
-    if (opzCo.indexOf('EI 240') < 0) KO('2: "EI 240" non compare nella scheda Coppelle: ' + opzCo.join('|'));
-    else righe.push('2. l\'ingegnere aggiunge "EI 240" alle Coppelle e lo vede nella scheda');
+    // Decisione di Erika del 13/11: il catalogo lo gestisce il titolare, l'ingegnere
+    // non ha più il bottone in Verifiche tecniche (le regole del database restano).
+    await attendi(1500);
+    const bottoneIng = await g.page.evaluate(() => { const b = document.getElementById('vt-catalogo-btn'); return !!b && b.style.display !== 'none'; });
+    if (bottoneIng) KO('2: l\'ingegnere vede ancora il bottone «📚 Catalogo lavorazioni»');
+    else righe.push('2. ingegnere: niente bottone «📚 Catalogo lavorazioni» in Verifiche tecniche (decisione del 13/11)');
+    await g.page.screenshot({ path: path.join(CARTELLA_OUT, '2-ingegnere-verifiche-390.png') });
     const console2 = await g.page.evaluate(async () => {
       const r = await db.from('lavorazioni').update({ attiva: false }).eq('codice', 'coppelle').select('id');
       return (r.error ? 'errore: ' + r.error.message : 'righe ' + (r.data || []).length);
