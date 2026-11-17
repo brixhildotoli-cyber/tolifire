@@ -99,11 +99,11 @@ async function salvaPromessaPagamento(togli) {
   const id = ge('ppg-id').value;
   const data = togli ? null : (ge('ppg-data').value || null);
   const nota = togli ? null : ((ge('ppg-nota').value || '').trim() || null);
-  if (!togli && !data && !nota) { toast('Scrivi la data promessa o una nota', 'err'); return; }
+  if (!togli && !data && !nota) { toast('Scrivi il giorno in cui paga o una nota', 'err'); return; }
   const { error } = await db.rpc('imposta_promessa_pagamento', { p_scadenza_id: id, p_data_promessa: data, p_nota: nota });
   if (error) { toast('Non salvata: ' + error.message, 'err'); return; }
   closeM('m-promessa-pagamento');
-  toast(togli ? 'Promessa tolta' : 'Promessa di pagamento salvata', 'ok');
+  toast(togli ? '«Paga il» tolto' : '«Paga il» salvato', 'ok');
   ['mfat-emessa', 'fat-scadenze-box', 'fat-solleciti-box'].forEach(function(b) { if (ge(b)) decoraPromesseRate(ge(b)).catch(function() {}); });
   // Card "Anticipi da fatturare" (js/44): ridisegna la riga con "📅 Paga il"
   if (typeof decoraFattureAnticipo === 'function') {

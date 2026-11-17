@@ -166,7 +166,10 @@ function apriNuovoAppuntamento(data) {
   openM('m-appuntamento');
 }
 
-async function salvaAppuntamento() {
+// Calendario appuntamenti (m-appuntamento). Prima si chiamava salvaAppuntamento,
+// come quella di js/41 (m-fissa-appuntamento) che la copriva: il bottone non
+// salvava niente (trovato nel riordino del 17/11).
+async function salvaAppuntamentoCalendario() {
   const id = v('ma-id');
   const titolo = v('ma-titolo').trim();
   const inizio = v('ma-inizio');

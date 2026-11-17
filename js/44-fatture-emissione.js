@@ -996,7 +996,7 @@ async function decoraFattureAnticipo() {
       const oggi = oggiFattura();
       ph.innerHTML = '<div style="font-size:12px;line-height:1.6;overflow-wrap:anywhere">🧾 Fattura d\'anticipo <b>n. ' + esc(f.numero) + '</b> del ' + esc(fd(f.data_emissione)) + ' · totale ' + esc(euroBuono(f.totale)) + ' ' + bsPag(f.stato_pagamento) + '</div>' +
         (pr && (pr.data_promessa || pr.nota) ? '<div style="font-size:12px;margin-top:2px" data-promessa-anticipo="' + esc(rata) + '">📅 ' +
-          (pr.data_promessa ? 'Paga il <b' + (pr.data_promessa < oggi && aperta ? ' style="color:var(--r)"' : '') + '>' + esc(fd(pr.data_promessa)) + '</b>' + (pr.data_promessa < oggi && aperta ? ' (passata)' : '') : 'Nota') +
+          (pr.data_promessa ? 'Paga il <b' + (pr.data_promessa < oggi && aperta ? ' style="color:var(--r)"' : '') + '>' + esc(fd(pr.data_promessa)) + '</b>' + (pr.data_promessa < oggi && aperta ? ' (passata)' : '') : 'Nota di incasso') +
           (pr.nota ? ' · ' + esc(pr.nota) : '') + (pr.aggiornato_da_nome ? ' <span style="color:var(--m)">(' + esc(pr.aggiornato_da_nome) + ')</span>' : '') + '</div>' : '') +
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px" data-anticipo-bottoni>' +
           (aperta && puo && rata ? '<button class="btn sm" data-rata="' + esc(rata) + '" onclick="apriPromessaPagamento(this.dataset.rata)">📅 ' + (pr && pr.data_promessa ? 'Paga il ' + esc(fd(pr.data_promessa)) : 'Paga il…') + '</button>' : '') +
