@@ -3177,6 +3177,29 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Dopo sql/273 (il capo tecnico segna "il cliente non paga", richiesta di Erika
+del 17/11: presidio scaduto in "Controlli scaduti: da ripianificare" fermo
+perché il cliente non paga; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/273":
+backup, file (senza parole di cancellazione), controllo in fondo; richiede 270,
+65, 71; nessuna tabella nuova, matrice invariata). DECISIONI DI ERIKA: segna
+anche il capo tecnico; riga grigia a parte; solo avviso. SQL: rifà
+imposta_stato_pagamenti_cliente (v_versione sql/273): capo_tecnico ammesso solo
+per ritardo/bloccato (42501 su "regolare": il segno lo tolgono segreteria e
+titolare), se lo segna il capo tecnico crea_avviso tipo stato_pagamenti_cliente
+a segreteria e titolare (rif clienti); capo_tecnico_segna_pagamenti_attivo().
+ROLLBACK dall'editor (rimette il corpo di sql/270, identico a produzione: md5
+controllato il 17/11). Sito js/102-capo-tecnico-non-paga.js (dopo js/101):
+controlliDaRipianificare avvolta (i clienti 🔴 escono da lista, Piano mensile e
+conteggio di Cosa tocca a me, tenuti in ris.fermiNonPaga), dashboard del capo
+tecnico con "⛔ Non paga" (data-non-paga) accanto ad "Apri cliente" e sezione
+chiusa <details data-fermi-non-paga> "⛔ Fermi: il cliente non paga (N)" con
+motivo, chi, quando; RUOLI_SEGNANO_PAGAMENTI + capo_tecnico (scheda cliente);
+finestra m-stato-pagamenti senza "Regolare" per il capo tecnico (+ nota
+spg-nota-ct); dopo il salvataggio la lista si ridisegna. Prove:
+sql/273-...-PROVA.sql (OK; prima del file fallisce), rollback e riesecuzione,
+test/capo-tecnico-non-paga.spec.js (capo tecnico 390 px, segreteria toglie il
+segno, cliente torna): TUTTO OK; stato-pagamenti.spec.js e smoke con e senza
+TUTTO OK.
 Periodo dei controlli e interventi in ritardo (richiesta di Erika del 16/11,
 js/86-periodo-presidi-interventi.js dopo js/85 + index.html m-interventi-ritardo
 id mir-, NESSUN SQL, nessun dato cambia). Trovato in produzione: 798 presidi senza
