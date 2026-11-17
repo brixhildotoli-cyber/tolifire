@@ -3179,7 +3179,7 @@ TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
 Dopo sql/273 (il capo tecnico segna "il cliente non paga", richiesta di Erika
 del 17/11: presidio scaduto in "Controlli scaduti: da ripianificare" fermo
-perché il cliente non paga; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/273":
+perché il cliente non paga; ESEGUITO il 17/11 (backup pre273, dal server MCP, controllo OK):
 backup, file (senza parole di cancellazione), controllo in fondo; richiede 270,
 65, 71; nessuna tabella nuova, matrice invariata). DECISIONI DI ERIKA: segna
 anche il capo tecnico; riga grigia a parte; solo avviso. SQL: rifà
