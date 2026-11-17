@@ -5526,6 +5526,17 @@ quante insieme, in risultato.json) e SMOKE_RITARDO_MS=150 (database lento).
     con una sola sezione "👷 Team tecnico: chi è impegnato", riga "Debug"
     tolta (js/05). NON fatto (Erika): le tessere dei numeri del titolare.
   - Il ruolo contabile non c'è in azienda: non serve sistemarne la dashboard.
+- js/18 diviso (riordino del 17/11, codice spostato così com'era, stesso
+  ordine di caricamento): 18-preventivi (scheda del preventivo, Rimanda
+  indietro, campi delle schede tecniche), 18a-schede-rilievo, 18b-fornitori-
+  preventivo, 18c-voci-preventivo, 18d-certificati, 18e-salvataggio-pdf-
+  cliente (costi, salvataggio voci, PDF cliente ed esterno), 18f-richiesta-
+  fornitore, 18g-lead-sito (lead, coda di Acquisti, link dashboard),
+  18h-esito-anticipo (esito, oggetto/nota, computo, anticipo, fattura
+  d'anticipo), 18i-commesse (commesse dal preventivo, stati, ricerca). Nel
+  resto di questo file "js/18" vuol dire uno di questi. Regola per i tagli:
+  il codice eseguito al caricamento di un pezzo non usa nomi dichiarati in
+  un pezzo successivo (controllato con acorn).
 - Funzioni comuni in js/01 (riordino del 17/11): data di oggi SOLO
   `dataLocaleISO()` (tolte oggiFattura, oggiTAM, dataOggiOrdine e altre 5),
   `aggiungiGiorniISO`, `giorniTraISO`, `euro(n, vuoto)` per "1.234,00 €"
