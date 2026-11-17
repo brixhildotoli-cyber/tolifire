@@ -2070,6 +2070,8 @@
     <div id="cmd-eventi"></div>
     <!-- F20.10: fermi del cantiere (js/100, con sql/178) -->
     <div id="cmd-fermi"></div>
+    <!-- F20.13: formulari dei rifiuti (js/101, con sql/181) -->
+    <div id="cmd-rifiuti"></div>
     <!-- F9.1: dichiarazione di corretta messa in opera (js/37, fine lavori e chiusa) -->
     <div id="cmd-dichiarazione"></div>
     <!-- F9.2: fattura finale con l'anticipo scalato (js/38, attiva con sql/39) -->
@@ -4220,6 +4222,12 @@
       </p>
       <div class="al2 i">Il fermo e la nuova data li vedi nel riquadro 🛑 della commessa.</div>
 
+      <h4 id="info-com-47">47. ♻️ Formulari dei rifiuti (FIR)</h4>
+      <p>
+        Sei tu il responsabile dei rifiuti. Nella commessa, riquadro <b>♻️ Rifiuti: formulari</b>, premi <b>+ FIR</b> e scrivi numero, data, trasportatore, impianto di destinazione (codice CER e quantità se li hai). Quando ti arriva la <b>quarta copia</b> premi "📄 Quarta copia arrivata". Se dopo 80 giorni non è arrivata la trovi in Cosa tocca a me: va ricevuta entro 90 giorni.
+      </p>
+      <div class="al2 i">Il PDF del formulario caricalo nella cartella documenti della commessa, come sempre.</div>
+
   <h4>Checklist prima dell’invio</h4>
 
   <ul>
@@ -5491,6 +5499,12 @@
         Se in cantiere non si può lavorare (cliente assente, accesso negato, area non pronta, materiale mancante, meteo) premi <b>🛑 Fermo del cantiere</b> nella commessa (i tecnici lo trovano nel loro giorno di cantiere). Scrivi la causa e le ore di attesa: la segreteria riceve "da riprogrammare" e, se è colpa del cliente, il titolare decide l'addebito dell'uscita a vuoto. Nel riquadro 🛑 della commessa trovi i fermi e puoi riprogrammare.
       </p>
       <div class="al2 i">Prima di registrare aspetta almeno 30 minuti e prova a chiamare il referente.</div>
+
+      <h4 id="info-ct-43">43. ♻️ Formulari dei rifiuti</h4>
+      <p>
+        Nella commessa, riquadro <b>♻️ Rifiuti: formulari</b>, vedi i formulari dei rifiuti portati via dal cantiere. Quando c'è uno smaltimento, passa i dati del formulario ad Acquisti che lo registra.
+      </p>
+      <div class="al2 i">Li registra Acquisti.</div>
 
 
 
@@ -7401,6 +7415,12 @@
         Quando un cantiere si ferma ricevi l'avviso e in Cosa tocca a me <b>Fermi del cantiere da riprogrammare</b>. Nella commessa, riquadro 🛑, premi <b>Gestisci</b> e scrivi la nuova data (o "Non serve riprogrammare"); poi organizza con il capo tecnico la squadra di quel giorno.
       </p>
       <div class="al2 i">La data nuova resta nel fermo: la squadra del giorno si fa come sempre.</div>
+
+      <h4 id="info-seg-39">39. ♻️ Formulari dei rifiuti</h4>
+      <p>
+        Nella commessa, riquadro <b>♻️ Rifiuti: formulari</b>, vedi i FIR registrati da Acquisti e se la quarta copia è arrivata (va ricevuta entro 90 giorni).
+      </p>
+      <div class="al2 i">Li registra e li segue Acquisti.</div>
 
 
 
@@ -10007,6 +10027,42 @@
   </div>
 </div>
 
+<!-- F20.13 — FORMULARI DEI RIFIUTI (js/101, solo con sql/181) -->
+<div class="mbg" id="m-fir">
+  <div class="modal" style="max-width:460px">
+    <button class="x" onclick="closeM('m-fir')">×</button>
+    <h3>♻️ Nuovo formulario rifiuti (FIR)</h3>
+    <div class="g2">
+      <div class="f"><label>Numero *</label><input type="text" id="fir-numero" maxlength="60" placeholder="es. XRA 123456/26"></div>
+      <div class="f"><label>Data *</label><input type="date" id="fir-data"></div>
+    </div>
+    <div class="f"><label>Trasportatore</label><input type="text" id="fir-trasportatore" maxlength="200"></div>
+    <div class="f"><label>Destinatario (impianto)</label><input type="text" id="fir-destinatario" maxlength="200"></div>
+    <div class="g2">
+      <div class="f"><label>Codice CER</label><input type="text" id="fir-cer" maxlength="40" placeholder="es. 17 09 04"></div>
+      <div class="f"><label>Quantità</label><input type="text" id="fir-quantita" maxlength="60" placeholder="es. 1,2 t"></div>
+    </div>
+    <div class="f"><label>Nota</label><input type="text" id="fir-nota" maxlength="500"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-fir')">Annulla</button>
+      <button class="btn p" onclick="salvaNuovoFir()">💾 Salva</button>
+    </div>
+  </div>
+</div>
+<div class="mbg" id="m-quarta-copia">
+  <div class="modal" style="max-width:420px">
+    <button class="x" onclick="closeM('m-quarta-copia')">×</button>
+    <h3>📄 Quarta copia arrivata</h3>
+    <div id="qfc-titolo" style="font-size:13px;color:var(--m);margin-bottom:8px"></div>
+    <div class="f"><label>Arrivata il</label><input type="date" id="qfc-data"></div>
+    <div class="f"><label>Nota</label><input type="text" id="qfc-nota" maxlength="500"></div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-quarta-copia')">Annulla</button>
+      <button class="btn p" onclick="salvaQuartaCopiaFir()">💾 Salva</button>
+    </div>
+  </div>
+</div>
+
 <!-- F20.10 — FERMI DEL CANTIERE (js/100, solo con sql/178) -->
 <div class="mbg" id="m-fermo-cantiere">
   <div class="modal" style="max-width:460px">
@@ -12128,6 +12184,7 @@
 <script defer src="js/98-promesse-pagamento.js?v=202611171012"></script>
 <script defer src="js/99-eventi-sicurezza.js?v=202611171012"></script>
 <script defer src="js/100-fermi-cantiere.js?v=202611171012"></script>
+<script defer src="js/101-formulari-rifiuti.js?v=202611171012"></script>
 <script defer src="js/19-init.js?v=202611171012"></script>
 
 

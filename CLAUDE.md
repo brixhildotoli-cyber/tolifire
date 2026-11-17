@@ -3546,6 +3546,24 @@ arrivati non restituiti). Niente riga nel giornale. Guide info-ct-42, info-seg-3
 info-tit-70, info-tec-29, info-com-46. Prove: sql/178-...-PROVA.sql (20 ok) e
 test/fermi-cantiere.spec.js (tecnico a 390 px, segreteria, titolare, Acquisti,
 console): TUTTO OK; smoke con e senza; rollback e riesecuzione provati.
+Dopo sql/181 (F20.13 formulari dei rifiuti, decisione di Erika del 17/11 come
+MD7: responsabile Acquisti; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/181":
+backup, file (senza parole di cancellazione), -REGISTRO-CANCELLAZIONI
+dall'editor, controllo in fondo; richiede 26, 67, 71). Tabella formulari_rifiuti
+(commessa_id, numero unico per commessa, data_fir, trasportatore, destinatario,
+codice_cer, quantita, nota, quarta_copia_il, nota_quarta_copia; lettura titolare,
+segreteria, capo_tecnico, commerciale) con RPC registra_formulario_rifiuti e
+segna_quarta_copia_fir (titolare, commerciale), formulari_rifiuti_attivi().
+Niente RENTRI, niente file. Matrice: 10 righe. Sito
+(js/101-formulari-rifiuti.js dopo js/100): riquadro cmd-rifiuti (sotto cmd-fermi;
+caricaSchedaCommessa avvolta) con i FIR e lo stato della quarta copia (90 giorni,
+gialla da 80, rossa scaduta), "+ FIR" (m-fir, id fir-) e "📄 Quarta copia
+arrivata" (m-quarta-copia, id qfc-) per Acquisti e titolare; Cosa tocca a me
+fir-quarta-copia (commerciale: senza quarta copia da 80 giorni). Guide
+info-com-47, info-seg-39, info-ct-43. Prove: sql/181-...-PROVA.sql (14 ok) e
+test/formulari-rifiuti.spec.js (Acquisti a 390 px, segreteria, console): TUTTO
+OK; smoke con e senza; rollback e riesecuzione provati. F19.10 e F19.17 NON
+FATTE (decisione di Erika del 17/11: per ora no).
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
