@@ -292,7 +292,7 @@ async function sessioneCome(browser, url, u, largo) {
     await s.page.evaluate(async id => { await apriFattura(id); }, fat);
     await attendiQuiete(s.stato, 3000);
     let t = await rigaRata(s);
-    if (!/Promessa/.test(t)) KO('segreteria: manca «🤝 Promessa» sotto la rata: ' + t.slice(0, 200)); else righe.push('segreteria (390 px): sotto la rata della fattura emessa c\'è «🤝 Promessa»');
+    if (!/Paga il…/.test(t)) KO('segreteria: manca «📅 Paga il…» nella rata: ' + t.slice(0, 200)); else righe.push('segreteria (390 px): nella rata della fattura emessa c\'è «📅 Paga il…»');
     await s.page.evaluate(id => apriPromessaPagamento(id), rata);
     await attendi(300);
     await s.page.evaluate(() => { const g = new Date(); g.setDate(g.getDate() + 10); ge('ppg-data').value = dataLocaleISO(g); ge('ppg-nota').value = 'Ha detto che paga a fine mese'; });
@@ -302,7 +302,7 @@ async function sessioneCome(browser, url, u, largo) {
     const db1 = psql("select (data_promessa = current_date + 10) || '|' || nota from public.fatture_promesse_pagamento where scadenza_id = " + q(rata));
     if (db1 !== 'true|Ha detto che paga a fine mese') KO('promessa salvata: ' + db1); else righe.push('segreteria: promessa salvata (entro 10 giorni + nota)');
     t = await rigaRata(s);
-    if (!/Promesso entro il/.test(t) || !/fine mese/.test(t)) KO('la rata non mostra la promessa: ' + t.slice(0, 200)); else righe.push('la rata mostra «🤝 Promesso entro il … · Ha detto che paga a fine mese»');
+    if (!/Paga il \d\d\/\d\d\/\d{4}/.test(t) || !/fine mese/.test(t)) KO('la rata non mostra la promessa: ' + t.slice(0, 200)); else righe.push('la rata mostra «📅 Paga il … · Ha detto che paga a fine mese» e il bottone «📅 Paga il gg/mm/aaaa»');
     await s.page.evaluate(id => apriPromessaPagamento(id), rata);
     await s.page.evaluate(() => { ge('ppg-nota').value = 'Richiamare il 25'; });
     await s.page.evaluate(() => salvaPromessaPagamento(false));
@@ -313,7 +313,10 @@ async function sessioneCome(browser, url, u, largo) {
     await s.page.evaluate(async () => { const sel = ge('fat-scad-filtro'); if (sel) sel.value = 'aperte'; filtroScadenzeRichiesto = 'aperte'; await caricaScadenzeFatture(); });
     await attendiQuiete(s.stato, 2500);
     t = await s.page.evaluate(id => (document.querySelector('#fat-scadenze-box [data-scadenza-id="' + id + '"]') || {}).innerText || '', rata);
-    if (!/Richiamare il 25/.test(t)) KO('Scadenze e incassi: ' + t.slice(0, 200)); else righe.push('«💶 Scadenze e incassi»: la promessa compare sotto la rata');
+    if (!/Richiamare il 25/.test(t)) KO('Scadenze e incassi: ' + t.slice(0, 200)); else righe.push('«💶 Scadenze e incassi»: la data compare sotto la rata');
+    const ordine = await s.page.evaluate(id => Array.from(document.querySelectorAll('#fat-scadenze-box [data-scadenza-id="' + id + '"] button')).map(b => b.innerText.trim()), rata);
+    if (!/^📅 Paga il \d/.test(ordine[0] || '') || !/Pagamento/.test(ordine[1] || '')) KO('Scadenze e incassi, bottoni: ' + JSON.stringify(ordine)); else righe.push('«💶 Scadenze e incassi»: bottoni ' + ordine.join(' | '));
+    await s.page.screenshot({ path: path.join(CARTELLA_OUT, 'segreteria-scadenze-390.png') });
     await chiudi(s);
     s = await sessioneCome(browser, url, cont, 1280); sessioni.push(s);
     await s.page.evaluate(() => gotoPage('fatture'));

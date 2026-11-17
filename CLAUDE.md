@@ -3496,6 +3496,12 @@ PRIMA di "❌ Rifiuta: anticipo non versato" (stesso bottone spostato), poi
 Registra pagamento e Apri fattura; riga "📅 Paga il gg/mm/aaaa · nota (chi)",
 rossa se passata. js/98 dopo il salvataggio ridisegna la card. Prova:
 test/anticipo-paga-il.spec.js (segreteria 390 px) TUTTO OK; smoke TUTTO OK.
+Poi (richiesta di Erika del 17/11) anche sulle rate (finestra della fattura,
+Scadenze e incassi, solleciti) js/98 usa lo stesso "📅 Paga il…": bottone
+data-paga-il prima di "💶 Pagamento"/"Registra pagamento" (se manca, sotto la
+rata, non sulle pagate), riga "📅 Paga il gg/mm/aaaa · nota (chi, quando)";
+finestra m-promessa-pagamento con titolo "📅 Paga il…" e campo "Il cliente paga
+il". test/promesse-pagamento.spec.js aggiornato: TUTTO OK.
 Dopo sql/170 (F20.2 infortuni e quasi-incidenti + F20.3 danni, decisioni di
 Erika del 17/11: registrano SOLO capo tecnico, segreteria, titolare; nessuna
 scadenza INAIL calcolata; danni con regola fissa; F20.3 dentro sql/170, niente
