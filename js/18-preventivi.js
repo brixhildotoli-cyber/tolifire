@@ -8709,10 +8709,15 @@ async function loadLeadSito() {
     return;
   }
 
+  // Il titolare vero (dall'elenco utenti, mai l'informatico/programmatrice) e
+  // i rappresentanti attivi. Se l'elenco non ha il titolare e chi è collegato
+  // è il titolare, resta lui.
+  const titolariLead = (UTENTI || []).filter((u) => u.ruolo === "titolare" && u.attivo !== false);
+  if (!titolariLead.length && ME && ME.ruolo === "titolare") titolariLead.push(ME);
   const assegnatari = [
-    ME,
+    ...titolariLead,
     ...(UTENTI || []).filter(
-      (u) => u.ruolo === "rappresentante" && u.id !== ME.id && u.attivo !== false,
+      (u) => u.ruolo === "rappresentante" && u.attivo !== false && !titolariLead.some((t) => t.id === u.id),
     ),
   ];
 
@@ -8727,7 +8732,7 @@ async function loadLeadSito() {
         ${lead.assegnato_a === utente.id ? "selected" : ""}
       >
         ${leadSitoEsc(
-          utente.id === ME.id
+          utente.ruolo === "titolare"
             ? `${utente.nome || utente.email} (titolare)`
             : utente.nome || utente.email,
         )}
