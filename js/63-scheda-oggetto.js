@@ -333,10 +333,6 @@ async function leggiCommesseDelRecord(oggetto, record, ctx) {
   return ctx.commesse;
 }
 
-function idClienteRecord(oggetto, record) {
-  return oggetto === 'cliente' ? record.id : record.cliente_id;
-}
-
 function rigaCommessaCollegata(c) {
   return {
     oggetto: 'commessa', id: c.id, testo: 'Commessa ' + (c.codice || ''),
@@ -765,22 +761,4 @@ async function caricaSchedaOggetto(oggetto, record, contenitoreId) {
     '</div>';
   if (typeof riempiPulsantiAnnulla === 'function') riempiPulsantiAnnulla(box).catch(function() {});
   await caricaCollegatiScheda(oggetto, record, idCol);
-}
-
-// Ridisegna i pulsanti dopo un cambio del record (es. stato) senza
-// rileggere i collegati.
-function aggiornaAzioniScheda(oggetto, record) {
-  const aperta = SCHEDA_OGGETTO.aperte[oggetto];
-  if (!aperta || !record || aperta.id !== String(record.id)) return;
-  aperta.record = record;
-  const box = ge(aperta.contenitore);
-  const scheda = box && box.querySelector('.so-scheda');
-  if (!scheda) return;
-  const vecchie = scheda.querySelector('.so-azioni');
-  const nuovo = htmlAzioniScheda(oggetto, record, ROLE);
-  if (vecchie) vecchie.outerHTML = nuovo || '';
-  else if (nuovo) {
-    const testa = scheda.querySelector('.so-testa');
-    if (testa) testa.insertAdjacentHTML('afterend', nuovo); else scheda.insertAdjacentHTML('afterbegin', nuovo);
-  }
 }

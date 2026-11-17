@@ -32,11 +32,6 @@ async function leggiModelliPdf(forza) {
   return MODELLI_PDF.righe;
 }
 
-async function verificaModelliPdfDisponibili(forza) {
-  try { await leggiModelliPdf(forza); } catch (e) { /* rete: resta l'ultimo valore */ }
-  return MODELLI_PDF.presente === true;
-}
-
 // Riga attiva della tabella per il generatore (null = testi predefiniti).
 async function leggiModelloPdf(codice) {
   let righe = null;

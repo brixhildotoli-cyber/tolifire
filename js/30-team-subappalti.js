@@ -108,9 +108,7 @@ function sommaMesiISO(iso, mesi) {
   return dataLocaleISO(d);
 }
 
-function giorniTraISO(da, a) {
-  return Math.round((new Date(a + 'T00:00:00') - new Date(da + 'T00:00:00')) / 86400000);
-}
+// giorniTraISO: in js/01 (riordino del 17/11).
 
 // Stato di un documento a una data (oggi se non indicata). Per F7.2 la
 // data può essere l'inizio dei lavori della commessa.

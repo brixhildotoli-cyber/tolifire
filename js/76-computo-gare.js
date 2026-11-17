@@ -12,7 +12,7 @@
 
 let codiceClienteVociDisponibile = null;
 
-// Come verificaQuantitaUmVociDisponibile (sql/265): si guarda una riga letta
+// Come verificaOggettoNotaPreventivoDisponibile: si guarda una riga letta
 // con select *; nessuna richiesta in errore senza sql/112.
 async function verificaCodiceClienteVociDisponibile(righeLette) {
   if (codiceClienteVociDisponibile !== null) return codiceClienteVociDisponibile;

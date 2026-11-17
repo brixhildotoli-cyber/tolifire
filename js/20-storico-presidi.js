@@ -56,16 +56,6 @@ function periodoSuccessivo(s) {
   return { ciclo: s.ciclo, anno: Number(s.anno) + (Number(s.mese) >= 7 ? 1 : 0),
            mese: Number(s.mese) < 7 ? Number(s.mese) + 6 : Number(s.mese) - 6 };
 }
-// Non più usata dal 04/11 (il periodo lo dà la data: periodoDaDataVerifica).
-function periodoRiportoPresidio(s) {
-  const oggi = new Date();
-  const semestre = oggi.getMonth() < 6 ? 0 : 1;
-  const mese = (s.ciclo === 'febbraio_agosto' ? [2,8] : [1,7])[semestre];
-  const corrente = {ciclo:s.ciclo,anno:oggi.getFullYear(),mese};
-  // Se l'origine appartiene già al periodo corrente, propone il successivo.
-  return corrente.anno > Number(s.anno) || (corrente.anno === Number(s.anno) && corrente.mese > Number(s.mese))
-    ? corrente : periodoSuccessivo(s);
-}
 function controlliSchedaPresidio(dati) {
   const si = new Set(Array.isArray(dati.voci_x_si) ? dati.voci_x_si : []);
   const no = new Set(Array.isArray(dati.voci_x_no) ? dati.voci_x_no : []);

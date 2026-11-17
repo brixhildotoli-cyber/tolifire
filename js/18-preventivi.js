@@ -9783,32 +9783,9 @@ async function verificaComputoPreventivoDisponibile() {
 // "circa 30"), solo informativo: NESSUN calcolo (il totale della riga resta
 // quantità (pz) × prezzo unitario). Una riga, al massimo 50 caratteri.
 const QUANTITA_UM_VOCE_MAX = 50;
-let quantitaUmVociDisponibile = null;
 
 function testoQuantitaUmVoce(valore) {
   return String(valore == null ? '' : valore).replace(/[\r\n]+/g, ' ').trim();
-}
-
-// true solo con la colonna preventivi_voci.quantita_um (sql/265). Come
-// verificaOggettoNotaPreventivoDisponibile: si guarda una riga letta con
-// select * (quelle già lette dall'editor, se no una voce che il ruolo legge):
-// nessuna richiesta in errore senza sql/265. Nessuna voce leggibile: non si
-// decide ora (false, si riprova la prossima volta).
-async function verificaQuantitaUmVociDisponibile(righeLette) {
-  if (quantitaUmVociDisponibile !== null) return quantitaUmVociDisponibile;
-
-  let riga = (righeLette || [])[0] || null;
-  if (!riga) {
-    const { data, error } = await db
-      .from('preventivi_voci')
-      .select('*')
-      .limit(1);
-    if (error || !data || !data.length) return false;
-    riga = data[0];
-  }
-
-  quantitaUmVociDisponibile = Object.prototype.hasOwnProperty.call(riga, 'quantita_um');
-  return quantitaUmVociDisponibile;
 }
 
 // Numeri delle voci nei campi dell'editor (richiesta di Erika del 12/11):

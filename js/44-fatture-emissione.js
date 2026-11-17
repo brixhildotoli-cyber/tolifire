@@ -63,15 +63,7 @@ function primoGiornoAnnoFattura() {
   return oggiFattura().slice(0, 4) + '-01-01';
 }
 
-function aggiungiGiorniISO(iso, n) {
-  const d = new Date(String(iso).slice(0, 10) + 'T12:00:00');
-  d.setDate(d.getDate() + (Number(n) || 0));
-  return dataLocaleISO(d);
-}
-
-function giorniTraISO(da, a) {
-  return Math.round((new Date(String(a).slice(0, 10) + 'T12:00:00') - new Date(String(da).slice(0, 10) + 'T12:00:00')) / 86400000);
-}
+// aggiungiGiorniISO e giorniTraISO: in js/01 (riordino del 17/11).
 
 function puoGestirePagamenti() {
   return RUOLI_PAGAMENTI_FATTURE.includes(ROLE);

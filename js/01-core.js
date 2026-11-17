@@ -649,6 +649,11 @@ function toast(msg,type='ok'){const t=ge('toast');t.textContent=msg;t.className=
 // al posto di toISOString().split('T')[0], che usa l'ora UTC: tra mezzanotte
 // e le 2 darebbe il giorno prima.
 function dataLocaleISO(d){d=d||new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+// Giorni su date AAAA-MM-GG (riordino del 17/11: erano in js/30, js/39 e
+// js/44 con lo stesso nome; vinceva sempre quella di js/44, ora è qui).
+// Mezzogiorno: il cambio dell'ora legale non sposta il giorno.
+function aggiungiGiorniISO(iso,n){const d=new Date(String(iso).slice(0,10)+'T12:00:00');d.setDate(d.getDate()+(Number(n)||0));return dataLocaleISO(d);}
+function giorniTraISO(da,a){return Math.round((new Date(String(a).slice(0,10)+'T12:00:00')-new Date(String(da).slice(0,10)+'T12:00:00'))/86400000);}
 function fd(d){if(!d)return'—';try{return new Date(d+'T00:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});}catch(e){return d;}}
 // Escape HTML per dati provenienti dal DB o dall'utente prima dell'interpolazione in innerHTML.
 function esc(s){return String(s??'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}

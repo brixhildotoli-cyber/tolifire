@@ -84,11 +84,6 @@ function puoModificareGiornoGiornale(commessa, giorno) {
 }
 
 // ── Piccoli aiuti ───────────────────────────────────────────────────
-function sommaGiorniGiornale(iso, n) {
-  const d = new Date(iso + 'T00:00:00');
-  d.setDate(d.getDate() + n);
-  return dataLocaleISO(d);
-}
 
 function etichettaGiornoGiornale(iso) {
   return new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });

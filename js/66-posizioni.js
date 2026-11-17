@@ -28,8 +28,6 @@
 
 const POSIZIONI = { disponibili: null, progetti: {}, aperta: null, duplica: null, contesto: null };
 
-function posizioniAttive() { return POSIZIONI.disponibili === true; }
-
 async function verificaPosizioniDisponibili() {
   if (POSIZIONI.disponibili !== null) return POSIZIONI.disponibili;
   if (typeof db === 'undefined' || !db) return false;

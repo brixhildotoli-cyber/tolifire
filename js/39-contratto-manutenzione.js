@@ -99,17 +99,7 @@ function oggiContrattoISO() {
   return dataLocaleISO(new Date());
 }
 
-function giorniTraISO(daIso, aIso) {
-  const a = new Date(daIso + 'T00:00:00');
-  const b = new Date(aIso + 'T00:00:00');
-  return Math.round((b - a) / 86400000);
-}
-
-function aggiungiGiorniISO(iso, giorni) {
-  const d = new Date(iso + 'T00:00:00');
-  d.setDate(d.getDate() + giorni);
-  return dataLocaleISO(d);
-}
+// giorniTraISO e aggiungiGiorniISO: in js/01 (riordino del 17/11).
 
 // Fine contratto = inizio + 1 anno (o 5) − 1 giorno, come calcolaFineContratto.
 function fineContrattoDaInizio(inizioIso, durata) {
