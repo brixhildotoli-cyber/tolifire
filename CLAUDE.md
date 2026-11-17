@@ -3459,6 +3459,13 @@ spunta con p_richiesto. Guide info-ct-40, info-tit-67, info-ing-33. Prove:
 sql/158-...-PROVA.sql (15 ok) e test/kit-standard.spec.js (capo tecnico a 390 px,
 segreteria, titolare, console): TUTTO OK; smoke con e senza; rollback e
 riesecuzione provati.
+sql/271 (richiesta di Erika del 17/11): profili di prova "rappr io"
+(rappresentante, f257310c-...) e "comm prova" (commerciale, e52777a5-...)
+DISATTIVATI (attivo = false: ruolo_reale() di sql/71 non dà ruolo agli utenti
+non attivi, quindi niente accesso; spariscono da tutte le tendine, che filtrano
+attivo) e le loro 2 bozze (preventivi n. 13 e 16) passate a Laura Panseri.
+ESEGUITO il 17/11 (backup 2026-11-17-pre271, controllo in regola: disattivati 2,
+bozze_laura 2, restano_a_comm 0). Rollback: 271-...-ROLLBACK.sql.
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,
