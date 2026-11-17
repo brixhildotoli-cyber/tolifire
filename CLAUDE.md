@@ -5942,6 +5942,16 @@ una sessione e l'altra.
      `ricordaPosizionePagina`/`ripristinaPosizionePagina` di js/01 sono
      rese vuote da js/47, quindi non c'è più nulla da rimettere in
      renderPC (js/09).
+     17/11 (segnalazione di Erika, telefono): tornando indietro le
+     sezioni aperte (<details>, cartelle dei presidi con data-cartella)
+     si richiudevano e la pagina ripartiva dall'alto. Ora js/47 ricorda
+     anche le sezioni aperte (sezioniPagine: id del riquadro + titolo
+     senza numeri, o data-cartella) e le riapre man mano che la pagina
+     si ridisegna; si ferma solo con le letture finite (FILA_DB) e la
+     pagina ferma da 400 ms (MutationObserver), massimo 15 s; la freccia
+     del browser vale come "indietro" anche di più passi;
+     history.scrollRestoration = 'manual'. Anche al ritorno dal PDF.
+     Test: test/indietro-sezioni.spec.js (Presidi a 390 px).
    - D7: costruire le schede di manutenzione ordinaria del tecnico
      (`apriManutenzioneOrdinaria`/`salvaManutenzioneOrdinaria` chiamate da
      index.html ma mai scritte: oggi il bottone non fa nulla). Decisione

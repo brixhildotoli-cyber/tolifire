@@ -22,12 +22,62 @@
 // =====================================================================
 
 const posizioniPagine = {};      // id pagina → scrollY quando la si è lasciata
+const sezioniPagine = {};        // id pagina → sezioni (<details>) aperte quando la si è lasciata
 const cronologiaPagine = [];     // pagine visitate, l'ultima è quella aperta
 let rimessaPosizioneAttiva = null;
+
+// La posizione la rimette il sito: il telefono non deve spostare la pagina
+// per conto suo tornando indietro (segnalazione di Erika del 17/11).
+try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) {}
 
 function paginaApertaId() {
   const pagina = document.querySelector('.page.on');
   return pagina && pagina.id ? pagina.id.replace(/^pg-/, '') : null;
+}
+
+// ── Sezioni aperte (<details>) — segnalazione di Erika del 17/11 ──────
+// Tornando indietro la pagina si ridisegna dal database con le sezioni
+// chiuse: la pagina è più corta e il punto in cui si era non c'è più
+// (si ripartiva dall'alto). Si ricorda quali sezioni erano aperte e si
+// riaprono, man mano che la pagina si ridisegna, prima di rimettere il punto.
+// Una sezione si riconosce dal riquadro con id che la contiene e dal titolo
+// (senza i numeri, che cambiano: "Fermi (3)" = "Fermi (4)").
+function chiaviSezioni(pagina) {
+  const pg = pagina ? ge('pg-' + pagina) : null;
+  if (!pg) return [];
+  const viste = {};
+  return Array.from(pg.querySelectorAll('details')).map(function(d) {
+    const contenitore = d.parentElement ? d.parentElement.closest('[id]') : null;
+    const titolo = d.querySelector('summary');
+    // Le cartelle dei presidi hanno già un nome loro (data-cartella, js/09 e js/24)
+    const nome = d.getAttribute('data-cartella') || d.getAttribute('data-cartella-scadenze');
+    let chiave = (contenitore ? contenitore.id : '') + '|' + (nome ? 'c:' + nome :
+      (titolo ? titolo.textContent : '').replace(/[0-9]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 80));
+    viste[chiave] = (viste[chiave] || 0) + 1;
+    chiave += '#' + viste[chiave];
+    return { d: d, chiave: chiave };
+  });
+}
+
+function sezioniAperte(pagina) {
+  return chiaviSezioni(pagina).filter(function(x) { return x.d.open; }).map(function(x) { return x.chiave; });
+}
+
+// Riapre le sezioni ricordate. Ogni sezione disegnata si riapre una volta
+// sola (se l'utente poi la richiude, resta chiusa); se l'elenco si ridisegna
+// di nuovo (alcune pagine lo disegnano due volte) si riaprono quelle nuove.
+// Restituisce quante sezioni ricordate non ci sono ancora sulla pagina.
+function riapriSezioni(pagina, stato) {
+  if (!stato.sezioni || !stato.sezioni.length) return 0;
+  const presenti = {};
+  chiaviSezioni(pagina).forEach(function(x) {
+    if (stato.sezioni.indexOf(x.chiave) < 0) return;
+    presenti[x.chiave] = true;
+    if (stato.viste.has(x.d)) return;
+    stato.viste.add(x.d);
+    if (!x.d.open) x.d.open = true;
+  });
+  return stato.sezioni.filter(function(k) { return !presenti[k]; }).length;
 }
 
 // Gesti con cui l'utente scorre davvero la pagina (un semplice tocco o
@@ -37,21 +87,38 @@ const GESTI_SCORRIMENTO = ['wheel', 'touchmove', 'keydown'];
 function fermaRimessaPosizione() {
   if (!rimessaPosizioneAttiva) return;
   clearInterval(rimessaPosizioneAttiva.timer);
+  if (rimessaPosizioneAttiva.osservatore) rimessaPosizioneAttiva.osservatore.disconnect();
   GESTI_SCORRIMENTO.forEach(function(evento) {
     window.removeEventListener(evento, fermaRimessaPosizione, true);
   });
   rimessaPosizioneAttiva = null;
 }
 
-// Rimette la pagina a "y" mentre l'elenco si carica.
-function rimettiPosizionePagina(y) {
+// Rimette la pagina a "y" mentre l'elenco si carica, riaprendo prima le
+// sezioni che erano aperte.
+function rimettiPosizionePagina(y, pagina, sezioni) {
   fermaRimessaPosizione();
-  if (!y || y < 5) return;
+  const conSezioni = !!(pagina && sezioni && sezioni.length);
+  if ((!y || y < 5) && !conSezioni) return;
+  y = y || 0;
 
   const inizio = Date.now();
   let ferma = 0;
-  const stato = { timer: null };
+  const stato = { timer: null, sezioni: conSezioni ? sezioni : [], viste: new WeakSet(), osservatore: null };
   rimessaPosizioneAttiva = stato;
+
+  // Molte pagine restano un attimo com'erano e poi si ridisegnano quando
+  // arrivano i dati (es. Presidi): ci si ferma solo quando le letture del
+  // database sono finite (FILA_DB di js/01) e la pagina non cambia più.
+  let ultimaModifica = Date.now();
+  const pg = pagina ? ge('pg-' + pagina) : null;
+  if (pg && typeof MutationObserver === 'function') {
+    stato.osservatore = new MutationObserver(function() { ultimaModifica = Date.now(); });
+    stato.osservatore.observe(pg, { childList: true, subtree: true });
+  }
+  const letture = function() {
+    return typeof FILA_DB !== 'undefined' && FILA_DB ? (FILA_DB.inCorso || 0) + ((FILA_DB.attesa || []).length) : 0;
+  };
 
   // Se l'utente scorre o tocca, la posizione non si forza più.
   GESTI_SCORRIMENTO.forEach(function(evento) {
@@ -60,22 +127,27 @@ function rimettiPosizionePagina(y) {
 
   stato.timer = setInterval(function() {
     if (rimessaPosizioneAttiva !== stato) return;
+    const mancano = conSezioni ? riapriSezioni(pagina, stato) : 0;
     const massimo = document.documentElement.scrollHeight - window.innerHeight;
     const obiettivo = Math.min(y, Math.max(0, massimo));
     if (Math.abs(window.scrollY - obiettivo) > 2) {
       window.scrollTo({ top: obiettivo, left: 0, behavior: 'auto' });
       ferma = 0;
-    } else if (obiettivo >= y - 2) {
-      // Arrivati al punto giusto: si aspetta un attimo che l'elenco finisca
-      // di disegnarsi, poi ci si ferma.
+    } else if (obiettivo >= y - 2 && !mancano && !letture() && Date.now() - ultimaModifica > 400) {
+      // Arrivati al punto giusto, dati arrivati e pagina ferma: si aspetta
+      // un attimo, poi ci si ferma.
       ferma++;
       if (ferma >= 4) fermaRimessaPosizione();
+    } else {
+      ferma = 0;
     }
     // Su rete lenta l'elenco può arrivare tardi (Commesse fa più letture):
-    // finché la pagina è più corta del punto si aspetta fino a 10 secondi,
-    // altrimenti ci si ferma dopo 3.
-    const limite = massimo < y - 2 ? 10000 : 3000;
-    if (Date.now() - inizio > limite) fermaRimessaPosizione();
+    // finché la pagina è più corta del punto o mancano sezioni si aspetta
+    // fino a 10 secondi, altrimenti 3 secondi dall'ultima modifica della
+    // pagina; in ogni caso non oltre 15 secondi.
+    const adesso = Date.now();
+    const limite = (massimo < y - 2 || mancano) ? 10000 : 3000;
+    if (adesso - Math.max(inizio, ultimaModifica) > limite || adesso - inizio > 15000) fermaRimessaPosizione();
   }, 100);
 }
 
@@ -108,12 +180,17 @@ ripristinaPosizionePagina = function() {};
 
   gotoPage = function(id) {
     const attuale = paginaApertaId();
-    if (attuale) posizioniPagine[attuale] = window.scrollY || 0;
+    if (attuale) {
+      posizioniPagine[attuale] = window.scrollY || 0;
+      try { sezioniPagine[attuale] = sezioniAperte(attuale); } catch (e) { sezioniPagine[attuale] = []; }
+    }
 
-    // Si torna indietro se la pagina richiesta è quella da cui si era venuti.
-    const indietro = attuale && attuale !== id &&
+    // Si torna indietro se la pagina richiesta è quella da cui si era venuti,
+    // oppure con la freccia del browser o del telefono (anche più passi indietro).
+    const dalBrowser = navigazioneDaBrowser && attuale && attuale !== id;
+    const indietro = dalBrowser || (attuale && attuale !== id &&
       cronologiaPagine.length >= 2 &&
-      cronologiaPagine[cronologiaPagine.length - 2] === id;
+      cronologiaPagine[cronologiaPagine.length - 2] === id);
 
     fermaRimessaPosizione();
     const risultato = gotoPagePrimaPosizione.apply(this, arguments);
@@ -123,8 +200,11 @@ ripristinaPosizionePagina = function() {};
     if (paginaApertaId() !== id) return risultato;
 
     if (indietro) {
-      cronologiaPagine.pop();
-      rimettiPosizionePagina(posizioniPagine[id]);
+      // Freccia del browser: si torna alla voce giusta anche se non è la penultima.
+      const i = cronologiaPagine.lastIndexOf(id, cronologiaPagine.length - 2);
+      if (i >= 0) cronologiaPagine.length = i + 1;
+      else if (cronologiaPagine[cronologiaPagine.length - 1] !== id) cronologiaPagine.push(id);
+      rimettiPosizionePagina(posizioniPagine[id], id, sezioniPagine[id]);
     } else if (cronologiaPagine[cronologiaPagine.length - 1] !== id) {
       if (attuale && cronologiaPagine.length === 0) cronologiaPagine.push(attuale);
       cronologiaPagine.push(id);
@@ -265,7 +345,7 @@ function apriPdfStessaScheda(url) {
     const pagina = paginaApertaId();
     if (pagina) {
       registraPaginaNelBrowser(pagina);
-      sessionStorage.setItem(CHIAVE_POSIZIONE_PDF, JSON.stringify({ pagina: pagina, y: window.scrollY || 0 }));
+      sessionStorage.setItem(CHIAVE_POSIZIONE_PDF, JSON.stringify({ pagina: pagina, y: window.scrollY || 0, sezioni: sezioniAperte(pagina) }));
     }
   } catch (e) {}
   location.assign(url);
@@ -275,7 +355,7 @@ function rimettiPosizionePrimaDelPdf() {
   try {
     const salvata = JSON.parse(sessionStorage.getItem(CHIAVE_POSIZIONE_PDF) || 'null');
     sessionStorage.removeItem(CHIAVE_POSIZIONE_PDF);
-    if (salvata && salvata.pagina === paginaApertaId()) rimettiPosizionePagina(salvata.y);
+    if (salvata && salvata.pagina === paginaApertaId()) rimettiPosizionePagina(salvata.y, salvata.pagina, salvata.sezioni);
   } catch (e) {}
 }
 
