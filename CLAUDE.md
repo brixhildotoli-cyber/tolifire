@@ -3486,6 +3486,37 @@ titolare), finestra m-promessa-pagamento (id ppg-, Salva/Togli). Guide
 info-seg-36, info-tit-68. Prove: sql/272-...-PROVA.sql (13 ok) e
 test/promesse-pagamento.spec.js (segreteria a 390 px, contabile, console):
 TUTTO OK; smoke con e senza; rollback e riesecuzione provati.
+Dopo sql/170 (F20.2 infortuni e quasi-incidenti + F20.3 danni, decisioni di
+Erika del 17/11: registrano SOLO capo tecnico, segreteria, titolare; nessuna
+scadenza INAIL calcolata; danni con regola fissa; F20.3 dentro sql/170, niente
+sql/171; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/170": backup, file (senza
+parole di cancellazione), -REGISTRO-CANCELLAZIONI dall'editor, controllo in
+fondo; richiede 26, 62, 65, 67, 71). Regola nuova sinistro_denuncia_gg (3,
+preavvisi). Tabella eventi_sicurezza (tipo infortunio/quasi_incidente/danno,
+commessa_id, odl_id, accaduto_il, luogo, descrizione, persona_utente_id o
+persona_esterna, testimoni, danneggiato, stato aperto/in_gestione/chiuso; danno:
+decisione da_decidere/paghiamo_noi/assicurazione/non_dovuto, costo,
+denuncia_entro = data evento + regola, denuncia_fatta_il, deciso_da_nome;
+lettura titolare, segreteria, capo_tecnico). Tabella eventi_sicurezza_sanitari
+(prognosi_giorni, lesioni, denuncia_inail_il, nota; lettura titolare, segreteria
+e la persona via evento_sicurezza_mio(), security definer sì/no). RPC
+registra_evento_sicurezza (3 ruoli; avviso URGENTE crea_avviso tipo
+evento_sicurezza a titolare, segreteria, capo_tecnico), aggiorna_sanitari_
+infortunio (titolare, segreteria), decidi_danno (solo titolare),
+cambia_stato_evento_sicurezza (titolare, segreteria; chiuso = avvisi chiusi),
+eventi_sicurezza_attivi(). Matrice: 20 righe. Niente foto. Sito
+(js/99-eventi-sicurezza.js dopo js/98): azione "🚨 Infortunio o danno" della
+commessa (js/63), finestra m-evento-sicurezza (id evs-), elenco e dettaglio
+m-eventi-sicurezza (id evl-, evd-: sanitari, decisione del danno, stato),
+riquadro cmd-eventi (index.html, sotto cmd-documenti-finali; caricaSchedaCommessa
+avvolta) con il costo dei danni "paghiamo noi" (consuntivo), azione rapida
+dell'avviso "🚨 Apri l'evento" (registraAzioneRapidaAvviso), Cosa tocca a me
+eventi-sicurezza-aperti (3 ruoli), danni-da-decidere (titolare), denunce-sinistro
+(titolare, segreteria: entro domani). Guide info-ct-41, info-seg-37, info-tit-69.
+Prove: sql/170-...-PROVA.sql (25 ok) e test/eventi-sicurezza.spec.js (capo
+tecnico a 390 px, segreteria, titolare, console): TUTTO OK; smoke con e senza;
+rollback e riesecuzione provati. Nota test: per cancellare avvisi di prova prima
+avvisi_invii (chiave esterna).
 Import del catalogo lavorazioni da foglio (F15.10, js/55 in fondo, NESSUN SQL:
 insert diretti sotto le RLS di sql/75, titolare e ingegnere). Nella finestra
 m-catalogo-lavorazioni "📥 Importa da foglio" (input cl-import-file: xlsx, xls,

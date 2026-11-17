@@ -2066,6 +2066,8 @@
     <div id="cmd-chiusura"></div>
     <!-- F18.16: documenti finali, cosa serve e cosa manca (js/89, da in corso; nessun SQL) -->
     <div id="cmd-documenti-finali"></div>
+    <!-- F20.2/F20.3: infortuni, quasi-incidenti e danni della commessa (js/99, con sql/170) -->
+    <div id="cmd-eventi"></div>
     <!-- F9.1: dichiarazione di corretta messa in opera (js/37, fine lavori e chiusa) -->
     <div id="cmd-dichiarazione"></div>
     <!-- F9.2: fattura finale con l'anticipo scalato (js/38, attiva con sql/39) -->
@@ -5465,6 +5467,12 @@
       </p>
       <div class="al2 i">Il kit di ogni lavorazione lo decidono titolare e ingegnere nel catalogo lavorazioni.</div>
 
+      <h4 id="info-ct-41">41. 🚨 Infortuni, quasi-incidenti e danni</h4>
+      <p>
+        Nella commessa, in "Cosa puoi fare", premi <b>🚨 Infortunio o danno</b>: scegli cosa (infortunio, quasi-incidente, danno al cliente o a terzi), scrivi cosa è successo, dove, chi era coinvolto e i testimoni. Bastano pochi secondi dal telefono; titolare e segreteria ricevono subito l'avviso urgente. Gli eventi della commessa restano nel riquadro 🚨.
+      </p>
+      <div class="al2 i">Anche i quasi-incidenti (nessuno si è fatto male) vanno registrati: servono a prevenire.</div>
+
 
 
       <h4>Regole pratiche</h4>
@@ -6696,6 +6704,12 @@
       </p>
       <div class="al2 i">Il contabile la legge ma non la cambia.</div>
 
+      <h4 id="info-tit-69">69. 🚨 Infortuni, quasi-incidenti e danni</h4>
+      <p>
+        Registrano capo tecnico, segreteria e tu (commessa → 🚨 Infortunio o danno). Per i <b>danni</b> decidi tu: lo paghiamo noi, denuncia all'assicurazione, non dovuto, con il costo (va nel consuntivo della commessa) e la data della denuncia. La denuncia va fatta entro i giorni della regola "Giorni per denunciare un danno" (3, in Impostazioni → Regole): in Cosa tocca a me trovi quelli in scadenza.
+      </p>
+      <div class="al2 i">Gli infortuni hanno i dati sanitari riservati (tu, segreteria, la persona).</div>
+
 
 
       <h4>Regole pratiche</h4>
@@ -7350,6 +7364,12 @@
         Una fattura emessa non si modifica, ma sotto ogni rata puoi premere <b>🤝 Promessa</b> e scrivere <b>entro quando</b> il cliente ha detto che paga e una nota (es. "richiamare il 25"). Si cambia quando vuoi (✏️) e la vedi nella fattura, in "Scadenze e incassi" e in "Insoluti e solleciti"; se la data passa diventa rossa. Quando il pagamento arriva lo registri come sempre con <b>💶 Registra pagamento</b>.
       </p>
       <div class="al2 i">La leggono anche il titolare e il contabile; resta la storia di chi l'ha cambiata.</div>
+
+      <h4 id="info-seg-37">37. 🚨 Infortuni e danni</h4>
+      <p>
+        Quando arriva l'avviso urgente di un evento premi <b>🚨 Apri l'evento</b> (o "Infortuni, quasi-incidenti e danni aperti" in Cosa tocca a me). Per un infortunio scrivi prognosi, lesioni e la <b>data della denuncia INAIL</b> (se la prognosi supera i 3 giorni va fatta entro 2 giorni dal certificato). Per un danno controlla la scadenza della denuncia all'assicurazione. Quando è tutto fatto metti lo stato "Chiuso".
+      </p>
+      <div class="al2 i">I dati sanitari li vedete solo tu, il titolare e la persona infortunata.</div>
 
 
 
@@ -9956,6 +9976,39 @@
   </div>
 </div>
 
+<!-- F20.2/F20.3 — INFORTUNI, QUASI-INCIDENTI E DANNI (js/99, solo con sql/170) -->
+<div class="mbg" id="m-evento-sicurezza">
+  <div class="modal" style="max-width:520px">
+    <button class="x" onclick="closeM('m-evento-sicurezza')">×</button>
+    <h3>🚨 Registra infortunio, quasi-incidente o danno</h3>
+    <div id="evs-dove" style="font-size:13px;color:var(--m);margin-bottom:8px"></div>
+    <div class="g2">
+      <div class="f"><label>Cosa</label><select id="evs-tipo" onchange="cambiaTipoEventoSicurezza()"><option value="infortunio">🚑 Infortunio</option><option value="quasi_incidente">⚠️ Quasi-incidente</option><option value="danno">💥 Danno al cliente o a terzi</option></select></div>
+      <div class="f"><label>Quando</label><input type="datetime-local" id="evs-quando"></div>
+    </div>
+    <div class="f"><label>Cosa è successo *</label><input type="text" id="evs-descrizione" maxlength="2000" placeholder="es. scivolato dalla scala, taglio alla mano"></div>
+    <div class="f"><label>Dove</label><input type="text" id="evs-luogo" maxlength="300" placeholder="es. piano terra, corridoio"></div>
+    <div class="g2">
+      <div class="f"><label id="evs-persona-label">Persona coinvolta</label><select id="evs-persona"></select></div>
+      <div class="f"><label>…oppure esterno (nome)</label><input type="text" id="evs-esterno" maxlength="150" placeholder="es. operaio del subappaltatore"></div>
+    </div>
+    <div class="f"><label>Testimoni</label><input type="text" id="evs-testimoni" maxlength="500"></div>
+    <div class="f" id="evs-danneggiato-box"><label>Chi è stato danneggiato e cosa</label><input type="text" id="evs-danneggiato" maxlength="300" placeholder="es. cliente: pavimento del corridoio"></div>
+    <div style="font-size:12px;color:var(--m)">Avvisa subito titolare, segreteria e capo tecnico.</div>
+    <div class="ma">
+      <button class="btn" onclick="closeM('m-evento-sicurezza')">Annulla</button>
+      <button class="btn p" id="evs-salva" onclick="salvaEventoSicurezza()">🚨 Registra</button>
+    </div>
+  </div>
+</div>
+<div class="mbg" id="m-eventi-sicurezza">
+  <div class="modal" style="max-width:640px">
+    <button class="x" onclick="closeM('m-eventi-sicurezza')">×</button>
+    <h3>🚨 Infortuni, quasi-incidenti e danni</h3>
+    <div id="evl-contenuto"></div>
+  </div>
+</div>
+
 <!-- PROMESSA DI PAGAMENTO DI UNA RATA (js/98, solo con sql/272) -->
 <div class="mbg" id="m-promessa-pagamento">
   <div class="modal" style="max-width:440px">
@@ -12002,6 +12055,7 @@
 <script defer src="js/96-documenti-impresa.js?v=202611171012"></script>
 <script defer src="js/97-kit-standard.js?v=202611171012"></script>
 <script defer src="js/98-promesse-pagamento.js?v=202611171012"></script>
+<script defer src="js/99-eventi-sicurezza.js?v=202611171012"></script>
 <script defer src="js/19-init.js?v=202611171012"></script>
 
 
