@@ -23,9 +23,7 @@
 let materialiCommessaAperta = [];
 
 // Oggi in ora italiana (AAAA-MM-GG), per il confronto con le date.
-function dataOggiMateriali() {
-  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
-}
+// dataLocaleISO(): ora dataLocaleISO() di js/01 (riordino del 17/11).
 
 // ── Lettura delle due fonti ─────────────────────────────────────────
 // Restituisce { ordini, richieste, attiveOrdini, attiveRichieste,
@@ -69,7 +67,7 @@ async function leggiFontiMaterialiCommessa(commessaId) {
 // etichettaStato, classeStato, arrivoPrevisto, dataArrivo, arrivato,
 // inRitardo, nota }.
 function righeMaterialiCommessa(ordini, richieste, offerteDaOrdinare) {
-  const oggi = dataOggiMateriali();
+  const oggi = dataLocaleISO();
   const righe = [];
 
   (ordini || []).forEach(function(o) {
@@ -313,7 +311,7 @@ async function caricaMaterialiInRitardoDashboard() {
   ]);
   if (!attiveOrdini && !attiveRichieste) return;
 
-  const oggi = dataOggiMateriali();
+  const oggi = dataLocaleISO();
   const colonneCommessa = 'commesse(id, codice, stato, titolo, clienti(ragione_sociale))';
 
   const [ordiniRes, richiesteRes] = await Promise.all([

@@ -79,9 +79,7 @@ function registraFonteToccaAMe(fonte) {
 }
 
 // ── Piccoli aiuti ───────────────────────────────────────────────────
-function oggiTAM() {
-  return dataLocaleISO(new Date());
-}
+// dataLocaleISO(): ora dataLocaleISO() di js/01 (riordino del 17/11).
 
 function giorniDopoTAM(iso, n) {
   const d = new Date(iso + 'T00:00:00');
@@ -729,7 +727,7 @@ registraFonteToccaAMe({
     if (!funzioneEsiste('verificaGiornaleDisponibile') || !funzioneEsiste('verificaSquadraDisponibile')) return null;
     const [g, s] = await Promise.all([verificaGiornaleDisponibile(), verificaSquadraDisponibile()]);
     if (!g || !s) return null;
-    const oggi = oggiTAM();
+    const oggi = dataLocaleISO();
     const dal = giorniDopoTAM(oggi, -7);
     const [rs, rg] = await Promise.all([
       soloCommesseAperte(db.from('commesse_squadra_giorni').select('commessa_id, data, commesse!inner(stato)')
@@ -779,7 +777,7 @@ registraFonteToccaAMe({
   titolo: 'Materiali in ritardo', livello: 'urgente',
   vai: { box: function() { return (typeof BOX_MATERIALI_RITARDO !== 'undefined' && BOX_MATERIALI_RITARDO[ROLE]) || ''; }, pagina: 'commesse' },
   conta: async function() {
-    const oggi = oggiTAM();
+    const oggi = dataLocaleISO();
     const r = await contaMaterialiTAM(null, giorniDopoTAM(oggi, -1), false);
     if (!r) return null;
     return { n: r.n, nota: r.n && r.ordini && r.richieste ? r.ordini + ' ordini, ' + r.richieste + ' consumabili e noli' : '' };
@@ -791,7 +789,7 @@ registraFonteToccaAMe({
   titolo: 'Materiali in arrivo nei prossimi 7 giorni',
   vai: { box: 'ct-richieste-integrazione', pagina: 'commesse' },
   conta: async function() {
-    const oggi = oggiTAM();
+    const oggi = dataLocaleISO();
     const r = await contaMaterialiTAM(oggi, giorniDopoTAM(oggi, 7), false);
     if (!r) return null;
     return { n: r.n, nota: r.n && r.ordini && r.richieste ? r.ordini + ' ordini, ' + r.richieste + ' consumabili e noli' : '' };
@@ -845,7 +843,7 @@ registraFonteToccaAMe({
     const preavviso = funzioneEsiste('giorniPreavvisoRinnovo') ? giorniPreavvisoRinnovo() : 60;
     let q = contaTAM('clienti_periodicita', 'id, clienti!inner(eliminato_il, rappresentante_id)')
       .eq('contratto_stato', 'attivo').not('data_fine_contratto', 'is', null)
-      .lte('data_fine_contratto', giorniDopoTAM(oggiTAM(), preavviso)).is('clienti.eliminato_il', null);
+      .lte('data_fine_contratto', giorniDopoTAM(dataLocaleISO(), preavviso)).is('clienti.eliminato_il', null);
     if (ROLE === 'rappresentante') q = q.eq('clienti.rappresentante_id', ME.id);
     const n = await numeroTAM(q, 'contratti');
     return n === null ? null : { n: n, nota: n ? 'scaduti o in scadenza entro ' + preavviso + ' giorni' : '' };
@@ -870,7 +868,7 @@ registraFonteToccaAMe({
   titolo: 'Interventi periodici del mese da schedulare (clienti)',
   vai: { box: 'ct-cicli-mese', pagina: 'piano-mensile' },
   conta: async function() {
-    const mese = oggiTAM().slice(0, 7);
+    const mese = dataLocaleISO().slice(0, 7);
     const { data, error } = await db.from('cicli_pianificati').select('cliente_id')
       .eq('mese_anno', mese).eq('stato', 'pianificato').is('odl_id', null).limit(5000);
     if (error) { console.warn('Cosa tocca a me (periodici):', error.message); return null; }
@@ -1081,7 +1079,7 @@ registraFonteToccaAMe({
   vai: { box: function() { return ROLE === 'segreteria' ? 'seg-documenti-scadenza' : (ROLE === 'capo_tecnico' ? 'ct-documenti-scadenza' : ''); }, pagina: 'team-subappalti' },
   conta: async function() {
     if (!funzioneEsiste('verificaTeamSubappaltiDisponibili') || !funzioneEsiste('documentiDaSegnalareTS') || !(await verificaTeamSubappaltiDisponibili())) return null;
-    const limite = giorniDopoTAM(oggiTAM(), funzioneEsiste('giorniPreavvisoDocumenti') ? giorniPreavvisoDocumenti() : 30);
+    const limite = giorniDopoTAM(dataLocaleISO(), funzioneEsiste('giorniPreavvisoDocumenti') ? giorniPreavvisoDocumenti() : 30);
     const [d, u, s] = await Promise.all([
       db.from('documenti_team_subappalti').select(COLONNE_DOCUMENTO_TS)
         .is('sostituito_da', null).not('data_scadenza', 'is', null).lte('data_scadenza', limite),
@@ -1164,7 +1162,7 @@ registraFonteToccaAMe({
   titolo: 'Ordini ai fornitori in ritardo', livello: 'urgente',
   vai: { pagina: 'commesse' },
   conta: async function() {
-    const r = await contaMaterialiTAM(null, giorniDopoTAM(oggiTAM(), -1), true);
+    const r = await contaMaterialiTAM(null, giorniDopoTAM(dataLocaleISO(), -1), true);
     return r ? r.n : null;
   }
 });
@@ -1235,7 +1233,7 @@ registraFonteToccaAMe({
   titolo: 'Scadenze nei prossimi 7 giorni',
   vai: { pagina: 'calendario-ingegnere' },
   conta: function() {
-    const oggi = oggiTAM();
+    const oggi = dataLocaleISO();
     return numeroTAM(contaTAM('calendario_personale').eq('utente_id', ME.id).eq('tipo', 'scadenza')
       .gte('data', oggi).lte('data', giorniDopoTAM(oggi, 7)), 'scadenze');
   }
@@ -1253,7 +1251,7 @@ registraFonteToccaAMe({
   vai: { pagina: 'calendario-tec' },
   conta: function() {
     return numeroTAM(contaTAM('ordini_lavoro').is('eliminato_il', null).eq('tecnico_id', ME.id)
-      .eq('stato', 'pianificato').lt('data_pianificata', oggiTAM()), 'interventi passati');
+      .eq('stato', 'pianificato').lt('data_pianificata', dataLocaleISO()), 'interventi passati');
   }
 });
 
@@ -1263,7 +1261,7 @@ registraFonteToccaAMe({
   vai: { box: 'tec-miei-documenti' },
   conta: async function() {
     if (!funzioneEsiste('verificaTeamSubappaltiDisponibili') || !(await verificaTeamSubappaltiDisponibili())) return null;
-    const limite = giorniDopoTAM(oggiTAM(), funzioneEsiste('giorniPreavvisoDocumenti') ? giorniPreavvisoDocumenti() : 30);
+    const limite = giorniDopoTAM(dataLocaleISO(), funzioneEsiste('giorniPreavvisoDocumenti') ? giorniPreavvisoDocumenti() : 30);
     return numeroTAM(contaTAM('documenti_team_subappalti').eq('utente_id', ME.id).is('sostituito_da', null)
       .not('data_scadenza', 'is', null).lte('data_scadenza', limite), 'i miei documenti');
   }

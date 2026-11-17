@@ -5526,6 +5526,12 @@ quante insieme, in risultato.json) e SMOKE_RITARDO_MS=150 (database lento).
     con una sola sezione "👷 Team tecnico: chi è impegnato", riga "Debug"
     tolta (js/05). NON fatto (Erika): le tessere dei numeri del titolare.
   - Il ruolo contabile non c'è in azienda: non serve sistemarne la dashboard.
+- Funzioni comuni in js/01 (riordino del 17/11): data di oggi SOLO
+  `dataLocaleISO()` (tolte oggiFattura, oggiTAM, dataOggiOrdine e altre 5),
+  `aggiungiGiorniISO`, `giorniTraISO`, `euro(n, vuoto)` per "1.234,00 €"
+  (al posto di euroSconto e formatoEuroSoglia; euroMulta ed euroDelega la
+  richiamano). A parte: euroBuono "€ 1.234,00" (fatture, buono: cambiarlo
+  cambia quello che si vede, da decidere con Erika) ed euroPreventivo.
 - Controlli "SQL già eseguito?" (riordino del 17/11): verificato in
   produzione che ci sono tutti; 51 stati di partenza messi a true (commento
   "riordino 17/11" sulla riga), così le verifica…Disponibil* rispondono

@@ -35,9 +35,7 @@ function dataItMulta(d) {
   return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : d;
 }
 
-function euroMulta(n) {
-  return n === null || n === undefined || n === '' ? '' : Number(n).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
-}
+function euroMulta(n) { return euro(n, true); } // riordino del 17/11: euro() di js/01
 
 function numeroDaCampoMulta(id) {
   let t = String(v(id) || '').trim().replace(/\s|€/g, '');

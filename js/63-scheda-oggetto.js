@@ -79,9 +79,7 @@ function dataOraScheda(valore) {
   return isNaN(d) ? String(valore) : d.toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-function oggiISOScheda() {
-  return typeof dataLocaleISO === 'function' ? dataLocaleISO(new Date()) : new Date().toISOString().slice(0, 10);
-}
+// dataLocaleISO(): ora dataLocaleISO() di js/01 (riordino del 17/11).
 
 // ── Azioni ───────────────────────────────────────────────────────────
 // Una riga: { codice, etichetta, ruoli (null = tutti), stati (null = ogni
@@ -705,7 +703,7 @@ const DESCRITTORI_SCHEDA = {
       // Conta solo finché si aspetta la risposta del cliente.
       const attesa = ['bozza', 'inviato', 'inviato_a_rappresentante'].indexOf(p.stato) >= 0;
       if (!p.data_scadenza || !attesa) return null;
-      return { testo: 'Valido fino al ' + dataScheda(p.data_scadenza), scaduta: String(p.data_scadenza) < oggiISOScheda() };
+      return { testo: 'Valido fino al ' + dataScheda(p.data_scadenza), scaduta: String(p.data_scadenza) < dataLocaleISO() };
     }
   },
   commessa: {
@@ -719,7 +717,7 @@ const DESCRITTORI_SCHEDA = {
     scadenza: function(c) {
       if (!c.data_fine_prevista) return c.data_inizio ? { testo: 'Inizio lavori ' + dataScheda(c.data_inizio) } : null;
       const aperta = commessaAperta(c) && ['fine_lavori'].indexOf(c.stato) < 0;
-      return { testo: 'Fine lavori prevista ' + dataScheda(c.data_fine_prevista), scaduta: aperta && String(c.data_fine_prevista) < oggiISOScheda() };
+      return { testo: 'Fine lavori prevista ' + dataScheda(c.data_fine_prevista), scaduta: aperta && String(c.data_fine_prevista) < dataLocaleISO() };
     }
   },
   progetto: { statoInTesta: false, scadenza: function() { return null; } },

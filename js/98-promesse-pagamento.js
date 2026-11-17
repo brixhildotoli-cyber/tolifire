@@ -24,7 +24,7 @@ async function verificaPromesseDisponibili() {
 }
 
 function htmlPromessaRata(id, p) {
-  const oggi = typeof oggiFattura === 'function' ? oggiFattura() : dataLocaleISO(new Date());
+  const oggi = dataLocaleISO();
   const ha = p && (p.data_promessa || p.nota);
   if (!ha) return '';
   const passata = p.data_promessa && p.data_promessa < oggi;

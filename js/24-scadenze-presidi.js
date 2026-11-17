@@ -6,9 +6,8 @@ function aggiungiMesiControllo(iso, mesi) {
   const d = new Date(a,m-1+mesi,Math.min(g,fine));
   return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
 }
-function oggiScadenze() {
-  const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
-}
+// dataLocaleISO(): ora dataLocaleISO() di js/01 (riordino del 17/11).
+
 function chiediRiferimentoManichette() {
   const anno=prompt('Anno di riferimento dello storico:',String(new Date().getFullYear()));
   if(anno===null)return null;
@@ -162,7 +161,7 @@ renderPS=async function(data) {
         righe.push({p,label:'Scadenza',data:dati.data_scadenza_collaudo||null,anno:dati.anno_scadenza||null});
       }
     }
-    const oggi=oggiScadenze(),limite=aggiungiGiorniScadenze(oggi,30);
+    const oggi=dataLocaleISO(),limite=aggiungiGiorniScadenze(oggi,30);
     const gruppi=[['Scaduti',r=>r.data?r.data<oggi:r.anno?Number(r.anno)<Number(oggi.slice(0,4)):false],
       ['Entro 30 giorni',r=>r.data&&r.data>=oggi&&r.data<=limite],
       ['Scadenze successive',r=>r.data&&r.data>limite],

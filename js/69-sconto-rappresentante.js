@@ -50,9 +50,7 @@ function testoPercSconto(n) {
   return String(Number(n || 0)).replace('.', ',') + '%';
 }
 
-function euroSconto(valore) {
-  return Number(valore || 0).toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
-}
+// euroSconto: ora euro() di js/01 (riordino del 17/11).
 
 // Stessa regola del database: round(round(prima, 2) * (100 - sconto) / 100, 2)
 // (importoScontatoPreventivo di js/18, in centesimi interi)
@@ -128,8 +126,8 @@ function htmlScontoRappresentante(p) {
     righe = `
       <div style="font-size:13px">
         🏷️ Sconto <b>${esc(testoPercSconto(sconto))}</b>:
-        ${esc(euroSconto(base))} → <b>${esc(euroSconto(totale))}</b> + IVA
-        <span style="color:var(--m)">(${esc(euroSconto(conIva))} IVA inclusa)</span>
+        ${esc(euro(base))} → <b>${esc(euro(totale))}</b> + IVA
+        <span style="color:var(--m)">(${esc(euro(conIva))} IVA inclusa)</span>
       </div>
       ${mia && mia.motivazione && Number(mia.sconto_perc) === sconto ? `
         <div style="font-size:12px;color:var(--m);margin-top:4px">
@@ -138,8 +136,8 @@ function htmlScontoRappresentante(p) {
   } else {
     righe = `
       <div style="font-size:13px">
-        Totale: <b>${esc(euroSconto(totale))}</b> + IVA
-        <span style="color:var(--m)">(${esc(euroSconto(conIva))} IVA inclusa)</span>
+        Totale: <b>${esc(euro(totale))}</b> + IVA
+        <span style="color:var(--m)">(${esc(euro(conIva))} IVA inclusa)</span>
       </div>`;
   }
 
@@ -193,7 +191,7 @@ async function apriScontoRappresentante(preventivoId) {
   const sconto = Number(p.sconto_perc || 0);
   ge('scr-preventivo-id').value = p.id;
   ge('scr-sottotitolo').textContent = 'Preventivo n. ' + (p.numero ?? '—') + ' · ' + (p.clienti?.ragione_sociale || 'Cliente');
-  ge('scr-base').textContent = euroSconto(basePreventivoSconto(p)) + ' + IVA ' + Number(p.iva_perc ?? 22) + '%';
+  ge('scr-base').textContent = euro(basePreventivoSconto(p)) + ' + IVA ' + Number(p.iva_perc ?? 22) + '%';
   ge('scr-perc').value = sconto > 0 ? String(sconto).replace('.', ',') : '';
   ge('scr-motivo').value = p.ultima_riga_mia && p.ultima_riga_mia.motivazione && Number(p.ultima_riga_mia.sconto_perc) === sconto
     ? p.ultima_riga_mia.motivazione : '';
@@ -235,8 +233,8 @@ function aggiornaAnteprimaScontoRappresentante() {
     const dopo = totaleScontatoSito(base, s);
     const conIva = Math.round(dopo * (100 + iva)) / 100;
     box.className = 'al2 ok';
-    box.innerHTML = `Sconto <b>${esc(testoPercSconto(s))}</b>: − ${esc(euroSconto(base - dopo))}<br>` +
-      `Totale scontato: <b>${esc(euroSconto(dopo))}</b> + IVA (${esc(euroSconto(conIva))} IVA inclusa)`;
+    box.innerHTML = `Sconto <b>${esc(testoPercSconto(s))}</b>: − ${esc(euro(base - dopo))}<br>` +
+      `Totale scontato: <b>${esc(euro(dopo))}</b> + IVA (${esc(euro(conIva))} IVA inclusa)`;
     if (serveMotivo && motivo.length < 3) ok = false;
   }
   ge('scr-salva').disabled = !ok || motivo.length > 1000;
@@ -253,7 +251,7 @@ async function salvaScontoRappresentante(togli) {
     toast('Sopra il 2% serve la motivazione', 'err');
     return;
   }
-  if (togli && !confirm('Togliere lo sconto? Il preventivo torna a ' + euroSconto(basePreventivoSconto(p)) + ' + IVA e il PDF va rifatto' +
+  if (togli && !confirm('Togliere lo sconto? Il preventivo torna a ' + euro(basePreventivoSconto(p)) + ' + IVA e il PDF va rifatto' +
       (ROLE === 'titolare' ? '.' : ' da Acquisti.'))) return;
 
   ['scr-salva', 'scr-togli'].forEach(function(x) { if (ge(x)) ge(x).disabled = true; });
@@ -264,7 +262,7 @@ async function salvaScontoRappresentante(togli) {
     if (error) { toast('Sconto non salvato: ' + error.message, 'err'); return; }
     closeM('m-sconto-rappresentante');
     toast(s > 0
-      ? 'Sconto ' + testoPercSconto(s) + ' salvato: totale ' + euroSconto(data?.totale_imponibile) + ' + IVA. Rifaccio il PDF...'
+      ? 'Sconto ' + testoPercSconto(s) + ' salvato: totale ' + euro(data?.totale_imponibile) + ' + IVA. Rifaccio il PDF...'
       : 'Sconto tolto.', 'ok');
     if (p.pdf_esterno_titolare_path) toast('Il PDF l\'hai caricato tu: ricaricalo con il nuovo totale', 'err');
     else if (s > 0 || ROLE === 'titolare') await rifaiPdfScontoPreventivo(id, true);
@@ -353,7 +351,7 @@ async function caricaScontoPreventivoDettaglio(preventivo, contenitoreId) {
               return `<div style="padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,.05)">
                 ${esc(dataOraSconto(r.il))} · ${esc(r.da_nome || '—')}${r.da_ruolo ? ' (' + esc(r.da_ruolo) + ')' : ''}:
                 ${esc(testoPercSconto(r.sconto_prima))} → <b>${esc(testoPercSconto(r.sconto_perc))}</b>,
-                ${esc(euroSconto(r.totale_prima_sconto))} → ${esc(euroSconto(r.totale_scontato))}
+                ${esc(euro(r.totale_prima_sconto))} → ${esc(euro(r.totale_scontato))}
                 ${r.motivazione ? '<br><span style="color:var(--m)">' + esc(r.motivazione) + '</span>' : ''}
               </div>`;
             }).join('')}
@@ -367,9 +365,9 @@ async function caricaScontoPreventivoDettaglio(preventivo, contenitoreId) {
     ? (preventivo.sconto_da_nome || 'Rappresentante') + ' il ' + dataOraSconto(preventivo.sconto_il)
     : '';
   const testo = sconto > 0
-    ? `Sconto <b>${esc(testoPercSconto(sconto))}</b>: totale delle voci ${esc(euroSconto(preventivo.totale_prima_sconto))}
-       → imponibile <b>${esc(euroSconto(preventivo.totale_imponibile))}</b>
-       (− ${esc(euroSconto(Number(preventivo.totale_prima_sconto || 0) - Number(preventivo.totale_imponibile || 0)))})`
+    ? `Sconto <b>${esc(testoPercSconto(sconto))}</b>: totale delle voci ${esc(euro(preventivo.totale_prima_sconto))}
+       → imponibile <b>${esc(euro(preventivo.totale_imponibile))}</b>
+       (− ${esc(euro(Number(preventivo.totale_prima_sconto || 0) - Number(preventivo.totale_imponibile || 0)))})`
     : (preventivo.sconto_il ? 'Sconto tolto: il totale è quello delle voci.' : 'Nessuno sconto.');
 
   const avvisoVoci = sconto > 0 && ['commerciale', 'titolare'].includes(ROLE) ? `

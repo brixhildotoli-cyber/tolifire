@@ -53,14 +53,12 @@ let pagamentoDaAnnullare = null;
 let filtroScadenzeRichiesto = null;
 
 // ── Utilità ──────────────────────────────────────────────────────────────
-function oggiFattura() {
-  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
-}
+// dataLocaleISO(): ora dataLocaleISO() di js/01 (riordino del 17/11).
 
 // Decisione di Toli del 03/11: niente fatture né note di credito con la
 // data dell'anno precedente (con sql/58 lo impone anche il database).
 function primoGiornoAnnoFattura() {
-  return oggiFattura().slice(0, 4) + '-01-01';
+  return dataLocaleISO().slice(0, 4) + '-01-01';
 }
 
 // aggiungiGiorniISO e giorniTraISO: in js/01 (riordino del 17/11).
@@ -179,7 +177,7 @@ async function caricaScadenzeNellaFattura(f) {
   const scad = rs.data || [];
   const pag = rp.data || [];
   const coll = (rc && rc.data) || [];
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   const attivi = pag.filter(function(p) { return !p.annullato_il; });
   const puoPag = puoPagamentoFattura(f) && f.stato === 'emessa';
   pagamentiMostrati = {};
@@ -321,7 +319,7 @@ async function apriEmissioneFinale() {
 
 function apriEmissione(conf) {
   emissione = conf;
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   ge('mef-titolo').textContent = conf.titolo;
   ge('mef-sottotitolo').textContent = conf.sottotitolo || '';
   ge('mef-data').value = oggi;
@@ -430,7 +428,7 @@ function ricalcolaRateEmissione() {
   const n = Math.max(1, Math.min(12, parseInt(v('mef-n-rate'), 10) || 1));
   const giorni = Math.max(0, parseInt(v('mef-giorni'), 10) || 0);
   const intervallo = Math.max(1, parseInt(v('mef-intervallo'), 10) || 30);
-  const data = v('mef-data') || oggiFattura();
+  const data = v('mef-data') || dataLocaleISO();
   const tot = totaleEmissione();
   const base = Math.floor(tot * 100 / n) / 100;
   e.rate = [];
@@ -474,7 +472,7 @@ function cambiaRataEmissione(i, campo, valore) {
 function erroreEmissione() {
   const e = emissione;
   if (!e) return 'Niente da emettere';
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   const data = v('mef-data');
   if (datiFiscaliMancanti(e.cliente)) return 'Mancano partita IVA e codice fiscale del cliente';
   if (e.modo === 'anticipo') {
@@ -598,7 +596,7 @@ async function apriPagamentoFattura(scadenzaId) {
   if (s.stato === 'in_riba') { toast('La rata è in una RIBA presentata: il pagamento arriva con l\'esito della RIBA', 'err'); return; }
   const residuo = residuoRata(s);
   pagamentoAperto = { scadenza: s, fattura: f, residuo: residuo };
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   ge('mpg-sottotitolo').textContent = 'Fattura n. ' + f.numero + ' del ' + fd(f.data_emissione) + ' · ' + (f.snap_ragione_sociale || (f.clienti && f.clienti.ragione_sociale) || '');
   ge('mpg-riepilogo').innerHTML = '<b>Rata ' + esc(s.numero_rata) + '</b> · scade il ' + esc(fd(s.data_scadenza)) + '<br>Importo ' + esc(euroBuono(s.importo)) +
     (Number(s.importo_pagato) ? ' · già pagato ' + esc(euroBuono(s.importo_pagato)) : '') + ' · <b>da incassare ' + esc(euroBuono(residuo)) + '</b>';
@@ -624,7 +622,7 @@ function erroreDatiPagamento() {
   const data = v('mpg-data');
   const imp = arrotonda2(numeroDaCampo(v('mpg-importo')));
   if (!data) return 'Indica la data del pagamento';
-  if (data > oggiFattura()) return 'La data del pagamento non può essere nel futuro';
+  if (data > dataLocaleISO()) return 'La data del pagamento non può essere nel futuro';
   if (a.fattura.data_emissione && data < a.fattura.data_emissione) return 'La data del pagamento non può essere prima della fattura (' + fd(a.fattura.data_emissione) + ')';
   if (isNaN(imp) || !(imp > 0)) return 'Indica l\'importo pagato (maggiore di zero)';
   if (imp > a.residuo) return 'L\'importo supera quanto resta da pagare (' + euroBuono(a.residuo) + ')';
@@ -704,7 +702,7 @@ async function salvaAnnullaPagamento() {
 function apriNotaCredito() {
   const f = fatBozza && fatBozza.fattura;
   if (!f || f.stato !== 'emessa' || f.tipo_documento !== 'fattura') return;
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   const effetto = f.origine === 'anticipo'
     ? 'Il preventivo torna senza fattura d\'anticipo: se ne potrà emettere un\'altra.'
     : (f.origine === 'finale' ? 'La commessa torna senza fattura finale: se ne potrà emettere un\'altra (la commessa non si chiude senza).'
@@ -727,7 +725,7 @@ function aggiornaNotaCredito() {
   let errore = '';
   if (!f) errore = 'Fattura non aperta';
   else if (!data) errore = 'Indica la data';
-  else if (data > oggiFattura()) errore = 'La data non può essere nel futuro';
+  else if (data > dataLocaleISO()) errore = 'La data non può essere nel futuro';
   else if (f.data_emissione && data < f.data_emissione) errore = 'La data non può essere prima della fattura';
   else if (data < primoGiornoAnnoFattura()) errore = 'La data è dell\'anno precedente: la nota di credito si emette con una data di quest\'anno';
   else if (!(v('mnc-motivo') || '').trim()) errore = 'Scrivi il motivo';
@@ -795,7 +793,7 @@ async function caricaScadenzeFatture() {
   const filtroPrima = ge('fat-scad-filtro') ? ge('fat-scad-filtro').value : null;
   const filtro = filtroScadenzeRichiesto || filtroPrima || 'prossime';
   filtroScadenzeRichiesto = null;
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   let q = function() {
     let x = db.from('fatture_scadenze')
       .select('id,fattura_id,numero_rata,data_scadenza,importo,importo_pagato,stato,data_pagamento,fatture!inner(id,numero,stato,tipo_documento,origine,data_emissione,snap_ragione_sociale,eliminato_il)')
@@ -854,7 +852,7 @@ function vaiAScadenzeFatture(filtro) {
 
 // ── KPI incassi (fase 6) ─────────────────────────────────────────────────
 async function datiKpiIncassi() {
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   const tra30 = aggiungiGiorniISO(oggi, 30);
   const primoMese = oggi.slice(0, 8) + '01';
   const [rs, rp] = await Promise.all([
@@ -985,7 +983,7 @@ async function decoraFattureAnticipo() {
       const rata = rataAperta[f.id];
       const pr = rata ? promessaRata[rata] : null;
       const aperta = stato === 'in_attesa_anticipo' && f.stato_pagamento !== 'pagata';
-      const oggi = oggiFattura();
+      const oggi = dataLocaleISO();
       ph.innerHTML = '<div style="font-size:12px;line-height:1.6;overflow-wrap:anywhere">🧾 Fattura d\'anticipo <b>n. ' + esc(f.numero) + '</b> del ' + esc(fd(f.data_emissione)) + ' · totale ' + esc(euroBuono(f.totale)) + ' ' + bsPag(f.stato_pagamento) + '</div>' +
         (pr && (pr.data_promessa || pr.nota) ? '<div style="font-size:12px;margin-top:2px" data-promessa-anticipo="' + esc(rata) + '">📅 ' +
           (pr.data_promessa ? 'Paga il <b' + (pr.data_promessa < oggi && aperta ? ' style="color:var(--r)"' : '') + '>' + esc(fd(pr.data_promessa)) + '</b>' + (pr.data_promessa < oggi && aperta ? ' (passata)' : '') : 'Nota di incasso') +

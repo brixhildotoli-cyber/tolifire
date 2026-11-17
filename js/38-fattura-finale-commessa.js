@@ -71,9 +71,7 @@ function statoChiusuraDi(commessa) {
   return statoChiusuraAperto && commessa && statoChiusuraAperto.commessa_id === commessa.id ? statoChiusuraAperto : null;
 }
 
-function dataOggiFatturaFinale() {
-  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' });
-}
+// dataLocaleISO(): ora dataLocaleISO() di js/01 (riordino del 17/11).
 
 function dataLeggibileFatturaFinale(d) {
   if (!d) return '';
@@ -246,8 +244,8 @@ function apriFatturaFinale() {
   ge('ffc-extra-box').style.display = extra.length ? '' : 'none';
   ge('ffc-con-extra').checked = conExtra;
   ge('ffc-numero').value = f ? f.numero : '';
-  ge('ffc-data').value = f ? String(f.data || '').slice(0, 10) : dataOggiFatturaFinale();
-  ge('ffc-data').max = dataOggiFatturaFinale();
+  ge('ffc-data').value = f ? String(f.data || '').slice(0, 10) : dataLocaleISO();
+  ge('ffc-data').max = dataLocaleISO();
   ge('ffc-importo').value = f ? numeroPreventivo(f.importo).toFixed(2) : importoFatturaFinaleProposto(calcolo, conExtra).toFixed(2);
   ge('ffc-nota').value = f ? (f.nota || '') : '';
   ge('ffc-avvisi').innerHTML = htmlAvvisiCalcoloFatturaFinale(calcolo);
@@ -277,7 +275,7 @@ function aggiornaFatturaFinale(ricalcola) {
 
   const numero = (v('ffc-numero') || '').trim();
   const data = v('ffc-data');
-  const ok = numero && data && data <= dataOggiFatturaFinale() && importo > 0 && (!diverso || nota);
+  const ok = numero && data && data <= dataLocaleISO() && importo > 0 && (!diverso || nota);
   ge('ffc-salva').disabled = !ok;
 }
 

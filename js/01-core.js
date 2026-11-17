@@ -657,6 +657,11 @@ function giorniTraISO(da,a){return Math.round((new Date(String(a).slice(0,10)+'T
 function fd(d){if(!d)return'—';try{return new Date(d+'T00:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});}catch(e){return d;}}
 // Escape HTML per dati provenienti dal DB o dall'utente prima dell'interpolazione in innerHTML.
 function esc(s){return String(s??'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+// Importo in euro "1.234,00 €" (riordino del 17/11: prima c'erano euroSconto,
+// formatoEuroSoglia, euroMulta, euroDelega uguali). vuoto=true: null/'' → ''.
+// Restano a parte euroBuono ("€ 1.234,00", fatture e buono) ed euroPreventivo
+// (legge anche i numeri scritti con la virgola).
+function euro(n,vuoto){if(vuoto&&(n===null||n===undefined||n===''))return '';return (Number(n)||0).toLocaleString('it-IT',{style:'currency',currency:'EUR'});}
 // Riordino del 17/11 (dashboard più leggere): una lista lunga mostra le prime
 // "quante" righe (5) e le altre dentro "▾ Mostra tutti (N)" chiuso. È un
 // <details>: tornando indietro js/47 lo riapre se era aperto.

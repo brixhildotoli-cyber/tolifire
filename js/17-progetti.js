@@ -1020,12 +1020,7 @@ function sogliaLavoroGrande() {
   return isFinite(numero) ? numero : null;
 }
 
-function formatoEuroSoglia(importo) {
-  return Number(importo).toLocaleString('it-IT', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }) + ' €';
-}
+// formatoEuroSoglia: ora euro() di js/01 (riordino del 17/11).
 
 // true: le regole di smistamento sono attive (js/67) e i due invii di prima non ci sono
 function progettoConSmistamento() {
@@ -1054,8 +1049,8 @@ function progettoSopraSoglia(progetto) {
 
 function testoAvvisoSoglia(progetto) {
   return 'Lavoro grande (importo stimato ' +
-    formatoEuroSoglia(progetto.importo_stimato) +
-    ', soglia ' + formatoEuroSoglia(sogliaAvvisoProgetto()) +
+    euro(progetto.importo_stimato) +
+    ', soglia ' + euro(sogliaAvvisoProgetto()) +
     (progettoConSmistamento()
       ? '): con lo smistamento automatico tutto il progetto va all’ingegnere.'
       : '): valuta l’invio all’ingegnere (Invia a ufficio tecnico).');
@@ -1082,7 +1077,7 @@ function aggiornaAvvisoImportoProgetto() {
   nota.style.color = 'var(--m)';
   nota.textContent = soglia === null
     ? ''
-    : 'Sopra ' + formatoEuroSoglia(soglia) +
+    : 'Sopra ' + euro(soglia) +
       (progettoConSmistamento()
         ? ' è un lavoro grande: il progetto andrà all’ingegnere.'
         : ' è un lavoro grande: valuta l’invio all’ingegnere.');
@@ -3135,7 +3130,7 @@ if (btnModifica) {
       ${'importo_stimato' in progetto ? ir(
         'Importo stimato',
         progetto.importo_stimato !== null
-          ? formatoEuroSoglia(progetto.importo_stimato)
+          ? euro(progetto.importo_stimato)
           : null
       ) : ''}
       ${'fonte_rilievo' in progetto && typeof etichettaFonteRilievo === 'function' && ROLE !== 'rappresentante' ? ir(

@@ -61,10 +61,7 @@ async function verificaDelegheDisponibili() {
   return !error;
 }
 
-function euroDelega(n) {
-  if (n === null || n === undefined || n === '') return '';
-  return Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
+function euroDelega(n) { return euro(n, true); } // riordino del 17/11: euro() di js/01
 
 function numeroDelega(testo) {
   const s = String(testo || '').trim().replace(/\s|€/g, '');

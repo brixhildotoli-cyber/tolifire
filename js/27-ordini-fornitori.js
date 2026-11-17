@@ -110,10 +110,7 @@ function puoRiportareOrdineConfermato(ordine) {
 }
 
 // ── Piccoli aiuti ───────────────────────────────────────────────────
-function dataOggiOrdine() {
-  const oggi = new Date();
-  return new Date(oggi.getTime() - oggi.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-}
+// dataLocaleISO(): ora dataLocaleISO() di js/01 (riordino del 17/11).
 
 function quantitaLeggibileOrdine(valore) {
   return numeroPreventivo(valore).toLocaleString('it-IT', { maximumFractionDigits: 3 });
@@ -300,7 +297,7 @@ function htmlElencoOrdiniCommessa(commessa) {
 
   const prezzi = vedePrezziAcquisto();
   const salvaInCartella = prezzi && documentiCommessaDisponibili === true && puoCaricareDocumentiCommessa(commessa);
-  const oggi = dataOggiOrdine();
+  const oggi = dataLocaleISO();
 
   return `
     <div style="font-size:13px;font-weight:700;margin:12px 0 4px">Ordini</div>
@@ -463,9 +460,9 @@ function apriNuovoOrdineFornitore(offertaId) {
     offerta.tempi_consegna_proposti ? 'Consegna proposta: ' + esc(offerta.tempi_consegna_proposti) : ''
   ].filter(Boolean).join(' · ') || 'Nessun recapito del fornitore in anagrafica.';
 
-  ge('mof-data-ordine').value = dataOggiOrdine();
+  ge('mof-data-ordine').value = dataLocaleISO();
   ge('mof-arrivo').value = '';
-  ge('mof-arrivo').min = dataOggiOrdine();
+  ge('mof-arrivo').min = dataLocaleISO();
   ge('mof-luogo').value = testoSedeCommessa(commessa.sedi_cliente) ? 'Cantiere: ' + testoSedeCommessa(commessa.sedi_cliente) : '';
   ge('mof-note').value = 'Riferimento da indicare su conferma d\'ordine, DDT e fattura: commessa ' + commessa.codice + '.';
 
@@ -656,8 +653,8 @@ function apriStatoOrdineFornitore(ordineId, stato) {
   ge('mso-data-riga').style.display = testi.data ? '' : 'none';
   ge('mso-data-etichetta').textContent = testi.data;
   ge('mso-data').min = ordine.data_ordine || '';
-  ge('mso-data').max = stato === 'arrivato' ? dataOggiOrdine() : '';
-  ge('mso-data').value = stato === 'arrivato' ? dataOggiOrdine() : (ordine.arrivo_previsto || '');
+  ge('mso-data').max = stato === 'arrivato' ? dataLocaleISO() : '';
+  ge('mso-data').value = stato === 'arrivato' ? dataLocaleISO() : (ordine.arrivo_previsto || '');
   ge('mso-nota-etichetta').textContent = testi.nota;
   ge('mso-nota').value = '';
   ge('mso-avviso').innerHTML = stato === 'annullato'

@@ -95,9 +95,7 @@ function puoCollegarePreventivoContratto() {
   return RUOLI_PREVENTIVO_CONTRATTO.includes(ROLE);
 }
 
-function oggiContrattoISO() {
-  return dataLocaleISO(new Date());
-}
+// dataLocaleISO(): ora dataLocaleISO() di js/01 (riordino del 17/11).
 
 // giorniTraISO e aggiungiGiorniISO: in js/01 (riordino del 17/11).
 
@@ -113,7 +111,7 @@ function fineContrattoDaInizio(inizioIso, durata) {
 // Scadenza del contratto rispetto a oggi e al preavviso.
 function scadenzaContratto(perio) {
   if (!perio || !perio.data_fine_contratto) return null;
-  const giorni = giorniTraISO(oggiContrattoISO(), perio.data_fine_contratto);
+  const giorni = giorniTraISO(dataLocaleISO(), perio.data_fine_contratto);
   const preavviso = giorniPreavvisoRinnovo();
   let testo, classe;
   if (giorni < 0) {
@@ -483,7 +481,7 @@ async function caricaContrattiInScadenzaDashboard() {
   }
 
   const preavviso = giorniPreavvisoRinnovo();
-  const limite = aggiungiGiorniISO(oggiContrattoISO(), preavviso);
+  const limite = aggiungiGiorniISO(dataLocaleISO(), preavviso);
 
   const { data, error } = await db
     .from('clienti_periodicita')

@@ -124,7 +124,7 @@ function testoQuandoServeRichiesta(r) {
 }
 
 function richiestaInRitardo(r) {
-  return r.stato === 'evasa' && r.arrivo_previsto && r.arrivo_previsto < dataOggiOrdine();
+  return r.stato === 'evasa' && r.arrivo_previsto && r.arrivo_previsto < dataLocaleISO();
 }
 
 // Riga "arrivo" leggibile con i segnali (ritardo, arriva dopo che serve).
@@ -162,7 +162,7 @@ async function caricaRiepilogoRichiesteIntegrazione(commessaId) {
   if (commessaId) delete riepilogoRichiesteCommesse[commessaId];
   else riepilogoRichiesteCommesse = {};
 
-  const oggi = dataOggiOrdine();
+  const oggi = dataLocaleISO();
   (data || []).forEach(function(r) {
     const voce = riepilogoRichiesteCommesse[r.commessa_id] ||
       (riepilogoRichiesteCommesse[r.commessa_id] = { aperte: 0, evase: 0, daSegnare: 0 });
@@ -549,9 +549,9 @@ function apriStatoRichiestaIntegrazione(richiestaId, stato) {
   ge('msr-sottotitolo').textContent = 'Commessa ' + (commessa.codice || '') + ' · n. ' + r.numero + ' · ' + testoCosaRichiestaIntegrazione(r);
   ge('msr-data-riga').style.display = testi.data ? '' : 'none';
   ge('msr-data-etichetta').textContent = testi.data;
-  ge('msr-data').max = dataOggiOrdine();
+  ge('msr-data').max = dataLocaleISO();
   ge('msr-data').min = r.richiesta_il ? new Date(r.richiesta_il).toLocaleDateString('sv-SE', { timeZone: 'Europe/Rome' }) : '';
-  ge('msr-data').value = dataOggiOrdine();
+  ge('msr-data').value = dataLocaleISO();
   ge('msr-nota-etichetta').textContent = testi.nota;
   ge('msr-nota').value = '';
   ge('msr-avviso').innerHTML = stato === 'annullata'
@@ -575,7 +575,7 @@ async function salvaStatoRichiestaIntegrazione() {
 
   if (modifica.stato === 'annullata' && !nota) { toast('Scrivi il motivo dell\'annullamento', 'err'); return; }
   if (modifica.stato === 'arrivata' && !data) { toast('Indica la data di arrivo', 'err'); return; }
-  if (modifica.stato === 'arrivata' && data > dataOggiOrdine()) { toast('La data di arrivo non può essere nel futuro', 'err'); return; }
+  if (modifica.stato === 'arrivata' && data > dataLocaleISO()) { toast('La data di arrivo non può essere nel futuro', 'err'); return; }
 
   const bottone = ge('msr-conferma');
   bottone.disabled = true;

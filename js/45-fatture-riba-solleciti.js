@@ -328,7 +328,7 @@ loadFatture = async function() {
 
 // Rate aperte con pagamento RIBA non ancora in distinta, entro "giorni".
 async function rateRibaDaPresentare(giorni) {
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   const r = await leggiTuttePagine(function() {
     let q = db.from('fatture_scadenze')
       .select('id,importo,importo_pagato,data_scadenza,fatture!inner(stato,tipo_documento,eliminato_il,modalita_pagamento)')
@@ -388,7 +388,7 @@ async function caricaRibaFatture() {
 }
 
 async function leggiRateDaSollecitare() {
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   const r = await leggiTuttePagine(function() {
     return db.from('fatture_scadenze')
       .select('id,fattura_id,numero_rata,data_scadenza,importo,importo_pagato,stato,fatture!inner(id,numero,stato,tipo_documento,eliminato_il,snap_ragione_sociale,cliente_id,commessa_id)')
@@ -444,7 +444,7 @@ async function caricaSollecitiFatture() {
   const filtro = ge('fat-sol-filtro') ? ge('fat-sol-filtro').value : 'tutti';
   const r = await leggiRateDaSollecitare();
   if (r.errore) { box.innerHTML = '<div class="al2 e">Insoluti non leggibili: ' + esc(r.errore.message || 'errore') + '</div>'; box.style.display = 'block'; return; }
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   const lista = filtraRateSolleciti(r.rate, filtro);
   const nIns = r.rate.filter(function(s) { return s.stato === 'insoluta'; }).length;
   const aperto = box.querySelector('details') ? box.querySelector('details').open : nIns > 0;
@@ -500,7 +500,7 @@ async function decoraRibaFattura() {
   const scad = rs.data || [];
   const righe = rr.data || [];
   const sol = rl.data || [];
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   // Il pagamento nato da un esito RIBA si annulla dalla distinta (sql/47).
   righe.forEach(function(x) {
     if (!x.pagamento_id) return;
@@ -589,7 +589,7 @@ function disegnaRateDistintaRiba() {
   const d = distintaAperta;
   const el = ge('mrd-rate');
   if (!d || !el) return;
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   const soloRiba = ge('mrd-solo-riba').checked;
   const entro = v('mrd-entro');
   const limite = entro === 'tutte' ? null : aggiungiGiorniISO(oggi, parseInt(entro, 10) || 60);
@@ -704,7 +704,7 @@ async function apriDettaglioDistinta(id) {
       (p.riportata_preparata_data ? ' (era presentata il ' + esc(fd(p.riportata_preparata_data)) + ')' : '') + (p.riportata_preparata_motivo ? ': ' + esc(p.riportata_preparata_motivo) : '') + '</div>' : '') +
     (p.eliminato_il ? '<div style="color:var(--r);font-size:12px">Eliminata' + (p.eliminato_da_nome ? ' da ' + esc(p.eliminato_da_nome) : '') + (p.motivo_eliminazione ? ': ' + esc(p.motivo_eliminazione) : '') + '</div>' : '') +
     (p.stato === 'preparata' && !p.eliminato_il ? '<div class="al2 i" style="margin:8px 0 0;font-size:12px">Scarica il file CBI e caricalo nell\'home banking (oppure porta in banca il PDF o il CSV), poi "Segna inviata". Da lì si registrano gli esiti. Il file CBI è da verificare con la banca al primo invio.</div>' : '');
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   const puoEsito = puoRiba() && p.stato !== 'preparata' && !p.eliminato_il;
   ge('mrv-righe').innerHTML = !righe.length ? '<div class="empty" style="padding:10px">Nessuna riga</div>' : righe.map(function(x) {
     const storico = Array.isArray(x.storico_esiti) ? x.storico_esiti : [];
@@ -772,7 +772,7 @@ function apriInvioRiba() {
   const d = dettaglioDistinta;
   if (!d || d.p.stato !== 'preparata') return;
   invioDistinta = d;
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   ge('mrn-riepilogo').innerHTML = 'Distinta <b>n. ' + esc(d.p.numero) + '</b> · ' + esc(d.p.banca || '') + ' · ' + d.righe.length + (d.righe.length === 1 ? ' riga' : ' righe') + ' · <b>' + esc(euroBuono(d.p.importo_totale)) + '</b>';
   ge('mrn-data').value = oggi;
   ge('mrn-data').max = oggi;
@@ -787,7 +787,7 @@ function aggiornaInvioRiba() {
   const data = v('mrn-data');
   let errore = '';
   if (!data) errore = 'Indica la data';
-  else if (data > oggiFattura()) errore = 'La data non può essere nel futuro';
+  else if (data > dataLocaleISO()) errore = 'La data non può essere nel futuro';
   const er = ge('mrn-errore');
   if (errore) { er.textContent = errore; er.style.display = 'block'; } else er.style.display = 'none';
   ge('mrn-salva').disabled = !!errore || !ge('mrn-conferma').checked;
@@ -846,7 +846,7 @@ function apriEsitoRiba(rigaId) {
   const x = d && d.righe.find(function(r) { return r.id === rigaId; });
   if (!x || x.esito) return;
   rigaEsitoAperta = { riga: x, distinta: d.p };
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   ge('mre-riepilogo').innerHTML = '<b>' + esc(x.debitore) + '</b> · fattura n. ' + esc(x.fattura_numero || '') + ', rata ' + esc(x.numero_rata) +
     '<br>Scadenza ' + esc(fd(x.data_scadenza)) + ' · <b>' + esc(euroBuono(x.importo)) + '</b> · distinta n. ' + esc(d.p.numero);
   ge('mre-esito-acc').checked = false;
@@ -879,7 +879,7 @@ function aggiornaEsitoRiba() {
   let errore = '';
   if (!esito) errore = 'Scegli l\'esito';
   else if (!data) errore = 'Indica la data';
-  else if (data > oggiFattura()) errore = 'La data non può essere nel futuro';
+  else if (data > dataLocaleISO()) errore = 'La data non può essere nel futuro';
   else if (a.distinta.data_presentazione && data < a.distinta.data_presentazione) errore = 'La data non può essere prima della presentazione (' + fd(a.distinta.data_presentazione) + ')';
   const er = ge('mre-errore');
   if (!errore && esito === 'insoluto' && ribaSpeseAttive) {
@@ -1104,7 +1104,7 @@ async function apriSollecito(scadenzaId) {
     .eq('id', scadenzaId).maybeSingle();
   if (error || !s || !s.fatture) { toast('Rata non trovata: ricarica la pagina', 'err'); return; }
   const f = s.fatture;
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   if (f.stato !== 'emessa') { toast('La fattura è ' + f.stato + ': niente solleciti', 'err'); return; }
   if (s.stato === 'pagata') { toast('La rata è pagata', 'err'); return; }
   if (s.stato === 'in_riba') { toast('La rata è in una distinta RIBA: prima l\'esito della banca', 'err'); return; }
@@ -1136,7 +1136,7 @@ function aggiornaSollecito() {
   const data = v('msl-data');
   let errore = '';
   if (!data) errore = 'Indica la data';
-  else if (data > oggiFattura()) errore = 'La data non può essere nel futuro';
+  else if (data > dataLocaleISO()) errore = 'La data non può essere nel futuro';
   else if (a.fattura.data_emissione && data < a.fattura.data_emissione) errore = 'La data non può essere prima della fattura';
   else if (!v('msl-mezzo')) errore = 'Scegli come hai sollecitato';
   const er = ge('msl-errore');
@@ -1427,7 +1427,7 @@ async function apriCopiaPdfFattura() {
 
 // ── Dashboard (fase 11) ──────────────────────────────────────────────────
 async function datiKpiFatturato() {
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   const primoAnno = oggi.slice(0, 4) + '-01-01';
   const primoMese = oggi.slice(0, 8) + '01';
   const [rf, rp, ri] = await Promise.all([
@@ -1491,7 +1491,7 @@ async function caricaKpiFatturatoTitolare() {
   const k = await datiKpiFatturato();
   if (!k) { el.innerHTML = ''; return; }
   const mese = new Date().toLocaleDateString('it-IT', { month: 'long', timeZone: 'Europe/Rome' });
-  const anno = oggiFattura().slice(0, 4);
+  const anno = dataLocaleISO().slice(0, 4);
   const carta = function(classe, icona, valore, etichetta, click) {
     return '<div class="kpi-card ' + classe + (click ? ' clickable" onclick="' + click : '') + '"><div class="kpi-icon">' + icona + '</div><div class="kpi-num" style="font-size:20px">' + esc(euroBuono(valore)) + '</div><div class="kpi-label">' + etichetta + '</div></div>';
   };
@@ -1514,7 +1514,7 @@ async function datiRibaSolleciti() {
     leggiRateDaSollecitare()
   ]);
   if (!daPres || rd.error || rr.errore || sol.errore) return null;
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   const rate = sol.rate;
   const somma = function(l) { return arrotonda2(l.reduce(function(t, s) { return t + residuoRata(s); }, 0)); };
   const ins = rate.filter(function(s) { return s.stato === 'insoluta'; });
@@ -1538,7 +1538,7 @@ async function caricaRibaSollecitiDashboard() {
   const carta = function(classe, icona, numero, etichetta, click) {
     return '<div class="kpi-card ' + classe + ' clickable" onclick="' + click + '"><div class="kpi-icon">' + icona + '</div><div class="kpi-num">' + numero + '</div><div class="kpi-label">' + etichetta + '</div></div>';
   };
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   const primi = k.rate.filter(function(s) { return s.stato === 'insoluta' || s.stato === 'sollecitata'; }).slice(0, 8);
   el.innerHTML = (ROLE === 'contabile' ? '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--m);margin-bottom:10px">🏦 RIBA, insoluti e solleciti</div>' : '') +
     '<div class="kpi-grid">' +
@@ -1595,7 +1595,7 @@ async function caricaInsolutiRappresentante() {
   (rs.righe || []).forEach(function(x) { sol[x.scadenza_id] = x; });
   const comm = {};
   (rc.righe || []).forEach(function(x) { comm[x.id] = x.codice; });
-  const oggi = oggiFattura();
+  const oggi = dataLocaleISO();
   el.innerHTML = '<div class="rap-list-card">' + rate.map(function(s) {
     const f = s.fatture;
     const mat = righe[f.id] || [];

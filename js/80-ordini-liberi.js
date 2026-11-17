@@ -73,9 +73,9 @@ async function apriOrdineLibero() {
   ge('mof-libero-fornitore').innerHTML = '<option value="">Scegli il fornitore…</option>' +
     ORDINI_LIBERI.fornitori.map(function(f) { return '<option value="' + esc(f.id) + '">' + esc(f.ragione_sociale) + '</option>'; }).join('');
   ge('mof-libero-allegato').value = '';
-  ge('mof-data-ordine').value = dataOggiOrdine();
+  ge('mof-data-ordine').value = dataLocaleISO();
   ge('mof-arrivo').value = '';
-  ge('mof-arrivo').min = dataOggiOrdine();
+  ge('mof-arrivo').min = dataLocaleISO();
   ge('mof-luogo').value = typeof testoSedeCommessa === 'function' && testoSedeCommessa(commessa.sedi_cliente) ? 'Cantiere: ' + testoSedeCommessa(commessa.sedi_cliente) : '';
   ge('mof-note').value = 'Riferimento da indicare su conferma d\'ordine, DDT e fattura: commessa ' + commessa.codice + '.';
   const salva = ge('mof-salva-cartella-riga');
