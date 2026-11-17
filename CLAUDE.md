@@ -3468,7 +3468,8 @@ ESEGUITO il 17/11 (backup 2026-11-17-pre271, controllo in regola: disattivati 2,
 bozze_laura 2, restano_a_comm 0). Rollback: 271-...-ROLLBACK.sql.
 Dopo sql/272 (promessa di pagamento sulle rate, richiesta di Erika del 17/11:
 la fattura emessa resta bloccata ma "entro quando pagano" e una nota di incasso
-si cambiano sempre; DA ESEGUIRE con "CONFERMATO DA TOLI: sql/272": backup,
+si cambiano sempre; ESEGUITO il 17/11 (backup 2026-11-17-pre272, controllo in
+regola; -REGISTRO-CANCELLAZIONI da eseguire dall'editor) con "CONFERMATO DA TOLI: sql/272": backup,
 file (senza parole di cancellazione), -REGISTRO-CANCELLAZIONI dall'editor,
 controllo in fondo; richiede 46, 67, 71). Tabella fatture_promesse_pagamento
 (scadenza_id unica → fatture_scadenze on delete cascade, data_promessa, nota,
