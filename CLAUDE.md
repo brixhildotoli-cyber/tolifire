@@ -5545,6 +5545,10 @@ quante insieme, in risultato.json) e SMOKE_RITARDO_MS=150 (database lento).
   per manichette/naspi/estintori), confermaImportPresidi (naspi non
   assegnati → manichette → confermaImportPresidiNormale). js/68 avvolge
   ancora apriImportPresidi per il tecnico.
+  Passo 3: apriSchedaPresidio in js/07 senza ritocchi: leggiStoricoPeriodo
+  (js/86) → disegnaSchedaPresidio (js/07) → aggiungiStoricoSchedaPresidio
+  (js/20, se non è partita un'altra apertura) → aggiungiDatiManichetta-
+  SchedaPresidio (js/22).
 - js/18 diviso (riordino del 17/11, codice spostato così com'era, stesso
   ordine di caricamento): 18-preventivi (scheda del preventivo, Rimanda
   indietro, campi delle schede tecniche), 18a-schede-rilievo, 18b-fornitori-

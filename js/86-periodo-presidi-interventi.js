@@ -123,14 +123,7 @@ if (typeof renderPC === 'function') {
   };
 }
 
-if (typeof apriSchedaPresidio === 'function') {
-  const apriSchedaPresidioSenzaPeriodo = apriSchedaPresidio;
-  // eslint-disable-next-line no-global-assign
-  apriSchedaPresidio = async function(id) {
-    await leggiStoricoPeriodo(id);
-    return apriSchedaPresidioSenzaPeriodo.apply(this, arguments);
-  };
-}
+// leggiStoricoPeriodo è il passo 1 di apriSchedaPresidio (js/07, riordino del 18/11).
 
 if (typeof campiSchedaPresidio === 'function') {
   const campiSchedaPresidioSenzaPeriodo = campiSchedaPresidio;

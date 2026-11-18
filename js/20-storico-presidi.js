@@ -89,16 +89,13 @@ function listaControlliScheda(testo) {
   return String(testo || '').split('\n').map(x => x.trim()).filter(Boolean);
 }
 
-const apriSchedaPresidioPrecedente = apriSchedaPresidio;
-apriSchedaPresidio = async function(id) {
-  const richiesta = ++storicoPresidi.richiesta;
-  await apriSchedaPresidioPrecedente(id);
-  if (richiesta !== storicoPresidi.richiesta) return;
+// Passo 3 di apriSchedaPresidio (js/07): riquadro dello storico in fondo alla scheda.
+async function aggiungiStoricoSchedaPresidio(id) {
   if (!gestisceStoricoPresidi() && ROLE !== 'tecnico') return;
   const contenuto = ge('msp-contenuto');
   contenuto.insertAdjacentHTML('beforeend', '<div id="storico-presidio" style="margin-top:24px"></div>');
   await caricaStoricoPresidio(id);
-};
+}
 
 async function caricaStoricoPresidio(id) {
   const richiesta = ++storicoPresidi.richiesta;

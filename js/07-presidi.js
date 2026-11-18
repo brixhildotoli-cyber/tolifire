@@ -241,7 +241,23 @@ function vociControlloSchedaPresidio(p) {
   };
 }
 
+// Scheda del presidio (riordino del 18/11, passo 3): prima js/20, js/22 e js/86
+// ritoccavano apriSchedaPresidio a catena; ora i passi sono qui, nello stesso
+// ordine di prima:
+//  1. periodicità dallo storico (leggiStoricoPeriodo, js/86);
+//  2. scheda (disegnaSchedaPresidio, qui sotto);
+//  3. schede semestrali / interventi della manichetta (aggiungiStoricoSchedaPresidio,
+//     js/20), solo se nel frattempo non si è aperta un'altra scheda;
+//  4. riquadro "Dati della manichetta" (aggiungiDatiManichettaSchedaPresidio, js/22).
 async function apriSchedaPresidio(id) {
+  await leggiStoricoPeriodo(id);
+  const richiesta = ++storicoPresidi.richiesta;
+  await disegnaSchedaPresidio(id);
+  if (richiesta === storicoPresidi.richiesta) await aggiungiStoricoSchedaPresidio(id);
+  aggiungiDatiManichettaSchedaPresidio(id);
+}
+
+async function disegnaSchedaPresidio(id) {
   ricordaPosizionePagina();
   openM('m-scheda-presidio');
   ge('msp-titolo').textContent = 'Scheda presidio';

@@ -117,9 +117,8 @@ saveP = async function() {
   finally { salvataggioManichetta = false; }
 };
 
-const apriSchedaPresidioPrimaManichette = apriSchedaPresidio;
-apriSchedaPresidio = async function(id) {
-  await apriSchedaPresidioPrimaManichette(id);
+// Passo 4 di apriSchedaPresidio (js/07): riquadro "Dati della manichetta" sopra lo storico.
+function aggiungiDatiManichettaSchedaPresidio(id) {
   const p = PA.find(r => r.id === id);
   if (!p || p.tipo !== 'manichetta' || !ge('storico-presidio')) return;
   ge('storico-presidio').insertAdjacentHTML('beforebegin',`<div class="card">
@@ -128,7 +127,7 @@ apriSchedaPresidio = async function(id) {
     <div>Scadenza indicata solo come anno: ${esc(p.anno_scadenza ?? 'Non indicata')}</div>
     <div>Stato registrato: ${esc(p.stato || 'Non compilato')}</div>
   </div>`);
-};
+}
 
 
 // Import di manichette, naspi ed estintori: js/21-presidi-import.js (riordino del 18/11).
