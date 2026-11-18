@@ -331,27 +331,15 @@ function avviaToccaAMe() {
   caricaToccaAMe().catch(function(e) { console.warn('Cosa tocca a me:', e); });
 }
 
-const loadDashPrimaToccaAMe = loadDash;
-loadDash = async function() {
+// Chiamate da loadDash (js/03) e loadDashRappresentante (js/13).
+function iniziaDashboardToccaAMe(conToccaAMe) {
   dashboardInCaricamento++;
-  if (ROLE !== 'rappresentante') avviaToccaAMe();
-  try {
-    return await loadDashPrimaToccaAMe.apply(this, arguments);
-  } finally {
-    dashboardInCaricamento--;
-  }
-};
+  if (conToccaAMe) avviaToccaAMe();
+}
 
-const loadDashRappresentantePrimaToccaAMe = loadDashRappresentante;
-loadDashRappresentante = async function() {
-  dashboardInCaricamento++;
-  avviaToccaAMe();
-  try {
-    return await loadDashRappresentantePrimaToccaAMe.apply(this, arguments);
-  } finally {
-    dashboardInCaricamento--;
-  }
-};
+function finisciDashboardToccaAMe() {
+  dashboardInCaricamento--;
+}
 
 // Dopo un'azione che ricarica un box riassunto, il riquadro si aggiorna
 // da solo (una volta, poco dopo). Durante il caricamento della dashboard

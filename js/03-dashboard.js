@@ -1,5 +1,21 @@
 // ── DASHBOARD ─────────────────────────────────────────────────
+// Dashboard (riordino del 18/11): controllo della sostituzione dei presidi
+// (js/51, non si aspetta), "Cosa tocca a me" (js/46, parte insieme), la
+// dashboard del ruolo, poi incassi (js/44) e RIBA e solleciti (js/45).
 async function loadDash(){
+  verificaSostituzionePresidiDisponibile().catch(function() {});
+  iniziaDashboardToccaAMe(ROLE !== 'rappresentante');
+  try {
+    const r = await disegnaDashboard();
+    try { await caricaKpiIncassi(); } catch (e) { console.warn('KPI incassi:', e); }
+    try { await caricaDashboardFattureRiba(); } catch (e) { console.warn('Dashboard RIBA e solleciti:', e); }
+    return r;
+  } finally {
+    finisciDashboardToccaAMe();
+  }
+}
+
+async function disegnaDashboard(){
   // Smistamento per ruolo: tecnico, titolare, segreteria, capo_tecnico hanno dashboard dedicate.
   var dtSec = ge('dash-tecnico');
   var ttSec = ge('dash-titolare');

@@ -905,12 +905,7 @@ async function caricaKpiIncassi() {
     htmlKpiIncassi(k, true) + (ROLE === 'contabile' ? '<div style="height:20px"></div>' : '');
 }
 
-const loadDashPrimaIncassi = loadDash;
-loadDash = async function() {
-  const r = await loadDashPrimaIncassi.apply(this, arguments);
-  try { await caricaKpiIncassi(); } catch (e) { console.warn('KPI incassi:', e); }
-  return r;
-};
+// caricaKpiIncassi la chiama loadDash (js/03).
 
 // ── Anticipo (passo 6): fattura vera accanto ai bottoni di F4.3 ─────────
 const htmlFatturaAnticipoPrimaEmissione = htmlFatturaAnticipoPreventivo;

@@ -1558,12 +1558,7 @@ async function caricaDashboardFattureRiba() {
   else if (ROLE === 'segreteria' || ROLE === 'contabile') await caricaRibaSollecitiDashboard();
 }
 
-const loadDashPrimaRiba = loadDash;
-loadDash = async function() {
-  const r = await loadDashPrimaRiba.apply(this, arguments);
-  try { await caricaDashboardFattureRiba(); } catch (e) { console.warn('Dashboard RIBA e solleciti:', e); }
-  return r;
-};
+// caricaDashboardFattureRiba la chiama loadDash (js/03).
 
 // Rappresentante: insoluti dei suoi clienti (clienti.rappresentante_id = lui;
 // le policy di sql/10 gli fanno già vedere solo quelle fatture).
@@ -1612,12 +1607,7 @@ async function caricaInsolutiRappresentante() {
   }).join('') + '</div>';
 }
 
-const loadDashRappresentantePrimaRiba = loadDashRappresentante;
-loadDashRappresentante = async function() {
-  const r = await loadDashRappresentantePrimaRiba.apply(this, arguments);
-  try { await caricaInsolutiRappresentante(); } catch (e) { console.warn('Insoluti del rappresentante:', e); }
-  return r;
-};
+// caricaInsolutiRappresentante la chiama loadDashRappresentante (js/13).
 
 // Il destinatario del sollecito scritto a mano non si sovrascrive più.
 document.addEventListener('input', function(e) {

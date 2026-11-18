@@ -5584,9 +5584,24 @@ quante insieme, in risultato.json) e SMOKE_RITARDO_MS=150 (database lento).
   segnaAuditTendinaInterventi (js/40) e preloadFromOdl = azzeraAuditSeCambia-
   Intervento → precaricaInterventoAssegnato → caricaAuditInterventoScelto
   (js/40); loadPresidi (js/07) chiama verificaSostituzionePresidiDisponibile
-  all'inizio. Restano ritoccate di proposito openM, openEditOdl e loadDash:
-  le avvolgono anche file fuori dai presidi (DDT, buono lavoro, fatture,
-  appuntamenti), da riordinare a parte. Nella fotografia l'intervento di
+  all'inizio.
+- Riordino di finestre e dashboard (18/11, fotografia test/finestre-dashboard-
+  fotografia.spec.js: dashboard dei 9 ruoli a righe ordinate, finestra di un
+  intervento esistente con audit/appuntamento/ritardo, Nuovo intervento, DDT):
+  A) openM in js/01 = dimenticaCicliDaCollegare (js/42) e, sul nuovo
+  intervento, nascondiBoxAppuntamentoOdl/nascondiBoxAuditOdl (js/41, js/40) →
+  mostraFinestra (il corpo di prima; js/14 la usa per riaprire un DDT già
+  compilato) → initDDTModal (js/14) per 'm-ddt'. B) openEditOdl in js/15 =
+  nascondi riquadri → compilaFinestraIntervento → caricaBoxAuditOdl →
+  caricaBoxAppuntamentoOdl → aggiungiRitardoFinestraIntervento (js/86).
+  C) loadDash in js/03 = verificaSostituzionePresidiDisponibile (js/51, senza
+  aspettare) → iniziaDashboardToccaAMe (js/46) → disegnaDashboard →
+  caricaKpiIncassi (js/44) → caricaDashboardFattureRiba (js/45) →
+  finisciDashboardToccaAMe; loadDashRappresentante in js/13 = iniziaDashboard-
+  ToccaAMe → disegnaDashboardRappresentante → caricaInsolutiRappresentante
+  (js/45) → finisciDashboardToccaAMe. Difetto noto, lasciato com'era: il
+  riquadro "⏰ In ritardo" (mo-ritardo) resta nella finestra Nuovo intervento
+  aperta dopo un intervento in ritardo. Nella fotografia l'intervento di
   prova con audit nasce con toli.audit_presidi e toli.appuntamento = 'si' (i
   trigger altrimenti tolgono l'audit e lo nascondono al tecnico finché la
   segreteria non fissa l'appuntamento).

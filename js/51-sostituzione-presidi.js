@@ -46,16 +46,8 @@ function sostituzionePresidiAttiva() {
   return sostituzionePresidiVerificata === true;
 }
 
-// Il controllo parte appena l'utente entra (dashboard), così le pagine
-// che disegnano i presidi sanno già se mostrare il bottone.
-(function() {
-  if (typeof loadDash !== 'function') return;
-  const loadDashPrimaSostituzione = loadDash;
-  loadDash = async function() {
-    verificaSostituzionePresidiDisponibile().catch(function() {});
-    return loadDashPrimaSostituzione.apply(this, arguments);
-  };
-})();
+// Il controllo parte appena l'utente entra (loadDash di js/03), così le
+// pagine che disegnano i presidi sanno già se mostrare il bottone.
 
 // Bottone per la pagina Presidi e la scheda cliente (js/07, js/09).
 function bottoneSostituisciPresidio(id) {

@@ -303,7 +303,20 @@ async function loadImpegniTeamAnonimi() {
 }
 
 
+// Dashboard del rappresentante (riordino del 18/11): "Cosa tocca a me" (js/46,
+// parte insieme), la dashboard, poi gli insoluti dei suoi clienti (js/45).
 async function loadDashRappresentante() {
+  iniziaDashboardToccaAMe(true);
+  try {
+    const r = await disegnaDashboardRappresentante();
+    try { await caricaInsolutiRappresentante(); } catch (e) { console.warn('Insoluti del rappresentante:', e); }
+    return r;
+  } finally {
+    finisciDashboardToccaAMe();
+  }
+}
+
+async function disegnaDashboardRappresentante() {
   ricordaPosizionePagina();
   caricaAvvisiLeadAssegnate();
   caricaAvvisiPreventiviRappresentante();
