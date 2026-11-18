@@ -11,7 +11,20 @@ async function eliminaOdl(id) {
   loadDash();
 }
 
+// Finestra di un intervento esistente (riordino del 18/11): si tolgono i
+// riquadri di prima, si compila la finestra, poi audit (js/40), appuntamento
+// (js/41), ritardo e presidi da controllare (js/86).
 async function openEditOdl(id) {
+  nascondiBoxAppuntamentoOdl();
+  nascondiBoxAuditOdl();
+  const r = await compilaFinestraIntervento(id);
+  try { await caricaBoxAuditOdl(id); } catch (e) { console.warn('caricaBoxAuditOdl:', e); }
+  try { await caricaBoxAppuntamentoOdl(id); } catch (e) { console.warn('caricaBoxAppuntamentoOdl:', e); }
+  await aggiungiRitardoFinestraIntervento(id);
+  return r;
+}
+
+async function compilaFinestraIntervento(id) {
   ricordaPosizionePagina();
   // Apri modal OdL precompilato
   var r = await db.from('ordini_lavoro').select('*,clienti(ragione_sociale)').eq('id', id).single();

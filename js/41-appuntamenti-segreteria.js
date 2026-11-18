@@ -449,14 +449,6 @@ async function impostaAppuntamentoConMotivo(odlId, richiesto, motivo) {
   await aggiornaDopoAppuntamento(odlId);
 }
 
-const openEditOdlPrimaAppuntamento = openEditOdl;
-openEditOdl = async function(id) {
-  nascondiBoxAppuntamentoOdl();
-  const r = await openEditOdlPrimaAppuntamento.apply(this, arguments);
-  try { await caricaBoxAppuntamentoOdl(id); } catch (e) { console.warn('caricaBoxAppuntamentoOdl:', e); }
-  return r;
-};
-
 
 // Salvando la finestra intervento con una data diversa da quella
 // dell'appuntamento fissato: conferma (l'appuntamento torna alla segreteria).

@@ -197,25 +197,21 @@ async function presidiPerInterventi(odls) {
   return out;
 }
 
-if (typeof openEditOdl === 'function') {
-  const openEditOdlSenzaRitardo = openEditOdl;
-  // eslint-disable-next-line no-global-assign
-  openEditOdl = async function(id) {
-    const esito = await openEditOdlSenzaRitardo.apply(this, arguments);
-    try {
-      const box = document.querySelector('#m-odl .modal');
-      const vecchio = ge('mo-ritardo');
-      if (vecchio) vecchio.remove();
-      const { data: o } = await db.from('ordini_lavoro').select('id, tipo, stato, data_pianificata, in_ritardo_il, cliente_id, sede_id').eq('id', id).maybeSingle();
-      const testo = testoRitardoIntervento(o);
-      const presidi = o ? (await presidiPerInterventi([o]))[o.id] : '';
-      const titolo = ge('modal-odl-title');
-      if (box && titolo && (testo || presidi)) titolo.insertAdjacentHTML('afterend', '<div id="mo-ritardo" style="margin:8px 0">' +
-        (testo ? '<div class="al2 w" style="margin:0 0 6px">' + esc(testo) + '</div>' : '') +
-        (presidi ? '<div class="al2 i" style="margin:0">Da controllare in questa sede: <b>' + esc(presidi) + '</b></div>' : '') + '</div>');
-    } catch (e) { console.warn('Intervento in ritardo:', e); }
-    return esito;
-  };
+// Finestra di un intervento esistente (openEditOdl di js/15): ritardo e
+// presidi da controllare nella sede, sotto il titolo.
+async function aggiungiRitardoFinestraIntervento(id) {
+  try {
+    const box = document.querySelector('#m-odl .modal');
+    const vecchio = ge('mo-ritardo');
+    if (vecchio) vecchio.remove();
+    const { data: o } = await db.from('ordini_lavoro').select('id, tipo, stato, data_pianificata, in_ritardo_il, cliente_id, sede_id').eq('id', id).maybeSingle();
+    const testo = testoRitardoIntervento(o);
+    const presidi = o ? (await presidiPerInterventi([o]))[o.id] : '';
+    const titolo = ge('modal-odl-title');
+    if (box && titolo && (testo || presidi)) titolo.insertAdjacentHTML('afterend', '<div id="mo-ritardo" style="margin:8px 0">' +
+      (testo ? '<div class="al2 w" style="margin:0 0 6px">' + esc(testo) + '</div>' : '') +
+      (presidi ? '<div class="al2 i" style="margin:0">Da controllare in questa sede: <b>' + esc(presidi) + '</b></div>' : '') + '</div>');
+  } catch (e) { console.warn('Intervento in ritardo:', e); }
 }
 
 if (typeof renderO === 'function') {

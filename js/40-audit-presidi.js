@@ -578,14 +578,6 @@ async function impostaAuditOdl(odlId, audit) {
   await caricaBoxAuditOdl(odlId);
 }
 
-const openEditOdlPrimaAudit = openEditOdl;
-openEditOdl = async function(id) {
-  nascondiBoxAuditOdl();
-  const r = await openEditOdlPrimaAudit.apply(this, arguments);
-  try { await caricaBoxAuditOdl(id); } catch (e) { console.warn('caricaBoxAuditOdl:', e); }
-  return r;
-};
-
 
 // ── Dashboard: differenze dell'audit ─────────────────────────────────────
 function contrattoSenzaNumeri(contratto) {
