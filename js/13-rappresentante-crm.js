@@ -607,6 +607,8 @@ pdf_esterno_titolare_nome,
       inviato_a_rappresentante_il,
       origine,
       progetto_tecnico_id,
+      data_scadenza,
+      sostituito_da,
       clienti!inner(
         ragione_sociale,
         rappresentante_id
@@ -670,6 +672,7 @@ pdf_esterno_titolare_nome,
             <div style="font-size:12px;color:var(--m);margin-top:4px">
               ${preventivo.origine === 'lavoro_extra_rappresentante' ? 'Preventivo integrativo preparato da te il' : 'Inviato da Acquisti il'} ${esc(dataInvio)}
             </div>
+            ${preventivo.data_scadenza ? `<div style="font-size:12px;color:var(--m);margin-top:4px">Valido fino al ${esc(fd(preventivo.data_scadenza))} ${bollinoScadenzaPreventivo(preventivo)}</div>` : ''}
           </div>
 
           <span class="bx bok">Pronto per il cliente</span>
@@ -1115,6 +1118,8 @@ async function loadPreventiviTitolare() {
       inviato_a_titolare_il,
       inviato_a_rappresentante_il,
       aggiornato_il,
+      data_scadenza,
+      sostituito_da,
       clienti(ragione_sociale)
     `)
     .order('numero', { ascending: false });
@@ -1158,6 +1163,7 @@ async function loadPreventiviTitolare() {
               ${inviato ? 'Inviato al rappresentante il ' : 'Aggiornato il '}
               ${esc(dataTesto)}
             </div>
+            ${bollinoScadenzaPreventivo(preventivo) ? `<div style="margin-top:6px">${bollinoScadenzaPreventivo(preventivo)}</div>` : ''}
           </div>
 
           <span class="bx ${inviato ? 'bok' : 'bblue'}">

@@ -111,6 +111,7 @@ async function openPreventivoDetail(preventivoId) {
       )}
       ${ir('IVA', (preventivo.iva_perc ?? 22) + '%')}
     </div>
+    ${bollinoScadenzaPreventivo(preventivo) ? '<div id="pvd-scadenza" style="margin-top:8px">' + bollinoScadenzaPreventivo(preventivo) + '</div>' : ''}
 
     <div class="card" style="margin-top:16px">
       <div style="font-size:14px;font-weight:700">
@@ -693,4 +694,28 @@ function valoreSchedaTecnica(valore, campo, famiglia) {
     .replace(/\b\w/g, function(lettera) {
       return lettera.toUpperCase();
     });
+}
+
+// ── F18.1 "solo avviso" (decisione di Erika, 18/11) ─────────────────────
+// Nessun passo nuovo e nessun cambio di stato: con la data di validità che
+// c'è già (preventivi.data_scadenza) un preventivo ancora senza esito ha
+// "⏳ Scade tra N giorni" negli ultimi 5 giorni e "⏰ Scaduto il …" dopo.
+// Il promemoria al rappresentante è in Cosa tocca a me (js/46).
+const STATI_PREVENTIVO_SENZA_ESITO = ['bozza', 'in_attesa_approvazione', 'approvato', 'inviato', 'inviato_a_rappresentante'];
+const GIORNI_AVVISO_SCADENZA_PREVENTIVO = 5;
+
+function scadenzaPreventivo(p) {
+  if (!p || !p.data_scadenza || p.sostituito_da) return null;
+  if (!STATI_PREVENTIVO_SENZA_ESITO.includes(p.stato || 'bozza')) return null;
+  const giorni = giorniTraISO(dataLocaleISO(), p.data_scadenza);
+  if (giorni < 0) return { codice: 'scaduto', testo: '⏰ Scaduto il ' + fd(String(p.data_scadenza).slice(0, 10)) };
+  if (giorni <= GIORNI_AVVISO_SCADENZA_PREVENTIVO) {
+    return { codice: 'in_scadenza', testo: giorni === 0 ? '⏳ Scade oggi' : '⏳ Scade tra ' + giorni + (giorni === 1 ? ' giorno' : ' giorni') };
+  }
+  return null;
+}
+
+function bollinoScadenzaPreventivo(p) {
+  const s = scadenzaPreventivo(p);
+  return s ? '<span class="bx ' + (s.codice === 'scaduto' ? 'berr' : 'bwarn') + '">' + esc(s.testo) + '</span>' : '';
 }

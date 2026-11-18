@@ -134,6 +134,17 @@ stato: aggancio per F4.2, 'in_attesa_anticipo'). Il trigger della soglia
 sopra 3.000 € l'esito lo registra il titolare finché Toli non decide su
 sql/23-soglia-3k-solo-importo (proposta). Pagina I miei preventivi
 (js/13) e scheda preventivo (js/18, `cardEsitoPreventivo`).
+F18.1 "solo avviso" (decisione di Erika, fatto il 18/11, nessun SQL; il
+resto di F18.1, cioè stato inviato_cliente, scaduto automatico, superato,
+tipo commessa, motivo da lista, NON fatto): con preventivi.data_scadenza
+(c'è in tutti) un preventivo senza esito (STATI_PREVENTIVO_SENZA_ESITO, non
+sostituito) ha "⏳ Scade tra N giorni" negli ultimi 5 giorni e "⏰ Scaduto
+il …" dopo (scadenzaPreventivo / bollinoScadenzaPreventivo in js/18): in I
+miei preventivi (con "Valido fino al"), nelle liste del titolare (js/13) e
+sotto il riepilogo della scheda (#pvd-scadenza). Il rappresentante ha la
+riga "Preventivi in scadenza o scaduti" in Cosa tocca a me (js/46,
+preventivi-in-scadenza, rossa se ce n'è uno scaduto). Lo stato non cambia.
+Guida info-rap-40. Prova test/scadenza-preventivo.spec.js.
 
 Passi 5-6, anticipo (F4.2, sql/24-anticipo-preventivo da eseguire dopo
 22 e 23): colonne `preventivi.anticipo_richiesto` (sì/no, vuoto = non

@@ -467,6 +467,27 @@ registraFonteToccaAMe({
   }
 });
 
+// F18.1 "solo avviso" (18/11): validità entro 5 giorni o già passata
+// (scadenzaPreventivo di js/18); lo stato non cambia, l'esito si dà come oggi.
+registraFonteToccaAMe({
+  id: 'preventivi-in-scadenza', ruoli: ['rappresentante'], icona: '⏰',
+  titolo: 'Preventivi in scadenza o scaduti: chiedi l\'esito al cliente',
+  vai: { pagina: 'preventivi-rapp' },
+  conta: async function() {
+    const limite = aggiungiGiorniISO(dataLocaleISO(), GIORNI_AVVISO_SCADENZA_PREVENTIVO);
+    const { data, error } = await db.from('preventivi')
+      .select('id, stato, data_scadenza, sostituito_da, clienti!inner(rappresentante_id)')
+      .eq('stato', 'inviato_a_rappresentante').eq('clienti.rappresentante_id', ME.id)
+      // come la pagina I miei preventivi (js/13): solo quelli con il PDF per il cliente
+      .or('preventivo_cliente_pdf_path.not.is.null,pdf_esterno_titolare_path.not.is.null')
+      .not('data_scadenza', 'is', null).lte('data_scadenza', limite).limit(2000);
+    if (error) { console.warn('Cosa tocca a me (preventivi in scadenza):', error.message); return null; }
+    const righe = (data || []).map(scadenzaPreventivo).filter(Boolean);
+    const scaduti = righe.filter(function(r) { return r.codice === 'scaduto'; }).length;
+    return { n: righe.length, nota: scaduti ? scaduti + (scaduti === 1 ? ' già scaduto' : ' già scaduti') : '', livello: scaduti ? 'urgente' : '' };
+  }
+});
+
 registraFonteToccaAMe({
   id: 'anticipi-rappresentante', ruoli: ['rappresentante'], icona: '⏳',
   titolo: 'Anticipi da ricordare al cliente',
