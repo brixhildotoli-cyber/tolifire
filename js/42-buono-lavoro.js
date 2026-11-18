@@ -1027,11 +1027,10 @@ creaOdlDaCiclo = async function(cliId, meseAnno) {
   return r;
 };
 
-const openMPrimaBuono = openM;
-openM = function(id) {
-  if (id === 'm-odl') collegaCicliDopoSalvataggio = null; // creaOdlDaCiclo lo rimette dopo l'apertura
-  return openMPrimaBuono.apply(this, arguments);
-};
+// Aprendo la finestra intervento (openM di js/01).
+function dimenticaCicliDaCollegare() {
+  collegaCicliDopoSalvataggio = null; // creaOdlDaCiclo lo rimette dopo l'apertura
+}
 
 const saveOdlPrimaBuono = saveOdl;
 saveOdl = async function() {

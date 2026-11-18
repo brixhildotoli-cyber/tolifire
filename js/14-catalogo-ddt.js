@@ -15,15 +15,7 @@ function canSeePrezzi() {
   return RUOLI_PREZZI.indexOf(ROLE) !== -1;
 }
 
-// Aggiorna openM per DDT
-var _origOpenM = openM;
-openM = function(id) {
-  _origOpenM(id);
-  if(id === 'm-ddt') {
-    initDDTModal();
-  }
-};
-
+// openM (js/01) chiama initDDTModal aprendo 'm-ddt'.
 async function initDDTModal() {
   // Popola clienti
   var sel = ge('ddt-cli');
@@ -290,7 +282,7 @@ async function modificaDDT(ddtId) {
   });
 
   renderRigheDDT();
-  _origOpenM('m-ddt');
+  mostraFinestra('m-ddt'); // DDT già compilato: senza initDDTModal
 }
 
 async function saveDdt() {

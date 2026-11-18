@@ -586,11 +586,6 @@ openEditOdl = async function(id) {
   return r;
 };
 
-const openMPrimaAudit = openM;
-openM = function(id) {
-  if (id === 'm-odl' && !((ge('mcli-odl-id') || {}).value)) nascondiBoxAuditOdl();
-  return openMPrimaAudit.apply(this, arguments);
-};
 
 // ── Dashboard: differenze dell'audit ─────────────────────────────────────
 function contrattoSenzaNumeri(contratto) {

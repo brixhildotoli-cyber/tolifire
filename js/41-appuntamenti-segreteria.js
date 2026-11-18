@@ -457,11 +457,6 @@ openEditOdl = async function(id) {
   return r;
 };
 
-const openMPrimaAppuntamento = openM;
-openM = function(id) {
-  if (id === 'm-odl' && !((ge('mcli-odl-id') || {}).value)) nascondiBoxAppuntamentoOdl();
-  return openMPrimaAppuntamento.apply(this, arguments);
-};
 
 // Salvando la finestra intervento con una data diversa da quella
 // dell'appuntamento fissato: conferma (l'appuntamento torna alla segreteria).

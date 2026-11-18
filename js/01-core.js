@@ -676,7 +676,18 @@ function listaCorta(righe,quante){
 function softDel(tabella){
   return db.from(tabella).update({ eliminato_il: new Date().toISOString(), eliminato_da: ME?.id || null });
 }
+// Apertura di una finestra (riordino del 18/11): per la finestra intervento
+// prima si tolgono i riquadri di un intervento aperto prima (js/40, js/41,
+// js/42), poi si mostra; la finestra DDT si prepara dopo (js/14).
 function openM(id){
+  if(id==='m-odl'){
+    dimenticaCicliDaCollegare(); // js/42: creaOdlDaCiclo lo rimette dopo l'apertura
+    if(!((ge('mcli-odl-id')||{}).value)){ nascondiBoxAppuntamentoOdl(); nascondiBoxAuditOdl(); }
+  }
+  mostraFinestra(id);
+  if(id==='m-ddt') initDDTModal();
+}
+function mostraFinestra(id){
   if(id==='m-odl') {
     var editId = ge('mcli-odl-id');
     if(!editId || !editId.value) {
