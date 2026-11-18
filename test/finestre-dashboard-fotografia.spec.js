@@ -348,7 +348,8 @@ async function finestra(s) {
         pagina: (document.querySelector('.page.on') || {}).id || null,
         in_caricamento: typeof dashboardInCaricamento === 'undefined' ? 'assente' : dashboardInCaricamento,
         sostituzione_verificata: typeof sostituzionePresidiVerificata === 'undefined' ? 'assente' : sostituzionePresidiVerificata,
-        testo: (document.querySelector('.page.on') || {}).textContent || null
+        // Righe ordinate: nelle liste gli elementi con la stessa data arrivano dal database in ordine variabile.
+        righe: ((document.querySelector('.page.on') || {}).innerText || '').split('\n').map(r => r.trim()).filter(Boolean).sort()
       })));
       if (['titolare', 'capo_tecnico', 'segreteria'].includes(ruolo)) {
         const f = {};
