@@ -142,6 +142,7 @@ function resetPF() {
     if (el) el.value = '';
   });
 
+  document.querySelectorAll('#me3 option[data-fuori-elenco]').forEach(function(o) { o.remove(); });
   if (ge('me3')) ge('me3').value = 'polvere_abc';
   if (ge('me4')) ge('me4').value = '6kg';
   if (ge('me13')) ge('me13').value = 'ok';
@@ -387,7 +388,9 @@ function editP(id) {
   } else {
     ge('me1').value = p.matricola || '';
     ge('me2').value = p.marca || '';
-    ge('me3').value = p.modello || 'polvere_abc';
+    // Agente/modello fuori elenco (es. "P6", "C5" dagli import): si aggiunge
+    // al menu, così salvando non si cancella (prima diventava vuoto: 18/11)
+    impostaValoreFuoriElenco('me3', p.modello || 'polvere_abc');
     // F10.2 — prima editP leggeva la capacità dalla marca e saveP la scriveva
     // nella marca (la marca vera si perdeva). Con sql/52 la capacità ha la
     // sua colonna (impianti.capacita); senza, il select si precompila solo
@@ -418,10 +421,30 @@ async function capacitaEstintoriDisponibile() {
   return capacitaEstintoriVerificata;
 }
 
+// Mette nel menu un valore salvato che non è tra le voci (testo così com'è).
+function impostaValoreFuoriElenco(idSelect, valore) {
+  const sel = ge(idSelect);
+  if (!sel) return;
+  const testo = String(valore == null ? '' : valore);
+  if (testo && ![...sel.options].some(function(o) { return o.value === testo; })) {
+    const opt = document.createElement('option');
+    opt.value = testo;
+    opt.textContent = testo;
+    opt.dataset.fuoriElenco = '1';
+    sel.appendChild(opt);
+  }
+  sel.value = testo;
+}
+
 function impostaCapacitaEstintore(valore) {
   const sel = ge('me4');
   if (!sel) return;
-  const pulito = String(valore || '').toLowerCase().replace(/\s+/g, '');
+  let pulito = String(valore || '').toLowerCase().replace(/\s+/g, '');
+  // Solo una capacità vera (6kg, 2,5kg, 50lt), come vuole il database
+  // (impianti_capacita_check). Prima una marca (es. "Bettati", ripresa da
+  // editP quando la capacità è vuota) finiva qui e il salvataggio dava errore
+  // (trovato dalla prova a fotografia dei presidi, 18/11).
+  if (pulito && !/^[0-9]+([.,][0-9]+)?(kg|lt)$/.test(pulito)) pulito = '';
   if (pulito && ![...sel.options].some(function(o) { return o.value === pulito; })) {
     // valore fuori elenco (es. 2,5kg): si aggiunge, così non si perde salvando
     const opt = document.createElement('option');

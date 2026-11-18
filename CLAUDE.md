@@ -5526,6 +5526,17 @@ quante insieme, in risultato.json) e SMOKE_RITARDO_MS=150 (database lento).
     con una sola sezione "👷 Team tecnico: chi è impegnato", riga "Debug"
     tolta (js/05). NON fatto (Erika): le tessere dei numeri del titolare.
   - Il ruolo contabile non c'è in azienda: non serve sistemarne la dashboard.
+- Presidi, riordino dal 18/11: rete di sicurezza test/presidi-fotografia.spec.js
+  (prova "a fotografia": import estintori/manichette/naspi/porte, reimport,
+  viste cartelle/tabella/scadenze, schede, modifica e salvataggio, nuovo
+  controllo, tecnico; data del browser fissa 18/11/2026; confronta con
+  test/fotografie/presidi.json). Dopo ogni passo del riordino deve dire
+  "uguale alla fotografia"; si rifà (FOTOGRAFIA=nuova) SOLO per un
+  cambiamento voluto. Bug trovati e corretti il 18/11 (js/07): la modifica
+  di un estintore senza capacità metteva la marca nel campo capacità
+  (errore impianti_capacita_check, salvataggio impossibile); il modello
+  fuori elenco (P6, C5, S6: 100 estintori su 101 in produzione) si
+  cancellava salvando (impostaValoreFuoriElenco).
 - js/18 diviso (riordino del 17/11, codice spostato così com'era, stesso
   ordine di caricamento): 18-preventivi (scheda del preventivo, Rimanda
   indietro, campi delle schede tecniche), 18a-schede-rilievo, 18b-fornitori-
