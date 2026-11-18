@@ -197,13 +197,19 @@ async function presidiPerInterventi(odls) {
   return out;
 }
 
+// Nuovo intervento (openM di js/01): niente riquadro dell'intervento aperto
+// prima (fino al 18/11 restava "⏰ In ritardo" di quello).
+function togliRitardoFinestraIntervento() {
+  const vecchio = ge('mo-ritardo');
+  if (vecchio) vecchio.remove();
+}
+
 // Finestra di un intervento esistente (openEditOdl di js/15): ritardo e
 // presidi da controllare nella sede, sotto il titolo.
 async function aggiungiRitardoFinestraIntervento(id) {
   try {
     const box = document.querySelector('#m-odl .modal');
-    const vecchio = ge('mo-ritardo');
-    if (vecchio) vecchio.remove();
+    togliRitardoFinestraIntervento();
     const { data: o } = await db.from('ordini_lavoro').select('id, tipo, stato, data_pianificata, in_ritardo_il, cliente_id, sede_id').eq('id', id).maybeSingle();
     const testo = testoRitardoIntervento(o);
     const presidi = o ? (await presidiPerInterventi([o]))[o.id] : '';

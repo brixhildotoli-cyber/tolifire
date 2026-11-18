@@ -682,7 +682,7 @@ function softDel(tabella){
 function openM(id){
   if(id==='m-odl'){
     dimenticaCicliDaCollegare(); // js/42: creaOdlDaCiclo lo rimette dopo l'apertura
-    if(!((ge('mcli-odl-id')||{}).value)){ nascondiBoxAppuntamentoOdl(); nascondiBoxAuditOdl(); }
+    if(!((ge('mcli-odl-id')||{}).value)){ nascondiBoxAppuntamentoOdl(); nascondiBoxAuditOdl(); togliRitardoFinestraIntervento(); }
   }
   mostraFinestra(id);
   if(id==='m-ddt') initDDTModal();

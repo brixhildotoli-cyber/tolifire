@@ -5599,9 +5599,10 @@ quante insieme, in risultato.json) e SMOKE_RITARDO_MS=150 (database lento).
   caricaKpiIncassi (js/44) → caricaDashboardFattureRiba (js/45) →
   finisciDashboardToccaAMe; loadDashRappresentante in js/13 = iniziaDashboard-
   ToccaAMe → disegnaDashboardRappresentante → caricaInsolutiRappresentante
-  (js/45) → finisciDashboardToccaAMe. Difetto noto, lasciato com'era: il
-  riquadro "⏰ In ritardo" (mo-ritardo) resta nella finestra Nuovo intervento
-  aperta dopo un intervento in ritardo. Nella fotografia l'intervento di
+  (js/45) → finisciDashboardToccaAMe. Dopo il riordino (decisione di
+  Erika del 18/11): sul Nuovo intervento openM toglie anche il riquadro
+  "⏰ In ritardo" (togliRitardoFinestraIntervento, js/86), che prima restava
+  quello dell'intervento aperto prima. Nella fotografia l'intervento di
   prova con audit nasce con toli.audit_presidi e toli.appuntamento = 'si' (i
   trigger altrimenti tolgono l'audit e lo nascondono al tecnico finché la
   segreteria non fissa l'appuntamento).
