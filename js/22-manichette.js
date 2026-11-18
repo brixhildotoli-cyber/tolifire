@@ -117,10 +117,10 @@ saveP = async function() {
   finally { salvataggioManichetta = false; }
 };
 
+// Anteprima dell'import: aggiustamenti per tipo (riordino del 18/11: prima erano
+// tre ritocchi di preparaImportPresidi in fila, ora uno solo in fondo al file).
 // L'anno e i campi non compilati del CSV vengono conservati anche nello snapshot storico.
-const preparaImportPresidiPrimaManichette = preparaImportPresidi;
-preparaImportPresidi = async function(testo) {
-  await preparaImportPresidiPrimaManichette(testo);
+function sistemaManichetteImportPresidi() {
   righeImportPresidi.forEach(r => {
     if (!r.valido || r.payload?.tipo !== 'manichetta') return;
     try {
@@ -141,8 +141,7 @@ if (statoDocumento) {
       if (!String(r.stato || '').trim() && !String(r.esito_verifica || '').trim()) r.payload.stato = null;
     } catch(e) { r.valido=false;r.messaggio=e.message; }
   });
-  renderAnteprimaImportPresidi();
-};
+}
 const apriSchedaPresidioPrimaManichette = apriSchedaPresidio;
 apriSchedaPresidio = async function(id) {
   await apriSchedaPresidioPrimaManichette(id);
@@ -177,11 +176,11 @@ leggiFileImportPresidi = async function(input) {
   } catch(e) {toast('Errore CSV: '+e.message,'err');}
 };
 
-const confermaImportPrimaManichette = confermaImportPresidi;
-confermaImportPresidi = async function() {
+// Conferma delle manichette (schede_manichette, semestre di riferimento chiesto).
+async function confermaManichetteImportPresidi() {
   const righe = righeImportPresidi.filter(r => r.valido);
   if (!righe.length) {toast('Nessuna riga valida.','err');return;}
-  if (!righe.some(r => r.payload.tipo === 'manichetta')) return confermaImportPrimaManichette();
+  if (!righe.some(r => r.payload.tipo === 'manichetta')) return confermaImportPresidiBase();
   if (!righe.every(r => r.payload.tipo === 'manichetta')) {toast('Importa le manichette in un CSV separato dagli altri presidi.','err');return;}
   if (!gestisceStoricoPresidi()) {toast('Importazione riservata a capo tecnico e titolare.','err');return;}
   const cliente = ge('import-presidi-cliente')?.selectedOptions?.[0]?.textContent || '';
@@ -223,12 +222,9 @@ dati: r.datiSchedaManichetta
     toast(errori.length ? 'Importazione con errori: leggi il riepilogo.' : 'Manichette importate nel semestre scelto.',errori.length ? 'err':'ok');
     await loadPresidi();
   } finally {bottone.disabled=false;}
-};
-const preparaImportPresidiPrimaNaspi = preparaImportPresidi;
-
-preparaImportPresidi = async function(testo) {
-  await preparaImportPresidiPrimaNaspi(testo);
-
+}
+// Naspi: anno di scadenza; senza manutenzione nel periodo "Non assegnato".
+function sistemaNaspiImportPresidi() {
   righeImportPresidi.forEach(function(riga) {
     if (!riga.valido || riga.payload?.tipo !== 'naspo') return;
 
@@ -260,13 +256,10 @@ preparaImportPresidi = async function(testo) {
         'Nessuna manutenzione indicata: inserito nel periodo Non assegnato';
     }
   });
+}
 
-  renderAnteprimaImportPresidi();
-};
-
-const confermaImportPresidiPrimaNaspi = confermaImportPresidi;
-
-confermaImportPresidi = async function() {
+// Conferma dei soli naspi "Non assegnato": solo anagrafica, nessuna scheda.
+async function confermaNaspiNonAssegnatiImportPresidi() {
   const valide = righeImportPresidi.filter(function(riga) {
     return riga.valido;
   });
@@ -281,7 +274,7 @@ confermaImportPresidi = async function() {
     });
 
   if (!soloNaspiNonAssegnati) {
-    return confermaImportPresidiPrimaNaspi();
+    return confermaManichetteImportPresidi();
   }
 
   if (!gestisceStoricoPresidi()) {
@@ -337,7 +330,7 @@ confermaImportPresidi = async function() {
 
   await loadPresidi();
 
-};
+}
 // ── Estintori: import nelle normali schede semestrali ──
 
 function annoDaCsvEstintore(valore, etichetta) {
@@ -352,11 +345,8 @@ function annoDaCsvEstintore(valore, etichetta) {
   return Number(testo);
 }
 
-const preparaImportPresidiPrimaEstintori = preparaImportPresidi;
-
-preparaImportPresidi = async function(testo) {
-  await preparaImportPresidiPrimaEstintori(testo);
-
+// Estintori in sola anagrafica (anni di revisione/collaudo, mese): scheda semestre senza controllo.
+function sistemaEstintoriImportPresidi() {
   righeImportPresidi.forEach(function(riga) {
     const eAnagraficaEstintore =
       riga.valido &&
@@ -412,6 +402,21 @@ preparaImportPresidi = async function(testo) {
       riga.messaggio = errore.message;
     }
   });
+}
 
+// ── Un solo ritocco per ciascuna funzione dell'import (riordino del 18/11) ──
+// preparaImportPresidi di js/21 + aggiustamenti per tipo, poi un solo ridisegno;
+// confermaImportPresidi di js/20 per tutto il resto, prima i casi speciali
+// (naspi non assegnati, poi manichette), nello stesso ordine di prima.
+const preparaImportPresidiBase = preparaImportPresidi;
+preparaImportPresidi = async function(testo) {
+  await preparaImportPresidiBase(testo);
+  sistemaManichetteImportPresidi();
+  sistemaNaspiImportPresidi();
+  sistemaEstintoriImportPresidi();
   renderAnteprimaImportPresidi();
+};
+const confermaImportPresidiBase = confermaImportPresidi;
+confermaImportPresidi = async function() {
+  return confermaNaspiNonAssegnatiImportPresidi();
 };
