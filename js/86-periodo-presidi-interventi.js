@@ -108,19 +108,15 @@ async function leggiStoricoPeriodoMolti(ids) {
   return true;
 }
 
-if (typeof renderPC === 'function') {
-  const renderPCSenzaStorico = renderPC;
-  // eslint-disable-next-line no-global-assign
-  renderPC = function(data) {
-    const esito = renderPCSenzaStorico.apply(this, arguments);
-    const ids = (data || []).filter(function(p) { return p.tipo !== 'estintore'; }).map(function(p) { return p.id; });
-    if (ids.length) {
-      leggiStoricoPeriodoMolti(ids).then(function(letti) {
-        if (letti && ge('pcards')) renderPCSenzaStorico.call(this, data);
-      }).catch(function(e) { console.warn('Storico dei presidi:', e); });
-    }
-    return esito;
-  };
+// Chiamata da renderPC (js/09): periodicità di porte, naspi e manichette dallo
+// storico; quando arriva, le cartelle si ridisegnano (senza rileggerla di nuovo).
+function rileggiPeriodoCartelle(data) {
+  const ids = (data || []).filter(function(p) { return p.tipo !== 'estintore'; }).map(function(p) { return p.id; });
+  if (ids.length) {
+    leggiStoricoPeriodoMolti(ids).then(function(letti) {
+      if (letti && ge('pcards')) disegnaCartelleConStorico(data);
+    }).catch(function(e) { console.warn('Storico dei presidi:', e); });
+  }
 }
 
 // leggiStoricoPeriodo è il passo 1 di apriSchedaPresidio (js/07, riordino del 18/11).

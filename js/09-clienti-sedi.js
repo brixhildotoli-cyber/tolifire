@@ -434,7 +434,25 @@ if (btnNuovoCliente) {
   renderC(CLIS);
 }
 
+// Vista a cartelle dei presidi (riordino del 18/11, passo 4): prima js/23, js/25
+// e js/86 ritoccavano renderPC a catena; ora i passi sono scritti qui:
+//  - disegnaCartelleConStorico (js/25): legge lo storico, mette ogni presidio
+//    nei periodi delle sue schede e chiama disegnaCartelleEElimina =
+//    disegnaCartellePresidi (qui sotto) + aggiungiEliminaTuttoCartelle (js/23);
+//  - rileggiPeriodoCartelle (js/86): legge la periodicità di porte, naspi e
+//    manichette e, se la trova, ridisegna con disegnaCartelleConStorico.
 function renderPC(data) {
+  const esito = disegnaCartelleConStorico(data);
+  rileggiPeriodoCartelle(data);
+  return esito;
+}
+
+function disegnaCartelleEElimina(data) {
+  disegnaCartellePresidi(data);
+  aggiungiEliminaTuttoCartelle(data);
+}
+
+function disegnaCartellePresidi(data) {
 
   const w = ge('pcards');
 

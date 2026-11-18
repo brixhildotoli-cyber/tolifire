@@ -1,9 +1,9 @@
 // Dopo gli altri script dei presidi, prima di 19-init.js.
-const renderPCPrimaEliminaTutto = renderPC;
 let eliminazioneSottosezione = false;
 
-renderPC = function(data) {
-  renderPCPrimaEliminaTutto(data);
+// "🗑 Elimina tutto (N)" nelle cartelle del tipo e dell'ubicazione, per titolare e
+// capo tecnico. Chiamata da disegnaCartelleEElimina (js/09) dopo il disegno.
+function aggiungiEliminaTuttoCartelle(data) {
   if (!['titolare','capo_tecnico'].includes(ROLE)) return;
   const perId = new Map(data.map(p => [String(p.id),p]));
   document.querySelectorAll('#pcards details[data-cartella]').forEach(cartella => {
@@ -34,7 +34,7 @@ renderPC = function(data) {
 
     summary.appendChild(btn);
   });
-};
+}
 
 async function eliminaPresidiSottosezione(btn,presidi,nome) {
   if (!['titolare','capo_tecnico'].includes(ROLE)) {toast('Non hai i permessi.','err');return;}

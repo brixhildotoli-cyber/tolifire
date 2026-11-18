@@ -107,8 +107,8 @@ renderPS=async function(data) {
 };
 // Riutilizza la struttura attuale delle cartelle, con l'ultima scheda di ogni periodo.
 let versioneCartelleStoriche=0;
-const renderCartellePrimaNuovoControllo=renderPC;
-renderPC=async function(data) {
+// Chiamata da renderPC (js/09): storico → elenco per periodo → disegnaCartelleEElimina.
+async function disegnaCartelleConStorico(data) {
   const versione=++versioneCartelleStoriche;
   const box=ge('pcards');if(!box)return;
   try {
@@ -131,9 +131,9 @@ renderPC=async function(data) {
       for(const s of periodi.values())elenco.push({...p,...s.dati,id:p.id,clienti:p.clienti,sede_label:p.sede_label,
         anno_manutenzione:s.anno||s.dati.riferimento_anno,ciclo_manutenzione:s.ciclo||s.dati.riferimento_ciclo});
     }
-    renderCartellePrimaNuovoControllo(elenco);
-  }catch(e){if(versione===versioneCartelleStoriche){renderCartellePrimaNuovoControllo(data);toast('Vista storico non aggiornata: '+e.message,'err');}}
-};
+    disegnaCartelleEElimina(elenco);
+  }catch(e){if(versione===versioneCartelleStoriche){disegnaCartelleEElimina(data);toast('Vista storico non aggiornata: '+e.message,'err');}}
+}
 
 function confrontaDatiControllo(valore) {
   if(Array.isArray(valore))return '['+valore.map(confrontaDatiControllo).join(',')+']';
