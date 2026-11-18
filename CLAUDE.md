@@ -5537,6 +5537,14 @@ quante insieme, in risultato.json) e SMOKE_RITARDO_MS=150 (database lento).
   (errore impianti_capacita_check, salvataggio impossibile); il modello
   fuori elenco (P6, C5, S6: 100 estintori su 101 in produzione) si
   cancellava salvando (impostaValoreFuoriElenco).
+  Passo 1: in js/22 un solo ritocco di prepara/confermaImportPresidi.
+  Passo 2: tutto l'import in js/21-presidi-import.js (prima in 07, 20, 21,
+  22), ogni funzione scritta una volta: apriImportPresidi (+
+  apriImportPresidiFinestra), leggiFileImportPresidi (+ ...Semestre),
+  preparaImportPresidi (= preparaImportPresidiPerSede + sistema*ImportPresidi
+  per manichette/naspi/estintori), confermaImportPresidi (naspi non
+  assegnati → manichette → confermaImportPresidiNormale). js/68 avvolge
+  ancora apriImportPresidi per il tecnico.
 - js/18 diviso (riordino del 17/11, codice spostato così com'era, stesso
   ordine di caricamento): 18-preventivi (scheda del preventivo, Rimanda
   indietro, campi delle schede tecniche), 18a-schede-rilievo, 18b-fornitori-

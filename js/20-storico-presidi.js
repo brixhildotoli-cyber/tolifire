@@ -316,63 +316,7 @@ async function salvaSchedaPresidio(indice, riporta) {
   finally { if (bottone.isConnected) bottone.disabled = false; }
 }
 
-// Sostituisce la conferma CSV: gli impianti esistenti NON vengono aggiornati.
-confermaImportPresidi = async function() {
-  if (!gestisceStoricoPresidi()) { toast('Importazione riservata a titolare e capo tecnico.','err'); return; }
-  const valide = righeImportPresidi.filter(r => r.valido);
-  if (!valide.length) { toast('Nessuna riga valida.','err'); return; }
-  const ciclo = valide[0].payload.ciclo_manutenzione;
-  if (!['gennaio_luglio','febbraio_agosto'].includes(ciclo)) { toast('Ciclo non valido.','err'); return; }
-  const mesi = ciclo === 'gennaio_luglio' ? [1,7] : [2,8];
-  const suggerito = '1';
-  const risposta = prompt(`Gruppo ${nomeCicloScheda(ciclo)}. Semestre di riferimento delle schede: 1 oppure 2. La data della verifica resta quella del CSV.`,suggerito);
-  if (risposta === null) return;
-  const semestre = Number(risposta);
-  if (![1,2].includes(semestre)) { toast('Scegli semestre 1 oppure 2.','err'); return; }
-  const mese = mesi[semestre - 1];
-  const clienteDest = ge('import-presidi-cliente')?.selectedOptions?.[0]?.textContent || '';
-  const sedeDest = ge('import-presidi-sede')?.selectedOptions?.[0]?.textContent || '';
-  if (!confirm(`${clienteDest}${sedeDest ? ' → '+sedeDest : ''}\nImportare ${valide.length} schede nel ${semestre}° semestre, gruppo ${nomeCicloScheda(ciclo)}? I periodi già presenti verranno saltati, senza sovrascriverli.`)) return;
-  const bottone = ge('import-presidi-conferma');
-  if (bottone.disabled) return;
-  bottone.disabled = true;
-  let inserite = 0, saltate = 0;
-  const errori = [];
-  const creati = new Map();
-  try {
-    for (const r of valide) {
-      try {
-        let id = r.presidioEsistenteId;
-                const chiave = JSON.stringify([
-          r.payload.cliente_id,
-          r.payload.sede_id || '',
-          r.payload.tipo,
-          pulisciImportPresidi(r.payload.matricola),
-          pulisciImportPresidi(r.payload.numero_progressivo),
-          pulisciImportPresidi(r.payload.ubicazione)
-        ]);
-        if (!id) id = creati.get(chiave);
-        if (!id) {
-          const {data,error} = await db.from('impianti').insert(r.payload).select('id').single();
-          if (error) throw error;
-          id = data.id; creati.set(chiave,id);
-          // Consente di riprovare questa anteprima senza ricreare il presidio.
-          r.presidioEsistenteId = id;
-        }
-        const {error} = await db.from('schede_presidi').insert({
-          impianto_id:id, anno:Number(r.payload.anno_manutenzione), mese,
-          ciclo:r.payload.ciclo_manutenzione, dati:r.payload
-        });
-        if (error?.code === '23505') { saltate++; continue; }
-        if (error) throw error;
-        inserite++;
-      } catch (e) { errori.push(`Riga ${r.numeroRiga}: ${e.message}`); }
-    }
-    ge('import-presidi-riepilogo').textContent = `Schede inserite: ${inserite}. Periodi già presenti: ${saltate}. ${errori.join(' · ')}`;
-    toast(errori.length ? 'Importazione con errori: leggi il riepilogo.' : 'Importazione completata.',errori.length ? 'err' : 'ok');
-    await loadPresidi();
-  } finally { bottone.disabled = false; }
-};
+// confermaImportPresidi: js/21-presidi-import.js (riordino del 18/11).
 
 
 async function registraSchedaGiaCaricata() {
