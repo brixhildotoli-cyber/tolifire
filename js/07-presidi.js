@@ -89,6 +89,7 @@ function filterP(){
   (p.sede_label || '').toLowerCase().includes(q)
 )&&(!t||p.tipo===t)&&(!s||p.stato===s)&&(!c||(p.clienti?.ragione_sociale||'')===c));
   renderPC(PF);renderPT(PF);
+  renderPS(PF); // tab Scadenze (js/24; riordino del 18/11: prima ritocco di filterP)
 }
 
 function renderPT(data){

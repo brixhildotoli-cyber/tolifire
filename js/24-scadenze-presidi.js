@@ -20,17 +20,17 @@ function chiediRiferimentoManichette() {
   }
   return {riferimento_anno:Number(anno),riferimento_ciclo:ciclo==='1'?'gennaio_luglio':'febbraio_agosto',riferimento_semestre:Number(semestre)};
 }
-const periodoPrimaScadenze=periodoScheda;
-periodoScheda=function(s) {
-  if(s.dati?.tipo!=='manichetta')return periodoPrimaScadenze(s);
+// Passi delle funzioni dello storico di js/20 (riordino del 18/11: prima erano
+// ritocchi a catena di periodoScheda, mostraStoricoPresidio,
+// apriEditorSchedaPresidio, salvaSchedaPresidio, registraSchedaGiaCaricata,
+// caricaStoricoPresidio e filterP).
+function periodoSchedaManichetta(s) {
   const d=s.dati;
   return d.riferimento_anno && d.riferimento_semestre
     ? `${nomeCicloScheda(d.riferimento_ciclo)} · ${d.riferimento_semestre}° semestre ${d.riferimento_anno}`
     : 'Periodo da assegnare'+(s.data_intervento?' · '+fd(s.data_intervento):'');
-};
-const mostraStoricoPrimaScadenze=mostraStoricoPresidio;
-mostraStoricoPresidio=function() {
-  mostraStoricoPrimaScadenze();
+}
+function raggruppaStoricoManichetta() {
   if(storicoPresidi.anagrafica?.tipo==='manichetta') {
     const box=ge('storico-presidio');
     const p=box?.querySelector('p');
@@ -50,10 +50,8 @@ mostraStoricoPresidio=function() {
       items.forEach(card=>gruppo.append(card));box.append(gruppo);
     }
   }
-};
-const editorPrimaScadenze=apriEditorSchedaPresidio;
-apriEditorSchedaPresidio=function(indice,riporta) {
-  editorPrimaScadenze(indice,riporta);
+}
+function completaEditorSchedaPresidio(indice,riporta) {
   const s=storicoPresidi.schede[indice];if(!s)return;
   const d=s.dati||{};
   if(['porta_rei','uscita_emergenza'].includes(d.tipo)) {
@@ -76,25 +74,10 @@ apriEditorSchedaPresidio=function(indice,riporta) {
 <option value="febbraio_agosto" ${c==='febbraio_agosto'?'selected':''}>Luglio – Dicembre</option>
     </select></div>
     <div class="f"><label>Semestre</label><select id="sc-semestre"><option value="1" ${next.semestre===1?'selected':''}>1° semestre</option><option value="2" ${next.semestre===2?'selected':''}>2° semestre</option></select></div></div>`);
-};
-const salvaPrimaScadenze=salvaSchedaPresidio;
-salvaSchedaPresidio=async function(indice,riporta) {
-  const s=storicoPresidi.schede[indice];if(!s)return;
-  if(['porta_rei','uscita_emergenza'].includes(s.dati?.tipo)&&ge('sp-prossima'))
-    ge('sp-prossima').value=aggiungiMesiControllo(v('sp-data'),6)||'';
-  if(s.dati?.tipo!=='manichetta')return salvaPrimaScadenze(indice,riporta);
-  const anno=Number(v('sc-anno')),semestre=Number(v('sc-semestre')),ciclo=v('sc-ciclo');
-  if(!Number.isInteger(anno)||anno<1900||anno>2200||![1,2].includes(semestre)||!['gennaio_luglio','febbraio_agosto'].includes(ciclo)) {
-    toast('Indica un periodo valido.','err');return;
-  }
-  const originale=s.dati;
-  s.dati={...originale,riferimento_anno:anno,riferimento_semestre:semestre,riferimento_ciclo:ciclo};
-  try {await salvaPrimaScadenze(indice,riporta);}finally{s.dati=originale;}
-};
-const registraPrimaScadenze=registraSchedaGiaCaricata;
-registraSchedaGiaCaricata=async function() {
+}
+// salvaSchedaPresidio: in js/20 (riordino del 18/11).
+async function registraSchedaManichettaSemestre() {
   const p=storicoPresidi.anagrafica;
-  if(p?.tipo!=='manichetta')return registraPrimaScadenze();
   if(!gestisceStoricoPresidi())return;
   const ref=chiediRiferimentoManichette();if(!ref)return;
   const {error}=await db.from('schede_manichette').insert({impianto_id:p.id,data_intervento:p.data_ultimo_controllo||null,
@@ -102,7 +85,7 @@ registraSchedaGiaCaricata=async function() {
   if(error&&error.code!=='23505'){toast(error.message,'err');return;}
   toast(error?'Scheda già registrata: conservata.':'Scheda semestrale registrata.');
   await caricaStoricoPresidio(p.id);
-};
+}
 let versioneScadenze=0;
 const cartelleScadenzeAperte=new Set();
 function conservaCartelleScadenze(box) {
@@ -134,8 +117,15 @@ async function leggiSchedeScadenze(tabella,ids) {
   }
   return risultato;
 }
-renderPS=async function(data) {
-    ricordaPosizionePagina();
+// Tab Scadenze (riordino del 18/11: prima la creava questo file e js/25 la
+// ritoccava): disegno, poi "Esegui nuovo controllo" (js/25). js/68 la avvolge
+// ancora per il tecnico.
+async function renderPS(data) {
+  await disegnaScadenzePresidi(data);
+  aggiungiNuovoControlloScadenze();
+}
+
+async function disegnaScadenzePresidi(data) {
   const versione=++versioneScadenze,box=ge('tc-ps');if(!box)return;
   conservaCartelleScadenze(box);
   box.innerHTML='<div class="load">Caricamento scadenze...</div>';
@@ -211,12 +201,9 @@ renderPS=async function(data) {
       }).join(''):'<div class="empty">Nessun presidio.</div>');
     collegaCartelleScadenze(box);
   } catch(e) {if(versione===versioneScadenze)box.textContent='Impossibile leggere le scadenze: '+e.message;}
-};
+}
 function aggiungiGiorniScadenze(iso,n) {
   const [a,m,g]=iso.split('-').map(Number),d=new Date(a,m-1,g+n);
   return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
 }
-const filterPrimaScadenze=filterP;
-filterP=function(){filterPrimaScadenze();renderPS(PF);};
-const caricaStoricoPrimaScadenze=caricaStoricoPresidio;
-caricaStoricoPresidio=async function(id){await caricaStoricoPrimaScadenze(id);renderPS(typeof PF!=='undefined'?PF:PA);};
+// filterP (js/07) e caricaStoricoPresidio (js/20) ridisegnano la tab Scadenze.

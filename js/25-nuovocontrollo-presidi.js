@@ -94,17 +94,15 @@ function mostraPeriodoNuovoControllo() {
     :'Inserisci la data: la scheda andrà nel semestre dell’intervento (1° = gennaio–giugno, 2° = luglio–dicembre).';
 }
 // Aggiunge il comando alle schede presenti in Scadenze.
-const renderScadenzePrimaNuovoControllo=renderPS;
-renderPS=async function(data) {
-    ricordaPosizionePagina();
-  await renderScadenzePrimaNuovoControllo(data);
+// Chiamata da renderPS (js/24) dopo il disegno.
+function aggiungiNuovoControlloScadenze() {
   ge('tc-ps')?.querySelectorAll('button[onclick^="apriSchedaPresidio("]').forEach(btn=>{
     if(btn.parentElement.querySelector('[data-nuovo-controllo]'))return;
     const id=btn.getAttribute('onclick').match(/apriSchedaPresidio\('([^']+)'\)/)?.[1];if(!id)return;
     const nuovo=document.createElement('button');nuovo.className='btn sm p';nuovo.dataset.nuovoControllo=id;
     nuovo.textContent='Esegui nuovo controllo';nuovo.addEventListener('click',()=>eseguiNuovoControllo(id));btn.after(nuovo);
   });
-};
+}
 // Riutilizza la struttura attuale delle cartelle, con l'ultima scheda di ogni periodo.
 let versioneCartelleStoriche=0;
 // Chiamata da renderPC (js/09): storico → elenco per periodo → disegnaCartelleEElimina.

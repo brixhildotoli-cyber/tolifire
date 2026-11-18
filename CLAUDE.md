@@ -5559,6 +5559,15 @@ quante insieme, in risultato.json) e SMOKE_RITARDO_MS=150 (database lento).
   salvaManichettaPresidio (js/22), azzera/compilaCampoAnnataPresidio e
   prepara/dopoSalvataggioPassoPresidi (js/40). La fotografia ha anche lo
   scenario "Esegui intervento" (passo Presidi, lavoro in corso, ritorno).
+  Passo 6: renderPS (tab Scadenze) dichiarata in js/24 = disegnaScadenzePresidi
+  + aggiungiNuovoControlloScadenze (js/25); le funzioni dello storico di js/20
+  senza ritocchi di js/24: periodoScheda → periodoSchedaManichetta,
+  mostraStoricoPresidio → raggruppaStoricoManichetta, apriEditorScheda-
+  Presidio → completaEditorSchedaPresidio, salvaSchedaPresidio (porte +6 mesi,
+  manichette con periodo) → scriviSchedaPresidio, registraSchedaGiaCaricata
+  → registraSchedaManichettaSemestre, caricaStoricoPresidio = leggiStorico-
+  Presidio + renderPS; filterP (js/07) chiama renderPS. js/68 avvolge ancora
+  mostraStoricoPresidio, apriEditorSchedaPresidio, renderPS (tecnico).
 - js/18 diviso (riordino del 17/11, codice spostato così com'era, stesso
   ordine di caricamento): 18-preventivi (scheda del preventivo, Rimanda
   indietro, campi delle schede tecniche), 18a-schede-rilievo, 18b-fornitori-

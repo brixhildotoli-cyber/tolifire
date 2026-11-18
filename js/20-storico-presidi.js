@@ -34,7 +34,7 @@ function nomeCicloScheda(ciclo) {
 }
 
 function periodoScheda(s) {
-  if (s.dati?.tipo === 'manichetta') return s.data_intervento ? 'Intervento del '+fd(s.data_intervento) : 'Scheda documentale — data non indicata';
+  if (s.dati?.tipo === 'manichetta') return periodoSchedaManichetta(s); // js/24 (riordino del 18/11)
   return `${Number(s.mese) < 7 ? '1° semestre (gennaio–giugno)' : '2° semestre (luglio–dicembre)'} ${s.anno} · ${nomeCicloScheda(s.ciclo)}`;
 }
 // Periodo dello storico per una data di verifica (AAAA-MM-GG): semestre
@@ -97,7 +97,14 @@ async function aggiungiStoricoSchedaPresidio(id) {
   await caricaStoricoPresidio(id);
 }
 
+// Storico della scheda, poi la tab Scadenze (js/24) ridisegnata (riordino del 18/11:
+// prima era un ritocco di js/24).
 async function caricaStoricoPresidio(id) {
+  await leggiStoricoPresidio(id);
+  renderPS(typeof PF !== 'undefined' ? PF : PA);
+}
+
+async function leggiStoricoPresidio(id) {
   const richiesta = ++storicoPresidi.richiesta;
   const box = ge('storico-presidio');
   if (!box) return;
@@ -159,6 +166,7 @@ ${gestisceStoricoPresidi() ? `
 ` : ''}
       </div>`;
     }).join('');
+  raggruppaStoricoManichetta(); // js/24 (riordino del 18/11)
 }
 
 async function eliminaSchedaStoricoPresidio(indice) {
@@ -234,6 +242,7 @@ function apriEditorSchedaPresidio(indice, riporta) {
     <button class="btn" onclick="mostraStoricoPresidio()">Annulla</button>
     <button id="sp-salva" class="btn p" onclick="salvaSchedaPresidio(${indice},${riporta})">${manichetta ? 'Salva intervento' : riporta ? 'Salva la nuova scheda' : 'Salva '+esc(periodoScheda(target))}</button>
   </div>`;
+  completaEditorSchedaPresidio(indice, riporta); // js/24 (riordino del 18/11)
 }
 
 // Riporto: mostra in quale semestre andrà la scheda (dalla data della verifica).
@@ -249,7 +258,24 @@ function mostraPeriodoRiporto(indice) {
     : 'La scheda andrà in: ' + periodoScheda(periodo) + '.';
 }
 
+// Salvataggio della scheda dello storico (riordino del 18/11: prima ritocco di
+// js/24): porte REI e uscite con la prossima verifica a +6 mesi; manichette con
+// il periodo scelto (anno, gruppo, semestre); poi scriviSchedaPresidio.
 async function salvaSchedaPresidio(indice, riporta) {
+  const s=storicoPresidi.schede[indice];if(!s)return;
+  if(['porta_rei','uscita_emergenza'].includes(s.dati?.tipo)&&ge('sp-prossima'))
+    ge('sp-prossima').value=aggiungiMesiControllo(v('sp-data'),6)||'';
+  if(s.dati?.tipo!=='manichetta')return scriviSchedaPresidio(indice,riporta);
+  const anno=Number(v('sc-anno')),semestre=Number(v('sc-semestre')),ciclo=v('sc-ciclo');
+  if(!Number.isInteger(anno)||anno<1900||anno>2200||![1,2].includes(semestre)||!['gennaio_luglio','febbraio_agosto'].includes(ciclo)) {
+    toast('Indica un periodo valido.','err');return;
+  }
+  const originale=s.dati;
+  s.dati={...originale,riferimento_anno:anno,riferimento_semestre:semestre,riferimento_ciclo:ciclo};
+  try {await scriviSchedaPresidio(indice,riporta);}finally{s.dati=originale;}
+}
+
+async function scriviSchedaPresidio(indice, riporta) {
   ricordaPosizionePagina();
   const origine = storicoPresidi.schede[indice];
   if (!origine) return;
@@ -317,15 +343,10 @@ async function salvaSchedaPresidio(indice, riporta) {
 
 
 async function registraSchedaGiaCaricata() {
+  // Manichette: scheda semestrale con anno, gruppo e semestre chiesti (js/24).
+  if (storicoPresidi.anagrafica?.tipo === 'manichetta') return registraSchedaManichettaSemestre();
   if (!gestisceStoricoPresidi() || !storicoPresidi.anagrafica) return;
   const p = storicoPresidi.anagrafica;
-  if (p.tipo === 'manichetta') {
-    const {error} = await db.from('schede_manichette').insert({impianto_id:p.id,data_intervento:p.data_ultimo_controllo || null,chiave_import:'anagrafica-iniziale',dati:p});
-    if (error && error.code !== '23505') {toast(error.message,'err');return;}
-    toast(error ? 'Scheda già registrata: conservata.' : 'Scheda documentale registrata.');
-    if (storicoPresidi.impianto === p.id) await caricaStoricoPresidio(p.id);
-    return;
-  }
   const gruppo = ['gennaio_luglio','febbraio_agosto'].includes(p.ciclo_manutenzione)
     ? p.ciclo_manutenzione : null;
   if (!gruppo) { toast('La scheda non ha un gruppo assegnato: usa l’importazione CSV scegliendo il gruppo.','err'); return; }
