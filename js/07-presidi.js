@@ -1,5 +1,7 @@
 // ── PRESIDI ───────────────────────────────────────────────────
 async function loadPresidi() {
+  // Prima si sa se c'è "🔁 Sostituito" (js/51), poi si disegna.
+  try { await verificaSostituzionePresidiDisponibile(); } catch (e) {}
   const { data, error } = await db
     .from('impianti')
     .select('*, clienti(ragione_sociale)')

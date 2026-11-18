@@ -139,6 +139,8 @@ function rimettiLavoroPassoPresidi(lavoro) {
     if (l.stato !== null && ge('stato-' + pid)) ge('stato-' + pid).value = l.stato;
     if (l.note !== null && ge('note-' + pid)) ge('note-' + pid).value = l.note;
   });
+  // Controlli con lo storico dei presidi spuntati (js/55).
+  try { aggiornaControlliAperti(); } catch (e) { console.warn('Controlli presidi:', e); }
 }
 
 // Dopo il salvataggio di un presidio dal passo Presidi del tecnico si
@@ -211,35 +213,33 @@ async function caricaAuditIntervento(odlId) {
   }
 }
 
-const preloadFromOdlPrimaAudit = preloadFromOdl;
-preloadFromOdl = async function() {
-  const odlId = v('tc-odl');
+// Scelta dell'intervento assegnato (preloadFromOdl di js/12).
+function azzeraAuditSeCambiaIntervento(odlId) {
   if (!odlId || (auditInCorso && auditInCorso.odlId !== odlId)) azzeraAuditInCorso();
-  const r = await preloadFromOdlPrimaAudit.apply(this, arguments);
+}
+
+async function caricaAuditInterventoScelto(odlId) {
   if (odlId && v('tc-odl') === odlId) {
     try { await caricaAuditIntervento(odlId); } catch (e) { console.warn('caricaAuditIntervento:', e); }
   }
-  return r;
-};
+}
 
-// Nella tendina "Intervento assegnato" gli interventi con audit hanno il segno 🔎.
-const loadOdlTecnicoPrimaAudit = loadOdlTecnico;
-loadOdlTecnico = async function() {
-  const r = await loadOdlTecnicoPrimaAudit.apply(this, arguments);
+// Nella tendina "Intervento assegnato" (loadOdlTecnico di js/12) gli
+// interventi con audit hanno il segno 🔎.
+async function segnaAuditTendinaInterventi() {
   try {
     const sel = ge('tc-odl');
-    if (!sel || !(await verificaAuditPresidiDisponibile())) return r;
+    if (!sel || !(await verificaAuditPresidiDisponibile())) return;
     const ids = [...sel.options].map(function(o) { return o.value; }).filter(Boolean);
-    if (!ids.length) return r;
+    if (!ids.length) return;
     const { data, error } = await db.from('ordini_lavoro').select('id').in('id', ids).eq('audit_presidi', true);
-    if (error) return r;
+    if (error) return;
     const conAudit = new Set((data || []).map(function(o) { return o.id; }));
     [...sel.options].forEach(function(o) {
       if (conAudit.has(o.value) && o.textContent.indexOf('🔎') !== 0) o.textContent = '🔎 AUDIT · ' + o.textContent;
     });
   } catch (e) { console.warn('Segno audit negli interventi:', e); }
-  return r;
-};
+}
 
 // Passo Presidi: con l'audit loadPC (js/11) mostra l'elenco da compilare
 // (renderPresidiAudit), altrimenti quello di sempre.
@@ -368,14 +368,17 @@ function scriviValoreAudit(pid) {
 
 function cambiaEsitoAudit(pid) {
   const val = auditValori[pid];
-  if (!val) return;
-  val.esito = v('aud-esito-' + pid);
-  const dati = ge('aud-dati-' + pid);
-  if (dati) dati.style.display = val.esito === 'trovato' ? 'block' : 'none';
   const cb = ge('upd-' + pid);
-  if (cb) cb.checked = val.esito === 'trovato';
-  coloraPresidioAudit(pid);
-  aggiornaContatoreAudit();
+  if (val) {
+    val.esito = v('aud-esito-' + pid);
+    const dati = ge('aud-dati-' + pid);
+    if (dati) dati.style.display = val.esito === 'trovato' ? 'block' : 'none';
+    if (cb) cb.checked = val.esito === 'trovato';
+    coloraPresidioAudit(pid);
+    aggiornaContatoreAudit();
+  }
+  // Trovato: si aprono i controlli con lo storico (js/55).
+  if (cb && cb.checked) assicuraControlliPresidio(pid, false);
 }
 
 // Problema del singolo presidio ('' se a posto).
@@ -447,19 +450,16 @@ function mostraProblemaAudit(c) {
   }
 }
 
-const tnextPrimaAudit = tnext;
-tnext = function(from) {
-  if (from === 3 && auditAttivoSuScheda() && !schedaImpossibilitata()) {
-    const c = controllaAuditScheda();
-    if (!c.ok) { mostraProblemaAudit(c); return; }
-  }
-  return tnextPrimaAudit.apply(this, arguments);
-};
+// "Avanti" dal passo Presidi (tnext di js/11): con l'audit tutti compilati.
+function auditPassoPresidiCompleto() {
+  if (!auditAttivoSuScheda() || schedaImpossibilitata()) return true;
+  const c = controllaAuditScheda();
+  if (!c.ok) { mostraProblemaAudit(c); return false; }
+  return true;
+}
 
-// Riepilogo (passo Chiusura): riga dell'audit.
-const buildRiepPrimaAudit = buildRiep;
-buildRiep = function() {
-  const r = buildRiepPrimaAudit.apply(this, arguments);
+// Riepilogo (passo Chiusura, buildRiep di js/11): riga dell'audit.
+function aggiungiAuditRiepilogo() {
   const box = ge('triepilogo');
   if (box && auditAttivoSuScheda() && !schedaImpossibilitata()) {
     const tot = auditPresidiLista.length;
@@ -470,8 +470,7 @@ buildRiep = function() {
       '<span style="color:var(--m)">🔎 Audit presidi</span><strong style="color:' + (fatti === tot ? 'var(--g)' : 'var(--r)') + '">' +
       fatti + '/' + tot + ' compilati' + (nonTrovati ? ', ' + nonTrovati + ' non trovati' : '') + '</strong></div>');
   }
-  return r;
-};
+}
 
 function testoDifferenzeAudit(diff) {
   return (diff || []).map(function(d) {
@@ -480,11 +479,10 @@ function testoDifferenzeAudit(diff) {
   }).join('; ');
 }
 
-// Chiusura della scheda: con l'audit prima si salvano matricola e annata
-// e si registra l'audit, poi si chiude come sempre (salvaInt di js/11).
-const salvaIntPrimaAudit = salvaInt;
-salvaInt = async function() {
-  if (!auditAttivoSuScheda() || schedaImpossibilitata()) return salvaIntPrimaAudit.apply(this, arguments);
+// Chiusura della scheda con l'audit (salvaInt di js/11): prima si salvano
+// matricola e annata e si registra l'audit, poi si chiude come sempre
+// (salvaInterventoNormale di js/11).
+async function salvaInterventoConAudit() {
   if (salvataggioAudit) return;
   const c = controllaAuditScheda();
   if (!c.ok) { tnav(3); setTimeout(function() { mostraProblemaAudit(c); }, 300); return; }
@@ -513,8 +511,8 @@ salvaInt = async function() {
   }
   if (btn) { btn.disabled = false; btn.textContent = 'Salva e chiudi intervento ✓'; }
   salvataggioAudit = false;
-  await salvaIntPrimaAudit.apply(this, arguments);
-  // salvaInt svuota "Intervento assegnato" solo se la scheda è stata chiusa.
+  await salvaInterventoNormale();
+  // salvaInterventoNormale svuota "Intervento assegnato" solo se la scheda è stata chiusa.
   if (!v('tc-odl')) {
     azzeraAuditInCorso();
     let msg = '✅ Intervento salvato e audit dei presidi registrato.';
@@ -525,7 +523,7 @@ salvaInt = async function() {
     if (esito.non_trovati) msg += ' Presidi non trovati: ' + esito.non_trovati + '.';
     toast(msg, 'ok');
   }
-};
+}
 
 // ── Finestra dell'intervento (m-odl): audit sì/no ────────────────────────
 function nascondiBoxAuditOdl() {

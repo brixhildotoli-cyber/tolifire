@@ -32,6 +32,8 @@ function mostraInfoSede() {
 
 function tnav(n){for(let i=0;i<5;i++){ge('ts'+i).classList.toggle('on',i===n);ge('tsb'+i).style.background=i===n?'rgba(255,255,255,.9)':i<n?'rgba(255,255,255,.6)':'rgba(255,255,255,.3)';}ge('tsl').textContent=TL[n];if(n===1)buildCKL();if(n===3)loadPC();if(n===4)buildRiep();}
 function tnext(from){
+  // Passo Presidi con l'audit: tutti i presidi compilati (js/40).
+  if(from===3&&!auditPassoPresidiCompleto())return;
   if(from===0&&!v('tc1')){toast('Seleziona un cliente','err');return;}
   if(from===0&&!v('tc3')){toast('Inserisci la data','err');return;}
   if(from===1){
@@ -214,6 +216,8 @@ function togglePresidioDetail(el) {
   var pid = el.dataset ? el.dataset.pid : el;
   var detail = ge('detail-'+pid);
   if(detail) detail.style.display = el.checked ? 'block' : 'none';
+  // Spuntato: si aprono i controlli con lo storico (js/55).
+  if(el.checked && pid) assicuraControlliPresidio(pid, false);
 }
 
 function buildRiep(){const ce=ge('tc1'),cn=ce.options[ce.selectedIndex]?.text||'—';const te=ge('tc5'),tn=te.options[te.selectedIndex]?.text||'—';
@@ -233,7 +237,9 @@ function buildRiep(){const ce=ge('tc1'),cn=ce.options[ce.selectedIndex]?.text||'
   <span style="color:var(--m)">Check-list</span><strong>${done}/${total} completate</strong>
   </div><div style="display:flex;justify-content:space-between">
   <span style="color:var(--m)">Esito</span><strong>${v('tc13').replace(/_/g,' ')}</strong>
-  </div>${v('tc14')==='true'?'<div><span class="bx berr">⚠ Intervento straordinario richiesto</span></div>':''}</div>`;}
+  </div>${v('tc14')==='true'?'<div><span class="bx berr">⚠ Intervento straordinario richiesto</span></div>':''}</div>`;
+  // Con l'audit: riga "🔎 Audit presidi" (js/40).
+  aggiungiAuditRiepilogo();}
 
 // F2.1 — Avviso che resta a video finché l'utente non preme "Ho capito"
 // (non si chiude cliccando fuori). corpoHtml deve essere già passato da esc().
@@ -301,7 +307,18 @@ function boxRiprogrammare(info){
     '</div>';
 }
 
+// "Salva e chiudi intervento" (riordino del 18/11, passo 7b): prima si
+// raccolgono le schede dello storico (js/55), poi si salva l'intervento con
+// l'audit (js/40) o come sempre (salvaInterventoNormale), infine si scrivono
+// le schede nello storico (js/55).
 async function salvaInt(){
+  const raccolta = raccogliStoricoDaSalvare();
+  const r = auditAttivoSuScheda() && !schedaImpossibilitata() ? await salvaInterventoConAudit() : await salvaInterventoNormale();
+  await dopoSalvataggioStoricoIntervento(raccolta);
+  return r;
+}
+
+async function salvaInterventoNormale(){
   // Il tecnico può intestare l'intervento anche a un collega tecnico o capo
   // tecnico (decisione di Erika del 23/10, da confermare da Toli in F1.4;
   // policy sql/09 ordini_lavoro_inserimento). Se non sceglie nessuno, è lui.

@@ -5572,9 +5572,24 @@ quante insieme, in risultato.json) e SMOKE_RITARDO_MS=150 (database lento).
   ritocchi: azzeraStoricoEseguiSeCambiaCliente (js/55) → verificaSostituzione-
   PresidiDisponibile (js/51) → renderPresidiAudit (js/40, con l'audit) o
   disegnaPassoPresidi (js/11) → decoraSostituzionePassoPresidi (js/51) →
-  aggiornaControlliAperti e caricaStoricoPassoPresidi (js/55). Da fare (7b):
-  salvaInt, tnext, buildRiep, openEditOdl ecc., prima uno scenario nella
-  fotografia che chiude un intervento.
+  aggiornaControlliAperti e caricaStoricoPassoPresidi (js/55).
+  Passo 7b (prima la fotografia con lo scenario 9: chiusura senza intervento
+  assegnato e con audit): salvaInt in js/11 = raccogliStoricoDaSalvare (js/55)
+  → salvaInterventoConAudit (js/40, con l'audit) o salvaInterventoNormale
+  (js/11, il corpo di prima) → dopoSalvataggioStoricoIntervento (js/55);
+  tnext chiama auditPassoPresidiCompleto e buildRiep aggiungiAuditRiepilogo
+  (js/40); togglePresidioDetail (js/11) e cambiaEsitoAudit (js/40) chiamano
+  assicuraControlliPresidio, rimettiLavoroPassoPresidi chiama aggiornaControlli-
+  Aperti (js/55); in js/12 loadOdlTecnico = disegnaTendinaInterventiTecnico +
+  segnaAuditTendinaInterventi (js/40) e preloadFromOdl = azzeraAuditSeCambia-
+  Intervento → precaricaInterventoAssegnato → caricaAuditInterventoScelto
+  (js/40); loadPresidi (js/07) chiama verificaSostituzionePresidiDisponibile
+  all'inizio. Restano ritoccate di proposito openM, openEditOdl e loadDash:
+  le avvolgono anche file fuori dai presidi (DDT, buono lavoro, fatture,
+  appuntamenti), da riordinare a parte. Nella fotografia l'intervento di
+  prova con audit nasce con toli.audit_presidi e toli.appuntamento = 'si' (i
+  trigger altrimenti tolgono l'audit e lo nascondono al tecnico finché la
+  segreteria non fissa l'appuntamento).
 - js/18 diviso (riordino del 17/11, codice spostato così com'era, stesso
   ordine di caricamento): 18-preventivi (scheda del preventivo, Rimanda
   indietro, campi delle schede tecniche), 18a-schede-rilievo, 18b-fornitori-

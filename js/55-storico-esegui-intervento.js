@@ -10,7 +10,7 @@
 // se non c'è una scheda, le voci del registro del presidio o quelle
 // standard del tipo, CKL_PRESIDIO di js/01), cliccabili SI / NO / senza
 // esito. Restano stato e note di sempre.
-// Chiuso l'intervento (salvaInt di js/11, già avvolta da js/40), per ogni
+// Chiuso l'intervento (salvaInt di js/11 chiama dopoSalvataggioStoricoIntervento), per ogni
 // presidio spuntato nasce la scheda dello storico nel SEMESTRE DELLA DATA
 // DELL'INTERVENTO (1° = gennaio-giugno, 2° = luglio-dicembre; mese 1/7 o
 // 2/8 secondo il gruppo della scheda di origine o del presidio). Se nello
@@ -231,33 +231,9 @@ function azzeraStoricoEseguiSeCambiaCliente() {
   }
 }
 
+// Spunta del presidio, "Esito audit" e ritorno dal passo chiamano
+// assicuraControlliPresidio / aggiornaControlliAperti (js/11 e js/40).
 (function() {
-  if (typeof togglePresidioDetail === 'function') {
-    const togglePrimaStorico = togglePresidioDetail;
-    togglePresidioDetail = function(el) {
-      const r = togglePrimaStorico.apply(this, arguments);
-      const pid = el && el.dataset ? el.dataset.pid : el;
-      if (el && el.checked && pid) assicuraControlliPresidio(pid, false);
-      return r;
-    };
-  }
-  if (typeof rimettiLavoroPassoPresidi === 'function') {
-    const rimettiPrimaStorico = rimettiLavoroPassoPresidi;
-    rimettiLavoroPassoPresidi = function() {
-      const r = rimettiPrimaStorico.apply(this, arguments);
-      try { aggiornaControlliAperti(); } catch (e) { console.warn('Controlli presidi:', e); }
-      return r;
-    };
-  }
-  if (typeof cambiaEsitoAudit === 'function') {
-    const cambiaPrimaStorico = cambiaEsitoAudit;
-    cambiaEsitoAudit = function(pid) {
-      const r = cambiaPrimaStorico.apply(this, arguments);
-      const cb = ge('upd-' + pid);
-      if (cb && cb.checked) assicuraControlliPresidio(pid, false);
-      return r;
-    };
-  }
   // La data dell'intervento cambia il semestre scritto sotto i controlli.
   document.addEventListener('change', function(e) {
     if (e.target && e.target.id === 'tc3') {
@@ -398,41 +374,36 @@ async function scriviStoricoIntervento(raccolta) {
   return esito;
 }
 
-if (typeof salvaInt === 'function') {
-  const salvaIntPrimaStorico = salvaInt;
-  salvaInt = async function() {
-    const raccolta = raccogliStoricoDaSalvare();
-    const r = await salvaIntPrimaStorico.apply(this, arguments);
-    // salvaInt svuota il cliente (tc1) solo se l'intervento è stato salvato.
-    const salvato = !!raccolta.cid && !v('tc1');
-    if (!salvato) return r;
-    const presidi = raccolta.presidi;
-    const azzera = function() { storicoEsegui.esiti = {}; storicoEsegui.ultime = {}; storicoEsegui.presidi = {}; storicoEsegui.cliente = null; };
-    if (raccolta.impossibilitato || !presidi.length || !raccolta.di) { azzera(); return r; }
-    const t = ge('toast');
-    const prima = t && t.classList.contains('on') ? t.textContent : '';
-    let esito;
-    try { esito = await scriviStoricoIntervento(raccolta); } finally { azzera(); }
-    if (esito.ruolo) return r;
-    if (!esito.attivo) {
-      toast((prima ? prima + ' ' : '') + 'Storico presidi non aggiornato: per il tuo ruolo serve l’aggiornamento del database. Avvisa il capo tecnico.', 'err');
-      return r;
+// Dopo il salvataggio (salvaInt di js/11): schede nello storico.
+async function dopoSalvataggioStoricoIntervento(raccolta) {
+  // salvaInt svuota il cliente (tc1) solo se l'intervento è stato salvato.
+  const salvato = !!raccolta.cid && !v('tc1');
+  if (!salvato) return;
+  const presidi = raccolta.presidi;
+  const azzera = function() { storicoEsegui.esiti = {}; storicoEsegui.ultime = {}; storicoEsegui.presidi = {}; storicoEsegui.cliente = null; };
+  if (raccolta.impossibilitato || !presidi.length || !raccolta.di) { azzera(); return; }
+  const t = ge('toast');
+  const prima = t && t.classList.contains('on') ? t.textContent : '';
+  let esito;
+  try { esito = await scriviStoricoIntervento(raccolta); } finally { azzera(); }
+  if (esito.ruolo) return;
+  if (!esito.attivo) {
+    toast((prima ? prima + ' ' : '') + 'Storico presidi non aggiornato: per il tuo ruolo serve l’aggiornamento del database. Avvisa il capo tecnico.', 'err');
+    return;
+  }
+  let msg = '📁 Storico presidi: ' + esito.create + (esito.create === 1 ? ' scheda nuova' : ' schede nuove') +
+    (Object.keys(esito.semestri).length ? ' nel ' + Object.keys(esito.semestri).join(', ') : '') + '.';
+  if (esito.gia) msg += ' ' + esito.gia + (esito.gia === 1 ? ' presidio aveva' : ' presidi avevano') + ' già la scheda del semestre: tenuta la prima.';
+  if (esito.errori.length) {
+    toast((prima ? prima + ' ' : '') + msg + ' Errori: ' + esito.errori.length + '.', 'err');
+    if (typeof mostraAvvisoBloccante === 'function') {
+      mostraAvvisoBloccante('Storico presidi: schede non salvate',
+        '<p style="margin:0 0 10px">L’intervento è chiuso, ma per questi presidi la scheda dello storico non è stata salvata. Avvisa il capo tecnico: la può aggiungere dallo storico del presidio.</p>' +
+        '<ul style="margin:0;padding-left:18px">' + esito.errori.map(function(e) { return '<li>' + esc(e) + '</li>'; }).join('') + '</ul>');
     }
-    let msg = '📁 Storico presidi: ' + esito.create + (esito.create === 1 ? ' scheda nuova' : ' schede nuove') +
-      (Object.keys(esito.semestri).length ? ' nel ' + Object.keys(esito.semestri).join(', ') : '') + '.';
-    if (esito.gia) msg += ' ' + esito.gia + (esito.gia === 1 ? ' presidio aveva' : ' presidi avevano') + ' già la scheda del semestre: tenuta la prima.';
-    if (esito.errori.length) {
-      toast((prima ? prima + ' ' : '') + msg + ' Errori: ' + esito.errori.length + '.', 'err');
-      if (typeof mostraAvvisoBloccante === 'function') {
-        mostraAvvisoBloccante('Storico presidi: schede non salvate',
-          '<p style="margin:0 0 10px">L’intervento è chiuso, ma per questi presidi la scheda dello storico non è stata salvata. Avvisa il capo tecnico: la può aggiungere dallo storico del presidio.</p>' +
-          '<ul style="margin:0;padding-left:18px">' + esito.errori.map(function(e) { return '<li>' + esc(e) + '</li>'; }).join('') + '</ul>');
-      }
-    } else {
-      toast((prima ? prima + ' ' : '') + msg, 'ok');
-    }
-    return r;
-  };
+  } else {
+    toast((prima ? prima + ' ' : '') + msg, 'ok');
+  }
 }
 
 // ── "🧯 Apri schede manutenzione ordinaria" (Esegui intervento, passo 1) ──

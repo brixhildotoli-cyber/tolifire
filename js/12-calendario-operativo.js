@@ -372,7 +372,14 @@ async function loadStoricoInterventiTecnico() {
 }
 
 
+// Tendina "Intervento assegnato" del tecnico: interventi, poi il segno 🔎 per
+// quelli con audit (js/40). Riordino del 18/11, passo 7b.
 async function loadOdlTecnico() {
+  await disegnaTendinaInterventiTecnico();
+  await segnaAuditTendinaInterventi();
+}
+
+async function disegnaTendinaInterventiTecnico() {
   var sel = ge('tc-odl');
   if(!sel) return;
   nascondiCampoTecnico();
@@ -407,7 +414,16 @@ async function loadOdlTecnico() {
 // true quando i campi di "Esegui intervento" sono stati compilati da un
 // intervento assegnato (tendina tc-odl): serve a svuotarli se la scelta si toglie.
 var _tcPrecaricatoDaOdl = false;
+// Scelta dell'intervento assegnato: l'audit di un altro intervento si azzera,
+// si compilano i campi, poi si carica l'audit dell'intervento scelto (js/40).
 async function preloadFromOdl() {
+  var odlId = v('tc-odl');
+  azzeraAuditSeCambiaIntervento(odlId);
+  await precaricaInterventoAssegnato();
+  await caricaAuditInterventoScelto(odlId);
+}
+
+async function precaricaInterventoAssegnato() {
   var odlId = v('tc-odl');
   if(!odlId) {
     // F2.1 — Tolta la scelta dell'intervento assegnato: si svuotano i campi

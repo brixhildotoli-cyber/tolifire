@@ -63,15 +63,6 @@ function bottoneSostituisciPresidio(id) {
   return '<button class="btn sm" title="Sostituito con un presidio nuovo" onclick="apriSostituzionePresidio(\'' + esc(id) + '\', null)">🔁 Sostituito</button>';
 }
 
-(function() {
-  if (typeof loadPresidi !== 'function') return;
-  const loadPresidiPrimaSostituzione = loadPresidi;
-  loadPresidi = async function() {
-    try { await verificaSostituzionePresidiDisponibile(); } catch (e) {}
-    return loadPresidiPrimaSostituzione.apply(this, arguments);
-  };
-})();
-
 // ── Audit per sede: presidi dell'audit dell'intervento ─────────────────────
 // Restituisce { presidi, sedeNome, tutte } o null (senza sql/53 o errore:
 // l'elenco resta quello di tutto il cliente, come prima).
