@@ -116,16 +116,8 @@ function decoraSostituzionePassoPresidi() {
   });
 }
 
-(function() {
-  if (typeof loadPC !== 'function') return;
-  const loadPCPrimaSostituzione = loadPC;
-  loadPC = async function() {
-    try { await verificaSostituzionePresidiDisponibile(); } catch (e) {}
-    const r = await loadPCPrimaSostituzione.apply(this, arguments);
-    try { decoraSostituzionePassoPresidi(); } catch (e) { console.warn('Bottone Sostituito:', e); }
-    return r;
-  };
-})();
+// Passo Presidi: loadPC (js/11) chiama verificaSostituzionePresidiDisponibile
+// prima dell'elenco e decoraSostituzionePassoPresidi dopo (riordino del 18/11).
 
 // ── Finestra della sostituzione ────────────────────────────────────────────
 function descrizionePresidioSostituzione(p) {

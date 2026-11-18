@@ -5568,6 +5568,13 @@ quante insieme, in risultato.json) e SMOKE_RITARDO_MS=150 (database lento).
   → registraSchedaManichettaSemestre, caricaStoricoPresidio = leggiStorico-
   Presidio + renderPS; filterP (js/07) chiama renderPS. js/68 avvolge ancora
   mostraStoricoPresidio, apriEditorSchedaPresidio, renderPS (tecnico).
+  Passo 7a: loadPC (passo Presidi di Esegui intervento) in js/11 senza
+  ritocchi: azzeraStoricoEseguiSeCambiaCliente (js/55) → verificaSostituzione-
+  PresidiDisponibile (js/51) → renderPresidiAudit (js/40, con l'audit) o
+  disegnaPassoPresidi (js/11) → decoraSostituzionePassoPresidi (js/51) →
+  aggiornaControlliAperti e caricaStoricoPassoPresidi (js/55). Da fare (7b):
+  salvaInt, tnext, buildRiep, openEditOdl ecc., prima uno scenario nella
+  fotografia che chiude un intervento.
 - js/18 diviso (riordino del 17/11, codice spostato così com'era, stesso
   ordine di caricamento): 18-preventivi (scheda del preventivo, Rimanda
   indietro, campi delle schede tecniche), 18a-schede-rilievo, 18b-fornitori-

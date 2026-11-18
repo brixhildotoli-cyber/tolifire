@@ -221,22 +221,17 @@ function aggiornaControlliAperti() {
 }
 
 // ── Aggancio al passo Presidi ───────────────────────────────────────────
-(function() {
-  if (typeof loadPC === 'function') {
-    const loadPCPrimaStorico = loadPC;
-    loadPC = async function() {
-      // Cambio di cliente: si riparte da zero.
-      const cid = v('tc1');
-      if (storicoEsegui.cliente !== cid) {
-        storicoEsegui.cliente = cid;
-        storicoEsegui.ultime = {}; storicoEsegui.presidi = {}; storicoEsegui.esiti = {};
-      }
-      const r = await loadPCPrimaStorico.apply(this, arguments);
-      try { aggiornaControlliAperti(); } catch (e) { console.warn('Controlli presidi:', e); }
-      caricaStoricoPassoPresidi().catch(function(e) { console.warn('Storico presidi:', e); });
-      return r;
-    };
+// Passo 1 di loadPC (js/11): cambio di cliente, si riparte da zero. Dopo l'elenco
+// loadPC chiama aggiornaControlliAperti e caricaStoricoPassoPresidi (riordino del 18/11).
+function azzeraStoricoEseguiSeCambiaCliente() {
+  const cid = v('tc1');
+  if (storicoEsegui.cliente !== cid) {
+    storicoEsegui.cliente = cid;
+    storicoEsegui.ultime = {}; storicoEsegui.presidi = {}; storicoEsegui.esiti = {};
   }
+}
+
+(function() {
   if (typeof togglePresidioDetail === 'function') {
     const togglePrimaStorico = togglePresidioDetail;
     togglePresidioDetail = function(el) {

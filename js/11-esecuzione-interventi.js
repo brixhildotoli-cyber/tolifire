@@ -104,7 +104,26 @@ async function loadSediPresidio(cliId, selectedSedeId) {
   });
 }
 
-async function loadPC(){
+// Passo Presidi di "Esegui intervento" (riordino del 18/11, passo 7a): prima
+// js/40, js/51 e js/55 ritoccavano loadPC a catena; ora i passi sono qui, nello
+// stesso ordine di prima:
+//  1. cambio di cliente: storico in memoria azzerato (js/55);
+//  2. sostituzione dei presidi attiva? (js/51);
+//  3. elenco: da censire con l'audit (renderPresidiAudit, js/40), altrimenti
+//     quello di sempre (disegnaPassoPresidi, qui sotto);
+//  4. bottone "Sostituito" (js/51);
+//  5. controlli dei presidi già spuntati e storico in sottofondo (js/55).
+async function loadPC() {
+  azzeraStoricoEseguiSeCambiaCliente();
+  try { await verificaSostituzionePresidiDisponibile(); } catch (e) {}
+  const r = auditAttivoSuScheda() ? await renderPresidiAudit() : await disegnaPassoPresidi();
+  try { decoraSostituzionePassoPresidi(); } catch (e) { console.warn('Bottone Sostituito:', e); }
+  try { aggiornaControlliAperti(); } catch (e) { console.warn('Controlli presidi:', e); }
+  caricaStoricoPassoPresidi().catch(function(e) { console.warn('Storico presidi:', e); });
+  return r;
+}
+
+async function disegnaPassoPresidi(){
   ricordaPosizionePagina();
   const cid=v('tc1');if(!cid){ge('pcl').innerHTML='<div class="empty">Seleziona un cliente</div>';return;}
   // Tecnico: con le policy per ruolo (sql/08) legge impianti, periodicità e

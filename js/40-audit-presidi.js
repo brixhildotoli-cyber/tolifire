@@ -241,13 +241,8 @@ loadOdlTecnico = async function() {
   return r;
 };
 
-// Passo Presidi: con l'audit si mostra l'elenco da compilare, altrimenti
-// quello di sempre (loadPC di js/11).
-const loadPCPrimaAudit = loadPC;
-loadPC = async function() {
-  if (auditAttivoSuScheda()) return renderPresidiAudit();
-  return loadPCPrimaAudit.apply(this, arguments);
-};
+// Passo Presidi: con l'audit loadPC (js/11) mostra l'elenco da compilare
+// (renderPresidiAudit), altrimenti quello di sempre.
 
 function etichettaSedeAudit(s) {
   if (!s) return 'Sede principale / non specificata';
