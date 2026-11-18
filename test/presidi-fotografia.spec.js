@@ -427,6 +427,43 @@ function confronta(a, b, via, diff) {
       foto.modifica[mat] = norm({ campi, esito: esitoSalva, dopo: JSON.parse(psql("select to_jsonb(i) from public.impianti i where id = " + q(id))) });
     }
     righe.push('modifica e salvataggio: EST-002, MAN-001');
+    // 4b. storico: modifica e salvataggio della scheda semestrale, registra scheda già caricata
+    foto.storico = {};
+    const campiStorico = () => s.page.evaluate(() => Array.from(document.querySelectorAll('#storico-presidio input, #storico-presidio select, #storico-presidio textarea'))
+      .filter(e => e.id).map(e => e.id + '=' + (e.type === 'checkbox' ? e.checked : e.value) + (e.readOnly ? ' (sola lettura)' : '')));
+    for (const mat of ['MAN-001', 'REI-001', 'EST-001']) {
+      const id = psql("select id from public.impianti where cliente_id = " + q(cliId) + " and matricola = " + q(mat));
+      await s.page.evaluate(async id => { await apriSchedaPresidio(id); }, id);
+      await attendiQuiete(s.stato, 1200);
+      const r = { prima: await testoDi(s, '#storico-presidio') };
+      const aperto = await s.page.evaluate(() => { if (!storicoPresidi.schede.length) return false; apriEditorSchedaPresidio(0, false); return true; });
+      if (aperto) {
+        await attendi(300);
+        r.editor = norm(await campiStorico());
+        await s.page.evaluate(() => {
+          const n = ge('sp-note'); if (n) n.value = (n.value || '') + ' (storico)';
+          const d = ge('sp-data'); if (d) { d.value = '2026-05-02'; d.dispatchEvent(new Event('input')); }
+        });
+        r.editor_dopo_data = norm(await campiStorico());
+        await s.page.evaluate(async () => { await salvaSchedaPresidio(0, false); });
+        await attendiQuiete(s.stato, 1500);
+        r.toast = await s.page.evaluate(() => ge('toast').textContent);
+        r.dopo = await testoDi(s, '#storico-presidio');
+      }
+      await s.page.evaluate(() => closeM('m-scheda-presidio'));
+      foto.storico[mat] = r;
+    }
+    for (const mat of ['EST-003', 'MAN-001']) {
+      const id = psql("select id from public.impianti where cliente_id = " + q(cliId) + " and matricola = " + q(mat));
+      await s.page.evaluate(async id => { await apriSchedaPresidio(id); }, id);
+      await attendiQuiete(s.stato, 1200);
+      await s.page.evaluate(async () => { await registraSchedaGiaCaricata(); });
+      await attendiQuiete(s.stato, 1500);
+      foto.storico['registra_' + mat] = { toast: await s.page.evaluate(() => ge('toast').textContent), dopo: await testoDi(s, '#storico-presidio') };
+      await s.page.evaluate(() => closeM('m-scheda-presidio'));
+    }
+    foto.db_dopo_storico = righeDb();
+    righe.push('storico: modifica schede di MAN-001, REI-001, EST-001; registra scheda già caricata');
     // 5. nuovo presidio dalla finestra vuota (campi proposti)
     await s.page.evaluate(() => { resetPF(); openM('m-presidio'); });
     await attendi(400);
