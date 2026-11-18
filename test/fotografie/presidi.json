@@ -1560,5 +1560,83 @@
   "Visualizza scheda",
   "Visualizza scheda"
  ],
- "tecnico_cartelle": "📅 Gruppo gennaio/luglio 2026 4 presìdi 2 da verificare 🗂️ RIORDINO PRESIDI PROVA SRL 4 · 2 attenzione 🧯 Estintori 3 · 2 attenzione ✅ 🧯 Estintori EST-001 Numero progressivo: 1 RIORDINO PRESIDI PROVA SRL Ubicazione Ingresso Agente P6 Bettati 📅 Mese manutenzione — 🔄 Prossima revisione — ⏳ Scadenza collaudo — Ultima verifica 10/03/2026 Prossima verifica — (—) Visualizza scheda ⚠️ 🧯 Estintori EST-002 Numero progressivo: 2 RIORDINO PRESIDI PROVA SRL Ubicazione Magazzino Agente CO2 5 Bettati 📅 Mese manutenzione — 🔄 Prossima revisione — ⏳ Scadenza collaudo — Ultima verifica 10/03/2026 Prossima verifica — (—) Visualizza scheda • 🧯 Estintori EST-003 Numero progressivo: 3 RIORDINO PRESIDI PROVA SRL Ubicazione Ufficio Agente P9 Pastorelli 📅 Mese manutenzione marzo 🔄 Prossima revisione 2028 ⏳ Scadenza collaudo 2031 Ultima verifica — Prossima verifica — (—) Visualizza scheda 🧵 Manichette 1 · OK ✅ 🧵 Manichette MAN-001 Numero progressivo: 1 RIORDINO PRESIDI PROVA SRL Ubicazione Corridoio Stato ✅ OK 📆 Controlli ogni 6 mesi (semestrale) · gennaio e luglio ✅ Ultima verifica 12/03/2026 📅 Prossima verifica luglio 2026 (2° semestre) — ⚠️ SCADUTO (calcolata) Visualizza scheda 📅 Gruppo febbraio/agosto 2026 3 presìdi 1 da verificare 🗂️ RIORDINO PRESIDI PROVA SRL 3 · 1 attenzione 🌀 Naspi 1 · OK ✅ 🌀 Naspi NAS-001 Numero progressivo: 1 RIORDINO PRESIDI PROVA SRL Ubicazione Piano terra 📆 Controlli ogni 6 mesi (semestrale) · febbraio e agosto ✅ Ultima verifica 15/03/2026 📅 Prossima verifica agosto 2026 (2° semestre) — ⚠️ SCADUTO (calcolata) Visualizza scheda 🚪 Porte REI 1 · OK ✅ 🚪 Porte REI REI-001 Numero progressivo: 1 RIORDINO PRESIDI PROVA SRL Ubicazione Locale tecnico 📆 Controlli ogni 6 mesi (semestrale) · febbraio e agosto ✅ Ultima verifica 01/04/2026 📅 Prossima verifica agosto 2026 (2° semestre) — ⚠️ SCADUTO (calcolata) Visualizza scheda 🚪 Uscite emergenza 1 · 1 attenzione ⚠️ 🚪 Uscite emergenza USC-001 Numero progressivo: 2 RIORDINO PRESIDI PROVA SRL Ubicazione Uscita nord 📆 Controlli ogni 6 mesi (semestrale) · febbraio e agosto ✅ Ultima verifica 01/04/2026 📅 Prossima verifica agosto 2026 (2° semestre) — ⚠️ SCADUTO (calcolata) Visualizza scheda 📅 Periodo non assegnato 1 presìdi 1 da verificare 🗂️ RIORDINO PRESIDI PROVA SRL 1 · 1 attenzione 🌀 Naspi 1 · 1 attenzione • 🌀 Naspi NAS-002 Numero progressivo: 2 RIORDINO PRESIDI PROVA SRL Ubicazione Primo piano ✅ Ultima verifica — 📅 Prossima verifica — Visualizza scheda"
+ "tecnico_cartelle": "📅 Gruppo gennaio/luglio 2026 4 presìdi 2 da verificare 🗂️ RIORDINO PRESIDI PROVA SRL 4 · 2 attenzione 🧯 Estintori 3 · 2 attenzione ✅ 🧯 Estintori EST-001 Numero progressivo: 1 RIORDINO PRESIDI PROVA SRL Ubicazione Ingresso Agente P6 Bettati 📅 Mese manutenzione — 🔄 Prossima revisione — ⏳ Scadenza collaudo — Ultima verifica 10/03/2026 Prossima verifica — (—) Visualizza scheda ⚠️ 🧯 Estintori EST-002 Numero progressivo: 2 RIORDINO PRESIDI PROVA SRL Ubicazione Magazzino Agente CO2 5 Bettati 📅 Mese manutenzione — 🔄 Prossima revisione — ⏳ Scadenza collaudo — Ultima verifica 10/03/2026 Prossima verifica — (—) Visualizza scheda • 🧯 Estintori EST-003 Numero progressivo: 3 RIORDINO PRESIDI PROVA SRL Ubicazione Ufficio Agente P9 Pastorelli 📅 Mese manutenzione marzo 🔄 Prossima revisione 2028 ⏳ Scadenza collaudo 2031 Ultima verifica — Prossima verifica — (—) Visualizza scheda 🧵 Manichette 1 · OK ✅ 🧵 Manichette MAN-001 Numero progressivo: 1 RIORDINO PRESIDI PROVA SRL Ubicazione Corridoio Stato ✅ OK 📆 Controlli ogni 6 mesi (semestrale) · gennaio e luglio ✅ Ultima verifica 12/03/2026 📅 Prossima verifica luglio 2026 (2° semestre) — ⚠️ SCADUTO (calcolata) Visualizza scheda 📅 Gruppo febbraio/agosto 2026 3 presìdi 1 da verificare 🗂️ RIORDINO PRESIDI PROVA SRL 3 · 1 attenzione 🌀 Naspi 1 · OK ✅ 🌀 Naspi NAS-001 Numero progressivo: 1 RIORDINO PRESIDI PROVA SRL Ubicazione Piano terra 📆 Controlli ogni 6 mesi (semestrale) · febbraio e agosto ✅ Ultima verifica 15/03/2026 📅 Prossima verifica agosto 2026 (2° semestre) — ⚠️ SCADUTO (calcolata) Visualizza scheda 🚪 Porte REI 1 · OK ✅ 🚪 Porte REI REI-001 Numero progressivo: 1 RIORDINO PRESIDI PROVA SRL Ubicazione Locale tecnico 📆 Controlli ogni 6 mesi (semestrale) · febbraio e agosto ✅ Ultima verifica 01/04/2026 📅 Prossima verifica agosto 2026 (2° semestre) — ⚠️ SCADUTO (calcolata) Visualizza scheda 🚪 Uscite emergenza 1 · 1 attenzione ⚠️ 🚪 Uscite emergenza USC-001 Numero progressivo: 2 RIORDINO PRESIDI PROVA SRL Ubicazione Uscita nord 📆 Controlli ogni 6 mesi (semestrale) · febbraio e agosto ✅ Ultima verifica 01/04/2026 📅 Prossima verifica agosto 2026 (2° semestre) — ⚠️ SCADUTO (calcolata) Visualizza scheda 📅 Periodo non assegnato 1 presìdi 1 da verificare 🗂️ RIORDINO PRESIDI PROVA SRL 1 · 1 attenzione 🌀 Naspi 1 · 1 attenzione • 🌀 Naspi NAS-002 Numero progressivo: 2 RIORDINO PRESIDI PROVA SRL Ubicazione Primo piano ✅ Ultima verifica — 📅 Prossima verifica — Visualizza scheda",
+ "esegui": {
+  "cliente_nella_tendina": true,
+  "passo_presidi": {
+   "passo": true,
+   "presidi": "📍 OPERATIVA — Sede prova: Via Prova 1, Pisa🧯 Estintori (3)✅ 🧯 Estintori — EST-001Ingresso · ogni 6 mesiUlt. verifica: 10/03/2026 · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote intervento⚠️ 🧯 Estintori — EST-002Magazzino (modificata) · ogni 6 mesiUlt. verifica: 10/03/2026 · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote intervento• 🧯 Estintori — EST-003Ufficio · periodicità N/DUlt. verifica: — · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote intervento🧵 Manichette (1)✅ 🧵 Manichette — MAN-001Corridoio (modificata) · periodicità N/DUlt. verifica: 12/03/2026 · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote intervento🌀 Naspi (2)✅ 🌀 Naspi — NAS-001Piano terra · ogni 6 mesiUlt. verifica: 15/03/2026 · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote intervento• 🌀 Naspi — NAS-002Primo piano · periodicità N/DUlt. verifica: — · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote intervento🚪 Porte REI (1)✅ 🚪 Porte REI — REI-001Locale tecnico · ogni 6 mesiUlt. verifica: 01/04/2026 · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote intervento🚪 Uscite emergenza (1)⚠️ 🚪 Uscite emergenza — USC-001Uscita nord · ogni 6 mesiUlt. verifica: 01/04/2026 · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote intervento",
+   "spunte": [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "stati": [
+    "ok",
+    "anomalia",
+    "ok",
+    "ok",
+    "ok",
+    "ok",
+    "ok",
+    "anomalia"
+   ],
+   "note": [
+    "",
+    "manometro basso",
+    "anagrafica · Prossima revisione: 2028 · Scadenza collaudo: 2031 · Mese manutenzione indicato: marzo",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "salvataggio": {
+   "toast": "Presidio aggiornato ✓",
+   "aperta": false
+  },
+  "dopo": {
+   "passo": true,
+   "presidi": "📍 OPERATIVA — Sede prova: Via Prova 1, Pisa🧯 Estintori (3)✅ 🧯 Estintori — EST-001Ingresso · ogni 6 mesiUlt. verifica: 10/03/2026 · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote interventoControlli del presidio✓ Tutti SIVoci standard del controllo (nessuna scheda precedente). Tocca SI, NO o — per cambiare.0 SI · 0 NO · 8 senza esitoVerifica integrità esternaSINO—Verifica pressione manometroSINO—Verifica peso/caricaSINO—Verifica pin sicurezza e sigilloSINO—Verifica leggibilità etichettaSINO—Verifica scadenza collaudoSINO—Verifica ubicazioneSINO—Aggiornamento cartellinoSINO—📁 Alla chiusura va nello storico: 2° semestre (luglio–dicembre) 2026. Se il semestre ha già una scheda, si tiene quella.⚠️ 🧯 Estintori — EST-002Magazzino (modificata) · ogni 6 mesiUlt. verifica: 10/03/2026 · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote intervento• 🧯 Estintori — EST-003Ufficio · periodicità N/DUlt. verifica: — · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote intervento🧵 Manichette (1)✅ 🧵 Manichette — MAN-001Corridoio (modificata) · periodicità N/DUlt. verifica: 12/03/2026 · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote intervento🌀 Naspi (2)✅ 🌀 Naspi — NAS-001Piano terra · ogni 6 mesiUlt. verifica: 15/03/2026 · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote intervento• 🌀 Naspi — NAS-002Primo piano · periodicità N/DUlt. verifica: — · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote intervento🚪 Porte REI (1)✅ 🚪 Porte REI — REI-001Locale tecnico (dal passo) · ogni 6 mesiUlt. verifica: 01/04/2026 · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote intervento🚪 Uscite emergenza (1)⚠️ 🚪 Uscite emergenza — USC-001Uscita nord · ogni 6 mesiUlt. verifica: 01/04/2026 · Pross.: —✏️Stato dopo verifica✅ OK / Conforme⚠️ Anomalia rilevata🔴 Fuori servizioNote intervento",
+   "spunte": [
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+   ],
+   "stati": [
+    "anomalia",
+    "anomalia",
+    "ok",
+    "ok",
+    "ok",
+    "ok",
+    "ok",
+    "anomalia"
+   ],
+   "note": [
+    "nota di prova",
+    "manometro basso",
+    "anagrafica · Prossima revisione: 2028 · Scadenza collaudo: 2031 · Mese manutenzione indicato: marzo",
+    "",
+    "",
+    "",
+    "",
+    ""
+   ]
+  },
+  "rei": {
+   "ubicazione": "Locale tecnico (dal passo)"
+  }
+ }
 }

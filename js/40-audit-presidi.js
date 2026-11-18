@@ -101,21 +101,18 @@ function datiAnnataPresidio() {
   return { annata: n };
 }
 
-const resetPFPrimaAudit = resetPF;
-resetPF = function() {
-  resetPFPrimaAudit.apply(this, arguments);
+// Passi della finestra del presidio (resetPF, editP, saveP di js/07).
+function azzeraCampoAnnataPresidio() {
   const el = ge('mp-annata');
   if (el) el.value = '';
   aggiornaCampoAnnata().catch(function(e) { console.warn('aggiornaCampoAnnata:', e); });
-};
+}
 
-const editPPrimaAudit = editP;
-editP = function(id) {
-  editPPrimaAudit.apply(this, arguments);
+function compilaCampoAnnataPresidio(id) {
   const p = PA.find(function(r) { return r.id === id; });
   const el = ge('mp-annata');
   if (el) el.value = p && p.annata ? String(p.annata) : '';
-};
+}
 
 // Spunte, stato e note già scritti al passo Presidi (chiave: id del presidio).
 function leggiLavoroPassoPresidi() {
@@ -148,12 +145,17 @@ function rimettiLavoroPassoPresidi(lavoro) {
 // ricarica l'elenco (si vede subito il presidio aggiunto o corretto)
 // tenendo il lavoro già fatto: spunte, stato e note degli altri presidi.
 // Con l'audit i valori restano in auditValori (renderPresidiAudit).
-const savePPrimaAudit = saveP;
-saveP = async function() {
+// Prima del salvataggio (saveP di js/07): si salvano spunte, stato e note se si
+// è al passo Presidi; dopo, se la finestra si è chiusa, si ricarica l'elenco.
+function preparaRitornoPassoPresidi() {
   const sulPassoPresidi = ge('pg-tecnico') && ge('pg-tecnico').classList.contains('on') &&
     ge('ts3') && ge('ts3').classList.contains('on');
   const lavoro = sulPassoPresidi ? leggiLavoroPassoPresidi() : {};
-  const r = await savePPrimaAudit.apply(this, arguments);
+  return { sulPassoPresidi: sulPassoPresidi, lavoro: lavoro };
+}
+
+async function dopoSalvataggioPassoPresidi(ritorno) {
+  const sulPassoPresidi = ritorno.sulPassoPresidi, lavoro = ritorno.lavoro;
   const finestraChiusa = !(ge('m-presidio') && ge('m-presidio').classList.contains('on'));
   if (finestraChiusa && sulPassoPresidi) {
     try {
@@ -162,8 +164,7 @@ saveP = async function() {
       if (!conAudit) rimettiLavoroPassoPresidi(lavoro);
     } catch (e) { console.warn('loadPC dopo il presidio:', e); }
   }
-  return r;
-};
+}
 
 // ── Tecnico: intervento con audit ───────────────────────────────────────
 function auditAttivoSuScheda() {

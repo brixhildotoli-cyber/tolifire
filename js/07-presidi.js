@@ -119,7 +119,32 @@ function switchPF() {
 
   if (fe) fe.style.display = 'block';
 }
+// Finestra del presidio (riordino del 18/11, passo 5): prima js/22 e js/40
+// ritoccavano resetPF, editP e saveP a catena; ora i passi sono scritti qui,
+// nello stesso ordine di prima. js/68 avvolge ancora editP (tecnico in sola
+// lettura sulla pagina Presidi).
 function resetPF() {
+  azzeraFormPresidio();
+  azzeraCampiManichettaPresidio();   // js/22
+  azzeraCampoAnnataPresidio();       // js/40
+}
+
+function editP(id) {
+  compilaFormPresidio(id);
+  compilaCampiManichettaPresidio(id);  // js/22
+  compilaCampoAnnataPresidio(id);      // js/40
+}
+
+// Le manichette hanno il loro salvataggio (js/22). Dal passo Presidi di
+// "Esegui intervento" l'elenco si ricarica tenendo il lavoro fatto (js/40).
+async function saveP() {
+  const ritorno = preparaRitornoPassoPresidi();   // js/40
+  const r = v('mptp') === 'manichetta' ? await salvaManichettaPresidio() : await salvaPresidio();
+  await dopoSalvataggioPassoPresidi(ritorno);     // js/40
+  return r;
+}
+
+function azzeraFormPresidio() {
   ge('mpt').textContent = 'Nuovo presidio';
   ge('mpeid').value = '';
   ge('mptp').value = 'estintore';
@@ -356,7 +381,7 @@ async function disegnaSchedaPresidio(id) {
   if (typeof caricaAnnullaSchedaPresidio === 'function') caricaAnnullaSchedaPresidio(p).catch(function() {});
 }
 
-function editP(id) {
+function compilaFormPresidio(id) {
   const p = PA.find(function(item) {
     return item.id === id;
   });
@@ -471,7 +496,7 @@ function impostaCapacitaEstintore(valore) {
   sel.value = pulito && [...sel.options].some(function(o) { return o.value === pulito; }) ? pulito : '';
 }
 
-async function saveP() {
+async function salvaPresidio() {
   const tipo = v('mptp');
   const cid = v('mpcl');
 

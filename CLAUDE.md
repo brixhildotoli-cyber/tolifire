@@ -5553,6 +5553,12 @@ quante insieme, in risultato.json) e SMOKE_RITARDO_MS=150 (database lento).
   (js/25: storico → elenco per periodo → disegnaCartelleEElimina =
   disegnaCartellePresidi js/09 + aggiungiEliminaTuttoCartelle js/23) e
   rileggiPeriodoCartelle (js/86: periodicità, poi un secondo disegno).
+  Passo 5: resetPF/editP/saveP in js/07 senza ritocchi (js/68 avvolge
+  ancora editP per il tecnico): azzeraFormPresidio/compilaFormPresidio/
+  salvaPresidio (js/07), azzera/compilaCampiManichettaPresidio e
+  salvaManichettaPresidio (js/22), azzera/compilaCampoAnnataPresidio e
+  prepara/dopoSalvataggioPassoPresidi (js/40). La fotografia ha anche lo
+  scenario "Esegui intervento" (passo Presidi, lavoro in corso, ritorno).
 - js/18 diviso (riordino del 17/11, codice spostato così com'era, stesso
   ordine di caricamento): 18-preventivi (scheda del preventivo, Rimanda
   indietro, campi delle schede tecniche), 18a-schede-rilievo, 18b-fornitori-

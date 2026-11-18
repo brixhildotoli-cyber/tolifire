@@ -276,6 +276,7 @@ function pulisci() {
   const cli = psql("select string_agg(id::text, ',') from public.clienti where ragione_sociale = " + q(CLIENTE));
   if (!cli) return;
   const lista = cli.split(',').map(q).join(',');
+  psql("delete from public.ordini_lavoro where cliente_id in (" + lista + ")");
   psql("delete from public.schede_manichette where impianto_id in (select id from public.impianti where cliente_id in (" + lista + "))");
   psql("delete from public.schede_presidi where impianto_id in (select id from public.impianti where cliente_id in (" + lista + "))");
   psql("update public.impianti set sostituito_da = null where sostituito_da in (select id from public.impianti where cliente_id in (" + lista + "))");
@@ -451,6 +452,47 @@ function confronta(a, b, via, diff) {
     foto.tecnico_bottoni = await t.page.evaluate(() => Array.from(document.querySelectorAll('#pg-presidi button')).filter(b => b.offsetParent !== null).map(b => b.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean).sort());
     foto.tecnico_cartelle = await testoDi(t, '#pcards');
     righe.push('tecnico: bottoni e cartelle in sola lettura');
+    // 8. Esegui intervento (tecnico, 390 px): passo Presidi, lavoro in corso, modifica di un presidio e ritorno
+    const sede1 = psql("select id from public.sedi_cliente where cliente_id = " + q(cliId) + " limit 1");
+    psql("insert into public.ordini_lavoro (cliente_id, sede_id, tecnico_id, tipo, stato, data_pianificata) values (" + q(cliId) + ", " + q(sede1) + ", " + q(tec.id) + ", 'ordinario_programmato', 'pianificato', current_date)");
+    await t.page.evaluate(() => gotoPage('tecnico'));
+    await attendiQuiete(t.stato, 2500);
+    const scelto = await t.page.evaluate(id => { const sel = ge('tc1'); if (!sel || ![...sel.options].some(o => o.value === id)) return false; sel.value = id; sel.dispatchEvent(new Event('change')); return true; }, cliId);
+    foto.esegui = { cliente_nella_tendina: scelto };
+    if (scelto) {
+      await attendiQuiete(t.stato, 1500);
+      await t.page.evaluate(() => { ge('tc2').value = 'ordinario_chiamata'; });
+      await t.page.evaluate(() => [...document.querySelectorAll('button')].find(b => /Apri schede manutenzione ordinaria/.test(b.textContent)).click());
+      await attendiQuiete(t.stato, 3000);
+      const passo = () => t.page.evaluate(() => ({
+        passo: ge('ts3') ? ge('ts3').classList.contains('on') : null,
+        presidi: (ge('pcl') || {}).textContent || '',
+        spunte: Array.from(document.querySelectorAll('#pcl input[type=checkbox][id^="upd-"]')).map(c => c.checked),
+        stati: Array.from(document.querySelectorAll('#pcl [id^="stato-"]')).map(e => e.value),
+        note: Array.from(document.querySelectorAll('#pcl [id^="note-"]')).map(e => e.value)
+      }));
+      foto.esegui.passo_presidi = norm(await passo());
+      // lavoro in corso sul primo presidio
+      await t.page.evaluate(() => {
+        const cb = document.querySelector('#pcl input[type=checkbox][id^="upd-"]'); if (!cb) return;
+        cb.checked = true; cb.dispatchEvent(new Event('change')); cb.dispatchEvent(new Event('click'));
+        const pid = cb.id.slice(4);
+        if (ge('stato-' + pid)) ge('stato-' + pid).value = 'anomalia';
+        if (ge('note-' + pid)) ge('note-' + pid).value = 'nota di prova';
+      });
+      // modifica di un altro presidio dalla finestra
+      const altro = psql("select id from public.impianti where cliente_id = " + q(cliId) + " and matricola = 'REI-001'");
+      await t.page.evaluate(id => { editP(id); }, altro);
+      await attendiQuiete(t.stato, 800);
+      await t.page.evaluate(() => { const u = ['me5', 'mm3', 'mp3'].map(ge).find(e => e && e.offsetParent !== null); if (u) u.value = u.value + ' (dal passo)'; });
+      await t.page.evaluate(async () => { await saveP(); });
+      await attendiQuiete(t.stato, 2500);
+      foto.esegui.salvataggio = norm(await t.page.evaluate(() => ({ toast: ge('toast').textContent, aperta: ge('m-presidio').classList.contains('on') })));
+      await t.page.evaluate(() => closeM('m-presidio'));
+      foto.esegui.dopo = norm(await passo());
+      foto.esegui.rei = norm(JSON.parse(psql("select json_build_object('ubicazione', ubicazione) from public.impianti where id = " + q(altro))));
+      righe.push('Esegui intervento: passo Presidi, lavoro in corso, modifica e ritorno');
+    }
     for (const x of sessioni) if (x.stato.erroriJs.length) KO('errori JavaScript: ' + x.stato.erroriJs.join(' | '));
   } catch (e) {
     KO('interrotto: ' + e.message + ' ' + String(e.stack).split('\n').slice(1, 4).join(' '));

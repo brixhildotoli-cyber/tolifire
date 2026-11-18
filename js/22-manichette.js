@@ -58,16 +58,13 @@ if (formManichette.length) {
   `;
 }
 
-const resetPFPrimaManichette = resetPF;
-resetPF = function() {
-  resetPFPrimaManichette();
+// Passi della finestra del presidio (resetPF, editP, saveP di js/07).
+function azzeraCampiManichettaPresidio() {
   ['mm-progressivo','mm-marca','mm-anno','mm-esito','mm-si','mm-no','mm-vuote','mm-fonte'].forEach(id => { if (ge(id)) ge(id).value = ''; });
   if (ge('mm9')) ge('mm9').value = '';
   if (ge('mm2')) ge('mm2').value = 'UNI 45';
-};
-const editPPrimaManichette = editP;
-editP = function(id) {
-  editPPrimaManichette(id);
+}
+function compilaCampiManichettaPresidio(id) {
   const p = PA.find(r => r.id === id);
   if (!p || p.tipo !== 'manichetta') return;
   const righe = a => Array.isArray(a) ? a.join('\n') : '';
@@ -76,12 +73,10 @@ editP = function(id) {
     'mm-si':righe(p.voci_x_si),'mm-no':righe(p.voci_x_no),'mm-vuote':righe(p.voci_x_vuote),
     'mm-fonte':p.fonte_pdf,'mm9':p.stato,'mm2':p.modello};
   Object.entries(valori).forEach(([campo,valore]) => { ge(campo).value = valore ?? ''; });
-};
+}
 
-const savePPrimaManichette = saveP;
 let salvataggioManichetta = false;
-saveP = async function() {
-  if (v('mptp') !== 'manichetta') return savePPrimaManichette();
+async function salvaManichettaPresidio() {
   if (salvataggioManichetta) return;
   const cliente = v('mpcl'), sede = v('mpsede'), numero = v('mm1').trim();
   if (!cliente || !sede || !numero) { toast('Seleziona cliente, sede e numero della manichetta.','err'); return; }
@@ -115,7 +110,7 @@ saveP = async function() {
     await loadPresidi();
   } catch(e) { toast('Errore: '+e.message,'err'); }
   finally { salvataggioManichetta = false; }
-};
+}
 
 // Passo 4 di apriSchedaPresidio (js/07): riquadro "Dati della manichetta" sopra lo storico.
 function aggiungiDatiManichettaSchedaPresidio(id) {
