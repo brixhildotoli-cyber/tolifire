@@ -6,7 +6,9 @@ interventi continui.
 
 ## Cosa c'è nel pacchetto
 - `CLAUDE.md` — il contesto del progetto. Claude Code lo legge da solo
-  all'inizio di ogni sessione. È la "memoria" del progetto.
+  all'inizio di ogni sessione. È la "memoria" del progetto. Dal 18/11/2026
+  i dettagli per argomento sono nella cartella `docs/` (CLAUDE.md dice
+  quale file leggere): va copiata insieme a CLAUDE.md.
 - `.claude/agents/` — quattro sub-agent specializzati:
   - `revisore-sicurezza.md` — controlla permessi e protezione dati
   - `revisore-codice.md` — controlla qualità e coerenza del codice
