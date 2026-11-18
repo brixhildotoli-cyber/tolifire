@@ -276,6 +276,7 @@ function pulisci() {
   const cli = psql("select string_agg(id::text, ',') from public.clienti where ragione_sociale = " + q(CLIENTE));
   if (!cli) return;
   const lista = cli.split(',').map(q).join(',');
+  psql("delete from public.schede_lavoro where cliente_id in (" + lista + ")");
   psql("delete from public.ordini_lavoro where cliente_id in (" + lista + ")");
   psql("delete from public.schede_manichette where impianto_id in (select id from public.impianti where cliente_id in (" + lista + "))");
   psql("delete from public.schede_presidi where impianto_id in (select id from public.impianti where cliente_id in (" + lista + "))");
@@ -299,6 +300,14 @@ function righeDb() {
   const sp = psql("select coalesce(json_agg(to_jsonb(s) - 'dati' || jsonb_build_object('matricola', i.matricola, 'n_dati', (select count(*) from jsonb_object_keys(coalesce(s.dati, '{}'::jsonb)))) order by i.matricola, s.anno, s.mese), '[]') from public.schede_presidi s join public.impianti i on i.id = s.impianto_id where i.cliente_id = " + cli);
   const sm = psql("select coalesce(json_agg(to_jsonb(s) || jsonb_build_object('matricola', i.matricola) order by i.matricola, s.data_intervento), '[]') from public.schede_manichette s join public.impianti i on i.id = s.impianto_id where i.cliente_id = " + cli);
   return norm({ impianti: JSON.parse(imp), schede_presidi: JSON.parse(sp), schede_manichette: JSON.parse(sm) });
+}
+// Interventi, schede di lavoro e audit del cliente di prova (scenario 9)
+function righeChiusura() {
+  const cli = q(psql("select id from public.clienti where ragione_sociale = " + q(CLIENTE)));
+  const odl = psql("select coalesce(json_agg(json_build_object('tipo', o.tipo, 'stato', o.stato, 'data_pianificata', o.data_pianificata, 'audit_presidi', o.audit_presidi, 'audit_presidi_nota', o.audit_presidi_nota) order by o.audit_presidi, o.stato), '[]') from public.ordini_lavoro o where o.cliente_id = " + cli);
+  const sch = psql("select coalesce(json_agg(json_build_object('data_intervento', s.data_intervento, 'esito', s.esito, 'stato', s.stato, 'lavori_eseguiti', s.lavori_eseguiti, 'anomalie_rilevate', s.anomalie_rilevate, 'impossibilitato', s.impossibilitato, 'nome_firmatario', s.nome_firmatario) order by s.nome_firmatario), '[]') from public.schede_lavoro s where s.cliente_id = " + cli);
+  const aud = psql("select coalesce(json_agg(to_jsonb(a)), '[]') from public.audit_presidi a join public.ordini_lavoro o on o.id = a.odl_id where o.cliente_id = " + cli);
+  return norm(Object.assign({ ordini: JSON.parse(odl), schede_lavoro: JSON.parse(sch), audit: JSON.parse(aud) }, righeDb()));
 }
 
 const CSV = {
@@ -359,7 +368,7 @@ function confronta(a, b, via, diff) {
     for (const k of chiavi) confronta(a[k], b[k], via + (Array.isArray(a) ? '[' + k + ']' : '.' + k), diff);
     return;
   }
-  diff.push(via + ': prima ' + JSON.stringify(a).slice(0, 160) + ' / ora ' + JSON.stringify(b).slice(0, 160));
+  diff.push(via + ': prima ' + String(JSON.stringify(a)).slice(0, 160) + ' / ora ' + String(JSON.stringify(b)).slice(0, 160));
 }
 
 (async () => {
@@ -491,7 +500,7 @@ function confronta(a, b, via, diff) {
     righe.push('tecnico: bottoni e cartelle in sola lettura');
     // 8. Esegui intervento (tecnico, 390 px): passo Presidi, lavoro in corso, modifica di un presidio e ritorno
     const sede1 = psql("select id from public.sedi_cliente where cliente_id = " + q(cliId) + " limit 1");
-    psql("insert into public.ordini_lavoro (cliente_id, sede_id, tecnico_id, tipo, stato, data_pianificata) values (" + q(cliId) + ", " + q(sede1) + ", " + q(tec.id) + ", 'ordinario_programmato', 'pianificato', current_date)");
+    psql("insert into public.ordini_lavoro (cliente_id, sede_id, tecnico_id, tipo, stato, data_pianificata) values (" + q(cliId) + ", " + q(sede1) + ", " + q(tec.id) + ", 'ordinario_programmato', 'pianificato', '2026-11-18')");
     await t.page.evaluate(() => gotoPage('tecnico'));
     await attendiQuiete(t.stato, 2500);
     const scelto = await t.page.evaluate(id => { const sel = ge('tc1'); if (!sel || ![...sel.options].some(o => o.value === id)) return false; sel.value = id; sel.dispatchEvent(new Event('change')); return true; }, cliId);
@@ -529,6 +538,57 @@ function confronta(a, b, via, diff) {
       foto.esegui.dopo = norm(await passo());
       foto.esegui.rei = norm(JSON.parse(psql("select json_build_object('ubicazione', ubicazione) from public.impianti where id = " + q(altro))));
       righe.push('Esegui intervento: passo Presidi, lavoro in corso, modifica e ritorno');
+      // 9a. chiusura senza intervento assegnato, dal lavoro in corso dello scenario 8
+      await t.page.evaluate(() => { window.confirm = () => true; });
+      const esitoPagina = () => t.page.evaluate(() => ({ toast: ge('toast').textContent, pagina: (document.querySelector('.page.on') || {}).id || null, cliente: v('tc1'), intervento: v('tc-odl') }));
+      await t.page.evaluate(() => tnext(3));
+      await attendiQuiete(t.stato, 1000);
+      foto.chiusura = { riepilogo: await testoDi(t, '#triepilogo') };
+      await t.page.evaluate(() => { ge('tc18').value = 'Firmatario A'; ge('tc10').value = 'lavori di prova'; });
+      await t.page.evaluate(async () => { await salvaInt(); });
+      await attendiQuiete(t.stato, 3000);
+      foto.chiusura.esito = norm(await esitoPagina());
+      foto.chiusura.db = righeChiusura();
+      righe.push('chiusura intervento senza intervento assegnato');
+      // 9b. chiusura di un intervento assegnato con audit
+      // Audit e appuntamento li decide solo il database: qui come le sue funzioni (toli.audit_presidi,
+      // toli.appuntamento). Senza appuntamento richiesto, altrimenti il tecnico non lo vede finché non è fissato.
+      const odlAudit = (psql("select set_config('toli.audit_presidi', 'si', true), set_config('toli.appuntamento', 'si', true); insert into public.ordini_lavoro (cliente_id, sede_id, tecnico_id, tipo, stato, data_pianificata, appuntamento_richiesto, audit_presidi, audit_presidi_nota) values (" + q(cliId) + ", " + q(sede1) + ", " + q(tec.id) + ", 'ordinario_programmato', 'pianificato', '2026-11-18', false, true, 'audit di prova') returning id").match(/[0-9a-f]{8}-[0-9a-f-]{27}/) || [''])[0];
+      await t.page.evaluate(async () => { gotoPage('tecnico'); await loadOdlTecnico(); });
+      await attendiQuiete(t.stato, 2500);
+      const sceltoOdl = await t.page.evaluate(id => { const sel = ge('tc-odl'); if (!sel || ![...sel.options].some(o => o.value === id)) return false; sel.value = id; sel.dispatchEvent(new Event('change')); return true; }, odlAudit);
+      foto.audit = { tendina: norm(await t.page.evaluate(() => [...ge('tc-odl').options].map(o => o.textContent))), scelto: sceltoOdl };
+      if (sceltoOdl) {
+        await attendiQuiete(t.stato, 2500);
+        foto.audit.avviso = await testoDi(t, '#tec-audit-avviso');
+        for (const n of [0, 1, 2]) { await t.page.evaluate(n => tnext(n), n); await attendiQuiete(t.stato, n === 2 ? 3000 : 600); }
+        foto.audit.passo = await testoDi(t, '#pcl');
+        await t.page.evaluate(() => tnext(3));
+        await attendi(400);
+        foto.audit.senza_compilare = norm(await t.page.evaluate(() => ({ toast: ge('toast').textContent, fermo_al_passo_presidi: ge('ts3').classList.contains('on') })));
+        await t.page.evaluate(() => {
+          [...document.querySelectorAll('#pcl select[id^="aud-esito-"]')].forEach((s, i) => {
+            const pid = s.dataset.pid;
+            s.value = i === 0 ? 'non_trovato' : 'trovato'; s.dispatchEvent(new Event('change'));
+            if (i === 0) return;
+            const anno = ge('aud-anno-' + pid), mat = ge('aud-mat-' + pid);
+            if (anno && !anno.value) { anno.value = '2019'; anno.dispatchEvent(new Event('input')); }
+            if (mat && !mat.value) { mat.value = 'AUD-' + i; mat.dispatchEvent(new Event('input')); }
+            if (i === 1 && mat) { mat.value = mat.value + '-BIS'; mat.dispatchEvent(new Event('input')); }
+          });
+        });
+        await attendi(300);
+        foto.audit.compilato = await testoDi(t, '#pcl');
+        await t.page.evaluate(() => tnext(3));
+        await attendiQuiete(t.stato, 1000);
+        foto.audit.riepilogo = await testoDi(t, '#triepilogo');
+        await t.page.evaluate(() => { ge('tc18').value = 'Firmatario B'; });
+        await t.page.evaluate(async () => { await salvaInt(); });
+        await attendiQuiete(t.stato, 3000);
+        foto.audit.esito = norm(await esitoPagina());
+        foto.audit.db = righeChiusura();
+        righe.push('chiusura intervento con audit: tendina, passo, blocco senza compilare, riepilogo, salvataggio');
+      }
     }
     for (const x of sessioni) if (x.stato.erroriJs.length) KO('errori JavaScript: ' + x.stato.erroriJs.join(' | '));
   } catch (e) {
