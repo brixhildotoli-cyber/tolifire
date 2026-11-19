@@ -43,7 +43,7 @@ const FILTRI_SCADENZE_FATTURE = [
   ['prossime', 'Scadute e prossimi 30 giorni'], ['scadute', 'Solo scadute'],
   ['aperte', 'Tutte da incassare'], ['pagate', 'Pagate (ultimi 90 giorni)']
 ];
-const ETICHETTE_ORIGINE_FATTURA = { anticipo: '💶 Anticipo', finale: '🏁 Finale commessa' };
+const ETICHETTE_ORIGINE_FATTURA = { anticipo: '💶 Anticipo', finale: '🏁 Finale commessa', vendita: '🛒 Vendita' }; // vendita: F18.5, sql/133
 
 let fattureEmissioneAttive = null; // null = da verificare (sql/46)
 let emissione = null;              // stato della finestra m-emetti-fattura

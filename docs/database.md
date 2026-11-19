@@ -3155,6 +3155,19 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Dopo sql/133 (F18.5 vendita semplice, D8 di Toli; scelte di Erika del 19/11:
+fattura di segreteria e titolare, sopra 1.000 € e righe fuori catalogo solo
+avviso; DA ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/133", poi
+133-vendita-semplice-VINCOLO.sql dall'EDITOR (drop/add del vincolo
+fatture_origine_check con 'vendita'), controllo in fondo; provato in locale
+con 133-...-PROVA.sql: PROVA sql/133 OK, rollback e riesecuzione provati):
+nessuna tabella. RPC NUOVE crea_bozza_vendita_da_ddt(p_ddt_id, p_iva_perc)
+(DDT senza scheda di lavoro, non eliminato, non già in fattura; bozza con
+origine 'vendita', righe origine 'ddt' e fonte 'ddt' copiate dal DDT; usa
+toli.fatture_rpc per il trigger trg_fatture_blocco_emesse; restituisce
+{id, avvisi[]}) e vendite_semplici_attive() (true se il vincolo ammette
+'vendita'); emetti_fattura riscritta uguale a sql/46 con origine in
+('scheda','vendita'). Rollback: si ferma se ci sono fatture di vendita.
 Dopo sql/132 (F18.3, versione scelta da Erika il 19/11: richiami del
 preventivo e accettazione con condizioni diverse; DA ESEGUIRE: backup, poi
 "CONFERMATO DA TOLI: sql/132", poi -REGISTRO-CANCELLAZIONI dall'editor,

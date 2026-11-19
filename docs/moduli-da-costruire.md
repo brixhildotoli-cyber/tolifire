@@ -152,6 +152,13 @@ una sessione e l'altra.
    fino al 19/11 compilava i campi SPOSTATI (referente nella P.IVA, P.IVA
    nel telefono...) e non caricava le sedi: ora usa editCli. Prova
    test/fatturazione-segreteria.spec.js.
+   VENDITA SEMPLICE (F18.5, 19/11, sql/133, js/106): in Documenti → DDT, sui
+   DDT senza scheda, "🛒 Fattura vendita" (segreteria, titolare) →
+   crea_bozza_vendita_da_ddt → apriFattura (bozza di sempre) con gli avvisi
+   del database in #mfat-avvisi-vendita; emissione e pagamento come le
+   altre; DDT già fatturato: "🧾 In fattura …". Bollino "🛒 Vendita" nella
+   lista Fatture (ETICHETTE_ORIGINE_FATTURA di js/44). Guide info-seg-40,
+   info-tit-72. Prova test/vendita-semplice.spec.js.
    BLOCCHI (trigger trg_fatture_blocco_emesse e
    trg_fatture_scadenze_solo_rpc): una fattura nasce solo in bozza; si
    emette solo dalle RPC; emessa o annullata non si modifica (tranne

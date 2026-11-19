@@ -50,6 +50,8 @@ ge('dtbody').innerHTML = !dt.length
         </td>
       </tr>`;
     }).join('');
+  // F18.5 (sql/133): "🛒 Fattura vendita" sui DDT senza scheda (js/106)
+  decoraVenditeDdt().catch(function(e){ console.warn('Vendite dai DDT:', e); });
   const rt=rr.data||[];ge('rttbody').innerHTML=!rt.length?'<tr><td colspan="7"><div class="empty">Nessuna relazione</div></td></tr>':rt.map(r=>`<tr><td>#${r.numero||'—'}</td><td>${esc(r.clienti?.ragione_sociale||'—')}</td><td>${esc((r.tipo_impianto||'').replace(/_/g,' '))}</td><td>${fd(r.data_sopralluogo)}</td><td>${be(r.esito)}</td><td>${r.intervento_straordinario?'<span class="bx berr">Sì</span>':'<span class="bx bok">No</span>'}</td><td><button class="btn sm">Vedi</button></td></tr>`).join('');
 }
 
