@@ -3155,6 +3155,23 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Dopo sql/132 (F18.3, versione scelta da Erika il 19/11: richiami del
+preventivo e accettazione con condizioni diverse; DA ESEGUIRE: backup, poi
+"CONFERMATO DA TOLI: sql/132", poi -REGISTRO-CANCELLAZIONI dall'editor,
+controllo in fondo al file; provato sul database locale con
+132-...-PROVA.sql: PROVA sql/132 OK; matrice: 20 righe, nessuno scarto):
+tabelle NUOVE preventivi_richiami (preventivo_id, esito ci_pensa |
+non_risponde | vuole_modifiche | richiamare (con richiamare_il) | altro,
+nota, registrato_da/_nome/_il) e preventivi_condizioni_diverse (una riga
+per preventivo: testo, segnalato_da/_nome/_il, visto_da/_nome/_il,
+nota_titolare). Lettura titolare, segreteria, commerciale e rappresentante
+dei preventivi dei suoi clienti (preventivo_del_mio_cliente); scrittura solo
+con le RPC registra_richiamo_preventivo (preventivo inviato_a_rappresentante
+non sostituito; rappresentante del cliente o titolare),
+segna_condizioni_diverse_preventivo (in_attesa_anticipo o accettato; la
+correzione azzera l'OK), vista_condizioni_diverse_preventivo (titolare),
+richiami_preventivo_attivi. Registro delle azioni sulle due tabelle. Lo
+stato del preventivo non cambia mai. Sito: js/105 (vedi docs/commessa.md).
 Dopo sql/273 (il capo tecnico segna "il cliente non paga", richiesta di Erika
 del 17/11: presidio scaduto in "Controlli scaduti: da ripianificare" fermo
 perché il cliente non paga; ESEGUITO il 17/11 (backup pre273, dal server MCP, controllo OK):

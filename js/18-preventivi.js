@@ -112,6 +112,7 @@ async function openPreventivoDetail(preventivoId) {
       ${ir('IVA', (preventivo.iva_perc ?? 22) + '%')}
     </div>
     ${bollinoScadenzaPreventivo(preventivo) ? '<div id="pvd-scadenza" style="margin-top:8px">' + bollinoScadenzaPreventivo(preventivo) + '</div>' : ''}
+    <div id="pvd-richiami"></div>
 
     <div class="card" style="margin-top:16px">
       <div style="font-size:14px;font-weight:700">
@@ -234,6 +235,8 @@ ${ROLE === 'titolare' ? `
       </div>
     ` : ''}
   `;
+  // F18.3 (sql/132): richiami al cliente e condizioni diverse (js/105)
+  caricaRichiamiPreventivoScheda(preventivo).catch(function(e) { console.warn('Richiami del preventivo:', e); });
 
   const notaTecnica =
   progetto?.nota_verifica_tecnica ||

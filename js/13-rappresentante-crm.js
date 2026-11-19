@@ -693,11 +693,14 @@ pdf_esterno_titolare_nome,
           ${esitoDisponibile ? bottoniEsitoPreventivo(preventivo) : ''}
         </div>
         <div class="sconto-rapp" data-preventivo="${preventivo.id}"></div>
+        <div class="richiami-rapp" data-preventivo="${preventivo.id}" data-numero="${esc(String(preventivo.numero || ''))}" data-inviato="${esc(preventivo.inviato_a_rappresentante_il || '')}"></div>
       </div>
     `;
   }).join('') + esitiRegistrati;
   // sql/258: sconto del rappresentante nelle schede (js/69; senza sql/258 nulla)
   if (typeof caricaScontiRappresentante === 'function') caricaScontiRappresentante(box);
+  // F18.3 (sql/132): richiami al cliente (js/105)
+  caricaRichiamiRappresentante(box).catch(function(e) { console.warn('Richiami dei preventivi:', e); });
 }
 
 async function apriPdfPreventivoRappresentante(preventivoId) {

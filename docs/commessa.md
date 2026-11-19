@@ -145,6 +145,19 @@ sotto il riepilogo della scheda (#pvd-scadenza). Il rappresentante ha la
 riga "Preventivi in scadenza o scaduti" in Cosa tocca a me (js/46,
 preventivi-in-scadenza, rossa se ce n'è uno scaduto). Lo stato non cambia.
 Guida info-rap-40. Prova test/scadenza-preventivo.spec.js.
+F18.3 (versione scelta da Erika il 19/11, sql/132, js/105; NON fatte stima
+di massima e "Chiedi conferma scritta"): richiami del preventivo da far
+approvare: "📞 Da richiamare" in I miei preventivi e "Preventivi da
+richiamare" in Cosa tocca a me 7 giorni dopo inviato_a_rappresentante_il,
+di nuovo dopo 15 (se il primo richiamo è prima dei 15 giorni), o alla data
+dell'esito "richiamare"; "📞 Registra richiamo" (finestra
+m-richiamo-preventivo). Accettazione con condizioni diverse (solo avviso):
+spunta in m-esito-preventivo (#mep-box-condizioni), salvata dopo
+accetta_preventivo; il titolare ha "Preventivi accettati con condizioni
+diverse: dai l'OK" in Cosa tocca a me (elenco m-condizioni-diverse, "✓ OK,
+visto"); richiami e condizioni nella scheda del preventivo (#pvd-richiami).
+Senza sql/132 nulla compare. Guide info-rap-42, info-tit-71. Prova
+test/richiami-preventivo.spec.js (database locale con sql/132).
 
 Passi 5-6, anticipo (F4.2, sql/24-anticipo-preventivo da eseguire dopo
 22 e 23): colonne `preventivi.anticipo_richiesto` (sì/no, vuoto = non

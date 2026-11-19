@@ -3454,6 +3454,11 @@
       <p>
         Nella scheda del progetto (Info) c'è <b>✉️ Mail del cliente</b>. Trascina la mail della richiesta da Outlook sul desktop: diventa un file <b>.eml</b> (o <b>.msg</b>). Premi <b>✉️ Allega mail del cliente</b>, scegli il file e controlla mittente, oggetto e data (da un .eml li legge il gestionale). La mail resta nel progetto e chi ci lavora la apre con <b>⬇ Apri in Outlook</b>. Non conta come allegato del progetto: per inviarlo servono sempre disegni, foto o PDF.
       </p>
+      <h4 id="info-rap-42">42. 📞 Richiami al cliente e condizioni diverse</h4>
+      <p>
+        7 giorni dopo che un preventivo ti è arrivato pronto, e di nuovo dopo 15, in <b>I miei preventivi</b> compare <b>📞 Da richiamare</b> e in <b>Cosa tocca a me</b> la riga <b>Preventivi da richiamare</b>. Senti il cliente e premi <b>📞 Registra richiamo</b>: scegli l'esito (ci pensa, non risponde, vuole modifiche, richiamare più avanti con la data, altro) e scrivi una nota. Con "richiamare più avanti" il gestionale te lo ricorda quel giorno.
+        Se il cliente accetta ma con <b>condizioni diverse</b> (es. pagamento a 90 giorni), quando registri <b>Accettato</b> spunta la casella e scrivi quali: l'accettazione va avanti come sempre e il titolare riceve l'avviso per dare l'OK.
+      </p>
       </div>
 
       <h4>Regole pratiche</h4>
@@ -6752,6 +6757,11 @@
       </p>
       <div class="al2 i">Il totale da addebitare compare nel riquadro dei fermi della commessa.</div>
 
+      <h4 id="info-tit-71">71. 🤝 Preventivi accettati con condizioni diverse</h4>
+      <p>
+        Se il cliente accetta un preventivo chiedendo condizioni diverse (es. pagamento a 90 giorni), il rappresentante lo scrive quando registra l'esito. L'accettazione va avanti come sempre; tu trovi in <b>Cosa tocca a me</b> la riga <b>Preventivi accettati con condizioni diverse</b>: aprila, leggi le condizioni e premi <b>✓ OK, visto</b> (con una nota, se serve), oppure apri il preventivo e senti il rappresentante. Nella scheda del preventivo restano le condizioni, i richiami fatti al cliente e il tuo OK.
+      </p>
+
 
 
       <h4>Regole pratiche</h4>
@@ -8697,6 +8707,18 @@
           accept="application/pdf,.pdf,image/*,.eml,.msg,message/rfc822"
           onchange="aggiornaBottoneEsitoPreventivo()"
         >
+      </div>
+
+      <!-- F18.3 — condizioni diverse (solo con sql/132, js/105) -->
+      <div id="mep-box-condizioni" style="display:none;margin-top:6px">
+        <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;font-size:13px;font-weight:400">
+          <input type="checkbox" id="mep-condizioni-diverse" onchange="cambiaCondizioniDiverseEsito()">
+          <span>Il cliente ha accettato con <b>condizioni diverse</b> (es. pagamento a 90 giorni invece di 30)</span>
+        </label>
+        <div id="mep-condizioni-testo-box" style="display:none;margin-top:6px">
+          <div class="f"><label>Quali condizioni? *</label><textarea id="mep-condizioni-testo" rows="2" maxlength="1000" oninput="aggiornaBottoneEsitoPreventivo()"></textarea></div>
+          <div style="font-size:12px;color:var(--m)">L'accettazione va avanti come sempre: il titolare riceve l'avviso e dà l'OK.</div>
+        </div>
       </div>
 
       <!-- F4.2 — anticipo (compare solo con sql/24 eseguito) -->
@@ -12201,6 +12223,7 @@
 <script defer src="js/102-capo-tecnico-non-paga.js?v=202611191414"></script>
 <script defer src="js/103-dashboard-sezioni-vuote.js?v=202611191414"></script>
 <script defer src="js/104-mail-progetto.js?v=202611191414"></script>
+<script defer src="js/105-richiami-preventivo.js?v=202611191414"></script>
 <script defer src="js/19-init.js?v=202611191414"></script>
 
 

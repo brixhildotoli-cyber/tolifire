@@ -467,6 +467,29 @@ registraFonteToccaAMe({
   }
 });
 
+// F18.3 (sql/132, js/105): richiami a 7 e 15 giorni o alla data scelta
+registraFonteToccaAMe({
+  id: 'preventivi-da-richiamare', ruoli: ['rappresentante'], icona: '📞',
+  titolo: 'Preventivi da richiamare: senti il cliente e registra il richiamo',
+  vai: { pagina: 'preventivi-rapp' },
+  conta: async function() {
+    if (!funzioneEsiste('preventiviDaRichiamare')) return null;
+    try { const righe = await preventiviDaRichiamare(); return righe === null ? null : { n: righe.length }; }
+    catch (e) { console.warn('Cosa tocca a me (richiami):', e.message || e); return null; }
+  }
+});
+
+registraFonteToccaAMe({
+  id: 'condizioni-diverse', ruoli: ['titolare'], icona: '🤝',
+  titolo: 'Preventivi accettati con condizioni diverse: dai l\'OK',
+  vai: function() { apriCondizioniDiverseTitolare(); },
+  conta: async function() {
+    if (!funzioneEsiste('condizioniDiverseDaVedere')) return null;
+    try { const righe = await condizioniDiverseDaVedere(); return righe === null ? null : { n: righe.length }; }
+    catch (e) { console.warn('Cosa tocca a me (condizioni diverse):', e.message || e); return null; }
+  }
+});
+
 // F18.1 "solo avviso" (18/11): validità entro 5 giorni o già passata
 // (scadenzaPreventivo di js/18); lo stato non cambia, l'esito si dà come oggi.
 registraFonteToccaAMe({

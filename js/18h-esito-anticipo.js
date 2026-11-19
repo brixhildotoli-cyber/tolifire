@@ -182,6 +182,8 @@ async function apriEsitoPreventivo(preventivoId, esito, numero) {
 
   // F4.2: anticipo sì/no (precompilato con quanto indicato dal commerciale).
   await preparaAnticipoEsitoPreventivo(preventivoId, accetta);
+  // F18.3 (sql/132): "Il cliente ha accettato con condizioni diverse" (js/105)
+  await preparaCondizioniDiverseEsito(accetta);
 
   aggiornaBottoneEsitoPreventivo();
   openM('m-esito-preventivo');
@@ -194,7 +196,7 @@ function aggiornaBottoneEsitoPreventivo() {
 
   const esito = v('mep-esito');
   const pronto = esito === 'accettato'
-    ? !!ge('mep-allegato')?.files?.[0] && anticipoEsitoPronto()
+    ? !!ge('mep-allegato')?.files?.[0] && anticipoEsitoPronto() && condizioniDiverseEsitoPronte()
     : v('mep-motivo').trim().length > 0;
 
   bottone.disabled = !pronto;
@@ -324,7 +326,10 @@ async function salvaEsitoPreventivo() {
     return;
   }
 
+  // F18.3 (sql/132): condizioni diverse al titolare (js/105); null = errore già detto
+  const avvisoCondizioni = await salvaCondizioniDiverseEsito(preventivoId);
   closeM('m-esito-preventivo');
+  if (avvisoCondizioni === null) { await aggiornaDopoEsitoPreventivo(preventivoId); return; }
 
   // F4.2: con l'anticipo il database restituisce 'in_attesa_anticipo'
   // e il preventivo compare alla segreteria in "Anticipi da fatturare".
@@ -335,6 +340,7 @@ async function salvaEsitoPreventivo() {
       : 'Preventivo segnato come accettato' + await testoCommessaNata(preventivoId),
     'ok'
   );
+  if (avvisoCondizioni) toast(ge('toast').textContent + avvisoCondizioni, 'ok');
 
   await aggiornaDopoEsitoPreventivo(preventivoId);
 }
