@@ -126,8 +126,10 @@ function testoProssimoPassoCommessa(commessa) {
   return ETICHETTE_STATO_COMMESSA[prossimo] + ' (' + NOMI_RUOLO_PASSO_COMMESSA[RUOLO_PASSO_COMMESSA[prossimo]] + ')';
 }
 
-function badgeStatoCommessa(stato) {
-  return `<span class="bx ${classeStatoCommessa(stato)}">${esc(ETICHETTE_STATO_COMMESSA[stato] || stato || '—')}</span>`;
+// commessaId: con lo stato annullata js/107 guarda se era partita ("Annullata (non avviata)")
+function badgeStatoCommessa(stato, commessaId) {
+  const segno = stato === 'annullata' && commessaId ? ` data-annullata-id="${esc(commessaId)}"` : '';
+  return `<span class="bx ${classeStatoCommessa(stato)}"${segno}>${esc(ETICHETTE_STATO_COMMESSA[stato] || stato || '—')}</span>`;
 }
 
 // ── Pagina Commesse ─────────────────────────────────────────────────
@@ -216,7 +218,7 @@ function renderEvidenzaCommesse() {
         return `
           <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--bo)">
             <div style="min-width:0">
-              <div style="font-weight:700">${esc(c.codice)} · ${esc(c.clienti?.ragione_sociale || '')} ${badgeStatoCommessa(c.stato)}</div>
+              <div style="font-weight:700">${esc(c.codice)} · ${esc(c.clienti?.ragione_sociale || '')} ${badgeStatoCommessa(c.stato, c.id)}</div>
               <div style="font-size:12px;color:var(--m)">${esc(c.titolo || '')}</div>
               ${r.motivi.map(function(m) {
                 return `<div style="font-size:12px;margin-top:2px">→ <b>${esc(m)}</b></div>`;
@@ -274,7 +276,7 @@ function filtraCommesse() {
         <td>${esc(c.clienti?.ragione_sociale || '—')}</td>
         <td>${esc(c.titolo || '—')}</td>
         <td>${sede ? esc(sede) : '<span style="color:var(--a)">da indicare</span>'}</td>
-        <td>${badgeStatoCommessa(c.stato)}${prossimo ? `<div style="font-size:11px;color:var(--m);margin-top:2px">poi: ${esc(prossimo)}</div>` : ''}</td>
+        <td>${badgeStatoCommessa(c.stato, c.id)}${prossimo ? `<div style="font-size:11px;color:var(--m);margin-top:2px">poi: ${esc(prossimo)}</div>` : ''}</td>
         ${conAvanzamento ? `<td>${htmlCellaAvanzamentoCommessa(c)}</td>` : ''}
         <td style="white-space:nowrap">${typeof htmlImportoCommessaElenco === 'function' ? htmlImportoCommessaElenco(c) : (c.importo_imponibile != null ? esc(euroPreventivo(c.importo_imponibile)) : '—')}</td>
         <td><button class="btn sm p" onclick="openCommessaDetail('${esc(c.id)}')">Apri</button></td>
@@ -349,7 +351,7 @@ async function caricaSchedaCommessa(commessaId) {
 
   ge('cmd-titolo').textContent = '📁 Commessa ' + commessa.codice;
   ge('cmd-sottotitolo').textContent = [commessa.clienti?.ragione_sociale, commessa.titolo].filter(Boolean).join(' · ');
-  ge('cmd-stato').innerHTML = badgeStatoCommessa(commessa.stato);
+  ge('cmd-stato').innerHTML = badgeStatoCommessa(commessa.stato, commessa.id);
 
   // F6.2: richieste di consumabili e noli per "Tocca a te" (js/28).
   if (typeof caricaRiepilogoRichiesteIntegrazione === 'function') await caricaRiepilogoRichiesteIntegrazione(commessa.id);
@@ -357,6 +359,8 @@ async function caricaSchedaCommessa(commessaId) {
   if (typeof caricaRiepilogoLavoriExtra === 'function') await caricaRiepilogoLavoriExtra(commessa.id);
   if (typeof caricaImportiExtraCommesse === 'function') await caricaImportiExtraCommesse([commessa.id]);
   riepilogo.innerHTML = htmlRiepilogoCommessa(commessa);
+  // F18.8: suggerimento del prossimo passaggio (js/107), senza aspettarlo
+  caricaSuggerimentoPassoCommessa(commessa).catch(function(e) { console.warn('Suggerimento del passo:', e); });
   // F14.16: intestazione, "Cosa puoi fare", Collegati (cliente, sede,
   // progetto, preventivi, ordini, cantiere, POS, documenti finali, fatture)
   // e Storico (js/63), al posto dei vecchi bottoni dei collegamenti.
@@ -458,6 +462,7 @@ function htmlRiepilogoCommessa(c) {
         <div style="font-size:14px;font-weight:700;margin-bottom:8px">Stato della commessa</div>
         ${htmlPercorsoStatiCommessa(c.stato)}
         ${htmlProssimoPassoCommessa(c)}
+        <div id="cmd-suggerimento-passo"></div>
       </div>
     ` : ''}
   `;
@@ -803,7 +808,7 @@ async function loadCommesseCliente(clienteId) {
     return `
       <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--bo)">
         <div style="min-width:0">
-          <div style="font-weight:700">${esc(c.codice)}${mia ? ' ⭐' : ''} ${badgeStatoCommessa(c.stato)}</div>
+          <div style="font-weight:700">${esc(c.codice)}${mia ? ' ⭐' : ''} ${badgeStatoCommessa(c.stato, c.id)}</div>
           <div style="font-size:12px;color:var(--m)">
             ${esc(c.titolo || '')}${c.titolo ? ' · ' : ''}sede: ${sede ? esc(sede) : 'da indicare'}
             ${typeof testoImportoCommessa === 'function' ? (testoImportoCommessa(c) ? ' · ' + esc(testoImportoCommessa(c)) : '') : (c.importo_imponibile != null ? ' · ' + esc(euroPreventivo(c.importo_imponibile)) : '')}

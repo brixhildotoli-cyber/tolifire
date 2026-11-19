@@ -572,7 +572,7 @@ function disegnaCommesseOreCantiere(r) {
     const c = x.commessa;
     return `
       <tr${x.oltre ? ' class="orec-oltre"' : ''}>
-        <td data-label="Commessa"><b>${esc(c.codice || '—')}</b> ${c.stato ? badgeStatoCommessa(c.stato) : ''}<div style="font-size:12px;overflow-wrap:anywhere">${esc(c.clienti?.ragione_sociale || '')}</div>${c.titolo ? `<div style="font-size:11px;color:var(--m);overflow-wrap:anywhere">${esc(c.titolo)}</div>` : ''}</td>
+        <td data-label="Commessa"><b>${esc(c.codice || '—')}</b> ${c.stato ? badgeStatoCommessa(c.stato, c.id) : ''}<div style="font-size:12px;overflow-wrap:anywhere">${esc(c.clienti?.ragione_sociale || '')}</div>${c.titolo ? `<div style="font-size:11px;color:var(--m);overflow-wrap:anywhere">${esc(c.titolo)}</div>` : ''}</td>
         <td data-label="Nel periodo" class="orec-num"><b>${esc(numeroOre(x.periodo))}</b></td>
         <td data-label="Totali" class="orec-num">${esc(numeroOre(x.totali))}</td>
         <td data-label="Stimate" class="orec-num"><span>${x.stimate === null ? '—' : esc(numeroOre(x.stimate))}${x.stimate !== null && x.senzaStima > 0 ? `<div style="font-size:11px;color:var(--m)">${esc(numeroOre(x.senzaStima))} h senza stima</div>` : ''}</span></td>

@@ -44,7 +44,7 @@ const NOMI_STATO_SCHEDA = {
     in_attesa_anticipo: 'Accettato, in attesa anticipo', accettato: 'Accettato', rifiutato: 'Rifiutato', scaduto: 'Scaduto'
   },
   commessa: {
-    approvata: 'Approvata', materiali_ordinati: 'Materiali ordinati', in_preparazione: 'In preparazione', pronta: 'Pronta',
+    approvata: 'Approvata', materiali_ordinati: 'Materiali ordinati', in_preparazione: 'Presa in carico', pronta: 'Pronta',
     in_corso: 'In corso', fine_lavori: 'Fine lavori', chiusa: 'Chiusa', annullata: 'Annullata'
   },
   progetto: {

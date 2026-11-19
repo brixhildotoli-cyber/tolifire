@@ -18,7 +18,7 @@
 const ETICHETTE_STATO_COMMESSA = {
   approvata: 'Approvata',
   materiali_ordinati: 'Materiali ordinati',
-  in_preparazione: 'In preparazione',
+  in_preparazione: 'Presa in carico', // T1 di Toli: etichetta, il codice resta in_preparazione
   pronta: 'Pronta',
   in_corso: 'In corso',
   fine_lavori: 'Fine lavori',

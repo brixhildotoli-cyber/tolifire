@@ -158,6 +158,20 @@ diverse: dai l'OK" in Cosa tocca a me (elenco m-condizioni-diverse, "✓ OK,
 visto"); richiami e condizioni nella scheda del preventivo (#pvd-richiami).
 Senza sql/132 nulla compare. Guide info-rap-42, info-tit-71. Prova
 test/richiami-preventivo.spec.js (database locale con sql/132).
+F18.8 stati della commessa (versione scelta da Erika il 19/11, solo sito,
+js/107; NON fatti: sospensione cliente/CSE con verbale, nuovi stati nel
+database; la sospensione resta quella di sql/151): "Presa in carico" =
+etichetta di in_preparazione (T1) in ETICHETTE_STATO_COMMESSA (js/18i) e
+NOMI_STATO_SCHEDA (js/63); gli avvisi scritti dal database dicono ancora
+"In preparazione". Suggerimento sotto "Prossimo passo" (#cmd-suggerimento-
+passo, caricaSuggerimentoPassoCommessa chiamata da openCommessaDetail):
+materiali (leggiFontiMaterialiCommessa/righeMaterialiCommessa di js/29),
+faldone consegnato, data_inizio, sospensione aperta; mai un cambio di stato
+(D5). "Annullata (non avviata)": badgeStatoCommessa(stato, id) di js/26
+mette data-annullata-id, js/107 guarda commesse_storico (mai in_corso,
+fine_lavori o chiusa). Guide info-ct-44, info-seg-41, info-rap-43,
+info-tit-73. Prova test/stati-commessa.spec.js. F18.6 e F18.7 rimandate a
+F20.15 (decisione di Erika del 19/11).
 
 Passi 5-6, anticipo (F4.2, sql/24-anticipo-preventivo da eseguire dopo
 22 e 23): colonne `preventivi.anticipo_richiesto` (sì/no, vuoto = non
