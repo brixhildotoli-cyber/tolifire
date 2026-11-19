@@ -932,7 +932,7 @@ async function inviaProgettoAUfficioTecnico(progettoId) {
 
   const { data: allegati, error: erroreAllegati } = await db
     .from('progetti_tecnici_allegati')
-    .select('id')
+    .select('id,storage_path')
     .eq('progetto_id', progettoId);
 
   if (erroreAllegati) {
@@ -940,7 +940,8 @@ async function inviaProgettoAUfficioTecnico(progettoId) {
     return;
   }
 
-  if (!allegati || allegati.length === 0) {
+  // le mail del cliente (js/104) non valgono come allegato del progetto
+  if (!allegati || allegatiSenzaMail(allegati).length === 0) {
     toast('Non puoi inviare un progetto senza almeno un allegato', 'err');
     return;
   }
@@ -3175,6 +3176,9 @@ if (btnModifica) {
 
   // F14.16: intestazione, "Cosa puoi fare", Collegati e Storico (js/63).
   if (typeof caricaSchedaOggetto === 'function') await caricaSchedaOggetto('progetto', progetto, 'pd-scheda-oggetto');
+
+  // 19/11: mail del cliente allegate al progetto (js/104)
+  try { await caricaMailProgetto(progetto); } catch (e) { console.warn('Mail del progetto:', e); }
 
   const { data: allegati, error: erroreAllegati } = await db
     .from('progetti_tecnici_allegati')

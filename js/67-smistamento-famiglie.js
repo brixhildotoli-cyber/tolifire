@@ -142,9 +142,10 @@ async function inviaProgettoConSmistamento(progettoId) {
   if (typeof controllaFotoVideoPrimaDellInvio === 'function' && !(await controllaFotoVideoPrimaDellInvio(progettoId))) return;
 
   const { data: allegati, error: erroreAllegati } = await db
-    .from('progetti_tecnici_allegati').select('id').eq('progetto_id', progettoId).limit(1);
+    .from('progetti_tecnici_allegati').select('id,storage_path').eq('progetto_id', progettoId);
   if (erroreAllegati) { toast('Errore verifica allegati: ' + erroreAllegati.message, 'err'); return; }
-  if (!allegati || !allegati.length) { toast('Non puoi inviare un progetto senza almeno un allegato', 'err'); return; }
+  // le mail del cliente (js/104) non valgono come allegato del progetto
+  if (!allegati || !allegatiSenzaMail(allegati).length) { toast('Non puoi inviare un progetto senza almeno un allegato', 'err'); return; }
 
   const { data: anteprima, error: erroreAnteprima } = await db.rpc('anteprima_smistamento', { p_progetto: progettoId });
   if (erroreAnteprima) { toast('Errore nello smistamento: ' + erroreAnteprima.message, 'err'); return; }

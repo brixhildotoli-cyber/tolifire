@@ -1309,3 +1309,34 @@ trg_prodotti_catalogo_niente_cancellazione, registro delle azioni: tutto
 presente; sql/93 ESEGUITO), i -REGISTRO-CANCELLAZIONI di 151, 153, 155, 156, 158,
 170, 178, 181 e 272 (12 trigger trg_registro_azioni anche sulle cancellazioni,
 controllati).
+
+14. **Mail del cliente agganciate al progetto (richiesta di Erika del
+   19/11/2026)** — PASSO 1 FATTO (solo sito, js/104-mail-progetto.js): il
+   rappresentante del cliente (o il titolare) allega al progetto la mail
+   della richiesta trascinata da Outlook (.eml letto: mittente, oggetto,
+   data; .msg con i campi a mano), sezione "✉️ Mail del cliente" nella
+   scheda del progetto (#pd-mail), file in <utente>/<progetto>/mail/ tipo
+   application/octet-stream; non vale come allegato per l'invio (js/17,
+   js/67 allegatiSenzaMail). Guida info-rap-41, prova test/mail-progetto.spec.js.
+   PASSO 2 DA FARE (serve il via di Toli e chi amministra Microsoft 365: la
+   posta di toli-fire.com è su Microsoft 365, MX
+   tolifire-com01b.mail.protection.outlook.com). Decisioni di Erika: le
+   richieste arrivano nelle CASELLE DEI RAPPRESENTANTI; aggancia IL
+   RAPPRESENTANTE DEL CLIENTE. Proposta: (a) app registrata in Microsoft
+   Entra ID del tenant TOLI, permessi DELEGATI Mail.Read + offline_access
+   (ogni rappresentante preme "Collega Outlook" e acconsente per la sua
+   sola casella; niente lettura di altre caselle), redirect sul sito;
+   (b) Edge Function "outlook" (come avvisi-urgenti): scambio del codice,
+   refresh token in una tabella leggibile solo da service_role, ogni 10
+   minuti lettura delle mail nuove della Posta in arrivo (delta query di
+   Graph) dei rappresentanti collegati; (c) tabella email_ricevute (casella,
+   mittente, oggetto, data, anteprima corta, nomi degli allegati, webLink
+   "Apri in Outlook", cliente proposto dal mittente: email del referente,
+   PEC, dominio; progetto agganciato; RLS: ogni rappresentante solo le sue,
+   titolare tutte) con file sql/NN, rollback, matrice dei permessi e
+   registro delle azioni; (d) nel sito: "Mail da agganciare" in Cosa tocca
+   a me del rappresentante, "Aggancia al progetto" / "Crea progetto da
+   questa mail", e le mail agganciate nella stessa sezione #pd-mail (e in
+   una sezione della scheda cliente). Da decidere con Toli: quali mail
+   salvare (solo quelle dei clienti conosciuti o tutte), per quanto
+   tempo, e se copiare gli allegati della mail nel progetto.
