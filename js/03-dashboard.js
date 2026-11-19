@@ -778,7 +778,12 @@ async function loadDashSegreteriaPg(){
     }
   }
 
-  // Anagrafiche da completare (per fatturazione)
+  // Anagrafiche da completare (per fatturazione). Prima i clienti la cui
+  // commessa parte (preventivo accettato o in attesa di anticipo, 19/11).
+  var partono = [];
+  try { partono = await clientiCommessaPartonoDaCompletare(); } catch(e) { console.warn('Commesse che partono:', e); }
+  var idPartono = {};
+  partono.forEach(function(x){ idPartono[x.cliente.id] = true; });
   var rAnag = await db.from('clienti')
     .select('id,ragione_sociale,indirizzo_fattura,codice_sdi,modalita_pagamento,pec,iban')
     .is('eliminato_il', null)
@@ -787,13 +792,21 @@ async function loadDashSegreteriaPg(){
     .order('creato_il',{ascending:false}).limit(8);
   var elAn = ge('seg-anag-lista');
   if(elAn){
-    var ans = rAnag.data || [];
-    if(rAnag.error){
+    var ans = (rAnag.data || []).filter(function(c){ return !idPartono[c.id]; });
+    var righePartono = partono.map(function(x){
+      return '<div data-cliid="'+esc(x.cliente.id)+'" onclick="apriClienteSegreteria(this.dataset.cliid, true)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:0.5px solid rgba(0,0,0,.06)">' +
+        '<div><div style="font-weight:600">'+esc(x.cliente.ragione_sociale)+'</div>' +
+        '<div style="font-size:11px;color:var(--r)">🚀 commessa che parte · preventivo n. '+esc(x.preventivi.join(', n. '))+'</div>' +
+        '<div style="font-size:11px;color:var(--a)">manca: '+esc(x.manca.join(', '))+'</div></div>' +
+        '<span class="btn sm p" style="flex-shrink:0">✏️ Completa</span>' +
+      '</div>';
+    });
+    if(rAnag.error && !righePartono.length){
       elAn.innerHTML = '<div class="rap-list-card"><div class="tit-empty">Errore: '+esc(rAnag.error.message)+'</div></div>';
-    } else if(!ans.length){
+    } else if(!ans.length && !righePartono.length){
       elAn.innerHTML = '<div class="rap-list-card"><div class="tit-empty">✅ Tutti i clienti attivi hanno i dati di fatturazione completi</div></div>';
     } else {
-      elAn.innerHTML = '<div class="rap-list-card">' + listaCorta(ans.map(function(c){
+      elAn.innerHTML = '<div class="rap-list-card">' + righePartono.join('') + listaCorta(ans.map(function(c){
         var manca = [];
         if(!c.indirizzo_fattura) manca.push('indirizzo');
         if(!c.codice_sdi) manca.push('SDI');
@@ -1145,3 +1158,35 @@ async function ctDropOnList(e){
   await loadDashCapoTecnicoPg();
 }
 
+// ── Dati di fatturazione quando parte la commessa (19/11, Erika) ─────────
+// Clienti con un preventivo accettato o in attesa di anticipo (la fattura
+// d'anticipo e la commessa stanno per partire) a cui manca qualcosa per la
+// fattura: P.IVA/CF, indirizzo, CAP, città, SDI o PEC, modalità di
+// pagamento. Usata dalla lista della segreteria (qui sopra) e da Cosa tocca
+// a me (js/46). Restituisce [{ cliente, preventivi: [numeri], manca: [...] }].
+async function clientiCommessaPartonoDaCompletare() {
+  var r = await db.from('preventivi')
+    .select('numero, stato, clienti!inner(id, ragione_sociale, stato, eliminato_il, piva, codice_fiscale, indirizzo_fattura, cap_fattura, citta_fattura, codice_sdi, pec, modalita_pagamento)')
+    .in('stato', ['in_attesa_anticipo', 'accettato'])
+    .is('sostituito_da', null)
+    .is('clienti.eliminato_il', null)
+    .order('numero', { ascending: false })
+    .limit(2000);
+  if(r.error) throw r.error;
+  var perCliente = {};
+  (r.data || []).forEach(function(p){
+    var c = p.clienti; if(!c) return;
+    var vuoto = function(x){ return !String(x || '').trim(); };
+    var manca = [];
+    if(vuoto(c.piva) && vuoto(c.codice_fiscale)) manca.push('P.IVA o codice fiscale');
+    if(vuoto(c.indirizzo_fattura)) manca.push('indirizzo');
+    if(vuoto(c.cap_fattura)) manca.push('CAP');
+    if(vuoto(c.citta_fattura)) manca.push('città');
+    if(vuoto(c.codice_sdi) && vuoto(c.pec)) manca.push('SDI o PEC');
+    if(vuoto(c.modalita_pagamento)) manca.push('mod. pagamento');
+    if(!manca.length) return;
+    if(!perCliente[c.id]) perCliente[c.id] = { cliente: c, preventivi: [], manca: manca };
+    perCliente[c.id].preventivi.push(p.numero || '—');
+  });
+  return Object.keys(perCliente).map(function(k){ return perCliente[k]; });
+}

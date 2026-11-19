@@ -306,7 +306,8 @@ function righeChiusura() {
   const cli = q(psql("select id from public.clienti where ragione_sociale = " + q(CLIENTE)));
   const odl = psql("select coalesce(json_agg(json_build_object('tipo', o.tipo, 'stato', o.stato, 'data_pianificata', o.data_pianificata, 'audit_presidi', o.audit_presidi, 'audit_presidi_nota', o.audit_presidi_nota) order by o.audit_presidi, o.stato), '[]') from public.ordini_lavoro o where o.cliente_id = " + cli);
   const sch = psql("select coalesce(json_agg(json_build_object('data_intervento', s.data_intervento, 'esito', s.esito, 'stato', s.stato, 'lavori_eseguiti', s.lavori_eseguiti, 'anomalie_rilevate', s.anomalie_rilevate, 'impossibilitato', s.impossibilitato, 'nome_firmatario', s.nome_firmatario) order by s.nome_firmatario), '[]') from public.schede_lavoro s where s.cliente_id = " + cli);
-  const aud = psql("select coalesce(json_agg(to_jsonb(a)), '[]') from public.audit_presidi a join public.ordini_lavoro o on o.id = a.odl_id where o.cliente_id = " + cli);
+  // data_audit la mette il database con il giorno vero (non quello fisso del browser): si guarda solo che sia oggi
+  const aud = psql("select coalesce(json_agg(to_jsonb(a) - 'data_audit' || jsonb_build_object('data_audit_oggi', a.data_audit = current_date)), '[]') from public.audit_presidi a join public.ordini_lavoro o on o.id = a.odl_id where o.cliente_id = " + cli);
   return norm(Object.assign({ ordini: JSON.parse(odl), schede_lavoro: JSON.parse(sch), audit: JSON.parse(aud) }, righeDb()));
 }
 

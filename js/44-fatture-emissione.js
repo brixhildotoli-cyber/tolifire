@@ -262,11 +262,11 @@ async function apriEmissioneDaBozza() {
   btn.disabled = false;
   if (!salvata || !salvata.id) return;
   const { data: f, error } = await db.from('fatture')
-    .select('id,cliente_id,totale,totale_imponibile,totale_iva,iva_perc,clienti(ragione_sociale,piva,codice_fiscale,giorni_pagamento,modalita_pagamento)')
+    .select('id,cliente_id,totale,totale_imponibile,totale_iva,iva_perc,clienti(' + COLONNE_CLIENTE_EMISSIONE + ')')
     .eq('id', salvata.id).maybeSingle();
   if (error || !f) { erroreFattura('Bozza salvata ma non riletta: riaprila dalla lista.'); return; }
   apriEmissione({
-    modo: 'bozza', fatturaId: f.id, cliente: f.clienti || {}, split: !!(ivaN1SplitAttivi && b.split),
+    modo: 'bozza', fatturaId: f.id, clienteId: f.cliente_id, cliente: f.clienti || {}, split: !!(ivaN1SplitAttivi && b.split),
     totale: Number(f.totale) || 0, imponibile: Number(f.totale_imponibile) || 0, ivaPerc: Number(f.iva_perc ?? 22),
     titolo: '📤 Emetti fattura', sottotitolo: (f.clienti && f.clienti.ragione_sociale) || b.cliente || ''
   });
@@ -279,7 +279,7 @@ async function apriEmissioneAnticipo(preventivoId) {
   }
   if (!(await verificaFattureEmissione())) { toast('L\'emissione non è ancora attiva', 'err'); return; }
   const { data: p, error } = await db.from('preventivi')
-    .select('id,cliente_id,numero,stato,data_emissione,totale_imponibile,iva_perc,anticipo_richiesto,anticipo_tipo,anticipo_valore,anticipo_fattura_numero,clienti(ragione_sociale,piva,codice_fiscale,giorni_pagamento,modalita_pagamento)')
+    .select('id,cliente_id,numero,stato,data_emissione,totale_imponibile,iva_perc,anticipo_richiesto,anticipo_tipo,anticipo_valore,anticipo_fattura_numero,clienti(' + COLONNE_CLIENTE_EMISSIONE + ')')
     .eq('id', preventivoId).maybeSingle();
   if (error || !p) { toast('Preventivo non caricato: ' + ((error && error.message) || 'non trovato'), 'err'); return; }
   if (p.stato !== 'in_attesa_anticipo') { toast('Il preventivo non è più in attesa dell\'anticipo', 'err'); return; }
@@ -287,7 +287,7 @@ async function apriEmissioneAnticipo(preventivoId) {
   const atteso = arrotonda2(importoAnticipoPreventivo(p.anticipo_tipo, p.anticipo_valore, p.totale_imponibile));
   const split = await splitPaymentCliente(p.cliente_id);
   apriEmissione({
-    modo: 'anticipo', preventivoId: p.id, preventivo: p, cliente: p.clienti || {}, split: split,
+    modo: 'anticipo', preventivoId: p.id, preventivo: p, clienteId: p.cliente_id, cliente: p.clienti || {}, split: split,
     atteso: atteso, importo: atteso, massimo: arrotonda2(numeroPreventivo(p.totale_imponibile)),
     ivaPerc: Number(p.iva_perc ?? 22), giorni: 0, modalita: 'Bonifico anticipato',
     titolo: '🧾 Emetti fattura d\'anticipo',
@@ -304,13 +304,13 @@ async function apriEmissioneFinale() {
   }
   if (!(await verificaFattureEmissione())) { toast('L\'emissione non è ancora attiva', 'err'); return; }
   const { data: cli } = await db.from('clienti')
-    .select('ragione_sociale,piva,codice_fiscale,giorni_pagamento,modalita_pagamento').eq('id', commessa.cliente_id).maybeSingle();
+    .select(COLONNE_CLIENTE_EMISSIONE).eq('id', commessa.cliente_id).maybeSingle();
   const calcolo = s.calcolo || {};
   const conExtra = true;
   const proposto = arrotonda2(importoFatturaFinaleProposto(calcolo, conExtra));
   const split = await splitPaymentCliente(commessa.cliente_id);
   apriEmissione({
-    modo: 'finale', commessaId: commessa.id, commessa: commessa, calcolo: calcolo, cliente: cli || {}, split: split,
+    modo: 'finale', commessaId: commessa.id, commessa: commessa, calcolo: calcolo, clienteId: commessa.cliente_id, cliente: cli || {}, split: split,
     conExtra: conExtra, proposto: proposto, importo: proposto, ivaPerc: Number(calcolo.iva_perc ?? 22),
     titolo: '🧾 Emetti fattura finale',
     sottotitolo: 'Commessa ' + commessa.codice + ' · ' + [commessa.clienti && commessa.clienti.ragione_sociale, commessa.titolo].filter(Boolean).join(' · ')
@@ -336,6 +336,7 @@ function apriEmissione(conf) {
   ge('mef-errore').style.display = 'none';
   ge('mef-salva').disabled = true;
   ge('mef-salva').textContent = conf.modo === 'bozza' ? '📤 Emetti fattura' : (conf.modo === 'anticipo' ? '🧾 Emetti fattura d\'anticipo' : '🧾 Emetti fattura finale');
+  disegnaClienteEmissione();
   disegnaDatiEmissione();
   ricalcolaRateEmissione();
   openM('m-emetti-fattura');
@@ -357,14 +358,80 @@ function totaleEmissione() {
   return totaleConIva(e.importo, e.ivaPerc);
 }
 
+// ── Dati del cliente nella finestra di emissione (19/11, richiesta di Erika:
+// la segreteria li inserisce quando parte la commessa) ─────────────────────
+// Si vedono quelli che la fattura copierà all'emissione (trigger
+// fatture_snapshot_cliente) e si correggono con "✏️ Modifica dati del
+// cliente" (la finestra del cliente di sempre, sopra questa), poi il
+// riquadro si rilegge. Mancano P.IVA e CF: non si emette (come prima);
+// mancano indirizzo o SDI/PEC: solo avviso.
+const COLONNE_CLIENTE_EMISSIONE = 'id,ragione_sociale,ragione_sociale_fattura,piva,codice_fiscale,indirizzo_fattura,cap_fattura,citta_fattura,provincia_fattura,codice_sdi,pec,giorni_pagamento,modalita_pagamento';
+
+function datiFatturazioneDaCompletare(c) {
+  if (!c) return [];
+  const vuoto = function(x) { return !String(x || '').trim(); };
+  const manca = [];
+  if (vuoto(c.indirizzo_fattura)) manca.push('indirizzo');
+  if (vuoto(c.cap_fattura)) manca.push('CAP');
+  if (vuoto(c.citta_fattura)) manca.push('città');
+  if (vuoto(c.codice_sdi) && vuoto(c.pec)) manca.push('codice SDI o PEC');
+  return manca;
+}
+
+function disegnaClienteEmissione() {
+  const e = emissione;
+  const el = ge('mef-cliente');
+  if (!e || !el) return;
+  const c = e.cliente || {};
+  const riga = function(etichetta, valore) {
+    return '<div style="display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m)">' + etichetta + '</span>' +
+      '<span style="text-align:right;overflow-wrap:anywhere">' + (String(valore || '').trim() ? esc(valore) : '<span style="color:var(--r)">manca</span>') + '</span></div>';
+  };
+  const indirizzo = [c.indirizzo_fattura, [c.cap_fattura, c.citta_fattura, c.provincia_fattura ? '(' + c.provincia_fattura + ')' : ''].filter(Boolean).join(' ')].filter(function(x) { return String(x || '').trim(); }).join(', ');
+  const manca = datiFatturazioneDaCompletare(c);
+  const puo = typeof puoModificareClienti === 'function' && puoModificareClienti() && !!e.clienteId;
+  let html = '';
+  if (datiFiscaliMancanti(c)) {
+    html += '<div class="al2 e" style="margin-bottom:8px">Mancano partita IVA e codice fiscale del cliente: ' + (puo ? 'completali con «✏️ Modifica dati del cliente» qui sotto' : 'completali nella scheda del cliente') + ', poi emetti.</div>';
+  } else if (manca.length) {
+    html += '<div class="al2 w" style="margin-bottom:8px">Mancano ' + esc(manca.join(', ')) + ': la fattura si emette lo stesso, ma per mandarla al cliente e allo SDI servono. ' + (puo ? 'Completali con «✏️ Modifica dati del cliente».' : 'Completali nella scheda del cliente.') + '</div>';
+  }
+  html += '<div class="card" style="font-size:13px;display:flex;flex-direction:column;gap:4px">' +
+    '<div style="font-weight:600;margin-bottom:2px">Dati del cliente in fattura</div>' +
+    riga('Ragione sociale', c.ragione_sociale_fattura || c.ragione_sociale) +
+    riga('P.IVA', c.piva) + (String(c.codice_fiscale || '').trim() ? riga('Codice fiscale', c.codice_fiscale) : '') +
+    riga('Indirizzo', indirizzo) +
+    riga('Codice SDI', c.codice_sdi) + riga('PEC', c.pec) +
+    (puo ? '<div style="margin-top:6px"><button type="button" class="btn sm" onclick="modificaClienteDaEmissione()">✏️ Modifica dati del cliente</button></div>' : '') +
+    '</div>';
+  el.innerHTML = html;
+}
+
+async function modificaClienteDaEmissione() {
+  const e = emissione;
+  if (!e || !e.clienteId) return;
+  const finestra = ge('m-cli');
+  await apriClienteSegreteria(e.clienteId, true);
+  if (!finestra || !finestra.classList.contains('on')) return;
+  // Chiusa la finestra del cliente (salvata o no) si rileggono i dati.
+  const osserva = new MutationObserver(async function() {
+    if (finestra.classList.contains('on')) return;
+    osserva.disconnect();
+    if (emissione !== e) return;
+    const { data, error } = await db.from('clienti').select(COLONNE_CLIENTE_EMISSIONE).eq('id', e.clienteId).maybeSingle();
+    if (error || !data || emissione !== e) return;
+    e.cliente = data;
+    disegnaClienteEmissione();
+    aggiornaEmissione();
+  });
+  osserva.observe(finestra, { attributes: true, attributeFilter: ['class'] });
+}
+
 function disegnaDatiEmissione() {
   const e = emissione;
   const el = ge('mef-dati');
   if (!e || !el) return;
   let html = '';
-  if (datiFiscaliMancanti(e.cliente)) {
-    html += '<div class="al2 e" style="margin-bottom:8px">Mancano partita IVA e codice fiscale del cliente: completali nella scheda del cliente, poi emetti.</div>';
-  }
   if (e.split) {
     html += '<div class="al2 i" style="margin-bottom:8px;font-size:12px">Cliente in <b>split payment</b>: l\'IVA è scritta in fattura ma la versa il cliente; le rate sono senza IVA.</div>';
   }

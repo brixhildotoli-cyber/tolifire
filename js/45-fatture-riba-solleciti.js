@@ -232,15 +232,7 @@ editCli = async function(c) {
   return r;
 };
 
-const apriClienteSegreteriaPrimaRiba = apriClienteSegreteria;
-apriClienteSegreteria = async function(id) {
-  const r = await apriClienteSegreteriaPrimaRiba.apply(this, arguments);
-  try {
-    const { data } = await db.from('clienti').select('*').eq('id', id).maybeSingle();
-    await mostraCampiBancaRiba(data || null);
-  } catch (e) { console.warn('Banca RIBA:', e); }
-  return r;
-};
+// apriClienteSegreteria (js/05) apre editCli: la banca RIBA la mostra il ritocco qui sopra.
 
 const openClienteDetailPrimaRiba = openClienteDetail;
 openClienteDetail = async function(id) {

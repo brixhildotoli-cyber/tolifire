@@ -136,6 +136,22 @@ una sessione e l'altra.
    buchi), dati fiscali copiati dal trigger esistente (si ferma senza
    ragione sociale e P.IVA o codice fiscale), scadenze in
    fatture_scadenze, scheda (e schede delle righe) "fatturata".
+   DATI DEL CLIENTE (19/11, Erika: li inserisce la segreteria quando parte
+   la commessa; solo sito): in cima alla finestra (#mef-cliente,
+   disegnaClienteEmissione) i dati che la fattura copierà (ragione sociale
+   fattura, P.IVA/CF, indirizzo, SDI, PEC) con "✏️ Modifica dati del
+   cliente" (modificaClienteDaEmissione → apriClienteSegreteria(id, true) di
+   js/05: la finestra del cliente di sempre sopra la fattura, sulla parte
+   Fatturazione; chiusa, il riquadro si rilegge e importo/nota restano).
+   Senza P.IVA e CF non si emette (come prima); senza indirizzo, CAP, città
+   o SDI/PEC avviso giallo e si emette. Segreteria: riga rossa "🚀 Commesse
+   che partono: dati di fatturazione del cliente da completare" in Cosa
+   tocca a me e quei clienti in cima a seg-anag-lista
+   (clientiCommessaPartonoDaCompletare di js/03: preventivo in attesa di
+   anticipo o accettato, non sostituito). "✏️ Completa" (apriClienteSegreteria)
+   fino al 19/11 compilava i campi SPOSTATI (referente nella P.IVA, P.IVA
+   nel telefono...) e non caricava le sedi: ora usa editCli. Prova
+   test/fatturazione-segreteria.spec.js.
    BLOCCHI (trigger trg_fatture_blocco_emesse e
    trg_fatture_scadenze_solo_rpc): una fattura nasce solo in bozza; si
    emette solo dalle RPC; emessa o annullata non si modifica (tranne

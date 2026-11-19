@@ -953,6 +953,18 @@ registraFonteToccaAMe({
   }
 });
 
+// 19/11 (Erika): prima i clienti la cui commessa parte (js/03).
+registraFonteToccaAMe({
+  id: 'anagrafiche-commesse', ruoli: ['segreteria'], icona: '🚀', livello: 'urgente',
+  titolo: 'Commesse che partono: dati di fatturazione del cliente da completare',
+  vai: { box: 'seg-anag-lista' },
+  conta: async function() {
+    if (!funzioneEsiste('clientiCommessaPartonoDaCompletare')) return null;
+    try { return { n: (await clientiCommessaPartonoDaCompletare()).length }; }
+    catch (e) { console.warn('Cosa tocca a me (commesse che partono):', e.message || e); return null; }
+  }
+});
+
 registraFonteToccaAMe({
   id: 'anagrafiche', ruoli: ['segreteria'], icona: '📝',
   titolo: 'Clienti con i dati di fatturazione da completare',

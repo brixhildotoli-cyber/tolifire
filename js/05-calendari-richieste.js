@@ -1108,55 +1108,26 @@ async function loadDashSegreteria() {
   }).join('');
 }
 
-async function apriClienteSegreteria(id) {
-  toast('Caricamento...', 'ok');
-  // Carica dati completi del cliente da Supabase
+// "✏️ Completa" della segreteria e "✏️ Modifica dati del cliente" della
+// finestra di emissione (js/44): la finestra del cliente di sempre (editCli
+// di js/09: tutti i campi, sedi e banca RIBA), aperta sulla parte
+// Fatturazione se mancano quei dati (o se sempreFatturazione).
+// Fino al 19/11 compilava i campi spostati (referente nella P.IVA, P.IVA nel
+// telefono, codice fiscale nell'email...) e non caricava le sedi.
+async function apriClienteSegreteria(id, sempreFatturazione) {
+  if (!puoModificareClienti()) { toast('I clienti sono in sola lettura per il tuo ruolo', 'err'); return; }
   var r = await db.from('clienti').select('*').eq('id', id).single();
   if(r.error || !r.data) { toast('Errore caricamento cliente', 'err'); return; }
   var cli = r.data;
-
-  // Precompila il modal con tutti i dati (anagrafica + fatturazione)
-  ge('mcli-title').textContent = 'Completa dati — ' + esc(cli.ragione_sociale);
-  ge('mc-edit-id').value = id;
-
-  // Anagrafica
-  var map = {
-    mc1: 'ragione_sociale', mc2: 'referente_nome', mc2b: 'referente_cognome',
-    mc3: 'referente_telefono', mc4: 'referente_email', mc5: 'piva',
-    mc6: 'codice_fiscale', mc9: 'note_commerciali'
-  };
-  Object.keys(map).forEach(function(elId) {
-    var el = ge(elId); if(el) el.value = cli[map[elId]] || '';
-  });
-  if(ge('mc7')) ge('mc7').value = esc(cli.tipo_attivita) || 'ufficio';
-  if(ge('mc8')) ge('mc8').value = cli.stato || 'attivo';
-
-  // Fatturazione
-  var mapF = {
-    mf1: 'ragione_sociale_fattura', mf2: 'indirizzo_fattura',
-    mf3: 'cap_fattura', mf4: 'citta_fattura', mf5: 'provincia_fattura',
-    mf6: 'codice_sdi', mf7: 'pec', mf9: 'giorni_pagamento',
-    mf10: 'iban', mf11: 'note_fatturazione'
-  };
-  Object.keys(mapF).forEach(function(elId) {
-    var el = ge(elId); if(el) el.value = cli[mapF[elId]] || '';
-  });
-  if(ge('mf8')) ge('mf8').value = cli.modalita_pagamento || '';
-  if(ge('mf9') && !cli.giorni_pagamento) ge('mf9').value = '30';
-
-  // Apri il modal e vai direttamente al tab fatturazione se mancano quei dati
-  openM('m-cli');
-
-  // Se mancano dati di fatturazione, vai al tab fatturazione
+  await editCli(cli);
+  ge('mcli-title').textContent = 'Completa dati — ' + (cli.ragione_sociale || '');
   var mancaFatturazione = !cli.indirizzo_fattura || !cli.codice_sdi || !cli.modalita_pagamento;
-  if(mancaFatturazione) {
+  if(sempreFatturazione || mancaFatturazione) {
     setTimeout(function() {
-      var tabs = document.querySelectorAll('#m-cli .tab');
-      tabs.forEach(function(t) {
-        if(t.getAttribute('onclick') && t.getAttribute('onclick').includes('mct-fat')) {
-          t.click();
-        }
+      var tab = Array.from(document.querySelectorAll('#m-cli .tab')).find(function(t) {
+        return (t.getAttribute('onclick') || '').includes('mct-fat');
       });
+      if(tab) tab.click();
     }, 100);
   }
 }
