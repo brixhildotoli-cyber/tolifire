@@ -3169,9 +3169,10 @@ toli.fatture_rpc per il trigger trg_fatture_blocco_emesse; restituisce
 'vendita'); emetti_fattura riscritta uguale a sql/46 con origine in
 ('scheda','vendita'). Rollback: si ferma se ci sono fatture di vendita.
 Dopo sql/132 (F18.3, versione scelta da Erika il 19/11: richiami del
-preventivo e accettazione con condizioni diverse; DA ESEGUIRE: backup, poi
-"CONFERMATO DA TOLI: sql/132", poi -REGISTRO-CANCELLAZIONI dall'editor,
-controllo in fondo al file; provato sul database locale con
+preventivo e accettazione con condizioni diverse; ESEGUITO il 20/11 (backup
+2026-11-20-100516-pre132, controllo in regola: tabelle 2, policy 2, funzioni
+6, registro 2, cancellazioni 2) con "CONFERMATO DA TOLI: sql/132", file dal
+connettore, -REGISTRO-CANCELLAZIONI dall'editor; provato sul database locale con
 132-...-PROVA.sql: PROVA sql/132 OK; matrice: 20 righe, nessuno scarto):
 tabelle NUOVE preventivi_richiami (preventivo_id, esito ci_pensa |
 non_risponde | vuole_modifiche | richiamare (con richiamare_il) | altro,
