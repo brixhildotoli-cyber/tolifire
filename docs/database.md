@@ -3155,6 +3155,18 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Dopo sql/145 (F18.18 arrivo merce e documenti, scelte di Erika del 20/11; DA
+ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/145", -REGISTRO-CANCELLAZIONI
+dall'editor, controllo in fondo; provato in locale con 145-...-PROVA.sql: 16
+ok, rollback provato): colonne NUOVE su ordini_fornitori_voci lotto,
+dop_documento_id (→ commesse_documenti certificati), omologazione_diversa +
+nota_omologazione, omologazione_vista_da/_nome/_il, documenti_da/_nome/_il;
+registro delle azioni sulle righe degli ordini. RPC
+registra_documenti_voce_ordine (titolare, capo tecnico, commerciale,
+segreteria; solo ordini arrivati; ripetibile), vista_omologazione_voce
+(titolare, commerciale, ingegnere), documenti_arrivo_attivi. NB: nel database
+locale ordini_fornitori_voci ha tutti i grant (in produzione solo SELECT).
+Sito: js/110 (riquadro Ordini ai fornitori, Cosa tocca a me).
 Dopo sql/146 (F18.20 materiale fornito dal cliente, scelte di Erika del 20/11;
 ESEGUITO il 20/11 (backup 2026-11-20-143226-pre146, controllo in regola:
 tabella, policy 1, funzioni 6, registro 1, cancellazioni 1, anon false;

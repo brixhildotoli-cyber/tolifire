@@ -1347,3 +1347,12 @@ controllati).
    una sezione della scheda cliente). Da decidere con Toli: quali mail
    salvare (solo quelle dei clienti conosciuti o tutte), per quanto
    tempo, e se copiare gli allegati della mail nel progetto.
+   RICHIESTA DAL SITO (20/11, js/112, solo sito): il lead del sito collegato
+   al cliente (lead_sito.cliente_id: messaggio, servizio, email, telefono) e
+   l'email del cliente nel riquadro "📨 Email e richieste del cliente": scheda
+   del cliente (#cd-richieste-sito), finestra del progetto (#mp-richiesta-
+   cliente, "↳ Copia nella descrizione tecnica"), scheda del progetto
+   (#pd-richiesta-sito). I lead li leggono solo titolare e rappresentante
+   assegnato (RLS): Acquisti e ingegnere vedono solo l'email (per il
+   messaggio servirebbe una RPC). Guida info-rap-45, prova
+   test/richiesta-cliente.spec.js.
