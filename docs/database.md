@@ -3156,8 +3156,10 @@ Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smok
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
 Dopo sql/146 (F18.20 materiale fornito dal cliente, scelte di Erika del 20/11;
-DA ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/146", -REGISTRO-CANCELLAZIONI
-dall'editor, controllo in fondo; provato in locale con 146-...-PROVA.sql: 26
+ESEGUITO il 20/11 (backup 2026-11-20-143226-pre146, controllo in regola:
+tabella, policy 1, funzioni 6, registro 1, cancellazioni 1, anon false;
+funzioni e vincoli identici al locale) con "CONFERMATO DA TOLI: sql/146",
+file dal connettore, -REGISTRO-CANCELLAZIONI dall'editor; provato in locale con 146-...-PROVA.sql: 26
 ok; matrice: 10 righe, nessuno scarto): tabella NUOVA
 commesse_materiale_cliente (descrizione 3-500, quantita > 0, unita_misura,
 arrivo_previsto, stato atteso | arrivato | non_conforme | tolto, data_arrivo,
