@@ -223,6 +223,8 @@ async function caricaOrdiniCommessa(commessa) {
       ${htmlElencoOrdiniCommessa(commessa)}
     </div>
   `;
+  // F18.18 (sql/145): lotto, DoP e omologazione delle righe arrivate (js/110)
+  caricaDocumentiArrivoOrdini(commessa).catch(function(e) { console.warn('Documenti all\'arrivo:', e); });
 }
 
 function htmlOfferteDaOrdinare(commessa, erroreOfferte) {
@@ -348,6 +350,7 @@ function htmlElencoOrdiniCommessa(commessa) {
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">${bottoni.join('')}</div>
           </div>
+          ${o.stato === 'arrivato' ? `<div class="documenti-arrivo" data-ordine-id="${esc(o.id)}"></div>` : ''}
           <details style="margin-top:4px">
             <summary style="font-size:12px;cursor:pointer;color:var(--m)">Voci (${o.ordini_fornitori_voci.length}) e passaggi</summary>
             ${htmlDettaglioOrdineFornitore(o)}

@@ -816,6 +816,29 @@ registraFonteToccaAMe({
   }
 });
 
+// F18.18 (sql/145, js/110): documenti dei fornitori e omologazioni diverse
+registraFonteToccaAMe({
+  id: 'documenti-fornitori', ruoli: ['commerciale'], icona: '📑',
+  titolo: 'Documenti dei fornitori da sollecitare (DoP mancanti da 2 giorni lavorativi)',
+  vai: function() { apriDocumentiDaSollecitare(); },
+  conta: async function() {
+    if (!funzioneEsiste('ordiniDocumentiDaSollecitare')) return null;
+    try { const r = await ordiniDocumentiDaSollecitare(); return r === null ? null : { n: r.length }; }
+    catch (e) { console.warn('Cosa tocca a me (documenti fornitori):', e.message || e); return null; }
+  }
+});
+
+registraFonteToccaAMe({
+  id: 'omologazioni-diverse', ruoli: ['commerciale', 'titolare'], icona: '⚠️', livello: 'urgente',
+  titolo: 'Omologazioni o classi diverse all\'arrivo: da vedere',
+  vai: function() { apriOmologazioniDaVedere(); },
+  conta: async function() {
+    if (!funzioneEsiste('omologazioniDaVedere')) return null;
+    try { const r = await omologazioniDaVedere(); return r === null ? null : { n: r.length }; }
+    catch (e) { console.warn('Cosa tocca a me (omologazioni):', e.message || e); return null; }
+  }
+});
+
 // F18.20 (D5): commesse Pronte con materiali in ritardo (js/107)
 registraFonteToccaAMe({
   id: 'pronte-ritardo', ruoli: ['capo_tecnico', 'titolare'], icona: '↩️', livello: 'urgente',
