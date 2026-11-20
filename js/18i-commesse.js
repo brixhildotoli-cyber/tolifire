@@ -484,11 +484,16 @@ async function apriStatoCommessa(commessaId, preventivoId) {
         </select>
       </div>
       <div id="msc-spiegazione" style="font-size:12px;color:var(--m);margin:-4px 0 8px"></div>
+      <div id="msc-checklist" style="display:none"></div>
       <div class="f">
         <label id="msc-nota-label">Nota</label>
         <textarea id="msc-nota" rows="2" oninput="aggiornaCambioStatoCommessa()"></textarea>
       </div>
     `;
+    // F18.9: i 7 punti della presa in carico (js/108), senza aspettarli
+    if (opzioni.some(function(o) { return o.stato === 'in_preparazione' && o.tipo === 'avanti'; })) {
+      preparaChecklistPresaInCarico(commessa.id).catch(function(e) { console.warn('Checklist presa in carico:', e); });
+    }
   } else {
     let motivo;
     if (commessa.stato === 'chiusa') {
@@ -597,6 +602,7 @@ function aggiornaCambioStatoCommessa() {
   }
 
   if (bottone) bottone.disabled = notaObbligatoria && !nota;
+  mostraChecklistPresaInCarico(); // F18.9 (js/108)
 }
 
 async function salvaStatoCommessa() {
@@ -604,7 +610,8 @@ async function salvaStatoCommessa() {
 
   const stato = v('msc-stato');
   const tipo = tipoCambioStatoCommessa();
-  const nota = (v('msc-nota') || '').trim();
+  // F18.9: con la presa in carico la nota ricorda i 7 punti (js/108)
+  const nota = [(v('msc-nota') || '').trim(), testoChecklistPresaInCarico(stato)].filter(Boolean).join('\n');
 
   if (!stato) return;
   if (tipo !== 'avanti' && !nota) {
