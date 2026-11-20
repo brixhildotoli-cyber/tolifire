@@ -374,6 +374,8 @@ async function caricaSchedaCommessa(commessaId) {
   // F6.3: elenco unico dei materiali con le date di arrivo (js/29), dopo
   // js/27 perché riusa le offerte da ordinare già lette.
   if (typeof caricaMaterialiCommessa === 'function') await caricaMaterialiCommessa(commessa);
+  // F18.20 (sql/146): materiale fornito dal cliente (js/109)
+  caricaMaterialeClienteCommessa(commessa).catch(function(e) { console.warn('Materiale del cliente:', e); });
   // F7.2: date dei lavori e faldone (js/31, attivi con sql/33).
   if (typeof caricaFaldoneCommessa === 'function') await caricaFaldoneCommessa(commessa);
   await caricaDocumentiCommessa(commessa);

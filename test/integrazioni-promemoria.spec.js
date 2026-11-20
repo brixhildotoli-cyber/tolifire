@@ -276,6 +276,9 @@ const q = s => "'" + String(s).replace(/'/g, "''") + "'";
 async function righeTAM(s, ruolo) {
   await s.page.evaluate(async () => { if (typeof caricaToccaAMe === 'function') await caricaToccaAMe(); });
   await attendiQuiete(s.stato, 1500);
+  // dal 19/11 il rappresentante ha più righe: le ultime stanno sotto "Mostra altre"
+  await s.page.evaluate(() => { if (typeof mostraTutteToccaAMe === 'function') mostraTutteToccaAMe(true); });
+  await attendi(300);
   return s.page.evaluate(ruolo => [...document.querySelectorAll('#' + BOX_TOCCA_A_ME[ruolo] + ' .tam-riga')].map(b => ({
     id: b.dataset.fonte, urgente: b.classList.contains('urgente'),
     n: (b.querySelector('.tam-num') || {}).textContent, testo: b.innerText.replace(/\s+/g, ' ')

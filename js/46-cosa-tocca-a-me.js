@@ -816,6 +816,18 @@ registraFonteToccaAMe({
   }
 });
 
+// F18.20 (D5): commesse Pronte con materiali in ritardo (js/107)
+registraFonteToccaAMe({
+  id: 'pronte-ritardo', ruoli: ['capo_tecnico', 'titolare'], icona: '↩️', livello: 'urgente',
+  titolo: 'Commesse pronte con materiali in ritardo: proposta di riportarle a Presa in carico',
+  vai: function() { apriCommessePronteConRitardo(); },
+  conta: async function() {
+    if (!funzioneEsiste('commessePronteConRitardo')) return null;
+    try { return { n: (await commessePronteConRitardo()).length }; }
+    catch (e) { console.warn('Cosa tocca a me (pronte in ritardo):', e.message || e); return null; }
+  }
+});
+
 registraFonteToccaAMe({
   id: 'materiali-in-arrivo', ruoli: ['capo_tecnico'], icona: '🚚',
   titolo: 'Materiali in arrivo nei prossimi 7 giorni',

@@ -40,7 +40,7 @@ async function controlliAutomaticiPresaInCarico(commessaId) {
     esiti.lavorazioni = voci ? { ok: true, nota: voci + (voci === 1 ? ' lavorazione' : ' lavorazioni') } : { ok: false, nota: 'nessuna lavorazione nel preventivo' };
   }
   if (fonti && typeof righeMaterialiCommessa === 'function') {
-    const righe = righeMaterialiCommessa(fonti.ordini, fonti.richieste, []);
+    const righe = righeMaterialiCommessa(fonti.ordini, fonti.richieste, [], fonti.cliente);
     const senzaData = righe.filter(function(r) { return !r.arrivato && !r.arrivoPrevisto; }).length;
     esiti.materiali = !righe.length ? { ok: false, nota: 'nessun materiale ordinato' }
       : (senzaData ? { ok: false, nota: senzaData + (senzaData === 1 ? ' materiale senza data' : ' materiali senza data') } : { ok: true, nota: righe.length + ' con la data' });

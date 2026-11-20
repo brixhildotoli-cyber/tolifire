@@ -3155,6 +3155,20 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Dopo sql/146 (F18.20 materiale fornito dal cliente, scelte di Erika del 20/11;
+DA ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/146", -REGISTRO-CANCELLAZIONI
+dall'editor, controllo in fondo; provato in locale con 146-...-PROVA.sql: 26
+ok; matrice: 10 righe, nessuno scarto): tabella NUOVA
+commesse_materiale_cliente (descrizione 3-500, quantita > 0, unita_misura,
+arrivo_previsto, stato atteso | arrivato | non_conforme | tolto, data_arrivo,
+nota_controllo, dop_documento_id → commesse_documenti cartella certificati,
+motivo_tolto, segnato_/controllato_ da/_nome/_il). Lettura = chi legge la
+commessa. RPC segna_materiale_cliente, cambia_arrivo_materiale_cliente,
+togli_materiale_cliente (titolare, capo tecnico, rappresentante del cliente;
+commessa aperta; solo "atteso"), registra_arrivo_materiale_cliente (titolare,
+capo tecnico; conforme = DoP obbligatoria, non conforme = nota; non nel
+futuro), controlla_materiale_cliente, materiale_cliente_attivo. Registro
+delle azioni. Sito: js/109 (vedi docs/commessa.md).
 Dopo sql/133 (F18.5 vendita semplice, D8 di Toli; scelte di Erika del 19/11:
 fattura di segreteria e titolare, sopra 1.000 € e righe fuori catalogo solo
 avviso; ESEGUITO il 20/11 (backup 2026-11-20-100516-pre132, controllo in

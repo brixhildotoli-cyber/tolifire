@@ -22,7 +22,7 @@ async function leggiDatiSuggerimentoCommessa(commessa) {
     db.from('commesse_sospensioni').select('motivo').eq('commessa_id', commessa.id).is('ripresa_il', null).maybeSingle(),
     db.from('commesse').select('data_inizio').eq('id', commessa.id).maybeSingle()
   ]);
-  const righe = fonti && typeof righeMaterialiCommessa === 'function' ? righeMaterialiCommessa(fonti.ordini, fonti.richieste, []) : [];
+  const righe = fonti && typeof righeMaterialiCommessa === 'function' ? righeMaterialiCommessa(fonti.ordini, fonti.richieste, [], fonti.cliente) : [];
   return {
     materiali: righe,
     materialiLetti: !!(fonti && (fonti.attiveOrdini || fonti.attiveRichieste)),
@@ -41,6 +41,16 @@ function suggerimentoPassoCommessa(commessa, d) {
   const nome = ETICHETTE_STATO_COMMESSA[prossimo];
   if (d.sospesa) return { ok: false, testo: 'La commessa è sospesa (' + d.sospesa.motivo + '): prima va ripresa, poi si segna «' + nome + '».' };
   const m = d.materiali || [];
+  // F18.20 (D5): commessa Pronta con materiali in ritardo o in arrivo dopo
+  // l'inizio: proposta di riportarla a Presa in carico (la conferma il titolare)
+  if (commessa.stato === 'pronta') {
+    const tardi = materialiTardiCommessa(m, d.dataInizio);
+    if (tardi.length) {
+      return { ok: false, riporta: true, testo: (tardi.length === 1 ? '1 materiale in ritardo' : tardi.length + ' materiali in ritardo') +
+        ' o in arrivo dopo l\'inizio (' + tardi.slice(0, 3).map(function(r) { return r.cosa.replace(/^\S+\s/, '') + (r.arrivoPrevisto ? ' ' + fd(r.arrivoPrevisto) : ''); }).join(', ') + (tardi.length > 3 ? '…' : '') +
+        '): proposta di riportare la commessa a «' + ETICHETTE_STATO_COMMESSA.in_preparazione + '» e rifare le date con la segreteria.' };
+    }
+  }
   const senzaData = m.filter(function(r) { return !r.arrivato && !r.arrivoPrevisto; }).length;
   const nonArrivati = m.filter(function(r) { return !r.arrivato; }).length;
   const manca = [];
@@ -66,6 +76,23 @@ function suggerimentoPassoCommessa(commessa, d) {
   return { ok: true, testo: 'Si può segnare «' + nome + '»: ' + perche + '.' };
 }
 
+// Materiali non arrivati in ritardo, o previsti dopo il giorno di inizio
+function materialiTardiCommessa(righe, dataInizio) {
+  return (righe || []).filter(function(r) {
+    return !r.arrivato && (r.inRitardo || (!!dataInizio && !!r.arrivoPrevisto && r.arrivoPrevisto > dataInizio));
+  });
+}
+
+// Bottone del titolare: Stato e storico già su "← Indietro a Presa in carico"
+async function riportaPresaInCaricoCommessa(commessaId, motivo) {
+  await apriStatoCommessa(commessaId, '');
+  const sel = ge('msc-stato');
+  if (!sel || ![...sel.options].some(function(o) { return o.value === 'in_preparazione'; })) return;
+  sel.value = 'in_preparazione';
+  if (ge('msc-nota') && !ge('msc-nota').value) ge('msc-nota').value = motivo || 'Materiali in ritardo: da rifare le date';
+  aggiornaCambioStatoCommessa();
+}
+
 async function caricaSuggerimentoPassoCommessa(commessa) {
   const box = ge('cmd-suggerimento-passo');
   if (!box) return;
@@ -78,8 +105,9 @@ async function caricaSuggerimentoPassoCommessa(commessa) {
   const s = suggerimentoPassoCommessa(commessa, d);
   if (!s) return;
   box.innerHTML = '<div class="al2 ' + (s.ok ? 'i' : 'w') + '" style="margin:8px 0 0;font-size:12px">' +
-    (s.ok ? '👉 ' : '⏳ ') + esc(s.testo) +
-    '<div style="color:var(--m);margin-top:2px">È un suggerimento: lo stato non cambia da solo, lo segna chi fa il passo da «Stato e storico».</div></div>';
+    (s.riporta ? '⚠️ ' : (s.ok ? '👉 ' : '⏳ ')) + esc(s.testo) +
+    (s.riporta && ROLE === 'titolare' ? '<div style="margin-top:6px"><button type="button" class="btn sm p" data-id="' + esc(commessa.id) + '" data-motivo="' + esc('Materiali in ritardo: ' + s.testo) + '" onclick="riportaPresaInCaricoCommessa(this.dataset.id, this.dataset.motivo)">↩ Riporta a Presa in carico</button></div>' : '') +
+    '<div style="color:var(--m);margin-top:2px">' + (s.riporta ? 'La commessa resta «Pronta» finché il titolare non conferma il ritorno.' : 'È un suggerimento: lo stato non cambia da solo, lo segna chi fa il passo da «Stato e storico».') + '</div></div>';
 }
 
 // ── 2. "Annullata (non avviata)" ─────────────────────────────────────
@@ -115,3 +143,39 @@ new MutationObserver(function() {
     decoraAnnullateNonAvviate().catch(function() {});
   }, 50);
 }).observe(document.documentElement, { childList: true, subtree: true });
+
+// ── 4. F18.20: commesse Pronte con materiali in ritardo (Cosa tocca a me) ──
+async function commessePronteConRitardo() {
+  const { data, error } = await db.from('commesse').select('id, codice, titolo, data_inizio, clienti(ragione_sociale)').eq('stato', 'pronta').limit(200);
+  if (error) throw error;
+  const esito = [];
+  for (const c of data || []) {
+    const fonti = typeof leggiFontiMaterialiCommessa === 'function' ? await leggiFontiMaterialiCommessa(c.id) : null;
+    if (!fonti) continue;
+    const tardi = materialiTardiCommessa(righeMaterialiCommessa(fonti.ordini, fonti.richieste, [], fonti.cliente), c.data_inizio);
+    if (tardi.length) esito.push({ commessa: c, tardi: tardi });
+  }
+  return esito;
+}
+
+async function apriCommessePronteConRitardo() {
+  let righe;
+  try { righe = await commessePronteConRitardo(); } catch (e) { toast('Non riesco a leggere le commesse: ' + (e.message || e), 'err'); return; }
+  let el = ge('m-pronte-ritardo');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'mbg';
+    el.id = 'm-pronte-ritardo';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = '<div class="modal" style="max-width:560px"><button class="x" onclick="closeM(\'m-pronte-ritardo\')">×</button>' +
+    '<h3>⚠️ Commesse pronte con materiali in ritardo</h3>' +
+    '<div class="al2 i" style="margin-bottom:10px;font-size:12px">Proposta: riportarle a «' + esc(ETICHETTE_STATO_COMMESSA.in_preparazione) + '» e rifare le date. Lo conferma il titolare dalla commessa; da sole restano «Pronta».</div>' +
+    (!righe.length ? '<div class="empty">Niente da vedere 🎉</div>' : righe.map(function(x) {
+      return '<div class="card" style="margin-bottom:8px"><div style="font-weight:700">' + esc(x.commessa.codice) + ' · ' + esc((x.commessa.clienti && x.commessa.clienti.ragione_sociale) || '') + '</div>' +
+        '<div style="font-size:12px;color:var(--m);margin-top:2px">' + esc(x.tardi.map(function(r) { return r.cosa.replace(/^\S+\s/, '') + (r.arrivoPrevisto ? ' (' + fd(r.arrivoPrevisto) + ')' : ''); }).join(', ')) +
+        (x.commessa.data_inizio ? ' · inizio ' + esc(fd(x.commessa.data_inizio)) : '') + '</div>' +
+        '<button class="btn sm p" style="margin-top:6px" data-id="' + esc(x.commessa.id) + '" onclick="closeM(\'m-pronte-ritardo\');openCommessaDetail(this.dataset.id)">Apri la commessa</button></div>';
+    }).join('')) + '</div>';
+  openM('m-pronte-ritardo');
+}

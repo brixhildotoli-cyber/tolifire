@@ -34,7 +34,7 @@ async function leggiFontiMaterialiCommessa(commessaId) {
     typeof verificaRichiesteIntegrazioneDisponibili === 'function' ? verificaRichiesteIntegrazioneDisponibili() : false
   ]);
 
-  const [ordiniRes, richiesteRes] = await Promise.all([
+  const [ordiniRes, richiesteRes, clienteRes] = await Promise.all([
     attiveOrdini
       ? db.from('ordini_fornitori')
         .select('id, codice, numero, stato, fornitore_ragione_sociale, data_ordine, arrivo_previsto, data_arrivo, preventivo_fornitore_id, ordini_fornitori_voci(id, posizione, descrizione, unita_misura, quantita)')
@@ -46,18 +46,23 @@ async function leggiFontiMaterialiCommessa(commessaId) {
         .select('id, numero, tipo, stato, descrizione, quantita, unita_misura, serve_dal, nolo_fino_al, arrivo_previsto, data_arrivo, fornitore_nome')
         .eq('commessa_id', commessaId)
         .order('numero', { ascending: true })
-      : null
+      : null,
+    // F18.20 (sql/146): materiale fornito dal cliente (js/109)
+    typeof leggiMaterialeClienteCommessa === 'function' ? leggiMaterialeClienteCommessa(commessaId) : null
   ]);
 
   const errori = [];
   if (ordiniRes?.error) errori.push('ordini: ' + ordiniRes.error.message);
   if (richiesteRes?.error) errori.push('consumabili e noli: ' + richiesteRes.error.message);
+  if (clienteRes?.errore) errori.push('materiale del cliente: ' + clienteRes.errore);
 
   return {
     ordini: ordiniRes && !ordiniRes.error ? (ordiniRes.data || []) : [],
     richieste: richiesteRes && !richiesteRes.error ? (richiesteRes.data || []) : [],
     attiveOrdini: !!attiveOrdini,
     attiveRichieste: !!attiveRichieste,
+    cliente: clienteRes ? clienteRes.righe : [],
+    attiveCliente: !!(clienteRes && clienteRes.attivo),
     errori: errori
   };
 }
@@ -66,7 +71,7 @@ async function leggiFontiMaterialiCommessa(commessaId) {
 // Ogni riga: { fonte, cosa, quantita, fornitore, riferimento, stato,
 // etichettaStato, classeStato, arrivoPrevisto, dataArrivo, arrivato,
 // inRitardo, nota }.
-function righeMaterialiCommessa(ordini, richieste, offerteDaOrdinare) {
+function righeMaterialiCommessa(ordini, richieste, offerteDaOrdinare, materialeCliente) {
   const oggi = dataLocaleISO();
   const righe = [];
 
@@ -120,6 +125,27 @@ function righeMaterialiCommessa(ordini, richieste, offerteDaOrdinare) {
       arrivato: arrivato,
       inRitardo: r.stato === 'evasa' && !!r.arrivo_previsto && r.arrivo_previsto < oggi,
       nota: [testoQuandoServeRichiesta(r), tardi ? 'arriva dopo il giorno in cui serve' : ''].filter(Boolean).join(' · ')
+    });
+  });
+
+  // F18.20 (sql/146): materiale fornito dal cliente
+  (materialeCliente || []).forEach(function(m) {
+    if (m.stato === 'tolto') return;
+    const arrivato = m.stato === 'arrivato';
+    righe.push({
+      fonte: 'cliente',
+      cosa: '👤 ' + (m.descrizione || ''),
+      quantita: quantitaLeggibileOrdine(m.quantita) + ' ' + (m.unita_misura || ''),
+      fornitore: 'Fornito dal cliente',
+      riferimento: 'Materiale del cliente',
+      stato: m.stato,
+      etichettaStato: m.stato === 'non_conforme' ? '⚠️ Non conforme' : (arrivato ? 'Arrivato e controllato' : 'Atteso dal cliente'),
+      classeStato: m.stato === 'non_conforme' ? 'berr' : (arrivato ? 'bok' : 'bblue'),
+      arrivoPrevisto: m.arrivo_previsto || '',
+      dataArrivo: m.data_arrivo || '',
+      arrivato: arrivato,
+      inRitardo: m.stato === 'atteso' && !!m.arrivo_previsto && m.arrivo_previsto < oggi,
+      nota: m.stato === 'non_conforme' ? (m.nota_controllo || '') : ''
     });
   });
 
@@ -232,7 +258,7 @@ async function caricaMaterialiCommessa(commessa) {
   const fonti = await leggiFontiMaterialiCommessa(commessa.id);
   if (commessaApertaId && commessaApertaId !== commessa.id) return; // aperta un'altra commessa
 
-  if (!fonti.attiveOrdini && !fonti.attiveRichieste) {
+  if (!fonti.attiveOrdini && !fonti.attiveRichieste && !fonti.attiveCliente) {
     box.innerHTML = '';
     return;
   }
@@ -245,7 +271,7 @@ async function caricaMaterialiCommessa(commessa) {
     ? (offerteCommessaAperta || []).filter(function(o) { return !o.ordine; })
     : null;
 
-  const righe = righeMaterialiCommessa(fonti.ordini, fonti.richieste, offerteDaOrdinare || []);
+  const righe = righeMaterialiCommessa(fonti.ordini, fonti.richieste, offerteDaOrdinare || [], fonti.cliente);
   materialiCommessaAperta = righe;
 
   const daArrivare = righe.filter(function(r) { return !r.arrivato; });

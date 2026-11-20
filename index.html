@@ -2080,6 +2080,7 @@
     <!-- F8.5: lavori extra in breve (js/36, attivo con sql/38) -->
     <div id="cmd-lavori-extra-compatto"></div>
     <div id="cmd-materiali"></div>
+    <div id="cmd-materiale-cliente"></div>
     <div id="cmd-ordini"></div>
     <div id="cmd-richieste"></div>
     <div id="cmd-faldone"></div>
@@ -3462,6 +3463,10 @@
       <h4 id="info-rap-43">43. 👉 Commessa: quando segnare "Materiali ordinati"</h4>
       <p>
         Nella commessa, riquadro <b>Stato della commessa</b>, il gestionale ti dice se mancano ordini o date di arrivo dei materiali, oppure che puoi segnare <b>Materiali ordinati</b>. Lo segni tu da <b>Stato e storico</b>, come sempre.
+      </p>
+      <h4 id="info-rap-44">44. 👤 Il materiale lo porta il cliente</h4>
+      <p>
+        Se il cliente fornisce lui una parte del materiale (porte già comprate, maniglioni…), nella commessa, riquadro <b>👤 Materiale del cliente</b>, premi <b>+ Materiale del cliente</b>: cosa, quanto e quando arriva. Se cambia la data usa <b>📅 Cambia data</b>. All'arrivo lo controlla il capo tecnico.
       </p>
       </div>
 
@@ -5527,6 +5532,11 @@
       <p>
         In <b>Stato e storico</b>, scegliendo <b>→ Presa in carico</b>, compaiono i 7 punti da controllare: schede di rilievo con le foto, perché si fa il lavoro, lavorazioni, giorni di lavoro, materiali con la data di arrivo, referente e accessi del cantiere, promesse fatte a voce al cliente. Quelli che il gestionale sa controllare sono già segnati (✅ a posto, ⚠️ con cosa manca); gli altri spuntali tu. Puoi prendere in carico anche con punti aperti: nella nota del passaggio resta scritto quanti erano a posto e quali no.
       </p>
+      <h4 id="info-ct-46">46. 👤 Materiale del cliente e materiali in ritardo</h4>
+      <p>
+        Nella commessa, sotto <b>📦 Materiali</b>, c'è <b>👤 Materiale del cliente</b>: con <b>+ Materiale del cliente</b> segni cosa porta il cliente e quando arriva. Quando arriva premi <b>✅ Arrivato</b>: se è conforme allega la <b>DoP</b> (finisce tra i certificati della commessa), se non lo è scrivi cosa non va. Il materiale del cliente conta come gli altri materiali (date, ritardi, 7 punti della presa in carico).
+        Se una commessa è <b>Pronta</b> e un materiale è in ritardo o arriva dopo il giorno di inizio, nella commessa e in <b>Cosa tocca a me</b> compare la proposta di riportarla a <b>Presa in carico</b>: la commessa resta Pronta finché il titolare non conferma.
+      </p>
 
 
 
@@ -6783,6 +6793,11 @@
       <h4 id="info-tit-73">73. 👉 Commesse: prossimo passo suggerito</h4>
       <p>
         Nella commessa, riquadro <b>Stato della commessa</b>, il gestionale suggerisce il prossimo passo e cosa manca (materiali senza data o non arrivati, faldone, giorno di inizio, commessa sospesa). Lo stato non cambia mai da solo. "In preparazione" si chiama <b>Presa in carico</b>; una commessa annullata prima di iniziare i lavori si vede come <b>Annullata (non avviata)</b>.
+      </p>
+
+      <h4 id="info-tit-74">74. ↩️ Commessa pronta ma materiali in ritardo</h4>
+      <p>
+        Se una commessa è <b>Pronta</b> e un materiale (ordinato o del cliente) è in ritardo o arriva dopo il giorno di inizio, in <b>Cosa tocca a me</b> trovi <b>Commesse pronte con materiali in ritardo</b> e nella commessa il bottone <b>↩ Riporta a Presa in carico</b>: apre Stato e storico già compilato, confermi tu. Da sola la commessa resta Pronta. Nella commessa c'è anche <b>👤 Materiale del cliente</b>, con il controllo all'arrivo e la DoP.
       </p>
 
 
@@ -12261,6 +12276,7 @@
 <script defer src="js/106-vendita-semplice.js?v=202611201129"></script>
 <script defer src="js/107-stati-commessa.js?v=202611201129"></script>
 <script defer src="js/108-presa-in-carico.js?v=202611201129"></script>
+<script defer src="js/109-materiale-cliente.js?v=202611201129"></script>
 <script defer src="js/19-init.js?v=202611201129"></script>
 
 

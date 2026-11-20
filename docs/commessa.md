@@ -172,6 +172,26 @@ mette data-annullata-id, js/107 guarda commesse_storico (mai in_corso,
 fine_lavori o chiusa). Guide info-ct-44, info-seg-41, info-rap-43,
 info-tit-73. Prova test/stati-commessa.spec.js. F18.6 e F18.7 rimandate a
 F20.15 (decisione di Erika del 19/11).
+F18.9 presa in carico (20/11, solo sito, js/108): in Stato e storico con
+"→ Presa in carico" i 7 punti (area 06): automatici schede di rilievo con
+foto, lavorazioni (scheda_cantiere_commessa), materiali con data (js/29),
+referente e accessi (dati del cantiere); a mano perché, giorni, promesse a
+voce; solo avviso, riga "Controlli della presa in carico: N su 7" aggiunta
+alla nota dello storico. Non fatti: scadenza 2 gg, rimando con domande,
+passaggio 15 minuti. Prova test/presa-in-carico.spec.js.
+F18.20 (20/11): ritardo su commessa Pronta (solo sito, js/107): materiali
+non arrivati in ritardo o con arrivo dopo data_inizio → avviso con la
+proposta nel riquadro Stato della commessa, bottone del titolare "↩ Riporta a
+Presa in carico" (riportaPresaInCaricoCommessa: apre Stato e storico su
+in_preparazione con la nota), riga "Commesse pronte con materiali in ritardo"
+in Cosa tocca a me di capo tecnico e titolare (commessePronteConRitardo);
+nessun cambio automatico (D5). Materiale del cliente (sql/146, js/109):
+riquadro #cmd-materiale-cliente sotto i Materiali, righe anche in
+righeMaterialiCommessa (fonte 'cliente', quarto argomento) e quindi in
+suggerimenti e 7 punti; DoP caricata in commesse-documenti/certificati con
+registra_documento_commessa. Guide info-ct-46, info-rap-44, info-tit-74.
+Prova test/materiale-cliente.spec.js. F18.10, F18.11, F18.12, F18.13,
+F18.17, F18.19 rimandate il 20/11 (vedi l'Excel).
 
 Passi 5-6, anticipo (F4.2, sql/24-anticipo-preventivo da eseguire dopo
 22 e 23): colonne `preventivi.anticipo_richiesto` (sì/no, vuoto = non
