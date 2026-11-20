@@ -3157,9 +3157,11 @@ TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
 Dopo sql/133 (F18.5 vendita semplice, D8 di Toli; scelte di Erika del 19/11:
 fattura di segreteria e titolare, sopra 1.000 € e righe fuori catalogo solo
-avviso; DA ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/133", poi
+avviso; ESEGUITO il 20/11 (backup 2026-11-20-100516-pre132, controllo in
+regola: funzioni 2, attiva true, emette_vendita true, anon false) con
+"CONFERMATO DA TOLI: sql/133", file dal connettore, poi
 133-vendita-semplice-VINCOLO.sql dall'EDITOR (drop/add del vincolo
-fatture_origine_check con 'vendita'), controllo in fondo; provato in locale
+fatture_origine_check con 'vendita'); provato in locale
 con 133-...-PROVA.sql: PROVA sql/133 OK, rollback e riesecuzione provati):
 nessuna tabella. RPC NUOVE crea_bozza_vendita_da_ddt(p_ddt_id, p_iva_perc)
 (DDT senza scheda di lavoro, non eliminato, non già in fattura; bozza con
