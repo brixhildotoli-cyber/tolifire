@@ -187,6 +187,8 @@ if (!erroreClienteAggiornato && clienteAggiornato) {
         : ''
     }
   `;
+  // 20/11: email e richieste dal sito del cliente (js/112)
+  caricaRichiesteSitoCliente(id, 'cd-richieste-sito').catch(function(e) { console.warn('Richieste del cliente:', e); });
 
   const { data: presidi } = await db
     .from('impianti')

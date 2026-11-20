@@ -512,6 +512,8 @@ async function apriNuovoProgetto() {
   await mostraFonteRilievoProgetto(null);
   await caricaAllegatiProgetto(null);
   preparaBozzaProgetto(null);
+  // 20/11: email e richiesta del cliente dal sito, da copiare nella descrizione (js/112)
+  caricaRichiesteSitoCliente(currentCliId, 'mp-richiesta-cliente', { copia: true, margine: '0 0 12px' }).catch(function() {});
 
   openM('m-progetto');
   if (typeof preparaInputVideoProgetto === 'function') preparaInputVideoProgetto(); // F15.9
@@ -541,6 +543,7 @@ async function modificaProgetto(id) {
   await mostraFonteRilievoProgetto(progetto);
   await caricaAllegatiProgetto(id);
   preparaBozzaProgetto(id);
+  caricaRichiesteSitoCliente(progetto.cliente_id || currentCliId, 'mp-richiesta-cliente', { copia: true, margine: '0 0 12px' }).catch(function() {}); // js/112
 
   openM('m-progetto');
   if (typeof preparaInputVideoProgetto === 'function') preparaInputVideoProgetto(); // F15.9
@@ -3179,6 +3182,8 @@ if (btnModifica) {
 
   // 19/11: mail del cliente allegate al progetto (js/104)
   try { await caricaMailProgetto(progetto); } catch (e) { console.warn('Mail del progetto:', e); }
+  // 20/11: email e richieste del cliente dal sito (js/112)
+  caricaRichiesteSitoCliente(progetto.cliente_id, 'pd-richiesta-sito').catch(function() {});
 
   const { data: allegati, error: erroreAllegati } = await db
     .from('progetti_tecnici_allegati')

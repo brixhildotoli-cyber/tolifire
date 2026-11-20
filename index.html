@@ -1220,6 +1220,7 @@
     <!-- F14.15: domande sul progetto (js/62, attive con sql/70) -->
     <div id="pd-domande"></div>
     <div id="pd-mail"></div>
+    <div id="pd-richiesta-sito"></div>
   </div>
 
   <div class="tc" id="pd-file">
@@ -1832,7 +1833,7 @@
     <button class="tab" onclick="stab(this,'cd-periodicita')">Periodicità</button>
     <button class="tab" id="cd-tab-commesse" style="display:none" onclick="stab(this,'cd-commesse');loadCommesseCliente(currentCliId)">📁 Commesse</button>
   </div>
-  <div class="tc on" id="cd-info"><div id="cd-info-content"><div class="load">Caricamento...</div></div></div>
+  <div class="tc on" id="cd-info"><div id="cd-info-content"><div class="load">Caricamento...</div></div><div id="cd-richieste-sito"></div></div>
   <div class="tc" id="cd-presidi"><div id="cd-presidi-content"><div class="load">Caricamento...</div></div></div>
   <div class="tc" id="cd-interventi"><div id="cd-interventi-content"><div class="load">Caricamento...</div></div></div>
   <div class="tc" id="cd-documenti"><div id="cd-documenti-content"><div class="load">Caricamento...</div></div></div>
@@ -3467,6 +3468,10 @@
       <h4 id="info-rap-44">44. 👤 Il materiale lo porta il cliente</h4>
       <p>
         Se il cliente fornisce lui una parte del materiale (porte già comprate, maniglioni…), nella commessa, riquadro <b>👤 Materiale del cliente</b>, premi <b>+ Materiale del cliente</b>: cosa, quanto e quando arriva. Se cambia la data usa <b>📅 Cambia data</b>. All'arrivo lo controlla il capo tecnico.
+      </p>
+      <h4 id="info-rap-45">45. 📨 La richiesta del cliente nel progetto</h4>
+      <p>
+        Se il cliente è arrivato dal modulo del sito, la sua richiesta (data, servizio, messaggio, email e telefono) è nella scheda del cliente, riquadro <b>📨 Email e richieste del cliente</b>. Quando crei il progetto tecnico la ritrovi in cima alla finestra: con <b>↳ Copia nella descrizione tecnica</b> la porti nella descrizione senza riscriverla. La vedi anche nella scheda del progetto, sotto le mail allegate.
       </p>
       </div>
 
@@ -11718,6 +11723,7 @@
       <span id="mp-titolo-modal">Nuovo progetto tecnico</span>
       <button class="mx" onclick="closeM('m-progetto')">✕</button>
     </div>
+    <div id="mp-richiesta-cliente"></div>
 
     <input type="hidden" id="mp-id">
 
@@ -12297,6 +12303,7 @@
 <script defer src="js/108-presa-in-carico.js?v=202611201602"></script>
 <script defer src="js/109-materiale-cliente.js?v=202611201602"></script>
 <script defer src="js/110-documenti-arrivo.js?v=202611201602"></script>
+<script defer src="js/112-richiesta-cliente.js?v=202611201602"></script>
 <script defer src="js/19-init.js?v=202611201602"></script>
 
 
