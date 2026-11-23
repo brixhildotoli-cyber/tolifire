@@ -376,6 +376,8 @@ async function caricaSchedaCommessa(commessaId) {
   if (typeof caricaMaterialiCommessa === 'function') await caricaMaterialiCommessa(commessa);
   // F18.20 (sql/146): materiale fornito dal cliente (js/109)
   caricaMaterialeClienteCommessa(commessa).catch(function(e) { console.warn('Materiale del cliente:', e); });
+  // F18.23 (sql/149): ordini ai subappaltatori con i SAL (js/111)
+  caricaOrdiniSubappaltoCommessa(commessa).catch(function(e) { console.warn('Ordini ai subappaltatori:', e); });
   // F7.2: date dei lavori e faldone (js/31, attivi con sql/33).
   if (typeof caricaFaldoneCommessa === 'function') await caricaFaldoneCommessa(commessa);
   await caricaDocumentiCommessa(commessa);

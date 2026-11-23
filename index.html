@@ -2084,6 +2084,8 @@
     <div id="cmd-materiale-cliente"></div>
     <div id="cmd-ordini"></div>
     <div id="cmd-richieste"></div>
+    <!-- F18.23: ordini ai subappaltatori e SAL (js/111, attivi con sql/149) -->
+    <div id="cmd-subappalti"></div>
     <div id="cmd-faldone"></div>
     <div id="cmd-documenti"></div>
   </div>
@@ -4257,6 +4259,11 @@
         Sugli ordini arrivati, riga per riga, si scrivono lotto e DoP (<b>📑 Documenti</b> nella commessa). In <b>Cosa tocca a me</b> trovi <b>Documenti dei fornitori da sollecitare</b>: ordini arrivati da almeno 2 giorni lavorativi con righe senza DoP; chiedile al fornitore e allegale. Se all'arrivo è stata segnata un'<b>omologazione o classe diversa</b> da quella ordinata compare la riga rossa: senti fornitore e ingegnere, poi premi <b>✓ Visto</b>.
       </p>
 
+      <h4 id="info-com-49">49. 🤝 Ordini ai subappaltatori e SAL</h4>
+      <p>
+        Nella commessa, riquadro <b>🤝 Ordini ai subappaltatori</b>, premi <b>+ Ordine al subappaltatore</b>: scegli il subappaltatore, scrivi una riga per lavorazione con l'importo <b>a corpo</b>, la ritenuta (di solito 5%) e i materiali che fornisce TOLI. Con <b>📄 PDF</b> scarichi l'ordine da mandare e far firmare. Per ogni avanzamento premi <b>+ SAL</b> e scrivi la percentuale fatta <b>in tutto</b> (non solo da ultimo SAL): il gestionale calcola lordo, ritenuta e netto da pagare. Al 100% l'ordine si chiude. Un ordine si annulla solo se non ha ancora SAL.
+      </p>
+
   <h4>Checklist prima dell’invio</h4>
 
   <ul>
@@ -5552,6 +5559,11 @@
         Quando un ordine al fornitore è <b>Arrivato</b>, nella commessa (🛒 Ordini ai fornitori) sotto l'ordine c'è <b>📑 Documenti</b> riga per riga: scrivi matricola o lotto e allega la <b>DoP</b> (va tra i certificati della commessa). Se l'omologazione o la classe è diversa da quella ordinata spunta la casella e scrivi cosa: arriva l'avviso ad Acquisti e al titolare. Si può segnare arrivato anche senza documenti: la riga resta <b>⚠️ manca la DoP</b>.
       </p>
 
+      <h4 id="info-ct-48">48. 🤝 Subappaltatori in cantiere</h4>
+      <p>
+        Nella commessa, riquadro <b>🤝 Ordini ai subappaltatori</b>, vedi a quale subappaltatore è affidato cosa, i materiali che deve dare TOLI e a che percentuale sono i SAL. Gli importi non li vedi: se un SAL va aggiornato dillo ad Acquisti.
+      </p>
+
 
 
       <h4>Regole pratiche</h4>
@@ -6819,6 +6831,11 @@
         Se all'arrivo di un ordine il capo tecnico segna che l'omologazione o la classe è diversa da quella ordinata, in <b>Cosa tocca a me</b> compare la riga rossa <b>Omologazioni o classi diverse all'arrivo</b>: leggi la nota e premi <b>✓ Visto</b> (lo può fare anche Acquisti). Per ora è un avviso: il blocco della posizione arriverà con gli ordini per posizione.
       </p>
 
+      <h4 id="info-tit-76">76. 🤝 Ordini ai subappaltatori e SAL</h4>
+      <p>
+        Nella commessa c'è <b>🤝 Ordini ai subappaltatori</b>: ordine a corpo per lavorazione con ritenuta (5% di partenza) e materiali di TOLI, PDF, SAL con la percentuale fatta in tutto (lordo, ritenuta, netto). Li fanno Acquisti e tu; la segreteria li vede per pagare; il capo tecnico vede cosa fa il subappaltatore e a che punto è, senza importi. Sulle commesse chiuse o annullate l'ordine lo puoi fare solo tu.
+      </p>
+
 
 
       <h4>Regole pratiche</h4>
@@ -7506,6 +7523,11 @@
       <h4 id="info-seg-42">42. 📑 Documenti degli ordini arrivati</h4>
       <p>
         Sugli ordini ai fornitori arrivati, nella commessa, con <b>📑 Documenti</b> puoi scrivere lotto o matricola e allegare la DoP di ogni riga (va tra i certificati della commessa).
+      </p>
+
+      <h4 id="info-seg-43">43. 🤝 Ordini ai subappaltatori: cosa pagare</h4>
+      <p>
+        Nella commessa, riquadro <b>🤝 Ordini ai subappaltatori</b>, vedi gli ordini fatti da Acquisti con i SAL: per ognuno lordo, ritenuta trattenuta e <b>netto da pagare</b>, e in fondo la ritenuta trattenuta finora. Con <b>📄 PDF</b> scarichi l'ordine con i SAL. I subappaltatori nuovi li aggiungi tu, come sempre, in Team e subappalti.
       </p>
 
 
@@ -12304,6 +12326,7 @@
 <script defer src="js/109-materiale-cliente.js?v=202611231202"></script>
 <script defer src="js/110-documenti-arrivo.js?v=202611231202"></script>
 <script defer src="js/112-richiesta-cliente.js?v=202611231202"></script>
+<script defer src="js/111-ordini-subappalto.js?v=202611231202"></script>
 <script defer src="js/19-init.js?v=202611231202"></script>
 
 

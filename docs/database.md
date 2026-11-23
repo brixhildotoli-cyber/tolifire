@@ -3155,6 +3155,22 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Dopo sql/149 (F18.23 ordini ai subappaltatori, scelte di Erika del 20/11:
+ordine + SAL a percentuale scritta, ritenuta 5%; DA ESEGUIRE: backup,
+"CONFERMATO DA TOLI: sql/149", -REGISTRO-CANCELLAZIONI dall'editor, controllo
+in fondo; provato in locale con 149-...-PROVA.sql: 35 ok, rollback provato):
+tabelle NUOVE ordini_subappalto (commessa, subappaltatore con i dati copiati,
+codice <commessa>/S<n>, righe jsonb [{lavorazione_id, descrizione, importo}],
+importo_totale, ritenuta_perc 0-30, materiali_toli, note, stato emesso |
+chiuso | annullato) e ordini_subappalto_sal (numero, percentuale cumulativa,
+importo_lordo = totale x % − SAL precedenti, ritenuta, netto, data_sal).
+Lettura: titolare, commerciale, segreteria (con la commessa); capo tecnico
+solo con ordini_subappalto_cantiere(commessa), senza importi. RPC
+elenco_subappaltatori_ordine (Acquisti non legge subappaltatori),
+crea_ordine_subappalto, registra_sal_subappalto (al 100% chiude),
+annulla_ordine_subappalto (solo senza SAL), ordini_subappalto_attivi. Il
+contabile NON è tra i ruoli (non usato). Svincolo della ritenuta a fine
+lavori: non ancora (solo il totale trattenuto nel riquadro). Sito: js/111.
 Dopo sql/145 (F18.18 arrivo merce e documenti, scelte di Erika del 20/11;
 ESEGUITO il 23/11 con -REGISTRO-CANCELLAZIONI, backup pre145, controllo in
 regola; provato in locale con 145-...-PROVA.sql: 16
