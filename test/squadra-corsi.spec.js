@@ -317,6 +317,38 @@ async function sessioneCome(browser, url, u, largo) {
     await attendiQuiete(s.stato, 3000);
     const n = psql("select count(*) from public.commesse_squadra_giorni where commessa_id = " + q(comm) + " and data = current_date + 3");
     if (n !== '1') KO('il giorno non si è salvato (solo avviso): ' + n); else righe.push('si salva lo stesso (solo avviso)');
+    // F19.3 (sql/154): PLE "almeno uno in squadra"
+    if (psql("select count(*) from information_schema.columns where table_name = 'corsi_catalogo' and column_name = 'serve_a'") === '1') {
+      psql("update public.corsi_catalogo set serve_a = 'almeno_uno' where codice = 'ple'");
+      await s.page.evaluate(async x => { await openCommessaDetail(x); }, comm);
+      await attendiQuiete(s.stato, 3000);
+      await s.page.evaluate(async () => { await caricaCatalogoCorsi(true); await calcolaCorsiRichiestiCommessa(squadraAperta.commessa); apriGiornoSquadra(); });
+      await attendiQuiete(s.stato, 2000);
+      const leggi = async ids => s.page.evaluate(ids => {
+        document.querySelectorAll('#sqg-dipendenti input[type=checkbox]').forEach(i => { i.checked = ids.includes(i.value); });
+        aggiornaRiepilogoAvvisiSquadra();
+        const i = document.querySelector('#sqg-dipendenti input[value="' + ids[0] + '"]'); const el = i && i.closest('.sq-scelta');
+        return { t1: el ? el.innerText : '', almeno: (document.querySelector('[data-corsi-almeno-uno]') || {}).innerText || '' };
+      }, ids);
+      const solo1 = await leggi([t1.id]);
+      if (/manca Patentino PLE/.test(solo1.t1)) KO('almeno uno: avviso ancora sulla persona: ' + solo1.t1); else righe.push('PLE «almeno uno»: niente avviso accanto alla persona');
+      if (!/serve almeno uno con Patentino PLE/.test(solo1.almeno)) KO('almeno uno: manca l\'avviso della squadra: ' + solo1.almeno); else righe.push('solo il tecnico senza PLE: «Nella squadra serve almeno uno con Patentino PLE»');
+      const tutti = await leggi([t1.id, t2.id]);
+      if (tutti.almeno) KO('almeno uno: avviso con il tecnico che ha il PLE: ' + tutti.almeno); else righe.push('con il tecnico che ha il PLE: nessun avviso');
+      await s.page.evaluate(() => closeM('m-squadra-giorno'));
+    } else righe.push('sql/154 assente: parte «almeno uno» saltata');
+    // F19.3: suggerimento nel faldone (titolare, commessa approvata)
+    psql("set session_replication_role = replica; update public.commesse set stato = 'approvata' where id = " + q(comm));
+    const tit = utenti.find(u => u.ruolo === 'titolare');
+    const t = await sessioneCome(browser, url, tit, 1280); sessioni.push(t);
+    await t.page.evaluate(async x => { await openCommessaDetail(x); }, comm);
+    await attendiQuiete(t.stato, 3000);
+    await t.page.evaluate(() => apriRequisitiFaldone());
+    await attendiQuiete(t.stato, 2000);
+    const sug = await t.page.evaluate(() => (ge('fald-req-suggeriti') || {}).innerText || '');
+    if (!/Richiesti dalla commessa/.test(sug) || !/Patentino PLE/.test(sug) || !/«PLE» nelle voci/.test(sug)) KO('faldone: suggerimento: ' + sug); else righe.push('faldone: «🎓 Richiesti dalla commessa: Patentino PLE («PLE» nelle voci)»');
+    const spunta = await t.page.evaluate(() => { aggiungiCorsiSuggeritiFaldone(); return Array.from(document.querySelectorAll('#m-requisiti-faldone input[value="ple"]')).map(i => i.checked); });
+    if (!spunta.length || spunta.some(x => !x)) KO('faldone: «Aggiungi quelli suggeriti» non spunta il PLE: ' + JSON.stringify(spunta)); else righe.push('faldone: «+ Aggiungi quelli suggeriti» spunta il PLE (si salva solo con Salva)');
     for (const x of sessioni) {
       if (x.stato.erroriJs.length) KO('errori JavaScript: ' + x.stato.erroriJs.join(' | '));
       const rete = x.stato.rete.filter(r => !/_attiv[oie]$|stati_fornitore_controlli|elimina_richiesta_acquisto/.test(r.dove) && !/storage\.objects/.test(r.msg || '') && (r.status >= 500 || /does not exist|Could not find/i.test(r.msg)));
@@ -332,7 +364,7 @@ async function sessioneCome(browser, url, u, largo) {
       psql("set session_replication_role = replica; delete from public.commesse_squadra_persone where giorno_id in (select id from public.commesse_squadra_giorni where commessa_id = " + q(comm) + " and data = current_date + 3); delete from public.commesse_squadra_mezzi where giorno_id in (select id from public.commesse_squadra_giorni where commessa_id = " + q(comm) + " and data = current_date + 3); delete from public.commesse_squadra_giorni where commessa_id = " + q(comm) + " and data = current_date + 3");
     } catch (e) { console.error('pulizia squadra: ' + e.message); }
     try {
-      psql("set session_replication_role = replica; delete from public.preventivi_voci where descrizione = 'Noleggio PLE 18 m PROVA SQC'; delete from public.documenti_team_subappalti where nota = 'PROVA SQC'; update public.commesse set stato = " + q(statoPrima) + " where id = " + q(comm));
+      psql("set session_replication_role = replica; delete from public.preventivi_voci where descrizione = 'Noleggio PLE 18 m PROVA SQC'; delete from public.documenti_team_subappalti where nota = 'PROVA SQC'; update public.commesse set stato = " + q(statoPrima) + " where id = " + q(comm) + "; update public.corsi_catalogo set serve_a = 'ogni_persona' where codice = 'ple' and exists (select 1 from information_schema.columns where table_name = 'corsi_catalogo' and column_name = 'serve_a')");
     } catch (e) { console.error('pulizia: ' + e.message); }
   }
   righe.forEach(r => console.log(r));

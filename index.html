@@ -5564,6 +5564,11 @@
         Nella commessa, riquadro <b>🤝 Ordini ai subappaltatori</b>, vedi a quale subappaltatore è affidato cosa, i materiali che deve dare TOLI e a che percentuale sono i SAL. Gli importi non li vedi: se un SAL va aggiornato dillo ad Acquisti.
       </p>
 
+      <h4 id="info-ct-49">49. 🎓 Squadra del giorno: corsi che bastano a uno</h4>
+      <p>
+        Nella squadra del giorno alcuni corsi richiesti dalla commessa servono a ognuno (avviso accanto alla persona), altri basta che li abbia uno della squadra: in quel caso l'avviso è nel riepilogo in alto («serve almeno uno con …»). Si salva sempre lo stesso. Nel faldone i corsi richiesti compaiono come suggerimento.
+      </p>
+
 
 
       <h4>Regole pratiche</h4>
@@ -6841,6 +6846,11 @@
         Se un anticipo risulta accreditato ma non lo è (bonifico respinto, pagamento registrato per sbaglio), nella scheda del preventivo, riquadro dell'anticipo, premi <b>↩ Annulla l'accredito</b>. Prima di confermare vedi cosa cambia: la commessa diventa <b>Annullata</b>, il preventivo torna <b>in attesa dell'anticipo</b>, il pagamento della fattura d'anticipo si annulla e la fattura torna da incassare. Ordini a fornitori e subappaltatori e fatture già emesse restano come sono: la finestra te li elenca. Scrivi il motivo: arriva al rappresentante e alla segreteria. Quando l'anticipo è accreditato di nuovo la <b>stessa commessa</b> torna allo stato di prima. L'allegato di accettazione resta. Con la commessa chiusa non si annulla più.
       </p>
 
+      <h4 id="info-tit-78">78. 🎓 Corsi richiesti: a ogni persona o almeno uno</h4>
+      <p>
+        Nel catalogo dei corsi (Impostazioni → 🎓 Corsi e abilitazioni) per ogni corso scegli se, quando la commessa lo richiede, serve <b>a ogni persona della squadra</b> o <b>ad almeno uno</b>. Di partenza preposto, primo soccorso e antincendio bastano uno; gli altri (es. PLE) servono a ognuno. La squadra del giorno avvisa di conseguenza e nel faldone, in <b>Documenti in più per questa commessa</b>, i corsi richiesti dalla commessa compaiono come suggerimento.
+      </p>
+
 
 
       <h4>Regole pratiche</h4>
@@ -7533,6 +7543,11 @@
       <h4 id="info-seg-43">43. 🤝 Ordini ai subappaltatori: cosa pagare</h4>
       <p>
         Nella commessa, riquadro <b>🤝 Ordini ai subappaltatori</b>, vedi gli ordini fatti da Acquisti con i SAL: per ognuno lordo, ritenuta trattenuta e <b>netto da pagare</b>, e in fondo la ritenuta trattenuta finora. Con <b>📄 PDF</b> scarichi l'ordine con i SAL. I subappaltatori nuovi li aggiungi tu, come sempre, in Team e subappalti.
+      </p>
+
+      <h4 id="info-seg-44">44. 🎓 Faldone: corsi richiesti dalla commessa</h4>
+      <p>
+        Nel faldone, aprendo <b>Documenti in più per questa commessa</b>, in alto trovi i corsi richiesti dalla commessa (per esempio PLE se nelle voci c'è «PLE»), evidenziati in giallo. Con <b>+ Aggiungi quelli suggeriti</b> li spunti tutti; decidi tu e premi Salva come sempre.
       </p>
 
 
@@ -9042,6 +9057,8 @@
     <button class="x" onclick="closeM('m-requisiti-faldone')">×</button>
     <h3>📋 Documenti richiesti per questa commessa</h3>
     <div style="font-size:12px;color:var(--m);margin-bottom:10px">Spunta quelli che servono in più per questo cantiere (es. PLE o lavori in quota). Quelli grigi sono richiesti sempre.</div>
+    <!-- F19.3: corsi richiesti dalla commessa come suggerimento (js/95) -->
+    <div id="fald-req-suggeriti"></div>
     <div style="font-size:13px;font-weight:700;margin-bottom:4px">Dipendenti</div>
     <div id="fald-req-dipendenti" style="margin-bottom:10px"></div>
     <div style="font-size:13px;font-weight:700;margin-bottom:4px">Subappaltatori</div>
@@ -10341,6 +10358,9 @@
         <div class="f"><label>…o con le lavorazioni (codici separati da virgola)</label><input type="text" id="ccr-lavorazioni" placeholder="es. rilevazione_incendi"></div>
         <div style="font-size:12px;color:var(--m);margin:-4px 0 6px">Se nessuno ha questo corso valido, Acquisti deve scegliere "faremo il corso" o "lo fa un subappaltatore" prima di inviare il preventivo.</div>
       </div>
+      <!-- F19.3 (sql/154): a ogni persona o almeno uno in squadra -->
+      <div class="f" id="ccr-serve-a-box" style="display:none"><label>👥 Quando la commessa lo richiede, serve</label>
+        <select id="ccr-serve-a"><option value="ogni_persona">a ogni persona della squadra</option><option value="almeno_uno">ad almeno uno della squadra</option></select></div>
       <div class="ma">
         <button class="btn" onclick="ge('ccr-form').style.display='none'">Annulla</button>
         <button class="btn p" onclick="salvaCorsoCatalogo()">💾 Salva</button>

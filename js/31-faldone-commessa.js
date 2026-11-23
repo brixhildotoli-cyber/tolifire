@@ -453,6 +453,8 @@ function apriRequisitiFaldone() {
   ge('fald-req-subappaltatori').innerHTML = caselle('fald-req-sub', ['impresa', 'persona'],
     f.tipi_obbligatori_subappaltatori || [], f.tipi_extra_subappaltatori || []);
   openM('m-requisiti-faldone');
+  // F19.3: corsi richiesti dalla commessa come suggerimento (js/95)
+  if (typeof suggerisciCorsiFaldone === 'function') suggerisciCorsiFaldone(faldoneAperto.commessa).catch(function(e) { console.warn('Corsi suggeriti:', e); });
 }
 
 async function salvaRequisitiFaldone() {

@@ -126,7 +126,7 @@ function disegnaCatalogoCorsi() {
       '<div style="min-width:0"><div style="font-size:13px;font-weight:600">' + esc(r.nome) + (r.obbligo_legge ? ' <span class="bx bblue">⚖️ Per legge</span>' : '') + (r.attivo ? '' : ' <span class="bx bgray">Spento</span>') + '</div>' +
       '<div style="font-size:12px;color:var(--m)">' + esc(NOMI_PER_CORSO[r.per] || r.per) + ' · ' + esc(testoValiditaCorso(r)) +
       (r.ore_aggiornamento != null ? ' · aggiornamento ' + esc(String(r.ore_aggiornamento).replace('.', ',')) + ' h' : '') + (r.ente ? ' · ' + esc(r.ente) : '') + '</div>' +
-      (testoPreventivoCorso(r) ? '<div style="font-size:12px;color:var(--m)">🧾 Serve nel preventivo con: ' + esc(testoPreventivoCorso(r)) + '</div>' : '') + '</div>' +
+      (testoPreventivoCorso(r) ? '<div style="font-size:12px;color:var(--m)">🧾 Serve nel preventivo con: ' + esc(testoPreventivoCorso(r)) + (r.serve_a === 'almeno_uno' ? ' · 👥 basta uno in squadra' : '') + '</div>' : '') + '</div>' +
       '<button class="btn sm" onclick="modificaCorsoCatalogo(\'' + esc(r.codice) + '\')">✏️</button></div>';
   }).join('') || '<div class="empty">Nessun corso</div>';
 }
@@ -165,6 +165,10 @@ function modificaCorsoCatalogo(codice) {
     ge('ccr-parole').value = r ? (r.parole_preventivo || []).join(', ') : '';
     ge('ccr-lavorazioni').value = r ? (r.lavorazioni_preventivo || []).join(', ') : '';
   }
+  // F19.3 (sql/154): a ogni persona o almeno uno in squadra
+  const conServeA = CATALOGO_CORSI.righe.some(function(x) { return Object.prototype.hasOwnProperty.call(x, 'serve_a'); });
+  ge('ccr-serve-a-box').style.display = conServeA ? '' : 'none';
+  if (conServeA) ge('ccr-serve-a').value = r && r.serve_a ? r.serve_a : 'ogni_persona';
   ge('ccr-form').style.display = '';
   ge('ccr-nome').focus();
 }
@@ -183,6 +187,7 @@ async function salvaCorsoCatalogo() {
     dati.parole_preventivo = elencoDaTesto(ge('ccr-parole').value);
     dati.lavorazioni_preventivo = elencoDaTesto(ge('ccr-lavorazioni').value).map(function(x) { return x.toLowerCase(); });
   }
+  if (ge('ccr-serve-a-box').style.display !== 'none') dati.serve_a = ge('ccr-serve-a').value;
   let res;
   if (CATALOGO_CORSI.aperto) {
     const vecchio = CATALOGO_CORSI.righe.find(function(x) { return x.codice === CATALOGO_CORSI.aperto; });
@@ -205,7 +210,7 @@ async function salvaCorsoCatalogo() {
   mostraCatalogoCorsiImpostazioni().catch(function() {});
 }
 
-const CAMPI_REGISTRO_CORSI = { parole_preventivo: 'parole nel preventivo', lavorazioni_preventivo: 'lavorazioni nel preventivo', nome: 'nome', per: 'per chi', validita_mesi: 'validità (mesi)', validita_giorni: 'validità (giorni)', obbligo_legge: 'per legge', ore_aggiornamento: 'ore di aggiornamento', ente: 'ente', attivo: 'attivo', ordine: 'ordine' };
+const CAMPI_REGISTRO_CORSI = { serve_a: 'serve a', parole_preventivo: 'parole nel preventivo', lavorazioni_preventivo: 'lavorazioni nel preventivo', nome: 'nome', per: 'per chi', validita_mesi: 'validità (mesi)', validita_giorni: 'validità (giorni)', obbligo_legge: 'per legge', ore_aggiornamento: 'ore di aggiornamento', ente: 'ente', attivo: 'attivo', ordine: 'ordine' };
 
 function valoreRegistroCorsi(x) {
   if (x === true) return 'sì';
