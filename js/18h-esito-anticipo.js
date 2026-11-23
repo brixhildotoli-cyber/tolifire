@@ -1452,6 +1452,7 @@ function htmlFatturaAnticipoPreventivo(p) {
             (chiAccredito ? ' · verificato da ' + esc(chiAccredito) : '')
           : '<b>non ancora verificato</b>'}
       </div>
+      ${typeof htmlAnnullaAccreditoAnticipo === 'function' ? htmlAnnullaAccreditoAnticipo(p) : ''}
     </div>
     ${puo ? `
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px" data-anticipo-f43-bottoni>

@@ -3155,6 +3155,22 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Dopo sql/150 (F18.24 azioni inverse del titolare: annullo dell'accredito
+dell'anticipo, scelte di Erika del 23/11; DA ESEGUIRE: backup,
+"CONFERMATO DA TOLI: sql/150", controllo in fondo; provato in locale con
+150-...-PROVA.sql (supabase_admin): 21 ok, rollback provato con la stessa
+impronta md5 di preventivi_controllo_esito, uguale a quella di produzione del
+23/11): RPC anteprima_annulla_accredito(preventivo) -> jsonb e
+annulla_accredito_anticipo(preventivo, motivo), solo titolare: commessa
+'annullata' con il motivo (rifiuto se 'chiusa'), preventivo in_attesa_anticipo
+senza accredito (fattura d'anticipo e allegato restano), pagamenti della
+fattura d'anticipo annullati, avvisi 'accredito_annullato' al rappresentante e
+alla segreteria; al nuovo accredito la stessa commessa si riattiva (trigger di
+sql/26). preventivi_controllo_esito: UNA riga in testa che lascia passare
+solo con toli.annulla_accredito = 'on' (impostato solo dalla RPC, come
+toli.fatture_rpc). search_path della RPC 'public, pg_temp' perché
+preventivi_blocca_3k_rappresentante (sql/258) chiama get_user_role() senza
+schema. Revoca dello sblocco del margine: non fatta (F16.1 ferma). Sito: js/113.
 Dopo sql/149 (F18.23 ordini ai subappaltatori, scelte di Erika del 20/11:
 ordine + SAL a percentuale scritta, ritenuta 5%; ESEGUITO il 23/11 con
 -REGISTRO-CANCELLAZIONI, backup pre149, controllo in regola; provato in locale con 149-...-PROVA.sql: 35 ok, rollback provato):
