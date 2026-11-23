@@ -3156,9 +3156,8 @@ Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smok
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
 Dopo sql/149 (F18.23 ordini ai subappaltatori, scelte di Erika del 20/11:
-ordine + SAL a percentuale scritta, ritenuta 5%; DA ESEGUIRE: backup,
-"CONFERMATO DA TOLI: sql/149", -REGISTRO-CANCELLAZIONI dall'editor, controllo
-in fondo; provato in locale con 149-...-PROVA.sql: 35 ok, rollback provato):
+ordine + SAL a percentuale scritta, ritenuta 5%; ESEGUITO il 23/11 con
+-REGISTRO-CANCELLAZIONI, backup pre149, controllo in regola; provato in locale con 149-...-PROVA.sql: 35 ok, rollback provato):
 tabelle NUOVE ordini_subappalto (commessa, subappaltatore con i dati copiati,
 codice <commessa>/S<n>, righe jsonb [{lavorazione_id, descrizione, importo}],
 importo_totale, ritenuta_perc 0-30, materiali_toli, note, stato emesso |
