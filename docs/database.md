@@ -3156,8 +3156,8 @@ Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smok
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
 Dopo sql/150 (F18.24 azioni inverse del titolare: annullo dell'accredito
-dell'anticipo, scelte di Erika del 23/11; DA ESEGUIRE: backup,
-"CONFERMATO DA TOLI: sql/150", controllo in fondo; provato in locale con
+dell'anticipo, scelte di Erika del 23/11; ESEGUITO il 23/11, backup pre150,
+controllo in regola; provato in locale con
 150-...-PROVA.sql (supabase_admin): 21 ok, rollback provato con la stessa
 impronta md5 di preventivi_controllo_esito, uguale a quella di produzione del
 23/11): RPC anteprima_annulla_accredito(preventivo) -> jsonb e
