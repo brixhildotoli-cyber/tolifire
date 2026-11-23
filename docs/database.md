@@ -3155,9 +3155,9 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
-Dopo sql/145 (F18.18 arrivo merce e documenti, scelte di Erika del 20/11; DA
-ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/145", -REGISTRO-CANCELLAZIONI
-dall'editor, controllo in fondo; provato in locale con 145-...-PROVA.sql: 16
+Dopo sql/145 (F18.18 arrivo merce e documenti, scelte di Erika del 20/11;
+ESEGUITO il 23/11 con -REGISTRO-CANCELLAZIONI, backup pre145, controllo in
+regola; provato in locale con 145-...-PROVA.sql: 16
 ok, rollback provato): colonne NUOVE su ordini_fornitori_voci lotto,
 dop_documento_id (→ commesse_documenti certificati), omologazione_diversa +
 nota_omologazione, omologazione_vista_da/_nome/_il, documenti_da/_nome/_il;
