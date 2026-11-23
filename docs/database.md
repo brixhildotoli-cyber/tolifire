@@ -3156,8 +3156,8 @@ Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smok
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
 Dopo sql/154 (F19.3 corsi richiesti, scelte di Erika del 23/11: scelta per
-corso, niente noli, niente mansione, faldone con suggerimento; DA ESEGUIRE:
-backup, "CONFERMATO DA TOLI: sql/154", controllo in fondo; provato in locale
+corso, niente noli, niente mansione, faldone con suggerimento; ESEGUITO il
+23/11 (backup 2026-11-23-170234, cartella chiamata pre150), controllo in regola; provato in locale
 con 154-...-PROVA.sql: 9 ok, rollback provato): colonna NUOVA
 corsi_catalogo.serve_a 'ogni_persona' | 'almeno_uno' (di partenza almeno_uno:
 preposto, primo_soccorso, formazione_antincendio), la scrive il titolare con i
