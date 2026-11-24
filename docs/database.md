@@ -3156,8 +3156,8 @@ Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smok
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
 Dopo sql/160 (storico delle modifiche per chi vede il record, richiesta di
-Erika del 24/11; DA ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/160", controllo
-in fondo; provato in locale con 160-...-PROVA.sql: 12 ok, rollback provato):
+Erika del 24/11; ESEGUITO il 24/11, backup pre157-160, controllo in regola;
+provato in locale con 160-...-PROVA.sql: 12 ok, rollback provato):
 la policy di registro_azioni NON cambia (solo titolare). RPC
 storico_modifiche_record(p_tabella 'progetti_tecnici' | 'preventivi',
 p_record_id) SECURITY INVOKER: controlla con le RLS di chi chiede che il record
@@ -3167,8 +3167,9 @@ niente campi costo/margine/ricarico/provvigione e niente righe intere (prima e
 dopo senza campo). Sito: js/63 (🕘 Storico delle schede).
 Dopo sql/157 (F19.6 schede rischi per lavorazione, scelte di Erika del 24/11:
 foglio Excel, bozza di partenza da validare, validazione dell'RSPP con nome e
-data, SDS più avanti; DA ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/157",
--REGISTRO-CANCELLAZIONI dall'editor, controllo in fondo; provato in locale con
+data, SDS più avanti; ESEGUITO il 24/11 con -REGISTRO-CANCELLAZIONI, backup
+2026-11-24-111220-pre157-160, controllo in regola, bozze con la stessa impronta
+md5 del locale; provato in locale con
 157-...-PROVA.sql: 23 ok, rollback provato): tabella NUOVA
 sicurezza_lavorazioni (lavorazione_codice → lavorazioni.codice, versione,
 contenuto jsonb {fasi[], rischi[{rischio, misure}], dpi[], attrezzature[],
