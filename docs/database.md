@@ -3155,8 +3155,9 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
-Dopo sql/161 (capo dei rappresentanti, richiesta di Erika del 24/11; DA
-ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/161", controllo in fondo; provato in
+Dopo sql/161 (capo dei rappresentanti, richiesta di Erika del 24/11; ESEGUITO
+il 24/11, backup 2026-11-24-…-pre161, controllo in regola: 13 funzioni, 18
+policy, 31 definizioni salvate; provato in
 locale con 161-...-PROVA.sql: 17 ok, rollback provato con le impronte md5 di
 funzioni e policy uguali a prima): colonne NUOVE utenti.capo_rappresentanti
 (true solo per Giulio Pistolesi 4950b283-…) e utenti.seguito_dal_capo (true di
