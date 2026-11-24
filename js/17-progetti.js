@@ -6,6 +6,12 @@ let urlAnteprimaProgetto = [];
 
 // Elenco dei file scelti nella finestra del progetto: con js/70 si sommano,
 // restano sul telefono con la bozza e hanno la ✖; senza, quelli degli input
+// Richiesta di Erika del 24/11: il titolare crea, salva e invia il progetto
+// tecnico anche senza allegati (per gli altri ruoli l'allegato resta obbligatorio).
+function progettoSenzaAllegatoAmmesso() {
+  return ROLE === 'titolare';
+}
+
 function fileSceltiFinestraProgetto(campo) {
   if (typeof fileSceltiProgetto === 'function') {
     if (typeof prendiFileSceltiProgetto === 'function') prendiFileSceltiProgetto();
@@ -129,7 +135,8 @@ async function caricaAllegatiProgetto(progettoId) {
 
     if (box) {
       box.innerHTML =
-        '<div class="al2 w">Per creare il progetto devi allegare almeno un PDF, JPG/JPEG o PNG.</div>';
+        (progettoSenzaAllegatoAmmesso() ? '<div class="al2 i">Gli allegati (PDF, JPG/JPEG o PNG) per te sono facoltativi.</div>'
+          : '<div class="al2 w">Per creare il progetto devi allegare almeno un PDF, JPG/JPEG o PNG.</div>');
     }
 
     return;
@@ -213,7 +220,7 @@ async function eliminaAllegatoProgetto(allegatoId) {
     return;
   }
 
-  if (allegatiProgettoDati.length <= 1) {
+  if (allegatiProgettoDati.length <= 1 && !progettoSenzaAllegatoAmmesso()) {
     toast(
       'Il progetto deve contenere almeno un allegato. Carica prima un nuovo file, poi elimina quello vecchio.',
       'err'
@@ -506,6 +513,8 @@ async function apriNuovoProgetto() {
   ge('mp-materiali').value = '';
   ge('mp-file').value = '';
   ge('mp-file-extra').value = '';
+  const etichettaFile = document.querySelector('label[for="mp-file"]');
+  if (etichettaFile) etichettaFile.textContent = progettoSenzaAllegatoAmmesso() ? 'Allegati tecnici (facoltativi per il titolare)' : 'Allegati tecnici obbligatori *';
   await apriFileSceltiFinestraProgetto(null);
 
   await mostraImportoProgetto(null);
@@ -537,6 +546,8 @@ async function modificaProgetto(id) {
   ge('mp-materiali').value = progetto.materiali_note || '';
   ge('mp-file').value = '';
   ge('mp-file-extra').value = '';
+  const etichettaFile = document.querySelector('label[for="mp-file"]');
+  if (etichettaFile) etichettaFile.textContent = progettoSenzaAllegatoAmmesso() ? 'Allegati tecnici (facoltativi per il titolare)' : 'Allegati tecnici obbligatori *';
   await apriFileSceltiFinestraProgetto(id);
 
   await mostraImportoProgetto(progetto);
@@ -615,12 +626,12 @@ async function salvaProgetto() {
       return;
     }
 
-    if (!id && filesObbligatori.length < 1) {
+    if (!id && filesObbligatori.length < 1 && !progettoSenzaAllegatoAmmesso()) {
       toast('Devi selezionare almeno un allegato tecnico', 'err');
       return;
     }
 
-    if (id && files.length === 0 && allegatiProgettoDati.length === 0) {
+    if (id && files.length === 0 && allegatiProgettoDati.length === 0 && !progettoSenzaAllegatoAmmesso()) {
       toast('Devi allegare almeno un PDF, JPG/JPEG o PNG', 'err');
       return;
     }
@@ -944,7 +955,7 @@ async function inviaProgettoAUfficioTecnico(progettoId) {
   }
 
   // le mail del cliente (js/104) non valgono come allegato del progetto
-  if (!allegati || allegatiSenzaMail(allegati).length === 0) {
+  if ((!allegati || allegatiSenzaMail(allegati).length === 0) && !progettoSenzaAllegatoAmmesso()) {
     toast('Non puoi inviare un progetto senza almeno un allegato', 'err');
     return;
   }
@@ -1181,8 +1192,8 @@ async function inviaProgettoAlCommerciale(progettoId) {
     .select('id')
     .eq('progetto_id', progettoId);
 
-  if (erroreAllegati || !allegati || allegati.length === 0) {
-    toast('Non puoi inviare un progetto senza almeno un allegato', 'err');
+  if (erroreAllegati || ((!allegati || allegati.length === 0) && !progettoSenzaAllegatoAmmesso())) {
+    toast(erroreAllegati ? 'Errore verifica allegati: ' + erroreAllegati.message : 'Non puoi inviare un progetto senza almeno un allegato', 'err');
     return;
   }
 
@@ -3771,6 +3782,8 @@ async function apriProgettoDaElenco(id) {
   ge('mp-materiali').value = progetto.materiali_note || '';
   ge('mp-file').value = '';
   ge('mp-file-extra').value = '';
+  const etichettaFile = document.querySelector('label[for="mp-file"]');
+  if (etichettaFile) etichettaFile.textContent = progettoSenzaAllegatoAmmesso() ? 'Allegati tecnici (facoltativi per il titolare)' : 'Allegati tecnici obbligatori *';
   // Prima restavano le anteprime dell'ultima finestra aperta (file non più scelti)
   await apriFileSceltiFinestraProgetto(progetto.id);
 

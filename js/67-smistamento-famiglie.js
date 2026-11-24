@@ -145,7 +145,8 @@ async function inviaProgettoConSmistamento(progettoId) {
     .from('progetti_tecnici_allegati').select('id,storage_path').eq('progetto_id', progettoId);
   if (erroreAllegati) { toast('Errore verifica allegati: ' + erroreAllegati.message, 'err'); return; }
   // le mail del cliente (js/104) non valgono come allegato del progetto
-  if (!allegati || !allegatiSenzaMail(allegati).length) { toast('Non puoi inviare un progetto senza almeno un allegato', 'err'); return; }
+  // titolare: anche senza allegati (js/17 progettoSenzaAllegatoAmmesso, richiesta di Erika del 24/11)
+  if ((!allegati || !allegatiSenzaMail(allegati).length) && !(typeof progettoSenzaAllegatoAmmesso === 'function' && progettoSenzaAllegatoAmmesso())) { toast('Non puoi inviare un progetto senza almeno un allegato', 'err'); return; }
 
   const { data: anteprima, error: erroreAnteprima } = await db.rpc('anteprima_smistamento', { p_progetto: progettoId });
   if (erroreAnteprima) { toast('Errore nello smistamento: ' + erroreAnteprima.message, 'err'); return; }
