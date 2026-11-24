@@ -3155,6 +3155,20 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Dopo sql/157 (F19.6 schede rischi per lavorazione, scelte di Erika del 24/11:
+foglio Excel, bozza di partenza da validare, validazione dell'RSPP con nome e
+data, SDS più avanti; DA ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/157",
+-REGISTRO-CANCELLAZIONI dall'editor, controllo in fondo; provato in locale con
+157-...-PROVA.sql: 23 ok, rollback provato): tabella NUOVA
+sicurezza_lavorazioni (lavorazione_codice → lavorazioni.codice, versione,
+contenuto jsonb {fasi[], rischi[{rischio, misure}], dpi[], attrezzature[],
+sostanze[], note}, origine bozza_iniziale | foglio, stato bozza | validata con
+rspp_nome, validata_il, chi). Lettura titolare, capo tecnico, segreteria,
+informatico; scrittura solo RPC del titolare: importa_schede_rischi(jsonb)
+(versione nuova solo se il testo cambia), valida_scheda_rischi (solo l'ultima
+versione), schede_rischi_attive; pulisci_scheda_rischi interna. Bozza di
+partenza (v1) per 9 lavorazioni di cantiere: testi GENERICI, da validare.
+Sito: js/114 (Impostazioni e Team e subappalti).
 Dopo sql/154 (F19.3 corsi richiesti, scelte di Erika del 23/11: scelta per
 corso, niente noli, niente mansione, faldone con suggerimento; ESEGUITO il
 23/11 (backup 2026-11-23-170234, cartella chiamata pre150), controllo in regola; provato in locale

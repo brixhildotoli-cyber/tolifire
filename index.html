@@ -2098,7 +2098,11 @@
       <div class="st">🦺 Team e subappalti</div>
       <div style="font-size:12px;color:var(--m);margin-top:3px">Documenti con scadenza dei dipendenti e dei subappaltatori (DURC, POS, formazione, idoneità, patentini).</div>
     </div>
-    <button class="btn p" id="ts-btn-nuovo-sub" style="display:none" onclick="apriSubappaltatore()">+ Nuovo subappaltatore</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <!-- F19.6: schede rischi delle lavorazioni (js/114, attive con sql/157) -->
+      <button class="btn" id="ts-btn-schede-rischi" style="display:none" onclick="apriSchedeRischi()">🦺 Schede rischi</button>
+      <button class="btn p" id="ts-btn-nuovo-sub" style="display:none" onclick="apriSubappaltatore()">+ Nuovo subappaltatore</button>
+    </div>
   </div>
   <div class="al2 i" id="ts-non-attivo" style="display:none">I documenti di team e subappalti non sono ancora attivi: si attivano dopo l'aggiornamento del database.</div>
   <div id="ts-contenuto">
@@ -2596,6 +2600,16 @@
     <div style="font-size:12px;color:var(--m);margin-bottom:8px">L'elenco di corsi, abilitazioni e documenti di dipendenti e subappaltatori (pagina Team e subappalti): validità, obbligatorio per legge, ore di aggiornamento, ente. Un corso spento non compare più tra i documenti nuovi, quelli già registrati restano. Ogni modifica resta nel registro.</div>
     <div class="al2 i" id="si-corsi-stato"></div>
     <button class="btn p" type="button" id="si-corsi-apri" style="display:none" onclick="apriCatalogoCorsi()">🎓 Apri il catalogo dei corsi</button>
+  </div>
+  <!-- F19.6 — SCHEDE RISCHI DELLE LAVORAZIONI (js/114-schede-rischi.js, sql/157): solo titolare -->
+  <div class="card" id="si-schede-rischi-card" style="margin-top:14px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div style="font-size:13px;font-weight:600">🦺 Schede rischi delle lavorazioni</div>
+      <button class="btn sm" title="Rileggi" onclick="mostraSchedeRischiImpostazioni()">↻</button>
+    </div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Fasi, rischi e misure, DPI, attrezzature e sostanze di ogni lavorazione, per il POS. I testi si cambiano con un foglio Excel (scaricalo, fallo correggere all'RSPP, ricaricalo); valgono solo validati dall'RSPP.</div>
+    <div class="al2 i" id="si-schede-rischi-stato"></div>
+    <button class="btn p" type="button" id="si-schede-rischi-apri" style="display:none" onclick="apriSchedeRischi()">🦺 Apri le schede rischi</button>
   </div>
   <!-- F15.13 — REGOLE DI SMISTAMENTO PER FAMIGLIA (js/67-smistamento-famiglie.js, sql/83): solo titolare -->
   <div class="card" id="si-smistamento-card" style="margin-top:14px">
@@ -5569,6 +5583,11 @@
         Nella squadra del giorno alcuni corsi richiesti dalla commessa servono a ognuno (avviso accanto alla persona), altri basta che li abbia uno della squadra: in quel caso l'avviso è nel riepilogo in alto («serve almeno uno con …»). Si salva sempre lo stesso. Nel faldone i corsi richiesti compaiono come suggerimento.
       </p>
 
+      <h4 id="info-ct-50">50. 🦺 Schede rischi delle lavorazioni</h4>
+      <p>
+        In Team e subappalti, con <b>🦺 Schede rischi</b>, leggi per ogni lavorazione le fasi, i rischi con le misure, i DPI, le attrezzature e le sostanze. Quelle con ⚠️ sono ancora bozze da validare dall'RSPP; le correzioni passano dal titolare con il foglio Excel.
+      </p>
+
 
 
       <h4>Regole pratiche</h4>
@@ -6851,6 +6870,11 @@
         Nel catalogo dei corsi (Impostazioni → 🎓 Corsi e abilitazioni) per ogni corso scegli se, quando la commessa lo richiede, serve <b>a ogni persona della squadra</b> o <b>ad almeno uno</b>. Di partenza preposto, primo soccorso e antincendio bastano uno; gli altri (es. PLE) servono a ognuno. La squadra del giorno avvisa di conseguenza e nel faldone, in <b>Documenti in più per questa commessa</b>, i corsi richiesti dalla commessa compaiono come suggerimento.
       </p>
 
+      <h4 id="info-tit-79">79. 🦺 Schede rischi delle lavorazioni (per il POS)</h4>
+      <p>
+        In Impostazioni → <b>🦺 Schede rischi delle lavorazioni</b> (o in Team e subappalti) trovi una scheda per ogni lavorazione di cantiere: fasi, rischi con le misure, DPI, attrezzature, sostanze. Si parte da una <b>bozza generica</b> scritta dal gestionale: va controllata dall'RSPP. Premi <b>📥 Scarica il foglio</b>, dallo all'RSPP, poi <b>📤 Carica il foglio</b>: vedi prima cosa cambia, e ogni lavorazione con un testo diverso diventa una versione nuova (le vecchie restano). Quando l'RSPP l'ha approvata premi <b>✓ Validata dall'RSPP</b> e scrivi il suo nome e la data. Solo le schede validate varranno per il POS.
+      </p>
+
 
 
       <h4>Regole pratiche</h4>
@@ -7548,6 +7572,11 @@
       <h4 id="info-seg-44">44. 🎓 Faldone: corsi richiesti dalla commessa</h4>
       <p>
         Nel faldone, aprendo <b>Documenti in più per questa commessa</b>, in alto trovi i corsi richiesti dalla commessa (per esempio PLE se nelle voci c'è «PLE»), evidenziati in giallo. Con <b>+ Aggiungi quelli suggeriti</b> li spunti tutti; decidi tu e premi Salva come sempre.
+      </p>
+
+      <h4 id="info-seg-45">45. 🦺 Schede rischi delle lavorazioni</h4>
+      <p>
+        In Team e subappalti, con <b>🦺 Schede rischi</b>, leggi le schede rischi di ogni lavorazione (servono al POS). Le carica e le valida il titolare.
       </p>
 
 
@@ -12353,6 +12382,7 @@
 <script defer src="js/112-richiesta-cliente.js?v=202611231400"></script>
 <script defer src="js/111-ordini-subappalto.js?v=202611231400"></script>
 <script defer src="js/113-annulla-accredito.js?v=202611231400"></script>
+<script defer src="js/114-schede-rischi.js?v=202611231400"></script>
 <script defer src="js/19-init.js?v=202611231400"></script>
 
 

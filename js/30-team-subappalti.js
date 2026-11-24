@@ -167,6 +167,8 @@ async function loadTeamSubappalti() {
   if (avviso) avviso.style.display = 'none';
   contenuto.style.display = '';
   if (nuovo) nuovo.style.display = puoGestireTeamSubappalti() ? '' : 'none';
+  // F19.6 (sql/157): schede rischi delle lavorazioni (js/114)
+  if (typeof mostraBottoneSchedeRischi === 'function') mostraBottoneSchedeRischi().catch(function(e) { console.warn('Schede rischi:', e); });
 
   ['ts-scadenze-lista', 'ts-dipendenti-lista', 'ts-subappaltatori-lista'].forEach(function(id) {
     const el = ge(id);
