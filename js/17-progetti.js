@@ -3083,6 +3083,31 @@ function dimensioneFileProgetto(bytes) {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
+// Tab Info del progetto: nome del rappresentante (sempre) e "Creato da" dal
+// registro delle azioni (sql/67): il titolare lo legge direttamente, gli altri
+// con storico_modifiche_record (sql/160). I progetti creati prima del registro
+// non hanno la riga "Creato da".
+async function mostraAutoreProgetto(progetto) {
+  const boxRap = ge('pd-rappresentante-box');
+  const boxCreato = ge('pd-creato-da-box');
+  const nomeUtente = function(u) { return u ? ((u.nome || '') + ' ' + (u.cognome || '')).trim() : ''; };
+  if (boxRap && progetto.rappresentante_id) {
+    const { data } = await db.from('utenti').select('nome, cognome').eq('id', progetto.rappresentante_id).maybeSingle();
+    if (currentProgettoTecnicoId !== progetto.id) return;
+    boxRap.innerHTML = ir('Rappresentante', nomeUtente(data) || null);
+  }
+  if (!boxCreato) return;
+  const r = ROLE === 'titolare'
+    ? await db.from('registro_azioni').select('azione, utente_reale_nome, ruolo_reale, quando').eq('tabella', 'progetti_tecnici')
+        .eq('record_id', String(progetto.id)).eq('azione', 'inserimento').order('quando', { ascending: true }).limit(1)
+    : await db.rpc('storico_modifiche_record', { p_tabella: 'progetti_tecnici', p_record_id: progetto.id });
+  if (currentProgettoTecnicoId !== progetto.id || r.error) return;
+  const nascita = (r.data || []).filter(function(x) { return x.azione === 'inserimento'; }).pop();
+  if (!nascita || !nascita.utente_reale_nome) return;
+  boxCreato.innerHTML = ir('Creato da', nascita.utente_reale_nome + (nascita.ruolo_reale && typeof etichettaRuolo === 'function' ? ' (' + etichettaRuolo(nascita.ruolo_reale) + ')' : ''));
+  boxCreato.style.display = '';
+}
+
 async function openProgettoDetail(progettoId) {
   ricordaPosizionePagina();
     const paginaAttuale = document
@@ -3150,6 +3175,8 @@ if (btnModifica) {
           ? new Date(progetto.creato_il).toLocaleDateString('it-IT')
           : null
       )}
+      <div id="pd-rappresentante-box">${ir('Rappresentante', progetto.rappresentante_id ? '…' : null)}</div>
+      <div id="pd-creato-da-box" style="display:none"></div>
       ${'importo_stimato' in progetto ? ir(
         'Importo stimato',
         progetto.importo_stimato !== null
@@ -3194,6 +3221,8 @@ if (btnModifica) {
   `;
 
   // F15.19: urgenza (sql/89) e giorni di attesa in verifica tecnica (js/16)
+  // Richiesta di Erika del 24/11: rappresentante e chi ha creato il progetto
+  mostraAutoreProgetto(progetto).catch(function(e) { console.warn('Autore del progetto:', e); });
   if (typeof mostraAttesaUrgenzaProgetto === 'function') await mostraAttesaUrgenzaProgetto(progetto, 'pd-attesa-urgenza');
 
   // F14.16: intestazione, "Cosa puoi fare", Collegati e Storico (js/63).

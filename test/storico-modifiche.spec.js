@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Storico delle modifiche per chi vede il record (sql/160 + js/63), SOLO DATABASE LOCALE con sql/160. Il
 // rappresentante apre un suo progetto tecnico: «🕘 Storico» mostra «Modificato» con il campo cambiato e non
-// più «lo legge solo il titolare».
+// più «lo legge solo il titolare»; il tab Info mostra «Rappresentante» e «Creato da» (richiesta del 24/11).
 // Uso: cd test && node storico-modifiche.spec.js
 'use strict';
 
@@ -279,7 +279,7 @@ const testo = (s, sel) => s.page.evaluate(sel => { const e = document.querySelec
   const utenti = await rest('/utenti?select=id,email,nome,cognome,ruolo,attivo&attivo=eq.true&order=id', tokenServizio());
   BACK.perEmail = {}; BACK.perId = {};
   utenti.forEach(u => { BACK.perEmail[String(u.email).toLowerCase()] = u; BACK.perId[u.id] = u; });
-  const prog = psql("select p.id from public.progetti_tecnici p join public.utenti u on u.id = p.rappresentante_id and u.ruolo = 'rappresentante' and u.attivo where exists (select 1 from public.registro_azioni r where r.tabella = 'progetti_tecnici' and r.record_id = p.id::text and r.azione = 'modifica' and r.campo is not null and r.campo not in ('aggiornato_il', 'updated_at')) order by p.creato_il desc limit 1");
+  const prog = psql("select p.id from public.progetti_tecnici p join public.utenti u on u.id = p.rappresentante_id and u.ruolo = 'rappresentante' and u.attivo where exists (select 1 from public.registro_azioni r where r.tabella = 'progetti_tecnici' and r.record_id = p.id::text and r.azione = 'modifica' and r.campo is not null and r.campo not in ('aggiornato_il', 'updated_at')) and exists (select 1 from public.registro_azioni r where r.tabella = 'progetti_tecnici' and r.record_id = p.id::text and r.azione = 'inserimento') order by p.creato_il desc limit 1");
   if (!prog) { console.log('TEST NON AVVIATO: nessun progetto di rappresentante con modifiche nel registro'); process.exit(2); }
   const rap = BACK.perId[psql("select rappresentante_id from public.progetti_tecnici where id = " + q(prog))];
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', protocolTimeout: 120000, args: ['--no-first-run', '--disable-features=Translate'] });
@@ -293,6 +293,12 @@ const testo = (s, sel) => s.page.evaluate(sel => { const e = document.querySelec
     await attendiQuiete(r.stato, 2500);
     const sto = await r.page.evaluate(() => { const c = Array.from(document.querySelectorAll('.so-storico-corpo')).find(x => x.offsetParent !== null) || document.querySelector('.so-storico-corpo'); return c ? c.innerText.replace(/\s+/g, ' ') : ''; });
     OK(/Modificato/.test(sto) && !/lo legge solo il titolare/.test(sto), 'rappresentante (390 px): storico del suo progetto con le modifiche ⇒ "' + sto.slice(0, 220) + '"');
+    // Richiesta di Erika del 24/11: rappresentante e "Creato da" nel tab Info
+    const info = await r.page.evaluate(() => (ge('pd-info-content') || {}).innerText || '');
+    const nomeRap = (rap.nome + ' ' + (rap.cognome || '')).trim();
+    const creatore = psql("select utente_reale_nome from public.registro_azioni where tabella = 'progetti_tecnici' and record_id = " + q(prog) + " and azione = 'inserimento' order by quando limit 1");
+    OK(info.includes('Rappresentante') && info.includes(nomeRap), 'tab Info: «Rappresentante ' + nomeRap + '»');
+    OK(!creatore || (info.includes('Creato da') && info.includes(creatore)), 'tab Info: «Creato da ' + (creatore || '(progetto senza registro)') + '»');
     if (r.stato.erroriJs.length) KO('rappresentante: errori JavaScript: ' + r.stato.erroriJs.join(' | '));
   } catch (e) {
     KO('interrotto: ' + e.message + ' ' + String(e.stack).split('\n').slice(1, 4).join(' '));
