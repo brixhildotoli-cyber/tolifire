@@ -375,6 +375,8 @@ async function loadImp(){
   if(ge('si-modelli-pdf-card')){if(ROLE!=='titolare')ge('si-modelli-pdf-card').style.display='none';else if(typeof mostraModelliPdfImpostazioni==='function')mostraModelliPdfImpostazioni().catch(e=>console.warn('Modelli dei PDF:',e));}
   // sql/161: rappresentanti seguiti dal capo (solo titolare; senza sql/161 il riquadro non c'è, js/115)
   if(ge('si-capo-rapp-card')&&typeof mostraCapoRappresentantiImpostazioni==='function')mostraCapoRappresentantiImpostazioni().catch(e=>console.warn('Capo rappresentanti:',e));
+  // F19.11 (sql/162): figure della sicurezza per il POS (solo titolare, js/116)
+  if(ge('si-sicurezza-card')&&typeof mostraFigureSicurezzaImpostazioni==='function')mostraFigureSicurezzaImpostazioni().catch(e=>console.warn('Figure della sicurezza:',e));
   // F19.6: schede rischi delle lavorazioni (solo titolare; senza sql/157 "non ancora attive", js/114)
   if(ge('si-schede-rischi-card')&&typeof mostraSchedeRischiImpostazioni==='function')mostraSchedeRischiImpostazioni().catch(e=>console.warn('Schede rischi:',e));
   // #nc (nome azienda nella barra) non esiste più dal commit 865b6ba: resta solo il titolo della scheda.

@@ -2092,6 +2092,8 @@
     <!-- F18.23: ordini ai subappaltatori e SAL (js/111, attivi con sql/149) -->
     <div id="cmd-subappalti"></div>
     <div id="cmd-faldone"></div>
+    <!-- F19.11: POS di commessa (js/116, attivo con sql/162) -->
+    <div id="cmd-pos"></div>
     <div id="cmd-documenti"></div>
   </div>
 </div>
@@ -2611,6 +2613,13 @@
     <div style="font-size:13px;font-weight:600;margin-bottom:6px" id="si-capo-rapp-titolo">👥 Rappresentanti seguiti dal capo</div>
     <div style="font-size:12px;color:var(--m);margin-bottom:8px">Il capo dei rappresentanti vede e lavora su progetti tecnici, clienti e preventivi dei rappresentanti spuntati. Quando uno diventa autonomo togli la spunta: il capo non vede più le sue cose. I rappresentanti tra loro non si vedono.</div>
     <div id="si-capo-rapp-elenco"></div>
+  </div>
+  <!-- F19.11 — FIGURE DELLA SICUREZZA PER IL POS (js/116-pos-commessa.js, sql/162): solo titolare -->
+  <div class="card" id="si-sicurezza-card" style="margin-top:14px;display:none">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px">🦺 Figure della sicurezza (per il POS)</div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Vanno nel POS di ogni commessa. Se ne manca una il POS esce come bozza.</div>
+    <div id="si-sicurezza-campi"></div>
+    <button class="btn p" type="button" onclick="salvaFigureSicurezza()">Salva le figure della sicurezza</button>
   </div>
   <!-- F19.6 — SCHEDE RISCHI DELLE LAVORAZIONI (js/114-schede-rischi.js, sql/157): solo titolare -->
   <div class="card" id="si-schede-rischi-card" style="margin-top:14px">
@@ -5604,6 +5613,11 @@
         In Team e subappalti, con <b>🦺 Schede rischi</b>, leggi per ogni lavorazione le fasi, i rischi con le misure, i DPI, le attrezzature e le sostanze. Quelle con ⚠️ sono ancora bozze da validare dall'RSPP; le correzioni passano dal titolare con il foglio Excel.
       </p>
 
+      <h4 id="info-ct-51">51. 🦺 POS di commessa</h4>
+      <p>
+        Nella commessa, riquadro <b>🦺 POS di commessa</b>, premi <b>🦺 Genera il POS</b>: il gestionale mette insieme da solo impresa e figure della sicurezza, cantiere (sede, referenti, accessi, orari, date), lavorazioni con le schede rischi, personale del faldone con i corsi, subappaltatori e mezzi. Prima di generarlo ti mostra cosa manca (per esempio una scheda rischi non validata o una persona senza il corso richiesto): il PDF esce lo stesso, con la scritta <b>BOZZA NON VALIDATA</b> e l'elenco in prima pagina. Ogni volta è una revisione nuova (0, 1, 2…), salvata nel faldone con <b>📄 Apri</b>.
+      </p>
+
 
 
       <h4>Regole pratiche</h4>
@@ -6901,6 +6915,11 @@
         Giulio è il <b>capo dei rappresentanti</b>: vede e lavora su progetti tecnici, clienti e preventivi dei rappresentanti che segue (nelle liste sceglie «Tutti» o «Solo i miei» e vede il nome del rappresentante sulle righe non sue). La sua dashboard e «Cosa tocca a me» restano solo sue. I rappresentanti tra loro non si vedono. In Impostazioni → <b>👥 Rappresentanti seguiti da Giulio</b> togli la spunta a chi diventa autonomo: da quel momento Giulio non vede più le sue cose.
       </p>
 
+      <h4 id="info-tit-82">82. 🦺 POS di commessa</h4>
+      <p>
+        Nella commessa, riquadro <b>🦺 POS di commessa</b>, premi <b>🦺 Genera il POS</b>: il gestionale mette insieme da solo impresa e figure della sicurezza, cantiere (sede, referenti, accessi, orari, date), lavorazioni con le schede rischi, personale del faldone con i corsi, subappaltatori e mezzi. Prima di generarlo ti mostra cosa manca (per esempio una scheda rischi non validata o una persona senza il corso richiesto): il PDF esce lo stesso, con la scritta <b>BOZZA NON VALIDATA</b> e l'elenco in prima pagina. Ogni volta è una revisione nuova (0, 1, 2…), salvata nel faldone con <b>📄 Apri</b>. Le figure della sicurezza (datore di lavoro, RSPP, medico competente, RLS) le scrivi una volta in Impostazioni → <b>🦺 Figure della sicurezza</b>.
+      </p>
+
 
 
       <h4>Regole pratiche</h4>
@@ -7603,6 +7622,11 @@
       <h4 id="info-seg-45">45. 🦺 Schede rischi delle lavorazioni</h4>
       <p>
         In Team e subappalti, con <b>🦺 Schede rischi</b>, leggi le schede rischi di ogni lavorazione (servono al POS). Le carica e le valida il titolare.
+      </p>
+
+      <h4 id="info-seg-46">46. 🦺 POS di commessa</h4>
+      <p>
+        Nella commessa, riquadro <b>🦺 POS di commessa</b>, premi <b>🦺 Genera il POS</b>: il gestionale mette insieme da solo impresa e figure della sicurezza, cantiere (sede, referenti, accessi, orari, date), lavorazioni con le schede rischi, personale del faldone con i corsi, subappaltatori e mezzi. Prima di generarlo ti mostra cosa manca (per esempio una scheda rischi non validata o una persona senza il corso richiesto): il PDF esce lo stesso, con la scritta <b>BOZZA NON VALIDATA</b> e l'elenco in prima pagina. Ogni volta è una revisione nuova (0, 1, 2…), salvata nel faldone con <b>📄 Apri</b>.
       </p>
 
 
@@ -12410,6 +12434,7 @@
 <script defer src="js/113-annulla-accredito.js?v=202611241512"></script>
 <script defer src="js/114-schede-rischi.js?v=202611241512"></script>
 <script defer src="js/115-capo-rappresentanti.js?v=202611241512"></script>
+<script defer src="js/116-pos-commessa.js?v=202611241512"></script>
 <script defer src="js/19-init.js?v=202611241512"></script>
 
 

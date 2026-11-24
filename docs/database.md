@@ -3155,6 +3155,20 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Dopo sql/162 (F19.11 POS di commessa, scelte di Erika del 24/11: si genera
+sempre, con BOZZA NON VALIDATA e l'elenco delle mancanze; figure della
+sicurezza in Impostazioni; segreteria, capo tecnico, titolare; DA ESEGUIRE:
+backup, "CONFERMATO DA TOLI: sql/162", -REGISTRO-CANCELLAZIONI dall'editor,
+controllo in fondo; provato in locale con 162-...-PROVA.sql come
+supabase_admin: 14 ok, rollback provato): colonne NUOVE impostazioni.
+sicurezza_datore_lavoro, sicurezza_rspp_nome/_telefono,
+sicurezza_medico_nome/_telefono, sicurezza_rls_nome (le scrive il titolare,
+policy impo_update). Tabella NUOVA pos_commessa (commessa, revisione da 0,
+documento_id → commesse_documenti della cartella faldone, nome_file,
+impronta_sha256, bozza = ci sono mancanze, mancanze jsonb, chi e quando).
+Lettura titolare, segreteria, capo tecnico; scrittura solo
+registra_pos_commessa (stessi ruoli). pos_commessa_attivo. Stati di firma,
+invio e accettazione: F19.13-F19.14. Sito: js/116.
 Dopo sql/161 (capo dei rappresentanti, richiesta di Erika del 24/11; ESEGUITO
 il 24/11, backup 2026-11-24-…-pre161, controllo in regola: 13 funzioni, 18
 policy, 31 definizioni salvate; provato in

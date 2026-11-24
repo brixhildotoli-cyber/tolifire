@@ -380,6 +380,8 @@ async function caricaSchedaCommessa(commessaId) {
   caricaOrdiniSubappaltoCommessa(commessa).catch(function(e) { console.warn('Ordini ai subappaltatori:', e); });
   // F7.2: date dei lavori e faldone (js/31, attivi con sql/33).
   if (typeof caricaFaldoneCommessa === 'function') await caricaFaldoneCommessa(commessa);
+  // F19.11 (sql/162): POS di commessa generato dal gestionale (js/116)
+  if (typeof caricaPosCommessa === 'function') caricaPosCommessa(commessa).catch(function(e) { console.warn('POS di commessa:', e); });
   await caricaDocumentiCommessa(commessa);
   // F8.1: scheda cantiere (js/32), per ultima: riusa materiali, faldone e
   // documenti appena letti.
