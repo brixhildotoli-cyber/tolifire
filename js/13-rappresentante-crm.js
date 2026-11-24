@@ -593,7 +593,10 @@ async function loadPreventiviRappresentante() {
     ? await htmlEsitiRegistratiRappresentante()
     : '';
 
-  const { data: preventivi, error } = await db
+  if (typeof preparaCapoRappresentanti === 'function') await preparaCapoRappresentanti();
+  if (typeof mostraSceltaVistaCapo === 'function') mostraSceltaVistaCapo('preventivi-rapp-vista-capo', 'loadPreventiviRappresentante');
+  const filtroCapo = typeof filtroListaCapo === 'function' ? filtroListaCapo : function(q, c) { return q.eq(c, ME.id); };
+  const { data: preventivi, error } = await filtroCapo(db
     .from('preventivi')
     .select(`
       id,
@@ -615,9 +618,9 @@ pdf_esterno_titolare_nome,
       )
     `)
     .eq('stato', 'inviato_a_rappresentante')
-    .eq('clienti.rappresentante_id', ME.id)
+    // sql/161 (js/115): il capo dei rappresentanti con "Tutti" anche quelli dei seguiti
     .or('preventivo_cliente_pdf_path.not.is.null,pdf_esterno_titolare_path.not.is.null')
-    .order('inviato_a_rappresentante_il', { ascending: false });
+    .order('inviato_a_rappresentante_il', { ascending: false }), 'clienti.rappresentante_id');
 
   if (error) {
     box.innerHTML = `
@@ -666,7 +669,7 @@ pdf_esterno_titolare_nome,
             </div>
 
             <div style="font-size:13px;margin-top:4px">
-              ${esc(preventivo.clienti?.ragione_sociale || 'Cliente')}
+              ${esc(preventivo.clienti?.ragione_sociale || 'Cliente')}${typeof etichettaRappCapo === 'function' ? etichettaRappCapo(preventivo.clienti?.rappresentante_id) : ''}
             </div>
 
             <div style="font-size:12px;color:var(--m);margin-top:4px">
@@ -712,7 +715,7 @@ async function apriPdfPreventivoRappresentante(preventivoId) {
   const stessaScheda = typeof apriPdfStessaScheda === 'function';
   const nuovaScheda = stessaScheda ? null : window.open('', '_blank');
 
-  const { data: preventivo, error } = await db
+  const { data: preventivo, error } = await (typeof filtroAzioneCapo === 'function' ? filtroAzioneCapo : function(q, c) { return q.eq(c, ME.id); })(db
     .from('preventivi')
     .select(`
       id,
@@ -722,7 +725,7 @@ async function apriPdfPreventivoRappresentante(preventivoId) {
     `)
     .eq('id', preventivoId)
     .eq('stato', 'inviato_a_rappresentante')
-    .eq('clienti.rappresentante_id', ME.id)
+    , 'clienti.rappresentante_id')
     .single();
 
   const percorsoPdf =

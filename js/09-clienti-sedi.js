@@ -418,9 +418,12 @@ if (btnNuovoCliente) {
     .is('eliminato_il', null)
     .order('ragione_sociale');
 
-  // Ogni rappresentante vede solo i clienti assegnati a lui.
+  // Ogni rappresentante vede solo i clienti assegnati a lui; il capo dei
+  // rappresentanti (sql/161, js/115) anche quelli dei seguiti, se sceglie "Tutti".
   if (ROLE === 'rappresentante') {
-    query = query.eq('rappresentante_id', ME.id);
+    if (typeof preparaCapoRappresentanti === 'function') await preparaCapoRappresentanti();
+    query = typeof filtroListaCapo === 'function' ? filtroListaCapo(query, 'rappresentante_id') : query.eq('rappresentante_id', ME.id);
+    if (typeof mostraSceltaVistaCapo === 'function') mostraSceltaVistaCapo('cli-vista-capo', 'loadCli');
   }
 
   const { data, error } = await query;
@@ -982,7 +985,7 @@ function renderC(clienti) {
     return `
       <tr>
         <td>
-          <strong>${esc(nome)}</strong>
+          <strong>${esc(nome)}</strong>${typeof etichettaRappCapo === 'function' ? etichettaRappCapo(cliente.rappresentante_id) : ''}
           ${cliente.piva ? `
             <br>
             <span style="font-size:11px;color:var(--m)">

@@ -108,6 +108,11 @@ function contaTAM(tabella, colonne) {
 }
 
 // La commessa è aperta (non chiusa né annullata): filtro sull'embed !inner.
+// sql/161 (js/115): per il capo dei rappresentanti solo le sue cose
+function filtroMieCapoTAM(q, tipo) {
+  return typeof filtroMieCapo === 'function' ? filtroMieCapo(q, tipo) : q;
+}
+
 function soloCommesseAperte(q, campo) {
   return q.not((campo || 'commesse') + '.stato', 'in', '(chiusa,annullata)');
 }
@@ -154,6 +159,8 @@ async function caricaToccaAMe() {
   const fonti = fontiDelRuoloTAM();
   if (!fonti.length) { box.innerHTML = ''; return; }
 
+  // sql/161: per il capo dei rappresentanti si contano solo le sue cose (js/115)
+  if (typeof preparaCapoRappresentanti === 'function') await preparaCapoRappresentanti();
   const mio = ++giroToccaAMe;
   const risultati = {};
   risultatiToccaAMe = risultati;
@@ -287,6 +294,7 @@ function vaiToccaAMe(id) {
 // qualcosa da fare: [{ f, r }].
 async function leggiFontiToccaAMePerPagina(escludi) {
   const fonti = fontiDelRuoloTAM().filter(function(f) { return f.tipo !== 'info' && !(escludi || []).includes(f.id); });
+  if (typeof preparaCapoRappresentanti === 'function') await preparaCapoRappresentanti();
   const memo = {};
   const giro = {
     memo: function(chiave, fn) {
@@ -390,7 +398,7 @@ gotoPage = function(id) {
 function commesseAperteTAM(giro) {
   return giro.memo('commesse-aperte', async function() {
     if (!funzioneEsiste('verificaCommesseDisponibili') || !(await verificaCommesseDisponibili())) return null;
-    const { data, error } = await db.from('commesse').select('id, stato, sede_id').not('stato', 'in', '(chiusa,annullata)').limit(2000);
+    const { data, error } = await filtroMieCapoTAM(db.from('commesse').select('id, stato, sede_id').not('stato', 'in', '(chiusa,annullata)'), 'commessa').limit(2000);
     if (error) { console.warn('Cosa tocca a me (commesse):', error.message); return null; }
     return data || [];
   });
@@ -437,7 +445,7 @@ registraFonteToccaAMe({
 async function contaAnticipiTAM() {
   if (!funzioneEsiste('verificaAnticipoPreventivoDisponibile') || !(await verificaAnticipoPreventivoDisponibile())) return null;
   // Il rappresentante conta solo i suoi (policy preventivi_lettura, sql/10).
-  return numeroTAM(contaTAM('preventivi').eq('stato', 'in_attesa_anticipo'), 'anticipi');
+  return numeroTAM(filtroMieCapoTAM(contaTAM('preventivi').eq('stato', 'in_attesa_anticipo'), 'preventivo'), 'anticipi');
 }
 
 registraFonteToccaAMe({
@@ -792,12 +800,12 @@ async function contaMaterialiTAM(dal, al, soloOrdini) {
   }
   const [o, r] = await Promise.all([
     ordiniAttivi
-      ? numeroTAM(periodo(soloCommesseAperte(contaTAM('ordini_fornitori', 'id, commesse!inner(stato)')
-        .in('stato', ['ordinato', 'confermato']))), 'ordini')
+      ? numeroTAM(filtroMieCapoTAM(periodo(soloCommesseAperte(contaTAM('ordini_fornitori', 'id, commesse!inner(stato, cliente_id)')
+        .in('stato', ['ordinato', 'confermato']))), 'commessa_collegata'), 'ordini')
       : 0,
     richiesteAttive
-      ? numeroTAM(periodo(soloCommesseAperte(contaTAM('commesse_richieste_integrazione', 'id, commesse!inner(stato)')
-        .eq('stato', 'evasa'))), 'consumabili e noli')
+      ? numeroTAM(filtroMieCapoTAM(periodo(soloCommesseAperte(contaTAM('commesse_richieste_integrazione', 'id, commesse!inner(stato, cliente_id)')
+        .eq('stato', 'evasa'))), 'commessa_collegata'), 'consumabili e noli')
       : 0
   ]);
   if (o === null && r === null) return null;
@@ -871,8 +879,8 @@ registraFonteToccaAMe({
   conta: async function() {
     if (!funzioneEsiste('verificaLavoriExtraDisponibili') || !(await verificaLavoriExtraDisponibili())) return null;
     const stati = ROLE === 'capo_tecnico' ? ['richiesto', 'in_preventivo', 'accettato'] : ['richiesto', 'in_preventivo'];
-    const { data, error } = await soloCommesseAperte(db.from('commesse_lavori_extra').select('id, stato, commesse!inner(stato)')
-      .in('stato', stati)).limit(1000);
+    const { data, error } = await filtroMieCapoTAM(soloCommesseAperte(db.from('commesse_lavori_extra').select('id, stato, commesse!inner(stato, cliente_id)')
+      .in('stato', stati)), 'commessa_collegata').limit(1000);
     if (error) { console.warn('Cosa tocca a me (lavori extra):', error.message); return null; }
     let lavori = data || [];
     // Capo tecnico: gli accettati solo finché il cantiere è aperto (come il box)

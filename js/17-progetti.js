@@ -1254,7 +1254,15 @@ async function loadPaginaProgetti() {
     return;
   }
 
-  if (!data?.length) {
+  // sql/161 (js/115): il capo dei rappresentanti sceglie "Tutti" o "Solo i miei"
+  let progettiVisti = data;
+  if (ROLE === 'rappresentante' && typeof preparaCapoRappresentanti === 'function') {
+    await preparaCapoRappresentanti();
+    progettiVisti = filtraDatiCapo(data, 'rappresentante_id');
+    mostraSceltaVistaCapo('progetti-vista-capo', 'loadPaginaProgetti');
+  }
+
+  if (!progettiVisti?.length) {
     box.innerHTML =
       '<div class="empty">Nessun progetto tecnico creato.</div>';
     return;
@@ -1348,7 +1356,7 @@ async function loadPaginaProgetti() {
             </div>
 
             <div style="font-size:12px;color:var(--m);margin-top:3px">
-              ${esc(cliente)} · ${esc(p.tipologia || 'Tipologia non indicata')}
+              ${esc(cliente)} · ${esc(p.tipologia || 'Tipologia non indicata')}${typeof etichettaRappCapo === 'function' ? etichettaRappCapo(p.rappresentante_id) : ''}
             </div>
           </div>
 
@@ -1431,7 +1439,7 @@ async function loadPaginaProgetti() {
   const sezioniCreate = new Set();
 
   box.innerHTML = sezioni.map(function(statoSezione) {
-    const progetti = data.filter(function(p) {
+    const progetti = progettiVisti.filter(function(p) {
 
 
       return p.stato === statoSezione;
@@ -1452,7 +1460,7 @@ async function loadPaginaProgetti() {
     `;
   }).join('');
 
-  const altri = data.filter(function(p) {
+  const altri = progettiVisti.filter(function(p) {
     return ![
       'bozza',
       'da_integrare',

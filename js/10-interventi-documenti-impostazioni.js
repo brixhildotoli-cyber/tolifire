@@ -64,7 +64,8 @@ let query = db
   .order('ragione_sociale');
 
 if (ROLE === 'rappresentante') {
-  query = query.eq('rappresentante_id', ME.id);
+  // sql/161: il capo dei rappresentanti sceglie anche i clienti dei seguiti (js/115)
+  query = typeof filtroAzioneCapo === 'function' ? filtroAzioneCapo(query, 'rappresentante_id') : query.eq('rappresentante_id', ME.id);
 }
 
 // Tecnico: con le policy per ruolo (sql/08) in "clienti" vede solo i clienti
@@ -372,6 +373,8 @@ async function loadImp(){
   if(ge('si-smistamento-card')){if(ROLE!=='titolare')ge('si-smistamento-card').style.display='none';else if(typeof mostraRegoleSmistamentoImpostazioni==='function')mostraRegoleSmistamentoImpostazioni().catch(e=>console.warn('Smistamento:',e));}
   // F16.7: modelli dei PDF nuovi, testi fissi (solo titolare; senza sql/98 "non ancora attivo", js/72)
   if(ge('si-modelli-pdf-card')){if(ROLE!=='titolare')ge('si-modelli-pdf-card').style.display='none';else if(typeof mostraModelliPdfImpostazioni==='function')mostraModelliPdfImpostazioni().catch(e=>console.warn('Modelli dei PDF:',e));}
+  // sql/161: rappresentanti seguiti dal capo (solo titolare; senza sql/161 il riquadro non c'è, js/115)
+  if(ge('si-capo-rapp-card')&&typeof mostraCapoRappresentantiImpostazioni==='function')mostraCapoRappresentantiImpostazioni().catch(e=>console.warn('Capo rappresentanti:',e));
   // F19.6: schede rischi delle lavorazioni (solo titolare; senza sql/157 "non ancora attive", js/114)
   if(ge('si-schede-rischi-card')&&typeof mostraSchedeRischiImpostazioni==='function')mostraSchedeRischiImpostazioni().catch(e=>console.warn('Schede rischi:',e));
   // #nc (nome azienda nella barra) non esiste più dal commit 865b6ba: resta solo il titolo della scheda.

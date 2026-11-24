@@ -1128,6 +1128,8 @@
       <p>Preventivi pronti da inviare ai tuoi clienti</p>
     </div>
   </div>
+  <!-- sql/161: "Tutti / Solo i miei" del capo dei rappresentanti (js/115) -->
+  <div id="preventivi-rapp-vista-capo" style="margin:0 0 10px"></div>
 
   <div class="sb">
     <input type="search" id="cerca-prev-preventivi-rapp" placeholder="🔍 Cerca cliente, numero, lavoro..." oninput="filtraPreventiviPagina('preventivi-rapp')">
@@ -1156,6 +1158,8 @@
   <div class="sb">
     <input type="search" id="cerca-prev-progetti" placeholder="🔍 Cerca cliente, titolo, lavoro..." oninput="filtraPreventiviPagina('progetti')">
   </div>
+  <!-- sql/161: "Tutti / Solo i miei" del capo dei rappresentanti (js/115) -->
+  <div id="progetti-vista-capo" style="margin:-4px 0 10px"></div>
   <div id="cerca-prev-progetti-esito" style="margin:-6px 0 12px;font-size:13px;color:var(--m)"></div>
 
   <div id="progetti-lista">
@@ -1786,6 +1790,7 @@
         id="cli-count"
         style="font-size:14px;font-weight:400;color:var(--m)"
       ></span>
+      <span id="cli-vista-capo" style="margin-left:8px"></span>
     </div>
   </div>
 
@@ -2600,6 +2605,12 @@
     <div style="font-size:12px;color:var(--m);margin-bottom:8px">L'elenco di corsi, abilitazioni e documenti di dipendenti e subappaltatori (pagina Team e subappalti): validità, obbligatorio per legge, ore di aggiornamento, ente. Un corso spento non compare più tra i documenti nuovi, quelli già registrati restano. Ogni modifica resta nel registro.</div>
     <div class="al2 i" id="si-corsi-stato"></div>
     <button class="btn p" type="button" id="si-corsi-apri" style="display:none" onclick="apriCatalogoCorsi()">🎓 Apri il catalogo dei corsi</button>
+  </div>
+  <!-- sql/161 — CAPO DEI RAPPRESENTANTI (js/115-capo-rappresentanti.js): solo titolare -->
+  <div class="card" id="si-capo-rapp-card" style="margin-top:14px;display:none">
+    <div style="font-size:13px;font-weight:600;margin-bottom:6px" id="si-capo-rapp-titolo">👥 Rappresentanti seguiti dal capo</div>
+    <div style="font-size:12px;color:var(--m);margin-bottom:8px">Il capo dei rappresentanti vede e lavora su progetti tecnici, clienti e preventivi dei rappresentanti spuntati. Quando uno diventa autonomo togli la spunta: il capo non vede più le sue cose. I rappresentanti tra loro non si vedono.</div>
+    <div id="si-capo-rapp-elenco"></div>
   </div>
   <!-- F19.6 — SCHEDE RISCHI DELLE LAVORAZIONI (js/114-schede-rischi.js, sql/157): solo titolare -->
   <div class="card" id="si-schede-rischi-card" style="margin-top:14px">
@@ -3488,6 +3499,11 @@
       <h4 id="info-rap-45">45. 📨 La richiesta del cliente nel progetto</h4>
       <p>
         Se il cliente è arrivato dal modulo del sito, la sua richiesta (data, servizio, messaggio, email e telefono) è nella scheda del cliente, riquadro <b>📨 Email e richieste del cliente</b>. Quando crei il progetto tecnico la ritrovi in cima alla finestra: con <b>↳ Copia nella descrizione tecnica</b> la porti nella descrizione senza riscriverla. La vedi anche nella scheda del progetto, sotto le mail allegate.
+      </p>
+
+      <h4 id="info-rap-46">46. 👥 Se sei il capo dei rappresentanti</h4>
+      <p>
+        Se sei il capo dei rappresentanti, in <b>Clienti</b>, <b>Progetti</b> e <b>I miei preventivi</b> trovi in alto la scelta <b>👥 Tutti</b> (anche le cose dei rappresentanti che segui, con il loro nome) o <b>👤 Solo i miei</b>. Puoi lavorarci come sulle tue: modificare, inviare, registrare l'esito. La dashboard e «Cosa tocca a me» restano solo tue. Gli altri rappresentanti non vedono le tue cose.
       </p>
       </div>
 
@@ -6878,6 +6894,11 @@
       <h4 id="info-tit-80">80. 📐 Progetto tecnico senza allegati (solo titolare)</h4>
       <p>
         Quando crei un progetto tecnico gli allegati per te sono <b>facoltativi</b>: puoi salvarlo, inviarlo all'ufficio tecnico o ad Acquisti e togliere l'ultimo file anche senza PDF o foto. Per rappresentanti e Acquisti l'allegato resta obbligatorio come prima.
+      </p>
+
+      <h4 id="info-tit-81">81. 👥 Capo dei rappresentanti</h4>
+      <p>
+        Giulio è il <b>capo dei rappresentanti</b>: vede e lavora su progetti tecnici, clienti e preventivi dei rappresentanti che segue (nelle liste sceglie «Tutti» o «Solo i miei» e vede il nome del rappresentante sulle righe non sue). La sua dashboard e «Cosa tocca a me» restano solo sue. I rappresentanti tra loro non si vedono. In Impostazioni → <b>👥 Rappresentanti seguiti da Giulio</b> togli la spunta a chi diventa autonomo: da quel momento Giulio non vede più le sue cose.
       </p>
 
 
@@ -12388,6 +12409,7 @@
 <script defer src="js/111-ordini-subappalto.js?v=202611241226"></script>
 <script defer src="js/113-annulla-accredito.js?v=202611241226"></script>
 <script defer src="js/114-schede-rischi.js?v=202611241226"></script>
+<script defer src="js/115-capo-rappresentanti.js?v=202611241226"></script>
 <script defer src="js/19-init.js?v=202611241226"></script>
 
 

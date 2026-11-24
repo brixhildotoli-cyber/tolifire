@@ -366,7 +366,7 @@ async function htmlEsitiRegistratiRappresentante() {
   // F4.3: fattura d'anticipo e accredito (solo con sql/25).
   const fatturaDisponibile = anticipoDisponibile && await verificaFatturaAnticipoDisponibile();
 
-  const { data, error } = await db
+  const { data, error } = await (typeof filtroListaCapo === 'function' ? filtroListaCapo : function(q, c) { return q.eq(c, ME.id); })(db
     .from('preventivi')
     .select(`
       id,
@@ -382,9 +382,8 @@ async function htmlEsitiRegistratiRappresentante() {
       clienti!inner(ragione_sociale, rappresentante_id)
     `)
     .in('stato', STATI_ESITO_PREVENTIVO)
-    .eq('clienti.rappresentante_id', ME.id)
     .not('esito_registrato_il', 'is', null)
-    .order('esito_registrato_il', { ascending: false })
+    .order('esito_registrato_il', { ascending: false }), 'clienti.rappresentante_id')
     .limit(20);
 
   if (error || !data?.length) return '';

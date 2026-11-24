@@ -28,6 +28,7 @@ async function anticipiInAttesaDa(min, max) {
     .eq('stato', 'in_attesa_anticipo').lte('esito_registrato_il', limiteAttesaAnticipo(min))
     .order('esito_registrato_il', { ascending: true }).limit(200);
   if (max) q = q.gt('esito_registrato_il', limiteAttesaAnticipo(max));
+  if (typeof filtroMieCapo === 'function') q = filtroMieCapo(q, 'preventivo');   // sql/161: il capo conta solo i suoi
   const { data, error } = await q;
   if (error) { console.warn('Anticipi in attesa:', error.message); return null; }
   return data || [];

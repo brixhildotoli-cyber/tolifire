@@ -3155,6 +3155,27 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Dopo sql/161 (capo dei rappresentanti, richiesta di Erika del 24/11; DA
+ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/161", controllo in fondo; provato in
+locale con 161-...-PROVA.sql: 17 ok, rollback provato con le impronte md5 di
+funzioni e policy uguali a prima): colonne NUOVE utenti.capo_rappresentanti
+(true solo per Giulio Pistolesi 4950b283-…) e utenti.seguito_dal_capo (true di
+partenza, anche per i rappresentanti nuovi; il titolare la toglie con
+imposta_seguito_dal_capo quando sono autonomi). rappresentante_gestito(p) =
+l'utente di adesso, o il capo attivo per un rappresentante seguito.
+Sostituito "rappresentante_id = utente di adesso" con rappresentante_gestito
+in 13 funzioni (cliente_visibile, elenco_clienti_base,
+preventivo_del_mio_cliente, accetta/rifiuta/applica_sconto, PDF del
+preventivo, invii al rappresentante e al commerciale, preventivi_controllo_esito,
+smistamento_progetto, smista_progetto) e 18 policy di clienti, preventivi,
+progetti tecnici (schede, posizioni, allegati, storico). Le definizioni di
+prima sono in sql161_originali (nessun permesso) per il rollback. NON
+cambiano: appuntamenti, pipeline e lead, sopralluoghi, "letto dal
+rappresentante", avvisi dei presidi, funzioni delle commesse. Con
+cliente_visibile il capo LEGGE anche commesse e fatture dei clienti dei
+seguiti. Sito: js/115 (dashboard solo sue con filtroMieCapo, liste "Tutti /
+Solo i miei" con il nome del rappresentante, Impostazioni del titolare).
+Nel locale dopo un sql nuovo: notify pgrst, 'reload schema'.
 Dopo sql/160 (storico delle modifiche per chi vede il record, richiesta di
 Erika del 24/11; ESEGUITO il 24/11, backup pre157-160, controllo in regola;
 provato in locale con 160-...-PROVA.sql: 12 ok, rollback provato):
