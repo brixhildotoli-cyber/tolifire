@@ -3155,6 +3155,16 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Dopo sql/160 (storico delle modifiche per chi vede il record, richiesta di
+Erika del 24/11; DA ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/160", controllo
+in fondo; provato in locale con 160-...-PROVA.sql: 12 ok, rollback provato):
+la policy di registro_azioni NON cambia (solo titolare). RPC
+storico_modifiche_record(p_tabella 'progetti_tecnici' | 'preventivi',
+p_record_id) SECURITY INVOKER: controlla con le RLS di chi chiede che il record
+sia visibile, poi chiama registro_modifiche_record (definer, risponde solo con
+toli.storico_record impostato dalla prima). Ai ruoli diversi dal titolare:
+niente campi costo/margine/ricarico/provvigione e niente righe intere (prima e
+dopo senza campo). Sito: js/63 (🕘 Storico delle schede).
 Dopo sql/157 (F19.6 schede rischi per lavorazione, scelte di Erika del 24/11:
 foglio Excel, bozza di partenza da validare, validazione dell'RSPP con nome e
 data, SDS più avanti; DA ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/157",

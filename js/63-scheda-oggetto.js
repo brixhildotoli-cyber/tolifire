@@ -25,9 +25,11 @@
 //      registraFonteCollegati(oggetto, { id, icona, titolo, leggi })
 //    (leggi(record, contesto) → elenco di { oggetto, id, testo, sotto } o
 //    null se la fonte non è attiva);
-// 4. "🕘 Storico" (si apre a richiesta): per il titolare il registro delle
-//    azioni (registro_azioni, sql/67: chi, quando, cosa è cambiato; oggi
-//    preventivi e progetti tecnici), per tutti i passaggi di stato della
+// 4. "🕘 Storico" (si apre a richiesta): il registro delle azioni
+//    (registro_azioni, sql/67: chi, quando, cosa è cambiato; oggi preventivi
+//    e progetti tecnici): il titolare lo legge direttamente, gli altri ruoli
+//    con storico_modifiche_record (sql/160: solo i record che vedono, senza
+//    costi e margini); per tutti i passaggi di stato della
 //    commessa (commesse_storico) e del motore (motore_azioni_storico).
 // Le domande (❓, js/62) restano nel loro riquadro della scheda.
 // Nessun SQL nuovo: legge solo tabelle che il ruolo già legge.
@@ -632,10 +634,18 @@ async function leggiStoricoScheda(oggetto, record) {
   const voci = [];
   const note = [];
   const letture = [];
-  if (ROLE === 'titolare' && TABELLE_REGISTRO_SCHEDA.indexOf(tabella) >= 0) {
-    letture.push(leggiCollegati(db.from('registro_azioni').select('tabella,azione,campo,prima,dopo,utente_reale_nome,ruolo_reale,agito_come_ruolo,quando')
-      .eq('tabella', tabella).eq('record_id', String(record.id)).order('quando', { ascending: false }).limit(200)).then(function(d) {
-      if (d === null) { note.push('Il registro delle modifiche non è ancora attivo (sql/67).'); return; }
+  if (TABELLE_REGISTRO_SCHEDA.indexOf(tabella) >= 0) {
+    // titolare: il registro direttamente; gli altri (sql/160): solo per i record
+    // che già vedono, senza costi e margini (storico_modifiche_record)
+    const lettura = ROLE === 'titolare'
+      ? db.from('registro_azioni').select('tabella,azione,campo,prima,dopo,utente_reale_nome,ruolo_reale,agito_come_ruolo,quando')
+          .eq('tabella', tabella).eq('record_id', String(record.id)).order('quando', { ascending: false }).limit(200)
+      : db.rpc('storico_modifiche_record', { p_tabella: tabella, p_record_id: record.id });
+    letture.push(leggiCollegati(lettura).then(function(d) {
+      if (d === null) {
+        note.push(ROLE === 'titolare' ? 'Il registro delle modifiche non è ancora attivo (sql/67).' : 'Il registro delle modifiche (chi ha cambiato cosa) lo legge solo il titolare.');
+        return;
+      }
       const gruppi = {};
       d.forEach(function(r) {
         if (r.campo && CAMPI_NASCOSTI_STORICO.indexOf(r.campo) >= 0) return;
@@ -647,8 +657,6 @@ async function leggiStoricoScheda(oggetto, record) {
         if (r.azione === 'modifica' && r.campo) gruppi[k].dettagli.push(r.campo.replace(/_/g, ' ') + ': ' + valoreStorico(r.prima) + ' → ' + valoreStorico(r.dopo));
       });
     }));
-  } else if (TABELLE_REGISTRO_SCHEDA.indexOf(tabella) >= 0) {
-    note.push('Il registro delle modifiche (chi ha cambiato cosa) lo legge solo il titolare.');
   }
   if (oggetto === 'commessa') {
     letture.push(leggiCollegati(db.from('commesse_storico').select('da_stato,a_stato,tipo,nota,cambiato_da_nome,cambiato_da_ruolo,cambiato_il').eq('commessa_id', record.id).order('cambiato_il', { ascending: false })).then(function(d) {
