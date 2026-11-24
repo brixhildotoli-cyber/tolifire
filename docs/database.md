@@ -3157,9 +3157,8 @@ TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
 Dopo sql/162 (F19.11 POS di commessa, scelte di Erika del 24/11: si genera
 sempre, con BOZZA NON VALIDATA e l'elenco delle mancanze; figure della
-sicurezza in Impostazioni; segreteria, capo tecnico, titolare; DA ESEGUIRE:
-backup, "CONFERMATO DA TOLI: sql/162", -REGISTRO-CANCELLAZIONI dall'editor,
-controllo in fondo; provato in locale con 162-...-PROVA.sql come
+sicurezza in Impostazioni; segreteria, capo tecnico, titolare; ESEGUITO il
+24/11 con -REGISTRO-CANCELLAZIONI, backup pre162, controllo in regola; provato in locale con 162-...-PROVA.sql come
 supabase_admin: 14 ok, rollback provato): colonne NUOVE impostazioni.
 sicurezza_datore_lavoro, sicurezza_rspp_nome/_telefono,
 sicurezza_medico_nome/_telefono, sicurezza_rls_nome (le scrive il titolare,
