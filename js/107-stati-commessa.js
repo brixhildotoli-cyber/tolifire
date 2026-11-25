@@ -16,11 +16,13 @@
 
 // ── 1. Suggerimento del prossimo passaggio ────────────────────────────
 async function leggiDatiSuggerimentoCommessa(commessa) {
-  const [fonti, faldone, sospensione, date] = await Promise.all([
+  const [fonti, faldone, sospensione, date, pos] = await Promise.all([
     typeof leggiFontiMaterialiCommessa === 'function' ? leggiFontiMaterialiCommessa(commessa.id) : Promise.resolve(null),
     db.from('commesse_faldone').select('consegnato_il').eq('commessa_id', commessa.id).maybeSingle(),
     db.from('commesse_sospensioni').select('motivo').eq('commessa_id', commessa.id).is('ripresa_il', null).maybeSingle(),
-    db.from('commesse').select('data_inizio').eq('id', commessa.id).maybeSingle()
+    db.from('commesse').select('data_inizio').eq('id', commessa.id).maybeSingle(),
+    // F19.14 (sql/165, js/116): POS firmato e inviato (solo avviso)
+    typeof statoPosPerPassiCommessa === 'function' ? statoPosPerPassiCommessa(commessa.id).catch(function() { return null; }) : Promise.resolve(null)
   ]);
   const righe = fonti && typeof righeMaterialiCommessa === 'function' ? righeMaterialiCommessa(fonti.ordini, fonti.richieste, [], fonti.cliente) : [];
   return {
@@ -29,7 +31,8 @@ async function leggiDatiSuggerimentoCommessa(commessa) {
     faldoneConsegnato: !!(faldone && !faldone.error && faldone.data && faldone.data.consegnato_il),
     faldoneLetto: !!(faldone && !faldone.error),
     sospesa: sospensione && !sospensione.error && sospensione.data ? sospensione.data : null,
-    dataInizio: date && date.data ? date.data.data_inizio : null
+    dataInizio: date && date.data ? date.data.data_inizio : null,
+    pos: pos
   };
 }
 
@@ -59,6 +62,7 @@ function suggerimentoPassoCommessa(commessa, d) {
     if (senzaData) manca.push(senzaData + (senzaData === 1 ? ' materiale senza data di arrivo' : ' materiali senza data di arrivo'));
   } else if (prossimo === 'pronta') {
     if (d.faldoneLetto && !d.faldoneConsegnato) manca.push('il faldone da consegnare (box «Date e faldone»)');
+    if (d.pos && !d.pos.pronto) manca.push(d.pos.testo);
     if (senzaData) manca.push(senzaData + (senzaData === 1 ? ' materiale senza data di arrivo' : ' materiali senza data di arrivo'));
   } else if (prossimo === 'in_corso') {
     if (nonArrivati) manca.push(nonArrivati + (nonArrivati === 1 ? ' materiale non ancora arrivato' : ' materiali non ancora arrivati'));

@@ -172,6 +172,8 @@ async function caricaFaldoneCommessa(commessa) {
   faldoneAperto = { commessa: commessa, stato: rStato.data };
 
   box.innerHTML = htmlFaldoneCommessa(commessa, rStato.data);
+  // F19.14 (sql/165, js/116): POS dei subappaltatori controllato per la commessa
+  if (typeof caricaControlliPosSubappaltatori === 'function') caricaControlliPosSubappaltatori(commessa, box).catch(function(e) { console.warn('POS dei subappaltatori:', e); });
 }
 
 function htmlFaldoneCommessa(commessa, f) {
@@ -334,6 +336,7 @@ function htmlPersonaFaldone(commessa, p, modifica) {
         </div>
       </div>
       <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">${(p.requisiti || []).map(badgeRequisitoFaldone).join('')}</div>
+      ${p.subappaltatore_id ? `<div data-pos-sub="${esc(p.subappaltatore_id)}"></div>` : ''}
     </div>
   `;
 }

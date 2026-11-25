@@ -312,10 +312,11 @@ async function sessioneCome(browser, url, u, largo) {
     if (/manca Patentino PLE/.test(v.t2)) KO('tecnico con PLE ha l\'avviso: ' + v.t2); else righe.push('tecnico con il PLE valido: nessun avviso del corso');
     if (!/preposto/.test(v.ruoli) || !/primo soccorso/.test(v.ruoli)) KO('ruoli minimi: ' + v.ruoli); else righe.push('riepilogo: «Nella squadra manca un preposto, un addetto primo soccorso, un addetto antincendio»');
     await s.page.screenshot({ path: path.join(CARTELLA_OUT, 'capo-tecnico-squadra-390.png') });
-    await s.page.evaluate(() => { const g = new Date(); g.setDate(g.getDate() + 3); ge('sqg-dal').value = dataLocaleISO(g); ge('sqg-al').value = ''; });
+    // il primo giorno feriale da 3 giorni in poi (il sabato e la domenica si saltano)
+    const giornoProva = await s.page.evaluate(() => { const g = new Date(); g.setDate(g.getDate() + 3); while (g.getDay() === 0 || g.getDay() === 6) g.setDate(g.getDate() + 1); ge('sqg-dal').value = dataLocaleISO(g); ge('sqg-al').value = ''; return dataLocaleISO(g); });
     await s.page.evaluate(() => salvaGiornoSquadra());
     await attendiQuiete(s.stato, 3000);
-    const n = psql("select count(*) from public.commesse_squadra_giorni where commessa_id = " + q(comm) + " and data = current_date + 3");
+    const n = psql("select count(*) from public.commesse_squadra_giorni where commessa_id = " + q(comm) + " and data = " + q(giornoProva));
     if (n !== '1') KO('il giorno non si è salvato (solo avviso): ' + n); else righe.push('si salva lo stesso (solo avviso)');
     // F19.3 (sql/154): PLE "almeno uno in squadra"
     if (psql("select count(*) from information_schema.columns where table_name = 'corsi_catalogo' and column_name = 'serve_a'") === '1') {
@@ -361,7 +362,7 @@ async function sessioneCome(browser, url, u, largo) {
     await browser.close();
     srv.close();
     try {
-      psql("set session_replication_role = replica; delete from public.commesse_squadra_persone where giorno_id in (select id from public.commesse_squadra_giorni where commessa_id = " + q(comm) + " and data = current_date + 3); delete from public.commesse_squadra_mezzi where giorno_id in (select id from public.commesse_squadra_giorni where commessa_id = " + q(comm) + " and data = current_date + 3); delete from public.commesse_squadra_giorni where commessa_id = " + q(comm) + " and data = current_date + 3");
+      psql("set session_replication_role = replica; delete from public.commesse_squadra_persone where giorno_id in (select id from public.commesse_squadra_giorni where commessa_id = " + q(comm) + " and data >= current_date + 3 and data <= current_date + 6); delete from public.commesse_squadra_mezzi where giorno_id in (select id from public.commesse_squadra_giorni where commessa_id = " + q(comm) + " and data >= current_date + 3 and data <= current_date + 6); delete from public.commesse_squadra_giorni where commessa_id = " + q(comm) + " and data >= current_date + 3 and data <= current_date + 6");
     } catch (e) { console.error('pulizia squadra: ' + e.message); }
     try {
       psql("set session_replication_role = replica; delete from public.preventivi_voci where descrizione = 'Noleggio PLE 18 m PROVA SQC'; delete from public.documenti_team_subappalti where nota = 'PROVA SQC'; update public.commesse set stato = " + q(statoPrima) + " where id = " + q(comm) + "; update public.corsi_catalogo set serve_a = 'ogni_persona' where codice = 'ple' and exists (select 1 from information_schema.columns where table_name = 'corsi_catalogo' and column_name = 'serve_a')");

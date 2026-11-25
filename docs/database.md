@@ -3155,6 +3155,20 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Dopo sql/165 (F19.14 invio del POS, scelte di Erika del 25/11: Pronta solo con
+avviso; invio a mano con l'esito del coordinatore; portale più avanti; POS dei
+subappaltatori controllato per commessa; DA ESEGUIRE: backup, "CONFERMATO DA
+TOLI: sql/165", -REGISTRO-CANCELLAZIONI dall'editor, controllo in fondo;
+provato in locale con 165-...-PROVA.sql: 20 ok, rollback provato): colonne
+NUOVE su pos_commessa invio_destinatario (cliente | cse), invio_mezzo (pec |
+email | a_mano), inviato_il, invio_nota, inviato_da/_nome, esito (accettato |
+respinto, solo se inviato al CSE, respinto con motivo), esito_nota,
+esito_da_nome, esito_il. Tabella NUOVA commesse_pos_subappaltatori (commessa,
+subappaltatore del faldone, chi, quando, nota). RPC (segreteria, titolare)
+segna_pos_inviato (solo revisione firmata in documenti_firme),
+registra_esito_pos, segna_pos_subappaltatore_controllato, pos_invio_attivo.
+Sito: js/116 (avviso nel riquadro del POS e nel «Prossimo passo» di js/107,
+invio ed esito sotto le revisioni, «✓ POS controllato» nel faldone di js/31).
 Dopo sql/164 (F19.13 approvazione tracciata e firma digitale, scelte di Erika
 del 25/11: POS e dichiarazione di posa; approva solo il titolare; il firmato lo
 caricano segreteria e titolare; POS in bozza approvabile solo con il motivo;
