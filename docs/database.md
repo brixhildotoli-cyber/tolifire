@@ -3155,6 +3155,23 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Dopo sql/164 (F19.13 approvazione tracciata e firma digitale, scelte di Erika
+del 25/11: POS e dichiarazione di posa; approva solo il titolare; il firmato lo
+caricano segreteria e titolare; POS in bozza approvabile solo con il motivo;
+DA ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/164", -REGISTRO-CANCELLAZIONI
+dall'editor, controllo in fondo; provato in locale con 164-...-PROVA.sql come
+supabase_admin: 25 ok, rollback provato): tabella NUOVA documenti_firme (una
+riga per commesse_documenti approvato: tipo pos | dichiarazione_posa,
+impronta_sha256 e dimensione dell'approvato, chi e quando, nota; poi
+firmato_documento_id nella stessa cartella, formato pades | cades, impronta
+del firmato, chi e quando; stato approvato → firmato). RPC approva_documento
+(POS: deve essere una revisione di pos_commessa con la stessa impronta) e
+registra_firmato (l'impronta dell'originale ritrovato dentro il firmato,
+calcolata dal sito: PAdES = i primi "dimensione" byte, CAdES = il PDF dentro
+il .p7m, deve essere quella approvata). NB: il .p7m con il contenuto spezzato
+in pezzi (BER) non si riconosce: va provato con i file veri firmati. Sito:
+js/117 (POS di js/116 e dichiarazioni di js/37, file firmati con il nome
+FIRMATO_…).
 Dopo sql/162 (F19.11 POS di commessa, scelte di Erika del 24/11: si genera
 sempre, con BOZZA NON VALIDATA e l'elenco delle mancanze; figure della
 sicurezza in Impostazioni; segreteria, capo tecnico, titolare; ESEGUITO il

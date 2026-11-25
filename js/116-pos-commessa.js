@@ -78,11 +78,13 @@ async function caricaPosCommessa(commessa) {
       const path = r.commesse_documenti && r.commesse_documenti.storage_path;
       return '<div style="padding:6px 0;border-top:0.5px solid var(--bo);display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap;font-size:13px">' +
         '<div style="min-width:0"><b>Revisione ' + r.revisione + '</b> · ' + esc(dataOraEsitoPosCommessa(r.generato_il)) + ' · ' + esc(r.generato_da_nome || '') +
-          (r.bozza ? '<div style="font-size:12px;color:var(--a)">⚠️ Bozza: ' + esc((r.mancanze || []).length + ((r.mancanze || []).length === 1 ? ' cosa manca' : ' cose mancano')) + '</div>' : '<div style="font-size:12px;color:var(--g)">✅ Completo (da firmare)</div>') + '</div>' +
+          (r.bozza ? '<div style="font-size:12px;color:var(--a)">⚠️ Bozza: ' + esc((r.mancanze || []).length + ((r.mancanze || []).length === 1 ? ' cosa manca' : ' cose mancano')) + '</div>' : '<div style="font-size:12px;color:var(--g)">✅ Completo</div>') +
+          // F19.13 (sql/164, js/117): approvazione del titolare e PDF firmato
+          (path && r.documento_id ? '<div data-firma-doc="' + esc(r.documento_id) + '" data-firma-tipo="pos" data-firma-path="' + esc(path) + '" data-firma-cartella="faldone" data-firma-commessa="' + esc(commessa.id) + '" data-firma-bozza="' + (r.bozza ? '1' : '0') + '"></div>' : '') + '</div>' +
         (path ? '<button type="button" class="btn sm" data-path="' + esc(path) + '" onclick="scaricaDocumentoCommessa(this.dataset.path)">📄 Apri</button>' : '') +
       '</div>';
     }).join('') : '<div class="empty" style="font-size:12px">Nessun POS generato.</div>') +
-    '</div>';
+    '</div>';  if (typeof arricchisciFirme === 'function') arricchisciFirme(box).catch(function(e) { console.warn('Firme del POS:', e); });
 }
 
 function dataOraEsitoPosCommessa(t) {

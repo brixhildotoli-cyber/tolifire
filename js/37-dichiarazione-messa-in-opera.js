@@ -97,6 +97,11 @@ async function caricaDichiarazioneCommessa(commessa) {
       ${salvate.length ? `
         <div style="font-size:13px;margin-top:8px">✅ ${salvate.length === 1 ? 'Una dichiarazione salvata' : salvate.length + ' dichiarazioni salvate'} nella cartella Chiusura
           (ultima: ${esc(new Date(salvate[0].caricato_il).toLocaleDateString('it-IT'))}${salvate[0].caricato_da_nome ? ', ' + esc(salvate[0].caricato_da_nome) : ''}).</div>
+        ${typeof arricchisciFirme === 'function' ? salvate.map(function(d) {
+          // F19.13 (sql/164, js/117): approvazione del titolare e PDF firmato
+          return '<div style="font-size:12px;padding:6px 0;border-top:0.5px solid var(--bo)">📄 ' + esc(d.nome_file) + ' · ' + esc(new Date(d.caricato_il).toLocaleDateString('it-IT')) +
+            '<div data-firma-doc="' + esc(d.id) + '" data-firma-tipo="dichiarazione_posa" data-firma-path="' + esc(d.storage_path) + '" data-firma-cartella="chiusura" data-firma-commessa="' + esc(commessa.id) + '"></div></div>';
+        }).join('') : ''}
       ` : `
         <div style="font-size:13px;margin-top:8px;color:var(--a)">⚠️ Nessuna dichiarazione ancora salvata nella cartella Chiusura.</div>
       `}
@@ -108,7 +113,7 @@ async function caricaDichiarazioneCommessa(commessa) {
         <button class="btn sm p" id="cmd-dichiarazione-apri" onclick="apriDichiarazionePosa()">📄 ${salvate.length ? 'Genera di nuovo la dichiarazione' : 'Prepara la dichiarazione'}</button>
       </div>
     </div>
-  `;
+  `;  if (typeof arricchisciFirme === 'function') arricchisciFirme(box).catch(function(e) { console.warn('Firme della dichiarazione:', e); });
 }
 
 // ── Classificazioni lette dalle descrizioni ─────────────────────────
