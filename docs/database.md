@@ -3158,8 +3158,8 @@ riesecuzione provati.
 Dopo sql/164 (F19.13 approvazione tracciata e firma digitale, scelte di Erika
 del 25/11: POS e dichiarazione di posa; approva solo il titolare; il firmato lo
 caricano segreteria e titolare; POS in bozza approvabile solo con il motivo;
-DA ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/164", -REGISTRO-CANCELLAZIONI
-dall'editor, controllo in fondo; provato in locale con 164-...-PROVA.sql come
+ESEGUITO il 25/11 con -REGISTRO-CANCELLAZIONI, backup pre164, controllo in
+regola; provato in locale con 164-...-PROVA.sql come
 supabase_admin: 25 ok, rollback provato): tabella NUOVA documenti_firme (una
 riga per commesse_documenti approvato: tipo pos | dichiarazione_posa,
 impronta_sha256 e dimensione dell'approvato, chi e quando, nota; poi
