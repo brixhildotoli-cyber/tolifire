@@ -537,6 +537,8 @@ async function salvaGiornoSquadra() {
   squadraModulo = null;
   toast(data > 1 ? 'Squadra salvata per ' + data + ' giorni' : 'Squadra salvata', 'ok');
   if (commessaApertaId === s.commessa.id) await caricaSquadraCantiere(s.commessa);
+  // F19.15 (sql/166, js/118): persona in squadra non nel POS inviato = solo avviso
+  if (typeof avvisoPosDopoSquadra === 'function') avvisoPosDopoSquadra(s.commessa).catch(function() {});
 }
 
 async function togliGiornoSquadra(giornoId) {

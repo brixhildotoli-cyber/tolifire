@@ -75,6 +75,7 @@ async function caricaPosCommessa(commessa) {
       (genera ? '<button type="button" class="btn sm p" onclick="apriGeneraPosCommessa()">🦺 Genera il POS</button>' : '') +
     '</div>' +
     (invio ? htmlAvvisoInvioPos(revisioni) : '') +
+    '<div id="cmd-pos-aggiorna"></div>' +   // F19.15 (sql/166, js/118): POS da aggiornare
     '<div style="font-size:12px;color:var(--m);margin-bottom:6px">Il POS si compone da solo con impresa, cantiere, lavorazioni e schede rischi, personale con i corsi, subappaltatori e mezzi. Se manca qualcosa esce come BOZZA con l\'elenco. Il PDF va nel faldone.</div>' +
     (error ? '<div class="al2 e">Errore: ' + esc(error.message) + '</div>' : '') +
     (revisioni.length ? revisioni.map(function(r) {
@@ -91,6 +92,7 @@ async function caricaPosCommessa(commessa) {
     }).join('') : '<div class="empty" style="font-size:12px">Nessun POS generato.</div>') +
     '</div>';  const firme = typeof arricchisciFirme === 'function' ? arricchisciFirme(box) : Promise.resolve();
   firme.then(function() { if (invio) disegnaInvioPos(box); }).catch(function(e) { console.warn('Firme del POS:', e); });
+  if (revisioni.length && typeof caricaPosDaAggiornare === 'function') caricaPosDaAggiornare(commessa).catch(function(e) { console.warn('POS da aggiornare:', e); });
 }
 
 function dataOraEsitoPosCommessa(t) {
@@ -453,6 +455,10 @@ async function statoPosPerPassiCommessa(commessaId) {
   const { data, error } = await db.from('pos_commessa').select('revisione, ' + COLONNE_INVIO_POS).eq('commessa_id', commessaId).order('revisione', { ascending: false }).limit(1);
   if (error) return null;
   const rev = data || [];
+  // F19.15 (js/118): cambiata dopo l'invio = POS da aggiornare
+  const agg = posInviatoOk(rev[0]) && typeof leggiPosDaAggiornare === 'function' ? await leggiPosDaAggiornare(commessaId) : null;
+  const nDiff = agg && agg.differenze ? agg.differenze.length : 0;
+  if (nDiff) return { pronto: false, testo: 'il POS aggiornato: dopo l\'invio sono cambiate ' + nDiff + (nDiff === 1 ? ' cosa' : ' cose') + ' (riquadro «🦺 POS di commessa»)' };
   return { pronto: posInviatoOk(rev[0]), testo: testoMancaPos(rev) };
 }
 

@@ -3155,6 +3155,25 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Dopo sql/166 (F19.15 revisione del POS, scelte di Erika del 26/11: SOLO
+AVVISI; «⚠️ POS da aggiornare» con l'elenco delle differenze e rigenerazione a
+mano; persona in squadra non nel POS = squadra salvata come oggi con l'avviso;
+contano persone e subappaltatori del faldone, persone in squadra, mezzi e
+lavorazioni; avviso nel riquadro del POS e in «Cosa tocca a me» di segreteria e
+titolare; DA ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/166", controllo in
+fondo, niente -REGISTRO-CANCELLAZIONI; provato in locale con
+166-...-PROVA.sql: 18 ok, rollback provato): colonna NUOVA
+pos_commessa.contenuto (persone e subappaltatori del faldone, subappaltatori
+con ordine non annullato, mezzi dei giorni di squadra, lavorazioni delle schede
+di rilievo quando è nata la revisione), scritta dal trigger
+trg_pos_commessa_contenuto (before insert). Funzioni interne senza permessi
+pos_contenuto_commessa, pos_differenze_commessa; RPC pos_da_aggiornare
+(titolare, segreteria, capo tecnico: differenze rispetto all'ultima revisione,
+solo se una è stata inviata), pos_da_aggiornare_elenco (titolare, segreteria),
+pos_revisione_attiva. Le revisioni nate prima di sql/166 non si confrontano.
+Sito: js/118 (avviso in #cmd-pos-aggiorna di js/116, «Prossimo passo» di
+js/107 tramite statoPosPerPassiCommessa, avviso dopo salvaSquadra di js/33,
+fonte «pos-da-aggiornare» di «Cosa tocca a me»). Prova pos-revisione.
 Dopo sql/165 (F19.14 invio del POS, scelte di Erika del 25/11: Pronta solo con
 avviso; invio a mano con l'esito del coordinatore; portale più avanti; POS dei
 subappaltatori controllato per commessa; ESEGUITO il 26/11 con
