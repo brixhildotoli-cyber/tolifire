@@ -3160,8 +3160,8 @@ AVVISI; «⚠️ POS da aggiornare» con l'elenco delle differenze e rigenerazio
 mano; persona in squadra non nel POS = squadra salvata come oggi con l'avviso;
 contano persone e subappaltatori del faldone, persone in squadra, mezzi e
 lavorazioni; avviso nel riquadro del POS e in «Cosa tocca a me» di segreteria e
-titolare; DA ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/166", controllo in
-fondo, niente -REGISTRO-CANCELLAZIONI; provato in locale con
+titolare; ESEGUITO il 26/11, backup pre166 (2026-11-26-144831), controllo in
+regola, niente -REGISTRO-CANCELLAZIONI; provato in locale con
 166-...-PROVA.sql: 18 ok, rollback provato): colonna NUOVA
 pos_commessa.contenuto (persone e subappaltatori del faldone, subappaltatori
 con ordine non annullato, mezzi dei giorni di squadra, lavorazioni delle schede
