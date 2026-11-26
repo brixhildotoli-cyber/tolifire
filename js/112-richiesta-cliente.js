@@ -18,7 +18,10 @@ async function leggiRichiesteSitoCliente(clienteId) {
     db.from('lead_sito').select('id, codice, creato_il, nome, azienda, email, telefono, servizio_richiesto, messaggio')
       .eq('cliente_id', clienteId).order('creato_il', { ascending: false }).limit(20)
   ]);
-  return { cliente: rc && !rc.error ? rc.data : null, richieste: rl && !rl.error ? (rl.data || []) : [] };
+  // 26/11 (js/120): testo delle mail allegate ai progetti del cliente
+  let mail = [];
+  if (typeof mailDeiProgettiCliente === 'function') { try { mail = await mailDeiProgettiCliente(clienteId); } catch (e) { console.warn('Mail del cliente:', e); } }
+  return { cliente: rc && !rc.error ? rc.data : null, richieste: rl && !rl.error ? (rl.data || []) : [], mail: mail };
 }
 
 let richiesteSitoAperte = [];
@@ -28,7 +31,8 @@ function htmlRichiesteSito(dati, opz) {
   const c = dati.cliente || {};
   const email = [c.referente_email, c.pec].filter(function(x) { return String(x || '').trim(); });
   const r = dati.richieste || [];
-  if (!email.length && !r.length) return '';
+  const mail = dati.mail || [];
+  if (!email.length && !r.length && !mail.length) return '';
   richiesteSitoAperte = r;
   return '<div class="card" style="margin-top:' + (opz.margine || '12px') + ';font-size:13px">' +
     '<div style="font-size:14px;font-weight:700;margin-bottom:4px">📨 Email e richieste del cliente</div>' +
@@ -43,6 +47,8 @@ function htmlRichiesteSito(dati, opz) {
         (opz.copia && l.messaggio ? '<button type="button" class="btn sm" style="margin-top:4px" data-i="' + i + '" onclick="copiaRichiestaInDescrizione(this.dataset.i)">↳ Copia nella descrizione tecnica</button>' : '') +
       '</div>';
     }).join('') : '') +
+    (mail.length && typeof htmlMailClienteTesto === 'function' ? htmlMailClienteTesto(mail, opz) : '') +
+    (!r.length && !mail.length ? '<div style="font-size:12px;color:var(--m);margin-top:4px">Nessuna mail del cliente: trascina la mail della richiesta da Outlook nel progetto (riquadro «✉️ Mail del cliente») e qui compare il testo.</div>' : '') +
     '</div>';
 }
 
