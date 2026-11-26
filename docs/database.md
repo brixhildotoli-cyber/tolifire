@@ -3155,6 +3155,24 @@ capo tecnico con Interventi, finestra e Cosa tocca a me, tecnico a 390 px in
 Esegui intervento, console di tecnico, ingegnere e capo tecnico): TUTTO OK; smoke
 TUTTO OK con e senza (senza: un 404 per utente, solo avviso); rollback e
 riesecuzione provati.
+Dopo sql/167 (F19.16 date di inizio e faldone, scelte di Erika del 26/11: POS
+resta solo avviso; corsi richiesti dalla commessa = avviso nel faldone (solo
+sito, js/119); chi è in squadra ma non nel faldone = avviso; D9 di Toli
+applicata; DA ESEGUIRE: backup, "CONFERMATO DA TOLI: sql/167", controllo in
+fondo, niente -REGISTRO-CANCELLAZIONI; provato in locale con
+167-...-PROVA.sql: 17 ok, rollback provato con impronte uguali): RISCRITTE
+stato_faldone_commessa (campo "legge" sui documenti mancanti o scaduti dei
+dipendenti per i corsi di legge del catalogo di sql/152 più formazione
+lavoratori e idoneità sanitaria; problema nuovo idoneita_non_idoneo che blocca
+con visita "non idoneo" di sql/153; avviso squadra_fuori_faldone; campo
+non_forzabili), consegna_faldone_commessa (con non_forzabili > 0 rifiuta anche
+la forzatura del titolare o della delega), testo_problema_faldone (testi
+nuovi). Originali in sql167_originali (nessun permesso) per il rollback; il
+file si ferma se le impronte md5 delle funzioni non sono quelle del 26/11.
+stato_faldone_commessa non più chiamabile da anon. faldone_d9_attivo().
+Sito: js/31 (testi, «di legge: non si consegna nemmeno forzando», la consegna
+non si apre, badge «non idoneo», #fald-corsi-avviso), js/119 (avviso 🎓 corsi
+richiesti alla data di inizio). Prova faldone-d9.
 Dopo sql/166 (F19.15 revisione del POS, scelte di Erika del 26/11: SOLO
 AVVISI; «⚠️ POS da aggiornare» con l'elenco delle differenze e rigenerazione a
 mano; persona in squadra non nel POS = squadra salvata come oggi con l'avviso;

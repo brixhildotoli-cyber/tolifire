@@ -90,6 +90,11 @@ function testoScadenzaFaldone(dataScadenza) {
 }
 
 function testoProblemaFaldone(p) {
+  // sql/167 (D9): corso di legge o idoneità sanitaria, non si forza
+  return testoProblemaFaldoneBase(p) + (p.blocca && p.legge ? ' (di legge: non si consegna nemmeno forzando)' : '');
+}
+
+function testoProblemaFaldoneBase(p) {
   const tipo = p.tipo ? nomeTipoDocumentoFaldone(p.tipo) : '';
   switch (p.codice) {
     case 'data_inizio_mancante': return 'Data di inizio lavori non fissata';
@@ -100,6 +105,9 @@ function testoProblemaFaldone(p) {
     case 'documento_scaduto': return p.persona + ': ' + tipo + ' — ' + testoScadenzaFaldone(p.data_scadenza);
     case 'documento_scade_durante': return p.persona + ': ' + tipo + ' scade il ' + fd(p.data_scadenza) + ', prima della fine prevista';
     case 'voce_da_fare': return 'Da fare: ' + (p.voce || '');
+    // sql/167 (F19.16)
+    case 'idoneita_non_idoneo': return p.persona + ': visita medica con esito NON IDONEO';
+    case 'squadra_fuori_faldone': return p.persona + ': in squadra dal ' + fd(p.data) + ' ma non è nel personale del faldone (aggiungilo per controllarne i documenti)';
     default: return p.codice || '';
   }
 }
@@ -108,6 +116,7 @@ function badgeRequisitoFaldone(r) {
   const nome = nomeTipoDocumentoFaldone(r.tipo);
   if (r.esito === 'mancante') return `<span class="bx berr" title="Manca">${esc(nome)}: manca</span>`;
   if (r.esito === 'scaduto') return `<span class="bx berr">${esc(nome)}: ${esc(testoScadenzaFaldone(r.data_scadenza))}</span>`;
+  if (r.esito === 'non_idoneo') return `<span class="bx berr">${esc(nome)}: non idoneo</span>`;
   if (r.esito === 'scade_durante') return `<span class="bx bwarn">${esc(nome)}: scade il ${esc(fd(r.data_scadenza))}</span>`;
   return `<span class="bx bok">${esc(nome)}${r.data_scadenza ? ': fino al ' + esc(fd(r.data_scadenza)) : ': senza scadenza'}</span>`;
 }
@@ -172,6 +181,8 @@ async function caricaFaldoneCommessa(commessa) {
   faldoneAperto = { commessa: commessa, stato: rStato.data };
 
   box.innerHTML = htmlFaldoneCommessa(commessa, rStato.data);
+  // F19.16 (js/119): corsi richiesti dalla commessa, solo avviso
+  if (typeof avvisoCorsiFaldone === 'function') avvisoCorsiFaldone(commessa, rStato.data).catch(function(e) { console.warn('Corsi del faldone:', e); });
   // F19.14 (sql/165, js/116): POS dei subappaltatori controllato per la commessa
   if (typeof caricaControlliPosSubappaltatori === 'function') caricaControlliPosSubappaltatori(commessa, box).catch(function(e) { console.warn('POS dei subappaltatori:', e); });
 }
@@ -314,6 +325,7 @@ function htmlFaldoneCommessa(commessa, f) {
       ${date}
       ${esito}
       ${htmlAvvisi}
+      <div id="fald-corsi-avviso"></div>
       ${personale}
       ${richiesti}
       ${htmlVoci}
@@ -500,6 +512,12 @@ function apriConsegnaFaldone() {
   const f = faldoneAperto.stato;
   const bloccanti = (f.problemi || []).filter(function(p) { return p.blocca; });
   const forzata = bloccanti.length > 0;
+  // sql/167 (D9 di Toli): corsi di legge e idoneità sanitaria non si forzano
+  const diLegge = bloccanti.filter(function(p) { return p.legge; });
+  if (diLegge.length) {
+    toast('Non si consegna nemmeno forzando: ' + diLegge.map(testoProblemaFaldoneBase).join('; ') + '. Carica prima i documenti.', 'err');
+    return;
+  }
 
   if (forzata && ROLE !== 'titolare' && !(typeof haDelegaTitolare === 'function' && haDelegaTitolare('consegna_forzata_faldone'))) {
     toast('Il faldone non è in regola: risolvi prima i problemi in rosso', 'err');
