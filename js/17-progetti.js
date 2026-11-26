@@ -4021,7 +4021,8 @@ async function caricaAllegatiDaVerifica(progettoId) {
 
   // F15.9 (js/56 caricaFileNelProgetto): foto rimpicciolite, impronta del file
   for (const file of files) {
-    const caricato = await caricaFileNelProgetto(progettoId, utenteId, file, {});
+    // 26/11: con «Entra come» il file è della persona impersonata (come js/17 riga del modulo progetto)
+    const caricato = await caricaFileNelProgetto(progettoId, utenteId, file, ME && ME.id && ME.id !== utenteId ? { caricatoDa: ME.id } : {});
     if (!caricato.alleg) throw new Error(caricato.errore);
   }
 }

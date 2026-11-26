@@ -1167,7 +1167,7 @@ async function caricaFileFonteMotore(codice, input) {
   toast('Caricamento…', 'info');
   // F15.9: rimpicciolita, con l'impronta (sql/82-foto-video); un file già del
   // progetto si riusa per la fonte
-  const r = await caricaFileNelProgetto(progettoId, uid, originale, { cartella: 'fonti', prefisso: 'fonte_' + codice + '_' });
+  const r = await caricaFileNelProgetto(progettoId, uid, originale, Object.assign({ cartella: 'fonti', prefisso: 'fonte_' + codice + '_' }, ME && ME.id && ME.id !== uid ? { caricatoDa: ME.id } : {}));
   const alleg = r.alleg || r.doppione;
   if (!alleg) { toast(r.errore, 'err'); return; }
   if (r.doppione) toast('File già tra i file del progetto: uso quello («' + alleg.nome_file + '»)', 'info');
@@ -2127,7 +2127,7 @@ async function caricaFotoVideoMotore(id, input) {
     const giusto = d.tipo === 'video' ? fileVideoProgetto(f) : (d.tipo === 'foto' ? /^image\//.test(f.type || '') : true);
     if (!giusto) { toast(f.name + ': qui serve ' + (d.tipo === 'video' ? 'un video (mp4 o mov)' : 'una foto'), 'err'); continue; }
     toast('Caricamento di ' + f.name + '…', 'info');
-    const r = await caricaFileNelProgetto(progettoId, uid, f, { cartella: 'foto_video' });
+    const r = await caricaFileNelProgetto(progettoId, uid, f, Object.assign({ cartella: 'foto_video' }, ME && ME.id && ME.id !== uid ? { caricatoDa: ME.id } : {}));
     let alleg = r.alleg;
     if (!alleg && r.doppione) {
       if (fileGiaInSchedaMotore(r.doppione.id)) {

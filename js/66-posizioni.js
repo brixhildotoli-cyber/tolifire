@@ -372,7 +372,7 @@ async function caricaFotoPosizione(input) {
     // foto già nel progetto (anche in un'altra posizione) è rifiutata
     const codice = (a.riga && a.riga.codice) || 'P';
     const r = typeof caricaFileNelProgetto === 'function'
-      ? await caricaFileNelProgetto(a.ctx.progettoId, uid, originale, { cartella: 'posizioni', prefisso: codice + '_' })
+      ? await caricaFileNelProgetto(a.ctx.progettoId, uid, originale, Object.assign({ cartella: 'posizioni', prefisso: codice + '_' }, ME && ME.id && ME.id !== uid ? { caricatoDa: ME.id } : {}))
       : { errore: 'Caricamento non disponibile: ricarica la pagina' };
     if (!r.alleg) { toast(r.errore, 'err'); continue; }
     const alleg = r.alleg, path = alleg.storage_path, nome = alleg.nome_file;
